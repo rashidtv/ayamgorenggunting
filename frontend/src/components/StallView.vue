@@ -6,11 +6,11 @@
         <span class="banner-icon">⚠️</span>
         <div class="banner-text">
           <div class="banner-title">Connection Issue</div>
-          <div class="banner-desc">Cannot connect to server. Please ensure backend is running on port 5001.</div>
+          <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
         </div>
         <button @click="loadData" class="btn btn-outline retry-btn">
           <span class="btn-icon">🔄</span>
-          Retry
+          Retry Connection
         </button>
       </div>
     </div>
@@ -22,26 +22,29 @@
         <div class="stat-info">
           <div class="stat-value">{{ formatCurrency(todaySales.total_revenue) }}</div>
           <div class="stat-label">Today's Revenue</div>
-          <div class="stat-trend">Today</div>
+          <div class="stat-trend">Live</div>
         </div>
+        <div class="stat-glow"></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon items">📦</div>
         <div class="stat-info">
-          <div class="stat-value">{{ todaySales.items_sold }}</div>
+          <div class="stat-value">{{ todaySales.items_sold || 0 }}</div>
           <div class="stat-label">Items Sold</div>
           <div class="stat-trend">Today</div>
         </div>
+        <div class="stat-glow"></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon inventory">📊</div>
         <div class="stat-info">
           <div class="stat-value">{{ lowStockCount }}</div>
-          <div class="stat-label">Low Stock Items</div>
+          <div class="stat-label">Low Stock</div>
           <div class="stat-trend" :class="{ 'warning': lowStockCount > 0 }">
             {{ lowStockCount > 0 ? 'Needs Attention' : 'All Good' }}
           </div>
         </div>
+        <div class="stat-glow"></div>
       </div>
     </div>
 
@@ -53,7 +56,14 @@
           <p>Tap to sell items instantly</p>
         </div>
         <div class="section-actions">
-          <div class="last-updated">Updated: {{ lastUpdateTime }}</div>
+          <div class="last-updated">
+            <span class="update-icon">🕒</span>
+            Updated: {{ lastUpdateTime }}
+          </div>
+          <button @click="loadData" class="btn btn-ghost refresh-btn">
+            <span class="btn-icon">🔄</span>
+            Refresh
+          </button>
         </div>
       </div>
       <div class="menu-grid">
@@ -76,6 +86,7 @@
               SELL
             </div>
           </div>
+          <div class="item-glow"></div>
         </button>
       </div>
     </div>
@@ -172,6 +183,7 @@
               Add 1kg
             </button>
           </div>
+          <div class="inventory-glow"></div>
         </div>
       </div>
     </div>
@@ -204,6 +216,15 @@
           </div>
         </div>
         <div v-else class="analytics-content">
+          <div class="chart-header">
+            <h3>Daily Revenue Trend</h3>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <div class="legend-color primary"></div>
+                <span>Daily Revenue</span>
+              </div>
+            </div>
+          </div>
           <div class="sales-chart">
             <div 
               v-for="day in analytics.dailySales" 
@@ -219,6 +240,29 @@
               <div class="bar-label">
                 <div class="bar-date">{{ formatDate(day.date) }}</div>
                 <div class="bar-revenue">{{ formatCurrency(day.revenue) }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Product Sales Breakdown -->
+          <div class="product-breakdown" v-if="Object.keys(analytics.productSales).length > 0">
+            <h4>Product Performance</h4>
+            <div class="product-grid">
+              <div 
+                v-for="(quantity, product) in analytics.productSales" 
+                :key="product"
+                class="product-item"
+              >
+                <div class="product-info">
+                  <div class="product-name">{{ product }}</div>
+                  <div class="product-sales">{{ quantity }} sold</div>
+                </div>
+                <div class="product-bar">
+                  <div 
+                    class="product-fill"
+                    :style="{ width: getProductPercentage(quantity) + '%' }"
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -240,7 +284,7 @@
 import axios from 'axios'
 import { formatCurrency, formatNumber } from '../utils/currency.js'
 
-import { API_BASE } from '../config/api.js'
+const API_BASE = 'https://agg-backend.onrender.com/api'
 
 export default {
   name: 'StallView',
@@ -255,7 +299,7 @@ export default {
       },
       analytics: {
         dailySales: [],
-        productSales: []
+        productSales: {}
       },
       loading: false,
       loadingData: false,
@@ -340,7 +384,7 @@ export default {
       try {
         const response = await axios.get(`${API_BASE}/inventory`, {
           headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 5000
+          timeout: 10000
         })
         this.processInventoryData(response.data)
       } catch (error) {
@@ -379,7 +423,7 @@ export default {
       try {
         const response = await axios.get(`${API_BASE}/stall-today-sales`, {
           headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 5000
+          timeout: 10000
         })
         this.todaySales = response.data
       } catch (error) {
@@ -392,7 +436,7 @@ export default {
       try {
         const response = await axios.get(`${API_BASE}/sales-analytics`, {
           headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 5000
+          timeout: 10000
         })
         this.analytics = response.data
       } catch (error) {
@@ -417,13 +461,16 @@ export default {
           timeout: 10000
         })
         
+        // Reload data
         await this.loadData()
+        
+        // Show success notification
         this.$emit('show-notification', `Sold ${itemName} for ${this.formatCurrency(price)}!`, 'success')
       } catch (error) {
         console.error('Error selling item:', error)
         if (error.code === 'ERR_NETWORK') {
           this.connectionError = true
-          this.$emit('show-notification', 'Cannot connect to server. Check if backend is running on port 5001.', 'error')
+          this.$emit('show-notification', 'Cannot connect to server. Check if backend is running.', 'error')
         } else if (error.response?.status === 400) {
           this.$emit('show-notification', error.response.data.error || 'Cannot sell item - recipe missing', 'error')
         } else {
@@ -466,16 +513,23 @@ export default {
     },
     
     getWeeklyTotal() {
-      return this.formatCurrency(this.analytics.dailySales.reduce((sum, day) => sum + day.revenue, 0))
+      const total = this.analytics.dailySales.reduce((sum, day) => sum + day.revenue, 0)
+      return this.formatCurrency(total)
     },
     
     getWeeklyItems() {
-      return this.analytics.dailySales.reduce((sum, day) => sum + (day.quantity || 0), 0)
+      // Sum all quantities from productSales
+      return Object.values(this.analytics.productSales).reduce((sum, quantity) => sum + quantity, 0)
     },
     
     getBarHeight(revenue) {
       const maxRevenue = Math.max(...this.analytics.dailySales.map(d => d.revenue))
       return maxRevenue > 0 ? (revenue / maxRevenue) * 80 : 0
+    },
+    
+    getProductPercentage(quantity) {
+      const maxQuantity = Math.max(...Object.values(this.analytics.productSales))
+      return maxQuantity > 0 ? (quantity / maxQuantity) * 100 : 0
     },
     
     formatDate(dateString) {
@@ -497,16 +551,24 @@ export default {
 
 /* Connection Banner */
 .connection-banner {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: var(--radius);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
   padding: var(--space);
   margin-bottom: var(--space);
+  position: relative;
+  overflow: hidden;
 }
 
-.connection-banner.error {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
+.connection-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--error);
+  opacity: 0.6;
 }
 
 .banner-content {
@@ -526,13 +588,9 @@ export default {
 
 .banner-title {
   font-weight: 600;
-  color: var(--warning);
+  color: var(--error);
   margin-bottom: var(--space-xs);
   font-size: var(--font-size-sm);
-}
-
-.error .banner-title {
-  color: var(--error);
 }
 
 .banner-desc {
@@ -566,19 +624,19 @@ export default {
   overflow: hidden;
 }
 
-.stat-card::before {
-  content: '';
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-glow {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  opacity: 0.8;
 }
 
 .stat-icon {
@@ -590,6 +648,8 @@ export default {
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .stat-icon.revenue {
@@ -609,6 +669,8 @@ export default {
 
 .stat-info {
   flex: 1;
+  position: relative;
+  z-index: 2;
 }
 
 .stat-value {
@@ -684,44 +746,17 @@ export default {
   background: var(--background);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius);
-}
-
-/* Inventory Summary */
-.inventory-summary {
   display: flex;
-  gap: var(--space);
-  background: var(--background);
-  padding: var(--space);
-  border-radius: var(--radius);
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: var(--space);
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  min-width: 100px;
+  gap: var(--space-xs);
 }
 
-.summary-item.warning {
-  border-color: var(--warning);
-  background: rgba(245, 158, 11, 0.05);
+.update-icon {
+  font-size: var(--font-size-sm);
 }
 
-.summary-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-xs);
-  font-weight: 600;
-}
-
-.summary-value {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--text);
+.refresh-btn {
+  padding: var(--space-sm);
 }
 
 /* Menu Grid */
@@ -743,7 +778,9 @@ export default {
   cursor: pointer;
   transition: var(--transition);
   text-align: left;
-  width: 100;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .menu-item:hover:not(:disabled) {
@@ -756,6 +793,25 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.item-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.menu-item:hover .item-glow {
+  left: 100%;
 }
 
 .item-icon {
@@ -814,6 +870,44 @@ export default {
   font-size: var(--font-size-sm);
 }
 
+/* Inventory Summary */
+.inventory-summary {
+  display: flex;
+  gap: var(--space);
+  background: var(--background);
+  padding: var(--space);
+  border-radius: var(--radius);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space);
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  min-width: 100px;
+}
+
+.summary-item.warning {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
 /* Inventory Grid */
 .inventory-grid {
   padding: var(--space-lg);
@@ -829,6 +923,7 @@ export default {
   border: 2px solid var(--border);
   transition: var(--transition);
   position: relative;
+  overflow: hidden;
 }
 
 .inventory-item.low-stock {
@@ -844,6 +939,25 @@ export default {
 .inventory-item:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow);
+}
+
+.inventory-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.05),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.inventory-item:hover .inventory-glow {
+  left: 100%;
 }
 
 .inventory-header {
@@ -1054,12 +1168,49 @@ export default {
   gap: var(--space-lg);
 }
 
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space);
+}
+
+.chart-header h3 {
+  font-size: var(--font-size);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chart-legend {
+  display: flex;
+  gap: var(--space);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.primary {
+  background: var(--primary);
+}
+
 .sales-chart {
   display: flex;
   align-items: end;
   gap: var(--space);
   height: 200px;
   padding: var(--space) 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .chart-bar {
@@ -1106,6 +1257,65 @@ export default {
   font-weight: 700;
   color: var(--text);
   font-size: 0.7rem;
+}
+
+/* Product Breakdown */
+.product-breakdown {
+  margin-top: var(--space-lg);
+}
+
+.product-breakdown h4 {
+  font-size: var(--font-size);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space);
+}
+
+.product-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  padding: var(--space-sm);
+  background: var(--background);
+  border-radius: var(--radius);
+}
+
+.product-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.product-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  margin-bottom: 2px;
+}
+
+.product-sales {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.product-bar {
+  flex: 2;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.product-fill {
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
 /* Loading Section */
@@ -1182,6 +1392,21 @@ export default {
   .inventory-actions {
     flex-direction: column;
   }
+  
+  .analytics-summary {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .analytics-stat {
+    min-width: auto;
+  }
+  
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
 }
 
 @media (max-width: 480px) {
@@ -1191,13 +1416,8 @@ export default {
     gap: var(--space-sm);
   }
   
-  .analytics-summary {
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-  
-  .analytics-stat {
-    min-width: auto;
+  .product-info {
+    min-width: 100px;
   }
 }
 </style>
