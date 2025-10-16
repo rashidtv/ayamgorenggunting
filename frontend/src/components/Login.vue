@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <!-- Animated Background -->
+    <!-- Animated Background - Fixed for Mobile -->
     <div class="background-animation">
       <div class="floating-shapes">
         <div class="shape shape-1"></div>
@@ -11,7 +11,7 @@
     </div>
 
     <div class="login-content">
-      <!-- Left Panel - Brand -->
+      <!-- Left Panel - Brand - Fixed Mobile Visibility -->
       <div class="brand-panel">
         <div class="brand-content">
           <div class="logo-animation">
@@ -124,7 +124,7 @@
             </button>
           </form>
 
-          <!-- Demo Accounts -->
+          <!-- Demo Accounts - Fixed Desktop Display -->
           <div class="demo-section">
             <div class="section-divider">
               <span>Quick Access</span>
@@ -262,7 +262,7 @@ export default {
   overflow: hidden;
 }
 
-/* Animated Background */
+/* Animated Background - Fixed for Mobile */
 .background-animation {
   position: absolute;
   top: 0;
@@ -337,7 +337,7 @@ export default {
   position: relative;
 }
 
-/* Brand Panel */
+/* Brand Panel - Fixed Mobile Visibility */
 .brand-panel {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
@@ -462,6 +462,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto; /* Added for demo accounts scroll */
+  max-height: 100vh;
 }
 
 .login-card {
@@ -703,9 +705,25 @@ export default {
   font-size: 1.1rem;
 }
 
-/* Demo Section */
+/* Demo Section - Fixed Desktop Display */
 .demo-section {
   margin-bottom: 2rem;
+  max-height: 300px; /* Limit height for desktop */
+  overflow-y: auto; /* Enable scrolling if needed */
+}
+
+.demo-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.demo-section::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.demo-section::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 2px;
 }
 
 .section-divider {
@@ -752,6 +770,7 @@ export default {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-height: 70px; /* Ensure consistent height */
 }
 
 .demo-card::before {
@@ -792,6 +811,8 @@ export default {
   text-transform: uppercase;
   color: white;
   flex-shrink: 0;
+  min-width: 50px; /* Ensure consistent badge width */
+  text-align: center;
 }
 
 .demo-card.admin .demo-badge {
@@ -804,24 +825,32 @@ export default {
 
 .demo-info {
   flex: 1;
+  min-width: 0; /* Prevent flex item from overflowing */
 }
 
 .demo-username {
   font-weight: 600;
   color: var(--text);
   margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .demo-password {
   font-size: 0.8rem;
   color: var(--text-secondary);
   font-family: 'Monaco', 'Consolas', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .demo-arrow {
   color: var(--text-tertiary);
   font-weight: 600;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
 }
 
 .demo-card:hover .demo-arrow {
@@ -885,35 +914,130 @@ export default {
   color: var(--info);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive - Fixed Mobile Issues */
+@media (max-width: 1024px) {
   .login-content {
-    grid-template-columns: 1fr;
-    height: auto;
-    margin: 1rem;
+    grid-template-columns: 1fr 1.2fr;
   }
   
   .brand-panel {
-    display: none;
+    padding: 2rem;
   }
   
   .login-panel {
     padding: 2rem;
   }
-  
-  .info-grid {
+}
+
+@media (max-width: 768px) {
+  .login-content {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    height: auto;
+    margin: 1rem;
+    max-height: 90vh;
+  }
+  
+  .brand-panel {
+    display: flex;
+    padding: 2rem;
+    min-height: 200px;
+  }
+  
+  .brand-content {
+    width: 100%;
+  }
+  
+  .logo-animation {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+  }
+  
+  .logo-icon {
+    font-size: 3rem;
+  }
+  
+  .ring-1 { width: 70px; height: 70px; }
+  .ring-2 { width: 85px; height: 85px; }
+  .ring-3 { width: 100px; height: 100px; }
+  
+  .brand-title {
+    font-size: 2rem;
+  }
+  
+  .feature-list {
+    display: none; /* Hide features on mobile for space */
+  }
+  
+  .login-panel {
+    padding: 2rem;
+    max-height: none;
+  }
+  
+  .demo-section {
+    max-height: none; /* Remove height limit on mobile */
+    overflow-y: visible;
   }
 }
 
 @media (max-width: 480px) {
+  .login-content {
+    margin: 0.5rem;
+    height: 95vh;
+  }
+  
+  .brand-panel {
+    padding: 1.5rem;
+    min-height: 150px;
+  }
+  
   .login-panel {
     padding: 1.5rem;
   }
   
   .login-card {
     max-width: none;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .demo-card {
+    padding: 0.75rem 1rem;
+    min-height: 60px;
+  }
+  
+  .demo-badge {
+    min-width: 45px;
+    font-size: 0.65rem;
+  }
+  
+  /* Ensure all demo cards are visible on mobile */
+  .demo-grid {
+    gap: 0.5rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .brand-title {
+    font-size: 1.75rem;
+  }
+  
+  .form-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .demo-card {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .demo-info {
+    min-width: 100%;
+    order: 3;
   }
 }
 </style>
