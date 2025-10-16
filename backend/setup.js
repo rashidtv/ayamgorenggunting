@@ -1,151 +1,128 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
+const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 
-async function setupDatabase() {
-  try {
-    console.log('Setting up SQLite database...');
-    
-    // Open SQLite database (creates file if doesn't exist)
-    const db = await open({
-      filename: path.join(__dirname, 'agg_mvp.db'),
-      driver: sqlite3.Database
-    });
+// Initialize database
+const dbPath = path.join(__dirname, 'agg_mvp.db');
+const db = new Database(dbPath);
 
-    console.log('✅ SQLite database connected');
+console.log('🚀 Setting up AGG MVP Database...');
 
-    // Create tables
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        stall_id INTEGER,
-        role TEXT DEFAULT 'user'
-      );
+// Enable better performance settings
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
-      CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        stall_id INTEGER NOT NULL,
-        material_name TEXT NOT NULL,
-        current_level REAL DEFAULT 0,
-        alert_level REAL DEFAULT 5,
-        UNIQUE(stall_id, material_name)  -- Add unique constraint
-      );
+// Create tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    stall_id INTEGER,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
-      CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        stall_id INTEGER NOT NULL,
-        item_name TEXT NOT NULL,
-        quantity INTEGER DEFAULT 1,
-        price REAL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+db.exec(`
+  CREATE TABLE IF NOT EXISTS inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stall_id INTEGER NOT NULL,
+    material_name TEXT NOT NULL,
+    current_level REAL NOT NULL DEFAULT 0,
+    alert_level REAL NOT NULL DEFAULT 10,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(stall_id, material_name)
+  )
+`);
 
-      CREATE TABLE IF NOT EXISTS recipes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_name TEXT NOT NULL,
-        material_name TEXT NOT NULL,
-        quantity_used REAL NOT NULL,
-        UNIQUE(item_name, material_name)  -- Add unique constraint
-      );
-    `);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stall_id INTEGER NOT NULL,
+    item_name TEXT NOT NULL,
+    price REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
-    console.log('✅ Tables created');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_name TEXT NOT NULL,
+    material_name TEXT NOT NULL,
+    quantity_used REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
-    // Hash password for demo users
-    const hashedPassword = await bcrypt.hash('password', 10);
+// Insert demo users
+const hashedPassword = bcrypt.hashSync('password', 10);
 
-    // Insert sample users (using INSERT OR IGNORE to avoid duplicates)
-    await db.run(`
-      INSERT OR IGNORE INTO users (username, password, stall_id, role) VALUES 
-      (?, ?, ?, ?)
-    `, ['admin', hashedPassword, 0, 'admin']);
+db.prepare(`
+  INSERT OR IGNORE INTO users (username, password, stall_id, role) 
+  VALUES (?, ?, ?, ?)
+`).run(['admin', hashedPassword, null, 'admin']);
 
-    await db.run(`
-      INSERT OR IGNORE INTO users (username, password, stall_id, role) VALUES 
-      (?, ?, ?, ?)
-    `, ['stall_01', hashedPassword, 1, 'user']);
+db.prepare(`
+  INSERT OR IGNORE INTO users (username, password, stall_id, role) 
+  VALUES (?, ?, ?, ?)
+`).run(['stall_01', hashedPassword, 1, 'user']);
 
-    await db.run(`
-      INSERT OR IGNORE INTO users (username, password, stall_id, role) VALUES 
-      (?, ?, ?, ?)
-    `, ['stall_02', hashedPassword, 2, 'user']);
+db.prepare(`
+  INSERT OR IGNORE INTO users (username, password, stall_id, role) 
+  VALUES (?, ?, ?, ?)
+`).run(['stall_02', hashedPassword, 2, 'user']);
 
-    // Clear existing inventory to avoid duplicates
-    await db.run('DELETE FROM inventory');
+// Insert sample inventory
+const inventoryItems = [
+  [1, 'Chicken', 50, 10],
+  [1, 'Flour', 20, 5],
+  [1, 'Oil', 30, 8],
+  [2, 'Chicken', 45, 10],
+  [2, 'Flour', 25, 5],
+  [2, 'Oil', 35, 8]
+];
 
-    // Insert sample inventory (one entry per material per stall)
-    const inventoryData = [
-      [1, 'Chicken', 20, 5],
-      [1, 'Flour', 15, 3],
-      [1, 'Oil', 30, 10],
-      [2, 'Chicken', 18, 5],
-      [2, 'Flour', 12, 3],
-      [2, 'Oil', 25, 10]
-    ];
+const inventoryStmt = db.prepare(`
+  INSERT OR IGNORE INTO inventory (stall_id, material_name, current_level, alert_level)
+  VALUES (?, ?, ?, ?)
+`);
 
-    for (const item of inventoryData) {
-      await db.run(`
-        INSERT INTO inventory (stall_id, material_name, current_level, alert_level) 
-        VALUES (?, ?, ?, ?)
-      `, item);
-    }
+inventoryItems.forEach(item => {
+  inventoryStmt.run(item);
+});
 
-    // Clear existing recipes
-    await db.run('DELETE FROM recipes');
+// Insert sample recipes
+const recipes = [
+  ['Regular AGG', 'Chicken', 0.2],
+  ['Regular AGG', 'Flour', 0.05],
+  ['Regular AGG', 'Oil', 0.1],
+  ['Spicy AGG', 'Chicken', 0.2],
+  ['Spicy AGG', 'Flour', 0.05],
+  ['Spicy AGG', 'Oil', 0.1],
+  ['Large AGG', 'Chicken', 0.3],
+  ['Large AGG', 'Flour', 0.08],
+  ['Large AGG', 'Oil', 0.15],
+  ['Family Pack', 'Chicken', 0.8],
+  ['Family Pack', 'Flour', 0.2],
+  ['Family Pack', 'Oil', 0.3]
+];
 
-    // Insert recipes (complete set for all menu items)
-    const recipesData = [
-      // Regular AGG
-      ['Regular AGG', 'Chicken', 0.25],
-      ['Regular AGG', 'Flour', 0.1],
-      ['Regular AGG', 'Oil', 0.05],
-      
-      // Spicy AGG
-      ['Spicy AGG', 'Chicken', 0.25],
-      ['Spicy AGG', 'Flour', 0.1],
-      ['Spicy AGG', 'Oil', 0.05],
-      
-      // Large AGG
-      ['Large AGG', 'Chicken', 0.4],
-      ['Large AGG', 'Flour', 0.15],
-      ['Large AGG', 'Oil', 0.08],
-      
-      // Family Pack
-      ['Family Pack', 'Chicken', 1.0],
-      ['Family Pack', 'Flour', 0.3],
-      ['Family Pack', 'Oil', 0.15]
-    ];
+const recipeStmt = db.prepare(`
+  INSERT OR IGNORE INTO recipes (item_name, material_name, quantity_used)
+  VALUES (?, ?, ?)
+`);
 
-    for (const recipe of recipesData) {
-      await db.run(`
-        INSERT INTO recipes (item_name, material_name, quantity_used) 
-        VALUES (?, ?, ?)
-      `, recipe);
-    }
+recipes.forEach(recipe => {
+  recipeStmt.run(recipe);
+});
 
-    console.log('✅ Sample data inserted');
-    console.log('');
-    console.log('📋 Demo Accounts:');
-    console.log('   Admin:    username: "admin", password: "password"');
-    console.log('   Stall 01: username: "stall_01", password: "password"');
-    console.log('   Stall 02: username: "stall_02", password: "password"');
-    console.log('');
-    console.log('📦 Inventory per stall:');
-    console.log('   Each stall has: Chicken, Flour, Oil');
-    console.log('');
-    console.log('🍗 Menu Items with Recipes:');
-    console.log('   Regular AGG, Spicy AGG, Large AGG, Family Pack');
-    console.log('');
-    console.log('✅ Database setup completed successfully!');
-    console.log('📁 Database file: agg_mvp.db');
+console.log('✅ Database setup completed!');
+console.log('📋 Demo accounts created:');
+console.log('   👑 Admin: admin / password');
+console.log('   🏪 Stall 01: stall_01 / password');
+console.log('   🏪 Stall 02: stall_02 / password');
 
-    await db.close();
-  } catch (error) {
-    console.error('❌ Database setup error:', error);
-  }
-}
-
-setupDatabase();
+db.close();

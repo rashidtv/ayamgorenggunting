@@ -2,13 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { open } = require('sqlite');
-const sqlite3 = require('sqlite3');
+const Database = require('better-sqlite3');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5001; // Changed to 5001
+const port = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -18,23 +17,87 @@ app.use(express.json());
 let db;
 
 // Initialize database
-const initializeDatabase = async () => {
+const initializeDatabase = () => {
   try {
-    db = await open({
-      filename: path.join(__dirname, 'agg_mvp.db'),
-      driver: sqlite3.Database
-    });
-    console.log('✅ SQLite database connected');
+    // For Render: use different path that's writable
+    const dbPath = process.env.NODE_ENV === 'production' 
+      ? '/tmp/agg_mvp.db'
+      : path.join(__dirname, 'agg_mvp.db');
     
-    // Enable foreign keys and WAL mode for better performance
-    await db.exec('PRAGMA foreign_keys = ON');
-    await db.exec('PRAGMA journal_mode = WAL');
+    db = new Database(dbPath);
+    
+    // Enable better performance settings
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    
+    console.log('✅ SQLite database connected with better-sqlite3');
     
     // Test connection
-    await db.get('SELECT datetime("now") as current_time');
+    const result = db.prepare('SELECT datetime("now") as current_time').get();
+    console.log('Database time:', result.current_time);
+    
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+    return false;
+  }
+};
+
+// Create tables if they don't exist
+const createTables = () => {
+  try {
+    // Users table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        stall_id INTEGER,
+        role TEXT NOT NULL DEFAULT 'user',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Inventory table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS inventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stall_id INTEGER NOT NULL,
+        material_name TEXT NOT NULL,
+        current_level REAL NOT NULL DEFAULT 0,
+        alert_level REAL NOT NULL DEFAULT 10,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(stall_id, material_name)
+      )
+    `);
+
+    // Sales table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stall_id INTEGER NOT NULL,
+        item_name TEXT NOT NULL,
+        price REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Recipes table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_name TEXT NOT NULL,
+        material_name TEXT NOT NULL,
+        quantity_used REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('✅ Database tables verified/created');
+    return true;
+  } catch (error) {
+    console.error('❌ Table creation failed:', error);
     return false;
   }
 };
@@ -60,7 +123,7 @@ const authenticateToken = (req, res, next) => {
 // ==================== ROUTES ====================
 
 // Test route
-app.get('/api/test', async (req, res) => {
+app.get('/api/test', (req, res) => {
   try {
     if (!db) {
       return res.json({ 
@@ -69,7 +132,7 @@ app.get('/api/test', async (req, res) => {
       });
     }
 
-    const result = await db.get('SELECT datetime("now") as time');
+    const result = db.prepare('SELECT datetime("now") as time').get();
     res.json({ 
       message: 'Backend is working!', 
       databaseTime: result.time,
@@ -96,7 +159,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Login route
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   console.log('Login attempt for:', req.body.username);
   
   try {
@@ -110,10 +173,9 @@ app.post('/api/login', async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const user = await db.get(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
+    const user = db.prepare(
+      'SELECT * FROM users WHERE username = ?'
+    ).get([username]);
 
     if (!user) {
       console.log('User not found:', username);
@@ -127,7 +189,7 @@ app.post('/api/login', async (req, res) => {
     if (password === 'password') {
       validPassword = true;
     } else {
-      validPassword = await bcrypt.compare(password, user.password);
+      validPassword = bcrypt.compareSync(password, user.password);
     }
 
     if (!validPassword) {
@@ -167,7 +229,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get stall inventory
-app.get('/api/inventory', authenticateToken, async (req, res) => {
+app.get('/api/inventory', authenticateToken, (req, res) => {
   try {
     const stallId = req.user.stall_id;
     
@@ -175,10 +237,9 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const inventory = await db.all(
-      'SELECT * FROM inventory WHERE stall_id = ? ORDER BY material_name',
-      [stallId]
-    );
+    const inventory = db.prepare(
+      'SELECT * FROM inventory WHERE stall_id = ? ORDER BY material_name'
+    ).all([stallId]);
 
     res.json(inventory);
   } catch (error) {
@@ -187,9 +248,8 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
   }
 });
 
-// Sell item - FIXED VERSION
-app.post('/api/sell', authenticateToken, async (req, res) => {
-  let client;
+// Sell item
+app.post('/api/sell', authenticateToken, (req, res) => {
   try {
     const { itemName, price } = req.body;
     const stallId = req.user.stall_id;
@@ -204,52 +264,48 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    // Get a connection for transaction
-    client = await db;
-
     // Start transaction
-    await client.run('BEGIN TRANSACTION');
-
-    try {
+    const transaction = db.transaction(() => {
       // Record sale
-      const saleResult = await client.run(
-        'INSERT INTO sales (stall_id, item_name, price) VALUES (?, ?, ?)',
-        [stallId, itemName, price]
-      );
+      const saleResult = db.prepare(
+        'INSERT INTO sales (stall_id, item_name, price) VALUES (?, ?, ?)'
+      ).run([stallId, itemName, price]);
 
-      console.log('Sale recorded:', saleResult);
+      console.log('Sale recorded with ID:', saleResult.lastInsertRowid);
 
       // Update inventory based on recipe
-      const recipes = await client.all(
-        'SELECT * FROM recipes WHERE item_name = ?',
-        [itemName]
-      );
+      const recipes = db.prepare(
+        'SELECT * FROM recipes WHERE item_name = ?'
+      ).all([itemName]);
 
-      console.log('Recipes found:', recipes);
+      console.log('Recipes found:', recipes.length);
 
       if (recipes.length === 0) {
         throw new Error(`No recipe found for ${itemName}`);
       }
 
+      // Update each inventory item
       for (const recipe of recipes) {
-        console.log(`Updating inventory: ${recipe.material_name} -${recipe.quantity_used}`);
-        const updateResult = await client.run(
-          'UPDATE inventory SET current_level = current_level - ? WHERE stall_id = ? AND material_name = ?',
-          [recipe.quantity_used, stallId, recipe.material_name]
-        );
-        console.log('Inventory update result:', updateResult);
+        console.log(`Updating ${recipe.material_name} by ${recipe.quantity_used}`);
+        
+        const updateResult = db.prepare(
+          'UPDATE inventory SET current_level = current_level - ?, updated_at = datetime("now") WHERE stall_id = ? AND material_name = ?'
+        ).run([recipe.quantity_used, stallId, recipe.material_name]);
+
+        if (updateResult.changes === 0) {
+          console.warn(`No inventory found for ${recipe.material_name} in stall ${stallId}`);
+        }
       }
 
-      await client.run('COMMIT');
+      return { success: true };
+    });
 
-      res.json({ 
-        success: true, 
-        message: `Sold ${itemName} successfully for RM ${price.toFixed(2)}!` 
-      });
-    } catch (error) {
-      await client.run('ROLLBACK');
-      throw error;
-    }
+    transaction();
+
+    res.json({ 
+      success: true, 
+      message: `Sold ${itemName} successfully for RM ${price.toFixed(2)}!` 
+    });
   } catch (error) {
     console.error('Sell error:', error);
     res.status(500).json({ 
@@ -261,7 +317,7 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
 });
 
 // Get today's sales for stall
-app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
+app.get('/api/stall-today-sales', authenticateToken, (req, res) => {
   try {
     const stallId = req.user.stall_id;
     
@@ -269,12 +325,11 @@ app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const result = await db.get(
+    const result = db.prepare(
       `SELECT COUNT(*) as items_sold, COALESCE(SUM(price), 0) as total_revenue 
        FROM sales 
-       WHERE stall_id = ? AND DATE(created_at) = DATE('now')`,
-      [stallId]
-    );
+       WHERE stall_id = ? AND DATE(created_at) = DATE('now')`
+    ).get([stallId]);
 
     res.json(result);
   } catch (error) {
@@ -286,7 +341,7 @@ app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
 // ==================== ADMIN ROUTES ====================
 
 // Get today's overall stats
-app.get('/api/admin/today-stats', authenticateToken, async (req, res) => {
+app.get('/api/admin/today-stats', authenticateToken, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -296,13 +351,13 @@ app.get('/api/admin/today-stats', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const result = await db.get(
+    const result = db.prepare(
       `SELECT COUNT(*) as total_items, 
               COALESCE(SUM(price), 0) as total_revenue,
               COUNT(DISTINCT stall_id) as active_stalls
        FROM sales 
        WHERE DATE(created_at) = DATE('now')`
-    );
+    ).get();
 
     res.json(result);
   } catch (error) {
@@ -312,7 +367,7 @@ app.get('/api/admin/today-stats', authenticateToken, async (req, res) => {
 });
 
 // Get low stock alerts
-app.get('/api/admin/low-stock', authenticateToken, async (req, res) => {
+app.get('/api/admin/low-stock', authenticateToken, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -322,12 +377,12 @@ app.get('/api/admin/low-stock', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const alerts = await db.all(
+    const alerts = db.prepare(
       `SELECT stall_id, material_name, current_level, alert_level 
        FROM inventory 
        WHERE current_level <= alert_level
        ORDER BY stall_id, material_name`
-    );
+    ).all();
 
     res.json(alerts);
   } catch (error) {
@@ -336,9 +391,8 @@ app.get('/api/admin/low-stock', authenticateToken, async (req, res) => {
   }
 });
 
-// Add these routes before the server startup section
-// Update inventory levels (for adding stock)
-app.post('/api/inventory/update', authenticateToken, async (req, res) => {
+// Update inventory levels
+app.post('/api/inventory/update', authenticateToken, (req, res) => {
   try {
     const { materialName, newLevel } = req.body;
     const stallId = req.user.stall_id;
@@ -353,10 +407,9 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const result = await db.run(
-      'UPDATE inventory SET current_level = ? WHERE stall_id = ? AND material_name = ?',
-      [newLevel, stallId, materialName]
-    );
+    const result = db.prepare(
+      'UPDATE inventory SET current_level = ?, updated_at = datetime("now") WHERE stall_id = ? AND material_name = ?'
+    ).run([newLevel, stallId, materialName]);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Inventory item not found' });
@@ -372,86 +425,8 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   }
 });
 
-// Enhanced sell route with better error handling
-app.post('/api/sell', authenticateToken, async (req, res) => {
-  try {
-    const { itemName, price } = req.body;
-    const stallId = req.user.stall_id;
-
-    console.log(`Selling ${itemName} for stall ${stallId} at price ${price}`);
-
-    if (!itemName || !price) {
-      return res.status(400).json({ error: 'Item name and price are required' });
-    }
-
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    // Start transaction
-    await db.run('BEGIN TRANSACTION');
-
-    try {
-      // Record sale
-      const saleResult = await db.run(
-        'INSERT INTO sales (stall_id, item_name, price) VALUES (?, ?, ?)',
-        [stallId, itemName, price]
-      );
-
-      console.log('Sale recorded with ID:', saleResult.lastID);
-
-      // Update inventory based on recipe
-      const recipes = await db.all(
-        'SELECT * FROM recipes WHERE item_name = ?',
-        [itemName]
-      );
-
-      console.log('Recipes found:', recipes.length);
-
-      if (recipes.length === 0) {
-        // If no recipes found, rollback and return error
-        await db.run('ROLLBACK');
-        return res.status(400).json({ 
-          error: `No recipe found for ${itemName}`,
-          suggestion: 'Please add recipes to the database first'
-        });
-      }
-
-      // Update each inventory item
-      for (const recipe of recipes) {
-        console.log(`Updating ${recipe.material_name} by ${recipe.quantity_used}`);
-        
-        const updateResult = await db.run(
-          'UPDATE inventory SET current_level = current_level - ? WHERE stall_id = ? AND material_name = ?',
-          [recipe.quantity_used, stallId, recipe.material_name]
-        );
-
-        if (updateResult.changes === 0) {
-          console.warn(`No inventory found for ${recipe.material_name} in stall ${stallId}`);
-        }
-      }
-
-      await db.run('COMMIT');
-
-      res.json({ 
-        success: true, 
-        message: `Sold ${itemName} successfully for RM ${price.toFixed(2)}!` 
-      });
-    } catch (error) {
-      await db.run('ROLLBACK');
-      console.error('Transaction error:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Sell error:', error);
-    res.status(500).json({ 
-      error: 'Failed to process sale',
-      details: error.message
-    });
-  }
-});
 // Get sales analytics for charts
-app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
+app.get('/api/sales-analytics', authenticateToken, (req, res) => {
   try {
     const stallId = req.user.stall_id;
     const isAdmin = req.user.role === 'admin';
@@ -479,7 +454,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
 
     query += ' GROUP BY DATE(created_at), item_name ORDER BY date';
 
-    const analytics = await db.all(query, params);
+    const analytics = db.prepare(query).all(params);
     
     // Format for charts
     const dailySales = {};
@@ -510,7 +485,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
 });
 
 // Get all stalls for admin
-app.get('/api/admin/stalls', authenticateToken, async (req, res) => {
+app.get('/api/admin/stalls', authenticateToken, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -520,11 +495,11 @@ app.get('/api/admin/stalls', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const stalls = await db.all(`
+    const stalls = db.prepare(`
       SELECT DISTINCT stall_id 
       FROM inventory 
       ORDER BY stall_id
-    `);
+    `).all();
 
     res.json(stalls.map(s => s.stall_id));
   } catch (error) {
@@ -532,8 +507,9 @@ app.get('/api/admin/stalls', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch stalls' });
   }
 });
+
 // Get stall performance
-app.get('/api/admin/stall-performance', authenticateToken, async (req, res) => {
+app.get('/api/admin/stall-performance', authenticateToken, (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -543,7 +519,7 @@ app.get('/api/admin/stall-performance', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const performance = await db.all(
+    const performance = db.prepare(
       `SELECT stall_id, 
               COUNT(*) as items_sold, 
               COALESCE(SUM(price), 0) as total_revenue 
@@ -551,7 +527,7 @@ app.get('/api/admin/stall-performance', authenticateToken, async (req, res) => {
        WHERE DATE(created_at) = DATE('now') 
        GROUP BY stall_id 
        ORDER BY total_revenue DESC`
-    );
+    ).all();
 
     res.json(performance);
   } catch (error) {
@@ -561,9 +537,10 @@ app.get('/api/admin/stall-performance', authenticateToken, async (req, res) => {
 });
 
 // Initialize database route (for testing)
-app.post('/api/init-db', async (req, res) => {
+app.post('/api/init-db', (req, res) => {
   try {
-    await initializeDatabase();
+    initializeDatabase();
+    createTables();
     res.json({ message: 'Database initialized successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to initialize database' });
@@ -571,10 +548,12 @@ app.post('/api/init-db', async (req, res) => {
 });
 
 // Start server
-const startServer = async () => {
-  const dbConnected = await initializeDatabase();
+const startServer = () => {
+  const dbConnected = initializeDatabase();
   
-  if (!dbConnected) {
+  if (dbConnected) {
+    createTables();
+  } else {
     console.log('⚠️  Starting server without database... Some features may not work.');
   }
 
@@ -583,7 +562,6 @@ const startServer = async () => {
     console.log(`📍 Local: http://localhost:${port}`);
     console.log(`🩺 Health check: http://localhost:${port}/api/health`);
     console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
-    console.log(`🗄️  Database file: ${path.join(__dirname, 'agg_mvp.db')}`);
     console.log('');
     console.log('📋 Demo Accounts:');
     console.log('   Admin:    username: "admin", password: "password"');
@@ -593,17 +571,14 @@ const startServer = async () => {
 };
 
 // Handle graceful shutdown
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down server gracefully...');
   if (db) {
-    await db.close();
+    db.close();
     console.log('✅ Database connection closed');
   }
   process.exit(0);
 });
 
 // Start the server
-startServer().catch(error => {
-  console.error('❌ Failed to start server:', error);
-  process.exit(1);
-});
+startServer();
