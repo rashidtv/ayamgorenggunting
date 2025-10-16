@@ -7,7 +7,7 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 10000;
 
 // Middleware
 app.use(cors({
@@ -560,17 +560,17 @@ const startServer = () => {
     console.log('⚠️  Starting server without database... Some features may not work.');
   }
 
-  app.listen(port, () => {
-    console.log(`🚀 AGG MVP Backend Server running on port ${port}`);
-    console.log(`📍 Local: http://localhost:${port}`);
-    console.log(`🩺 Health check: http://localhost:${port}/api/health`);
-    console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
-    console.log('');
-    console.log('📋 Demo Accounts:');
-    console.log('   Admin:    username: "admin", password: "password"');
-    console.log('   Stall 01: username: "stall_01", password: "password"');
-    console.log('   Stall 02: username: "stall_02", password: "password"');
-  });
+  app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 AGG MVP Backend Server running on port ${port}`);
+  console.log(`📍 Local: http://localhost:${port}`);
+  console.log(`🩺 Health check: http://localhost:${port}/api/health`);
+  console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
+  console.log('');
+  console.log('📋 Demo Accounts:');
+  console.log('   Admin:    username: "admin", password: "password"');
+  console.log('   Stall 01: username: "stall_01", password: "password"');
+  console.log('   Stall 02: username: "stall_02", password: "password"');
+});
 };
 
 // Handle graceful shutdown
