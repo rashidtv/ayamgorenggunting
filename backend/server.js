@@ -49,6 +49,11 @@ const initializeDatabase = () => {
   }
 };
 
+// Force create tables on every startup in production
+if (process.env.NODE_ENV === 'production') {
+  createTables();
+}
+
 // Create tables if they don't exist
 const createTables = () => {
   try {
