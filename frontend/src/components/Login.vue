@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <!-- Animated Background - Fixed for Mobile -->
+    <!-- Animated Background -->
     <div class="background-animation">
       <div class="floating-shapes">
         <div class="shape shape-1"></div>
@@ -11,7 +11,7 @@
     </div>
 
     <div class="login-content">
-      <!-- Left Panel - Brand - Fixed Mobile Visibility -->
+      <!-- Left Panel - Brand -->
       <div class="brand-panel">
         <div class="brand-content">
           <div class="logo-animation">
@@ -44,7 +44,7 @@
       <!-- Right Panel - Login Form -->
       <div class="login-panel">
         <div class="login-card">
-          <!-- Connection Status -->
+          <!-- Connection Status - Fixed for Mobile -->
           <div class="connection-status" :class="connectionStatus">
             <div class="status-glow"></div>
             <div class="status-content">
@@ -55,14 +55,10 @@
               </div>
               <div class="status-text">
                 <div class="status-title">
-                  {{ connectionStatus === 'online' ? 'System Connected' : 
-                     connectionStatus === 'checking' ? 'Establishing Connection' : 
-                     'Offline Mode' }}
+                  {{ getStatusTitle() }}
                 </div>
                 <div class="status-desc">
-                  {{ connectionStatus === 'online' ? 'All systems operational' : 
-                     connectionStatus === 'checking' ? 'Checking server availability' : 
-                     'Limited functionality available' }}
+                  {{ getStatusDescription() }}
                 </div>
               </div>
             </div>
@@ -71,8 +67,8 @@
           <!-- Login Form -->
           <form @submit.prevent="login" class="login-form">
             <div class="form-header">
-              <h2>Welcome Back</h2>
-              <p>Sign in to your account</p>
+              <h2 class="form-title">Welcome Back</h2>
+              <p class="form-subtitle">Sign in to your account</p>
             </div>
 
             <div class="input-group">
@@ -124,7 +120,7 @@
             </button>
           </form>
 
-          <!-- Demo Accounts - Fixed Desktop Display -->
+          <!-- Demo Accounts -->
           <div class="demo-section">
             <div class="section-divider">
               <span>Quick Access</span>
@@ -161,7 +157,7 @@
               <div class="info-item">
                 <span class="info-label">Status</span>
                 <span :class="['info-status', connectionStatus]">
-                  {{ connectionStatus.toUpperCase() }}
+                  {{ getShortStatus() }}
                 </span>
               </div>
             </div>
@@ -196,6 +192,33 @@ export default {
     this.checkServer()
   },
   methods: {
+    getStatusTitle() {
+      const titles = {
+        online: 'System Connected',
+        checking: 'Checking Connection',
+        offline: 'Offline Mode'
+      }
+      return titles[this.connectionStatus] || 'Checking...'
+    },
+    
+    getStatusDescription() {
+      const descriptions = {
+        online: 'All systems operational',
+        checking: 'Checking server availability',
+        offline: 'Limited functionality available'
+      }
+      return descriptions[this.connectionStatus] || 'Checking connection...'
+    },
+    
+    getShortStatus() {
+      const statusMap = {
+        online: 'ONLINE',
+        checking: 'CHECKING',
+        offline: 'OFFLINE'
+      }
+      return statusMap[this.connectionStatus] || 'UNKNOWN'
+    },
+    
     async checkServer() {
       this.connectionStatus = 'checking'
       try {
@@ -260,9 +283,10 @@ export default {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow: hidden;
+  padding: 1rem;
 }
 
-/* Animated Background - Fixed for Mobile */
+/* Animated Background */
 .background-animation {
   position: absolute;
   top: 0;
@@ -286,40 +310,40 @@ export default {
 }
 
 .shape-1 {
-  width: 200px;
-  height: 200px;
+  width: 120px;
+  height: 120px;
   top: 10%;
-  left: 10%;
+  left: 5%;
   animation-delay: 0s;
 }
 
 .shape-2 {
-  width: 150px;
-  height: 150px;
+  width: 80px;
+  height: 80px;
   top: 60%;
-  right: 10%;
+  right: 5%;
   animation-delay: 2s;
 }
 
 .shape-3 {
-  width: 100px;
-  height: 100px;
+  width: 60px;
+  height: 60px;
   bottom: 20%;
-  left: 20%;
+  left: 10%;
   animation-delay: 4s;
 }
 
 .shape-4 {
-  width: 120px;
-  height: 120px;
+  width: 90px;
+  height: 90px;
   top: 20%;
-  right: 20%;
+  right: 10%;
   animation-delay: 1s;
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
+  50% { transform: translateY(-15px) rotate(180deg); }
 }
 
 /* Layout */
@@ -327,21 +351,21 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   max-width: 1200px;
-  width: 95%;
-  height: 90vh;
+  width: 100%;
+  min-height: 600px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   position: relative;
 }
 
-/* Brand Panel - Fixed Mobile Visibility */
+/* Brand Panel */
 .brand-panel {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
-  padding: 3rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -363,17 +387,19 @@ export default {
   text-align: center;
   position: relative;
   z-index: 2;
+  width: 100%;
+  max-width: 400px;
 }
 
 .logo-animation {
   position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 2rem;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1.5rem;
 }
 
 .logo-icon {
-  font-size: 4rem;
+  font-size: 3rem;
   position: relative;
   z-index: 3;
   animation: bounce 2s ease-in-out infinite;
@@ -398,88 +424,95 @@ export default {
 }
 
 .ring-1 {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   animation-delay: 0s;
 }
 
 .ring-2 {
-  width: 120px;
-  height: 120px;
+  width: 95px;
+  height: 95px;
   animation-delay: 1s;
 }
 
 .ring-3 {
-  width: 140px;
-  height: 140px;
+  width: 110px;
+  height: 110px;
   animation-delay: 2s;
 }
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.1); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
 }
 
 .brand-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   line-height: 1.1;
+  word-wrap: break-word;
 }
 
 .brand-subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   opacity: 0.9;
   margin-bottom: 2rem;
+  line-height: 1.4;
 }
 
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  font-size: 1rem;
+  gap: 0.75rem;
+  font-size: 0.9rem;
   opacity: 0.9;
+  justify-content: center;
 }
 
 .feature-icon {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 /* Login Panel */
 .login-panel {
-  padding: 3rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: auto; /* Added for demo accounts scroll */
-  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Connection Status */
+/* Connection Status - Fixed for Mobile */
 .connection-status {
   background: var(--surface);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .connection-status.online {
@@ -521,49 +554,68 @@ export default {
 
 .status-content {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .status-icon {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .status-text {
   flex: 1;
+  min-width: 0; /* Prevent text overflow */
 }
 
 .status-title {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin-bottom: 0.25rem;
+  color: var(--text);
+  line-height: 1.2;
+  word-wrap: break-word;
 }
 
 .status-desc {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   opacity: 0.7;
+  line-height: 1.3;
+  color: var(--text-secondary);
 }
 
 /* Login Form */
+.login-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .form-header {
   text-align: center;
   margin-bottom: 2rem;
+  flex-shrink: 0;
 }
 
-.form-header h2 {
-  font-size: 1.8rem;
+.form-title {
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  word-wrap: break-word;
 }
 
-.form-header p {
+.form-subtitle {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  line-height: 1.3;
 }
 
 .input-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
 }
 
 .input-field {
@@ -575,17 +627,17 @@ export default {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--text-tertiary);
   z-index: 2;
 }
 
 .modern-input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 0.875rem 0.875rem 0.875rem 2.75rem;
   border: 2px solid var(--border);
-  border-radius: 12px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
   background: var(--surface);
   transition: all 0.3s ease;
   position: relative;
@@ -595,8 +647,8 @@ export default {
 .modern-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
 }
 
 .modern-input:disabled {
@@ -625,20 +677,22 @@ export default {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   border: none;
-  padding: 1.25rem;
-  border-radius: 12px;
-  font-size: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .modern-login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 
 .modern-login-btn:disabled {
@@ -678,12 +732,12 @@ export default {
 .btn-loading {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .loading-spinner {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid transparent;
   border-top: 2px solid currentColor;
   border-radius: 50%;
@@ -702,33 +756,18 @@ export default {
 }
 
 .btn-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
-/* Demo Section - Fixed Desktop Display */
+/* Demo Section */
 .demo-section {
-  margin-bottom: 2rem;
-  max-height: 300px; /* Limit height for desktop */
-  overflow-y: auto; /* Enable scrolling if needed */
-}
-
-.demo-section::-webkit-scrollbar {
-  width: 4px;
-}
-
-.demo-section::-webkit-scrollbar-track {
-  background: var(--border);
-  border-radius: 2px;
-}
-
-.demo-section::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 2px;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
 }
 
 .section-divider {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   position: relative;
 }
 
@@ -744,9 +783,9 @@ export default {
 
 .section-divider span {
   background: var(--surface);
-  padding: 0 1rem;
+  padding: 0 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -755,22 +794,22 @@ export default {
 .demo-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .demo-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  min-height: 70px; /* Ensure consistent height */
+  min-height: 60px;
 }
 
 .demo-card::before {
@@ -779,7 +818,7 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: var(--primary);
   transform: scaleX(0);
   transition: transform 0.3s ease;
@@ -794,8 +833,8 @@ export default {
 }
 
 .demo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: var(--primary);
 }
 
@@ -806,12 +845,12 @@ export default {
 .demo-badge {
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   color: white;
   flex-shrink: 0;
-  min-width: 50px; /* Ensure consistent badge width */
+  min-width: 45px;
   text-align: center;
 }
 
@@ -825,25 +864,22 @@ export default {
 
 .demo-info {
   flex: 1;
-  min-width: 0; /* Prevent flex item from overflowing */
+  min-width: 0;
 }
 
 .demo-username {
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 0.125rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
 }
 
 .demo-password {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   font-family: 'Monaco', 'Consolas', monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .demo-arrow {
@@ -851,23 +887,25 @@ export default {
   font-weight: 600;
   transition: transform 0.3s ease;
   flex-shrink: 0;
+  font-size: 0.9rem;
 }
 
 .demo-card:hover .demo-arrow {
-  transform: translateX(4px);
+  transform: translateX(3px);
   color: var(--primary);
 }
 
 /* System Info */
 .system-info {
   border-top: 1px solid var(--border);
-  padding-top: 1.5rem;
+  padding-top: 1.25rem;
+  flex-shrink: 0;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .info-item {
@@ -876,27 +914,31 @@ export default {
 
 .info-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.25rem;
+  line-height: 1.2;
 }
 
 .info-value {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .info-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
+  display: inline-block;
+  line-height: 1;
 }
 
 .info-status.online {
@@ -914,130 +956,296 @@ export default {
   color: var(--info);
 }
 
-/* Responsive - Fixed Mobile Issues */
+/* ==================== RESPONSIVE FIXES ==================== */
+
+/* Tablet */
 @media (max-width: 1024px) {
   .login-content {
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1fr 1.1fr;
+    max-width: 900px;
   }
   
   .brand-panel {
-    padding: 2rem;
+    padding: 1.5rem;
   }
   
   .login-panel {
-    padding: 2rem;
+    padding: 1.5rem;
+  }
+  
+  .brand-title {
+    font-size: 1.75rem;
   }
 }
 
+/* Mobile - Switch to single column */
 @media (max-width: 768px) {
+  .login-container {
+    padding: 0.5rem;
+    align-items: stretch;
+  }
+  
   .login-content {
     grid-template-columns: 1fr;
     height: auto;
-    margin: 1rem;
-    max-height: 90vh;
+    min-height: auto;
+    margin: 0;
   }
   
   .brand-panel {
-    display: flex;
-    padding: 2rem;
+    padding: 2rem 1.5rem;
     min-height: 200px;
   }
   
   .brand-content {
-    width: 100%;
+    max-width: none;
   }
   
   .logo-animation {
     width: 80px;
     height: 80px;
-    margin: 0 auto 1rem;
+    margin-bottom: 1rem;
   }
   
   .logo-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
   
-  .ring-1 { width: 70px; height: 70px; }
-  .ring-2 { width: 85px; height: 85px; }
-  .ring-3 { width: 100px; height: 100px; }
+  .ring-1 { width: 65px; height: 65px; }
+  .ring-2 { width: 75px; height: 75px; }
+  .ring-3 { width: 85px; height: 85px; }
   
   .brand-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
   }
   
   .feature-list {
-    display: none; /* Hide features on mobile for space */
-  }
-  
-  .login-panel {
-    padding: 2rem;
-    max-height: none;
-  }
-  
-  .demo-section {
-    max-height: none; /* Remove height limit on mobile */
-    overflow-y: visible;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-content {
-    margin: 0.5rem;
-    height: 95vh;
-  }
-  
-  .brand-panel {
-    padding: 1.5rem;
-    min-height: 150px;
+    display: none;
   }
   
   .login-panel {
     padding: 1.5rem;
+    min-height: 500px;
   }
   
   .login-card {
-    max-width: none;
+    min-height: auto;
   }
   
-  .info-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .form-title {
+    font-size: 1.4rem;
   }
   
-  .demo-card {
-    padding: 0.75rem 1rem;
-    min-height: 60px;
+  .status-title {
+    font-size: 0.8rem;
   }
   
-  .demo-badge {
-    min-width: 45px;
-    font-size: 0.65rem;
-  }
-  
-  /* Ensure all demo cards are visible on mobile */
-  .demo-grid {
-    gap: 0.5rem;
+  .status-desc {
+    font-size: 0.7rem;
   }
 }
 
-/* Extra small devices */
-@media (max-width: 360px) {
-  .brand-title {
-    font-size: 1.75rem;
+/* Small Mobile */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 0.25rem;
   }
   
-  .form-header h2 {
+  .login-content {
+    border-radius: 16px;
+  }
+  
+  .brand-panel {
+    padding: 1.5rem 1rem;
+    min-height: 180px;
+  }
+  
+  .login-panel {
+    padding: 1.25rem 1rem;
+  }
+  
+  .logo-animation {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .logo-icon {
+    font-size: 2rem;
+  }
+  
+  .ring-1 { width: 55px; height: 55px; }
+  .ring-2 { width: 65px; height: 65px; }
+  .ring-3 { width: 75px; height: 75px; }
+  
+  .brand-title {
     font-size: 1.5rem;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .connection-status {
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .status-content {
+    gap: 0.5rem;
+  }
+  
+  .status-icon {
+    font-size: 1.1rem;
+  }
+  
+  .form-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-title {
+    font-size: 1.3rem;
+  }
+  
+  .modern-input {
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .input-icon {
+    left: 0.75rem;
+  }
+  
+  .modern-login-btn {
+    padding: 0.875rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .demo-card {
+    padding: 0.625rem 0.75rem;
+    min-height: 55px;
+  }
+  
+  .demo-badge {
+    min-width: 40px;
+    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .demo-username {
+    font-size: 0.8rem;
+  }
+  
+  .demo-password {
+    font-size: 0.65rem;
+  }
+  
+  .info-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .info-label {
+    font-size: 0.6rem;
+  }
+  
+  .info-value {
+    font-size: 0.7rem;
+  }
+  
+  .info-status {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.3rem;
+  }
+}
+
+/* Extra Small Devices */
+@media (max-width: 360px) {
+  .brand-title {
+    font-size: 1.3rem;
+  }
+  
+  .form-title {
+    font-size: 1.2rem;
+  }
+  
+  .modern-input {
+    padding: 0.625rem 0.625rem 0.625rem 2.25rem;
+  }
+  
+  .input-icon {
+    left: 0.625rem;
+    font-size: 0.9rem;
   }
   
   .demo-card {
     flex-wrap: wrap;
     gap: 0.5rem;
+    padding: 0.5rem;
   }
   
   .demo-info {
     min-width: 100%;
     order: 3;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}
+
+/* Height adjustments for very short screens */
+@media (max-height: 700px) {
+  .login-container {
+    align-items: flex-start;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  .login-content {
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+}
+
+/* Landscape mode fixes */
+@media (max-height: 600px) and (orientation: landscape) {
+  .login-container {
+    padding: 0.5rem;
+  }
+  
+  .login-content {
+    grid-template-columns: 1fr 1fr;
+    max-height: 95vh;
+  }
+  
+  .brand-panel {
+    padding: 1rem;
+  }
+  
+  .login-panel {
+    padding: 1rem;
+  }
+  
+  .logo-animation {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .logo-icon {
+    font-size: 1.75rem;
+  }
+  
+  .feature-list {
+    display: none;
   }
 }
 </style>
