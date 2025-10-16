@@ -35,9 +35,12 @@ const initializeDatabase = () => {
     
     console.log('✅ SQLite database connected with better-sqlite3');
     
-    // Test connection
+    // Test connection - FIX THIS LINE
     const result = db.prepare('SELECT datetime("now") as current_time').get();
     console.log('Database time:', result.current_time);
+    
+    // CREATE TABLES IN PRODUCTION
+    createTables();
     
     return true;
   } catch (error) {
@@ -135,7 +138,7 @@ app.get('/api/test', (req, res) => {
       });
     }
 
-    const result = db.prepare('SELECT datetime("now") as time').get();
+    const result = db.prepare('SELECT datetime(\'now\') as current_time').get();
     res.json({ 
       message: 'Backend is working!', 
       databaseTime: result.time,
