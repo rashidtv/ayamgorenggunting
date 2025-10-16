@@ -175,8 +175,8 @@ const initializeDatabase = () => {
     
     console.log('✅ SQLite database connected with better-sqlite3');
     
-    // Test connection
-    const result = db.prepare('SELECT datetime(\'now\') as current_time').get();
+    // Test connection - FIXED: Use CURRENT_TIMESTAMP
+    const result = db.prepare('SELECT CURRENT_TIMESTAMP as current_time').get();
     console.log('Database time:', result.current_time);
     
     // CREATE TABLES AND DEMO DATA
@@ -220,7 +220,8 @@ app.get('/api/test', (req, res) => {
       });
     }
 
-    const result = db.prepare('SELECT datetime(\'now\') as time').get();
+    // FIXED: Use CURRENT_TIMESTAMP
+    const result = db.prepare('SELECT CURRENT_TIMESTAMP as time').get();
     res.json({ 
       message: 'Backend is working!', 
       databaseTime: result.time,
@@ -376,8 +377,9 @@ app.post('/api/sell', authenticateToken, (req, res) => {
       for (const recipe of recipes) {
         console.log(`Updating ${recipe.material_name} by ${recipe.quantity_used}`);
         
+        // FIXED: Use CURRENT_TIMESTAMP instead of datetime('now')
         const updateResult = db.prepare(
-          'UPDATE inventory SET current_level = current_level - ?, updated_at = datetime("now") WHERE stall_id = ? AND material_name = ?'
+          'UPDATE inventory SET current_level = current_level - ?, updated_at = CURRENT_TIMESTAMP WHERE stall_id = ? AND material_name = ?'
         ).run([recipe.quantity_used, stallId, recipe.material_name]);
 
         if (updateResult.changes === 0) {
@@ -495,8 +497,9 @@ app.post('/api/inventory/update', authenticateToken, (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
+    // FIXED: Use CURRENT_TIMESTAMP instead of datetime('now')
     const result = db.prepare(
-      'UPDATE inventory SET current_level = ?, updated_at = datetime("now") WHERE stall_id = ? AND material_name = ?'
+      'UPDATE inventory SET current_level = ?, updated_at = CURRENT_TIMESTAMP WHERE stall_id = ? AND material_name = ?'
     ).run([newLevel, stallId, materialName]);
 
     if (result.changes === 0) {
