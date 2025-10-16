@@ -189,86 +189,86 @@
     </div>
 
     <!-- Sales Analytics -->
-    <div class="section" v-if="!loadingData && !connectionError">
-      <div class="section-header">
-        <div class="section-title">
-          <h2>Sales Analytics</h2>
-          <p>Last 7 days performance overview</p>
-        </div>
-        <div class="analytics-summary">
-          <div class="analytics-stat">
-            <div class="analytics-value">{{ getWeeklyTotal() }}</div>
-            <div class="analytics-label">Weekly Revenue</div>
+<div class="section" v-if="!loadingData && !connectionError">
+  <div class="section-header">
+    <div class="section-title">
+      <h2>Sales Analytics</h2>
+      <p>Last 7 days performance overview</p>
+    </div>
+    <div class="analytics-summary">
+      <div class="analytics-stat">
+        <div class="analytics-value">{{ getWeeklyTotal() }}</div>
+        <div class="analytics-label">Weekly Revenue</div>
+      </div>
+      <div class="analytics-stat">
+        <div class="analytics-value">{{ getWeeklyItems() }}</div>
+        <div class="analytics-label">Items Sold</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="analytics-card">
+    <div v-if="analytics.dailySales.length === 0" class="no-data">
+      <div class="no-data-icon">📊</div>
+      <div class="no-data-text">
+        <h3>No Sales Data</h3>
+        <p>Start selling to see analytics here</p>
+      </div>
+    </div>
+    <div v-else class="analytics-content">
+      <div class="chart-header">
+        <h3>Daily Revenue Trend</h3>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-color primary"></div>
+            <span>Daily Revenue</span>
           </div>
-          <div class="analytics-stat">
-            <div class="analytics-value">{{ getWeeklyItems() }}</div>
-            <div class="analytics-label">Items Sold</div>
+        </div>
+      </div>
+      <div class="sales-chart">
+        <div 
+          v-for="day in analytics.dailySales" 
+          :key="day.date"
+          class="chart-bar"
+        >
+          <div class="bar-container">
+            <div 
+              class="bar-fill"
+              :style="{ height: getBarHeight(day.revenue) + '%' }"
+            ></div>
+          </div>
+          <div class="bar-label">
+            <div class="bar-date">{{ formatDate(day.date) }}</div>
+            <div class="bar-revenue">{{ formatCurrency(day.revenue) }}</div>
           </div>
         </div>
       </div>
       
-      <div class="analytics-card">
-        <div v-if="analytics.dailySales.length === 0" class="no-data">
-          <div class="no-data-icon">📊</div>
-          <div class="no-data-text">
-            <h3>No Sales Data</h3>
-            <p>Start selling to see analytics here</p>
-          </div>
-        </div>
-        <div v-else class="analytics-content">
-          <div class="chart-header">
-            <h3>Daily Revenue Trend</h3>
-            <div class="chart-legend">
-              <div class="legend-item">
-                <div class="legend-color primary"></div>
-                <span>Daily Revenue</span>
-              </div>
+      <!-- Product Sales Breakdown -->
+      <div class="product-breakdown" v-if="getProductSalesArray().length > 0">
+        <h4>Product Performance</h4>
+        <div class="product-grid">
+          <div 
+            v-for="product in getProductSalesArray()" 
+            :key="product.name"
+            class="product-item"
+          >
+            <div class="product-info">
+              <div class="product-name">{{ product.name }}</div>
+              <div class="product-sales">{{ product.quantity }} sold</div>
             </div>
-          </div>
-          <div class="sales-chart">
-            <div 
-              v-for="day in analytics.dailySales" 
-              :key="day.date"
-              class="chart-bar"
-            >
-              <div class="bar-container">
-                <div 
-                  class="bar-fill"
-                  :style="{ height: getBarHeight(day.revenue) + '%' }"
-                ></div>
-              </div>
-              <div class="bar-label">
-                <div class="bar-date">{{ formatDate(day.date) }}</div>
-                <div class="bar-revenue">{{ formatCurrency(day.revenue) }}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Product Sales Breakdown -->
-          <div class="product-breakdown" v-if="Object.keys(analytics.productSales).length > 0">
-            <h4>Product Performance</h4>
-            <div class="product-grid">
+            <div class="product-bar">
               <div 
-                v-for="(quantity, product) in analytics.productSales" 
-                :key="product"
-                class="product-item"
-              >
-                <div class="product-info">
-                  <div class="product-name">{{ product }}</div>
-                  <div class="product-sales">{{ quantity }} sold</div>
-                </div>
-                <div class="product-bar">
-                  <div 
-                    class="product-fill"
-                    :style="{ width: getProductPercentage(quantity) + '%' }"
-                  ></div>
-                </div>
-              </div>
+                class="product-fill"
+                :style="{ width: getProductPercentage(product.quantity) + '%' }"
+              ></div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- Loading State -->
     <div v-if="loadingData" class="loading-section">
@@ -512,25 +512,47 @@ export default {
       return Math.min((item.current_level / maxLevel) * 100, 100)
     },
     
-    getWeeklyTotal() {
-      const total = this.analytics.dailySales.reduce((sum, day) => sum + day.revenue, 0)
-      return this.formatCurrency(total)
-    },
-    
-    getWeeklyItems() {
-      // Sum all quantities from productSales
-      return Object.values(this.analytics.productSales).reduce((sum, quantity) => sum + quantity, 0)
-    },
-    
+   getWeeklyTotal() {
+  const total = this.analytics.dailySales.reduce((sum, day) => sum + day.revenue, 0);
+  return this.formatCurrency(total);
+},
+
+getWeeklyItems() {
+  // Handle both array and object formats for productSales
+  if (Array.isArray(this.analytics.productSales)) {
+    return this.analytics.productSales.reduce((sum, product) => sum + product.quantity, 0);
+  } else if (typeof this.analytics.productSales === 'object') {
+    return Object.values(this.analytics.productSales).reduce((sum, quantity) => sum + quantity, 0);
+  }
+  return 0;
+},
+
+getProductSalesArray() {
+  // Convert productSales to consistent array format
+  if (Array.isArray(this.analytics.productSales)) {
+    return this.analytics.productSales.map(item => ({
+      name: item.product || item.name || 'Unknown',
+      quantity: item.quantity || 0
+    }));
+  } else if (typeof this.analytics.productSales === 'object') {
+    return Object.entries(this.analytics.productSales).map(([name, quantity]) => ({
+      name,
+      quantity
+    }));
+  }
+  return [];
+},
+
     getBarHeight(revenue) {
       const maxRevenue = Math.max(...this.analytics.dailySales.map(d => d.revenue))
       return maxRevenue > 0 ? (revenue / maxRevenue) * 80 : 0
     },
     
-    getProductPercentage(quantity) {
-      const maxQuantity = Math.max(...Object.values(this.analytics.productSales))
-      return maxQuantity > 0 ? (quantity / maxQuantity) * 100 : 0
-    },
+   getProductPercentage(quantity) {
+  const productArray = this.getProductSalesArray();
+  const maxQuantity = Math.max(...productArray.map(p => p.quantity));
+  return maxQuantity > 0 ? (quantity / maxQuantity) * 100 : 0;
+},
     
     formatDate(dateString) {
       return new Date(dateString).toLocaleDateString('en-MY', { 
