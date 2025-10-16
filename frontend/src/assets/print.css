@@ -1,0 +1,15 @@
+@media print {
+  .app-header,
+  .notifications,
+  .actions-grid,
+  .theme-toggle {
+    display: none !important;
+  }
+  
+  .stat-card,
+  .section {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+}
