@@ -78,6 +78,87 @@ const createTables = () => {
   }
 };
 
+// Create demo users and sample data
+const createDemoUsers = () => {
+  try {
+    const hashedPassword = bcrypt.hashSync('password', 10);
+    
+    // Demo users
+    const users = [
+      ['admin', hashedPassword, null, 'admin'],
+      ['stall_01', hashedPassword, 1, 'user'],
+      ['stall_02', hashedPassword, 2, 'user']
+    ];
+    
+    const userStmt = db.prepare(`
+      INSERT OR IGNORE INTO users (username, password, stall_id, role) 
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    let usersCreated = 0;
+    users.forEach(user => {
+      const result = userStmt.run(user);
+      if (result.changes > 0) usersCreated++;
+    });
+    console.log(`✅ ${usersCreated} demo users created`);
+    
+    // Add sample inventory
+    const inventoryItems = [
+      [1, 'Chicken', 50, 10],
+      [1, 'Flour', 20, 5],
+      [1, 'Oil', 30, 8],
+      [2, 'Chicken', 45, 10],
+      [2, 'Flour', 25, 5],
+      [2, 'Oil', 35, 8]
+    ];
+    
+    const inventoryStmt = db.prepare(`
+      INSERT OR IGNORE INTO inventory (stall_id, material_name, current_level, alert_level)
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    let inventoryCreated = 0;
+    inventoryItems.forEach(item => {
+      const result = inventoryStmt.run(item);
+      if (result.changes > 0) inventoryCreated++;
+    });
+    console.log(`✅ ${inventoryCreated} inventory items created`);
+    
+    // Add sample recipes
+    const recipes = [
+      ['Regular AGG', 'Chicken', 0.2],
+      ['Regular AGG', 'Flour', 0.05],
+      ['Regular AGG', 'Oil', 0.1],
+      ['Spicy AGG', 'Chicken', 0.2],
+      ['Spicy AGG', 'Flour', 0.05],
+      ['Spicy AGG', 'Oil', 0.1],
+      ['Large AGG', 'Chicken', 0.3],
+      ['Large AGG', 'Flour', 0.08],
+      ['Large AGG', 'Oil', 0.15],
+      ['Family Pack', 'Chicken', 0.8],
+      ['Family Pack', 'Flour', 0.2],
+      ['Family Pack', 'Oil', 0.3]
+    ];
+    
+    const recipeStmt = db.prepare(`
+      INSERT OR IGNORE INTO recipes (item_name, material_name, quantity_used)
+      VALUES (?, ?, ?)
+    `);
+    
+    let recipesCreated = 0;
+    recipes.forEach(recipe => {
+      const result = recipeStmt.run(recipe);
+      if (result.changes > 0) recipesCreated++;
+    });
+    console.log(`✅ ${recipesCreated} recipes created`);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error creating demo data:', error);
+    return false;
+  }
+};
+
 // Initialize database
 const initializeDatabase = () => {
   try {
@@ -98,8 +179,9 @@ const initializeDatabase = () => {
     const result = db.prepare('SELECT datetime(\'now\') as current_time').get();
     console.log('Database time:', result.current_time);
     
-    // CREATE TABLES
+    // CREATE TABLES AND DEMO DATA
     createTables();
+    createDemoUsers();
     
     return true;
   } catch (error) {
