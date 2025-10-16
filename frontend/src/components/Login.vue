@@ -112,7 +112,7 @@
         <div class="system-info">
           <div class="info-item">
             <span class="info-label">Server:</span>
-            <span class="info-value">http://localhost:5001/api</span>
+            <span class="info-value">https://agg-backend.onrender.com/api</span>
           </div>
           <div class="info-item">
             <span class="info-label">Status:</span>
