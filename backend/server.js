@@ -19,42 +19,6 @@ app.use(express.json());
 // Database connection
 let db;
 
-// Initialize database
-const initializeDatabase = () => {
-  try {
-    // For Render: use different path that's writable
-    const dbPath = process.env.NODE_ENV === 'production' 
-      ? '/tmp/agg_mvp.db'
-      : path.join(__dirname, 'agg_mvp.db');
-    
-    db = new Database(dbPath);
-    
-    // Enable better performance settings
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    
-    console.log('✅ SQLite database connected with better-sqlite3');
-    
-    // Test connection - FIX THIS LINE
-    const result = db.prepare('SELECT datetime("now") as current_time').get();
-    console.log('Database time:', result.current_time);
-    
-    // CREATE TABLES IN PRODUCTION
-    createTables();
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    return false;
-  }
-};
-
-// Force create tables on every startup in production
-if (process.env.NODE_ENV === 'production') {
-  createTables();
-}
-
-// Create tables if they don't exist
 const createTables = () => {
   try {
     // Users table
@@ -109,6 +73,35 @@ const createTables = () => {
     return true;
   } catch (error) {
     console.error('❌ Table creation failed:', error);
+    return false;
+  }
+};
+
+const initializeDatabase = () => {
+  try {
+    // For Render: use different path that's writable
+    const dbPath = process.env.NODE_ENV === 'production' 
+      ? '/tmp/agg_mvp.db'
+      : path.join(__dirname, 'agg_mvp.db');
+    
+    db = new Database(dbPath);
+    
+    // Enable better performance settings
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    
+    console.log('✅ SQLite database connected with better-sqlite3');
+    
+    // Test connection
+    const result = db.prepare('SELECT datetime(\'now\') as current_time').get();
+    console.log('Database time:', result.current_time);
+    
+    // CREATE TABLES
+    createTables();
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
     return false;
   }
 };
