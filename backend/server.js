@@ -19,6 +19,7 @@ app.use(express.json());
 // Database connection
 let db;
 
+// Create tables function - MUST BE DEFINED FIRST
 const createTables = () => {
   try {
     // Users table
@@ -77,6 +78,7 @@ const createTables = () => {
   }
 };
 
+// Initialize database
 const initializeDatabase = () => {
   try {
     // For Render: use different path that's writable
@@ -136,7 +138,7 @@ app.get('/api/test', (req, res) => {
       });
     }
 
-    const result = db.prepare('SELECT datetime(\'now\') as current_time').get();
+    const result = db.prepare('SELECT datetime(\'now\') as time').get();
     res.json({ 
       message: 'Backend is working!', 
       databaseTime: result.time,
@@ -544,7 +546,6 @@ app.get('/api/admin/stall-performance', authenticateToken, (req, res) => {
 app.post('/api/init-db', (req, res) => {
   try {
     initializeDatabase();
-    createTables();
     res.json({ message: 'Database initialized successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to initialize database' });
@@ -555,23 +556,21 @@ app.post('/api/init-db', (req, res) => {
 const startServer = () => {
   const dbConnected = initializeDatabase();
   
-  if (dbConnected) {
-    createTables();
-  } else {
+  if (!dbConnected) {
     console.log('⚠️  Starting server without database... Some features may not work.');
   }
 
   app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 AGG MVP Backend Server running on port ${port}`);
-  console.log(`📍 Local: http://localhost:${port}`);
-  console.log(`🩺 Health check: http://localhost:${port}/api/health`);
-  console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
-  console.log('');
-  console.log('📋 Demo Accounts:');
-  console.log('   Admin:    username: "admin", password: "password"');
-  console.log('   Stall 01: username: "stall_01", password: "password"');
-  console.log('   Stall 02: username: "stall_02", password: "password"');
-});
+    console.log(`🚀 AGG MVP Backend Server running on port ${port}`);
+    console.log(`📍 Local: http://localhost:${port}`);
+    console.log(`🩺 Health check: http://localhost:${port}/api/health`);
+    console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
+    console.log('');
+    console.log('📋 Demo Accounts:');
+    console.log('   Admin:    username: "admin", password: "password"');
+    console.log('   Stall 01: username: "stall_01", password: "password"');
+    console.log('   Stall 02: username: "stall_02", password: "password"');
+  });
 };
 
 // Handle graceful shutdown
