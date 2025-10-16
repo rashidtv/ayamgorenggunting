@@ -414,7 +414,7 @@ export default {
           price
         }, {
           headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 5000
+          timeout: 10000
         })
         
         await this.loadData()
@@ -446,7 +446,7 @@ export default {
           newLevel
         }, {
           headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 5000
+          timeout: 10000
         })
         
         await this.loadInventory()
