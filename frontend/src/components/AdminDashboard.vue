@@ -238,7 +238,7 @@
 import axios from 'axios'
 import { formatCurrency } from '../utils/currency.js'
 
-const API_BASE = 'http://localhost:5001/api'
+import { API_BASE } from '../config/api.js'
 
 export default {
   name: 'AdminDashboard',
