@@ -11,10 +11,10 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Database
+# Database files
 backend/agg_mvp.db
-backend/agg_mvp.db-shm
-backend/agg_mvp.db-wal
+backend/agg_mvp.db-*
+!backend/database.sql
 
 # Build outputs
 dist/
