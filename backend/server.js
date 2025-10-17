@@ -116,32 +116,7 @@ const createDemoUsers = () => {
       INSERT OR IGNORE INTO inventory (stall_id, material_name, current_level, alert_level)
       VALUES (?, ?, ?, ?)
     `);
-    
 
-// ==================== HEALTH & KEEP-ALIVE ROUTES ====================
-
-// Enhanced health check for Render
-app.get('/health', (req, res) => {
-  const dbStatus = db ? 'Connected' : 'Disconnected';
-  const uptime = process.uptime();
-  
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    service: 'AGG MVP Backend',
-    database: dbStatus,
-    uptime: `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`,
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Simple ping endpoint for keep-alive
-app.get('/ping', (req, res) => {
-  res.status(200).json({ 
-    message: 'pong', 
-    timestamp: new Date().toISOString() 
-  });
-});
 
     let inventoryCreated = 0;
     inventoryItems.forEach(item => {
