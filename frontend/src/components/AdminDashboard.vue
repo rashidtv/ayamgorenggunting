@@ -237,10 +237,7 @@
 <script>
 import axios from 'axios'
 import { formatCurrency } from '../utils/currency.js'
-
-// NEW WAY
-import { api } from '@/config/api.js';
-api.login(credentials).then(...)
+import { API_BASE } from '../config/api.js'
 
 export default {
   name: 'AdminDashboard',
