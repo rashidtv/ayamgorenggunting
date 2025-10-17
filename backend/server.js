@@ -117,6 +117,26 @@ const createDemoUsers = () => {
       VALUES (?, ?, ?, ?)
     `);
     
+    // Add this with your other routes (around line 120, after /api/test route)
+app.get('/health', (req, res) => {
+  const dbStatus = db ? 'Connected' : 'Disconnected';
+  const uptime = process.uptime();
+  
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'AGG MVP Backend',
+    database: dbStatus,
+    uptime: `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Also add a simple ping endpoint
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
     let inventoryCreated = 0;
     inventoryItems.forEach(item => {
       const result = inventoryStmt.run(item);
