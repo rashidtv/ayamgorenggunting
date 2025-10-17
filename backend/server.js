@@ -117,7 +117,10 @@ const createDemoUsers = () => {
       VALUES (?, ?, ?, ?)
     `);
     
-    // Add this with your other routes (around line 120, after /api/test route)
+
+// ==================== HEALTH & KEEP-ALIVE ROUTES ====================
+
+// Enhanced health check for Render
 app.get('/health', (req, res) => {
   const dbStatus = db ? 'Connected' : 'Disconnected';
   const uptime = process.uptime();
@@ -132,9 +135,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Also add a simple ping endpoint
+// Simple ping endpoint for keep-alive
 app.get('/ping', (req, res) => {
-  res.status(200).send('pong');
+  res.status(200).json({ 
+    message: 'pong', 
+    timestamp: new Date().toISOString() 
+  });
 });
 
     let inventoryCreated = 0;
