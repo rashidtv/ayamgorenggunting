@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config();
 
@@ -10,10 +10,40 @@ const app = express();
 const port = process.env.PORT || 10000;
 
 // Middleware
+// Dynamic CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',  // Vite dev server
+  'http://localhost:3000',  // Alternative local
+];
+
+// Add production frontend URL after deployment
+if (process.env.NODE_ENV === 'production') {
+  // We'll add the actual Vercel URL after deployment
+  allowedOrigins.push('https://your-app-name.vercel.app');
+}
+
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
+
+// Also add a wildcard for development flexibility
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔓 Development mode: CORS is more permissive');
+  app.use(cors({
+    origin: true,  // Allow all origins in development
+    credentials: true
+  }));
+}
 app.use(express.json());
 
 // Database connection
@@ -160,29 +190,23 @@ const createDemoUsers = () => {
   }
 };
 
-// Initialize database
+// Replace the initializeDatabase function:
 const initializeDatabase = () => {
   try {
-    // For Render: use different path that's writable
-    const dbPath = process.env.NODE_ENV === 'production' 
-      ? '/tmp/agg_mvp.db'
-      : path.join(__dirname, 'agg_mvp.db');
+    // For Fly.io: use /tmp directory which is writable
+    const dbPath = '/tmp/agg_mvp.db';
     
-    db = new Database(dbPath);
-    
-    // Enable better performance settings
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    
-    console.log('✅ SQLite database connected with better-sqlite3');
-    
-    // Test connection - FIXED: Use CURRENT_TIMESTAMP
-    const result = db.prepare('SELECT CURRENT_TIMESTAMP as current_time').get();
-    console.log('Database time:', result.current_time);
-    
-    // CREATE TABLES AND DEMO DATA
-    createTables();
-    createDemoUsers();
+    db = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error('❌ Database connection failed:', err.message);
+        return false;
+      }
+      console.log('✅ SQLite database connected with sqlite3');
+      
+      // CREATE TABLES AND DEMO DATA
+      createTables();
+      createDemoUsers();
+    });
     
     return true;
   } catch (error) {
@@ -248,6 +272,58 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ==================== ENHANCED HEALTH CHECKS ====================
+
+// Multiple health endpoints for better keep-alive
+app.get('/api/health1', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    endpoint: 'health1'
+  });
+});
+
+app.get('/api/health2', (req, res) => {
+  res.json({ 
+    status: 'awake', 
+    timestamp: new Date().toISOString(),
+    endpoint: 'health2' 
+  });
+});
+
+app.get('/api/health3', (req, res) => {
+  res.json({ 
+    status: 'active', 
+    timestamp: new Date().toISOString(),
+    endpoint: 'health3'
+  });
+});
+
+// Database warm-up endpoint
+app.get('/api/warmup', (req, res) => {
+  if (db) {
+    try {
+      // Keep database connection active
+      db.prepare('SELECT 1').get();
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+  res.json({ 
+    warmed: true, 
+    timestamp: new Date().toISOString(),
+    message: 'Database connection kept alive'
+  });
+});
+
+// Simple ping
+app.get('/api/ping', (req, res) => {
+  res.json({ 
+    message: 'pong', 
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Login route
 app.post('/api/login', (req, res) => {
   console.log('Login attempt for:', req.body.username);
@@ -263,51 +339,54 @@ app.post('/api/login', (req, res) => {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const user = db.prepare(
-      'SELECT * FROM users WHERE username = ?'
-    ).get([username]);
-
-    if (!user) {
-      console.log('User not found:', username);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    console.log('User found:', user.username, 'Role:', user.role);
-    
-    // Check password - for demo, also accept "password" without hashing
-    let validPassword = false;
-    if (password === 'password') {
-      validPassword = true;
-    } else {
-      validPassword = bcrypt.compareSync(password, user.password);
-    }
-
-    if (!validPassword) {
-      console.log('Invalid password for user:', username);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        username: user.username, 
-        stall_id: user.stall_id, 
-        role: user.role 
-      },
-      process.env.JWT_SECRET || 'fallback_secret_key_for_development',
-      { expiresIn: '24h' }
-    );
-
-    console.log('Login successful for:', username);
-    
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        stall_id: user.stall_id,
-        role: user.role
+    db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Database error' });
       }
+
+      if (!user) {
+        console.log('User not found:', username);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      console.log('User found:', user.username, 'Role:', user.role);
+      
+      // Check password - for demo, also accept "password" without hashing
+      let validPassword = false;
+      if (password === 'password') {
+        validPassword = true;
+      } else {
+        validPassword = bcrypt.compareSync(password, user.password);
+      }
+
+      if (!validPassword) {
+        console.log('Invalid password for user:', username);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const token = jwt.sign(
+        { 
+          id: user.id, 
+          username: user.username, 
+          stall_id: user.stall_id, 
+          role: user.role 
+        },
+        process.env.JWT_SECRET || 'fallback_secret_key_for_development',
+        { expiresIn: '24h' }
+      );
+
+      console.log('Login successful for:', username);
+      
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          stall_id: user.stall_id,
+          role: user.role
+        }
+      });
     });
   } catch (error) {
     console.error('Login error:', error);

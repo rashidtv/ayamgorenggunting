@@ -5,13 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "build": "npm rebuild",
-    "setup": "node setup.js",
-    "check-db": "node check-db.js"
+    "dev": "node server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^9.0.0",
+    "sqlite3": "^5.1.6",
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "bcryptjs": "^2.4.3",
