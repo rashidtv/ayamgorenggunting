@@ -2,9 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');  // CHANGED THIS LINE
 const path = require('path');
-const Database = require('better-sqlite3');
 require('dotenv').config();
 
 const app = express();
