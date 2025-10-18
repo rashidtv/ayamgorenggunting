@@ -22,19 +22,24 @@ if (process.env.NODE_ENV === 'production') {
   allowedOrigins.push('https://your-app-name.vercel.app');
 }
 
+// Simple CORS configuration that allows all frontend origins
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    'https://agg-frontend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
   credentials: true
 }));
+
+// For development, allow all origins
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔓 Development mode: CORS is more permissive');
+  app.use(cors({
+    origin: true,  // Allow all origins in development
+    credentials: true
+  }));
+}
 
 // Also add a wildcard for development flexibility
 if (process.env.NODE_ENV !== 'production') {
