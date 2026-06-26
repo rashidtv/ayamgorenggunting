@@ -66,28 +66,25 @@
             <p>Loading your dashboard...</p>
           </div>
           <div v-else class="dashboard-container">
-            <!-- Role-based routing with safe checks -->
-            <template v-if="user && user.role">
-              <SuperSuperAdminPanel
-                v-if="user.role === 'super_super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              <SuperAdminPanel
-                v-else-if="user.role === 'super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              <StallView
-                v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
-                :key="getStallId() || 'stall-view'"
-                :stallId="getStallId()"
-                :token="token || ''"
-                :role="user.role"
-                @show-notification="showNotification"
-              />
-              <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
-            </template>
+            <SuperSuperAdminPanel
+              v-if="isSSA"
+              :token="token || ''"
+              @show-notification="showNotification"
+            />
+            <SuperAdminPanel
+              v-else-if="isSA"
+              :token="token || ''"
+              @show-notification="showNotification"
+            />
+            <StallView
+              v-else-if="isStallUser"
+              :key="stallIdForView"
+              :stallId="stallIdForView"
+              :token="token || ''"
+              :role="user?.role || 'stall_admin'"
+              @show-notification="showNotification"
+            />
+            <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
           </div>
         </div>
       </main>
@@ -181,6 +178,27 @@ export default {
       };
       return roleMap[this.user.role] || this.user.role || 'User';
     },
+    // Safe role checks
+    isSSA() {
+      return this.user?.role === 'super_super_admin';
+    },
+    isSA() {
+      return this.user?.role === 'super_admin';
+    },
+    isStallUser() {
+      return this.user?.role === 'stall_admin' || this.user?.role === 'cashier';
+    },
+    // Safe stall ID - NEVER returns undefined
+    stallIdForView() {
+      // If no user or no stall needed, return empty string
+      if (!this.user || !this.isStallUser) {
+        return '';
+      }
+      // Get stall ID from active or user object
+      const stallId = this.activeStallId || this.user?.stall_id;
+      // Always return a string, never undefined
+      return stallId ? String(stallId) : '';
+    },
   },
   watch: {
     user: {
@@ -194,27 +212,6 @@ export default {
     },
   },
   methods: {
-    /**
-     * Safely get stall ID - returns empty string for users who don't need a stall
-     */
-    getStallId() {
-      // Safety check
-      if (!this.user || !this.user.role) {
-        return '';
-      }
-      
-      // SSA and SA don't need stall_id
-      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
-        return '';
-      }
-      
-      // For stall_admin and cashier, get the stall_id
-      const stallId = this.activeStallId || this.user.stall_id;
-      
-      // Return as string, or empty string if null/undefined
-      return stallId ? String(stallId) : '';
-    },
-
     handleLoginSuccess(userData, authToken) {
       this.loading = true;
       const authStore = useAuthStore();
@@ -1046,4 +1043,4 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-</style>// Force rebuild Fri Jun 26 15:28:01 UTC 2026
+</style>
