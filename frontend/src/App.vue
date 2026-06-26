@@ -44,7 +44,7 @@
                 <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
               </button>
               <div class="user-menu">
-                <span class="user-greeting">Hello, {{ user.username }}</span>
+                <span class="user-greeting">Hello, {{ user?.username || 'User' }}</span>
                 <div class="user-badge">
                   <span class="user-role">{{ userRoleText }}</span>
                 </div>
@@ -68,21 +68,21 @@
           <div v-else class="dashboard-container">
             <!-- Role-based routing -->
             <SuperSuperAdminPanel
-              v-if="user.role === 'super_super_admin'"
+              v-if="user?.role === 'super_super_admin'"
               :token="token"
               @show-notification="showNotification"
             />
             <SuperAdminPanel
-              v-else-if="user.role === 'super_admin'"
+              v-else-if="user?.role === 'super_admin'"
               :token="token"
               @show-notification="showNotification"
             />
             <StallView
-              v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
-              :key="activeStallId || 'default'"
-              :stallId="String(activeStallId || user.stall_id || '')"
+              v-else-if="user?.role === 'stall_admin' || user?.role === 'cashier'"
+              :key="activeStallId || 'stall-view'"
+              :stallId="getStallId()"
               :token="token"
-              :role="user.role"
+              :role="user?.role"
               @show-notification="showNotification"
             />
             <AdminDashboard v-else :token="token" @show-notification="showNotification" />
@@ -190,6 +190,17 @@ export default {
     },
   },
   methods: {
+    // SAFE METHOD to get stall_id – handles null/undefined gracefully
+    getStallId() {
+      if (!this.user) return '';
+      // For SSA and SA, return empty string (they don't need a stall)
+      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
+        return '';
+      }
+      // For stall_admin and cashier, get the stall_id
+      return String(this.activeStallId || this.user.stall_id || '');
+    },
+
     handleLoginSuccess(userData, authToken) {
       this.loading = true;
       const authStore = useAuthStore();
@@ -357,7 +368,6 @@ export default {
         this.loading = true;
         try {
           const userData = JSON.parse(storedUser);
-          // Ensure userData has required fields
           if (userData && typeof userData === 'object') {
             this.user = userData;
             this.token = storedToken;
@@ -365,7 +375,6 @@ export default {
             authStore.setUser(userData, storedToken);
             this.activeStallId = authStore.activeStallId || userData.stall_id || null;
           } else {
-            // Invalid user data, clear localStorage
             localStorage.removeItem('user');
             localStorage.removeItem('token');
           }
