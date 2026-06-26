@@ -2,754 +2,1020 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Database = require('better-sqlite3');  // CHANGED THIS LINE
-const path = require('path');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Middleware
-// Dynamic CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',  // Vite dev server
-  'http://localhost:3000',  // Alternative local
-];
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 3,
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 3000,
+  keepAlive: true,
+});
 
-// Add production frontend URL after deployment
-if (process.env.NODE_ENV === 'production') {
-  // We'll add the actual Vercel URL after deployment
-  allowedOrigins.push('https://your-app-name.vercel.app');
-}
+// Handle pool errors without crashing
+pool.on('error', (err) => {
+  console.error('Unexpected database error:', err.message);
+});
 
-// Simple CORS configuration that allows all frontend origins
-app.use(cors({
-  origin: [
-    'https://agg-frontend.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ],
-  credentials: true
-}));
+// CORS – allow all origins in development, restrict in production
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://agg-frontend.onrender.com', 'https://your-custom-domain.com']
+  : ['http://localhost:5173', 'http://localhost:10000', 'https://*.preview.app.github.dev'];
 
-// For development, allow all origins
-if (process.env.NODE_ENV !== 'production') {
-  console.log('🔓 Development mode: CORS is more permissive');
-  app.use(cors({
-    origin: true,  // Allow all origins in development
-    credentials: true
-  }));
-}
-
-// Also add a wildcard for development flexibility
-if (process.env.NODE_ENV !== 'production') {
-  console.log('🔓 Development mode: CORS is more permissive');
-  app.use(cors({
-    origin: true,  // Allow all origins in development
-    credentials: true
-  }));
-}
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
-// Database connection
-let db;
+// ==================== PERMISSION HELPERS ====================
 
-// Create tables function - MUST BE DEFINED FIRST
-const createTables = () => {
-  try {
-    // Users table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        stall_id INTEGER,
-        role TEXT NOT NULL DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Inventory table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        stall_id INTEGER NOT NULL,
-        material_name TEXT NOT NULL,
-        current_level REAL NOT NULL DEFAULT 0,
-        alert_level REAL NOT NULL DEFAULT 10,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(stall_id, material_name)
-      )
-    `);
-
-    // Sales table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        stall_id INTEGER NOT NULL,
-        item_name TEXT NOT NULL,
-        price REAL NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Recipes table
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS recipes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_name TEXT NOT NULL,
-        material_name TEXT NOT NULL,
-        quantity_used REAL NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('✅ Database tables verified/created');
+const isCompanyAdmin = (req) => {
+  if (!req.user) return false;
+  if (req.user.role === 'super_super_admin' || req.user.role === 'super_admin') {
     return true;
-  } catch (error) {
-    console.error('❌ Table creation failed:', error);
-    return false;
   }
+  if (req.user.company_id) {
+    return true;
+  }
+  return false;
 };
 
-// Create demo users and sample data
-const createDemoUsers = () => {
-  try {
-    const hashedPassword = bcrypt.hashSync('password', 10);
-    
-    // Demo users
-    const users = [
-      ['admin', hashedPassword, null, 'admin'],
-      ['stall_01', hashedPassword, 1, 'user'],
-      ['stall_02', hashedPassword, 2, 'user']
-    ];
-    
-    const userStmt = db.prepare(`
-      INSERT OR IGNORE INTO users (username, password, stall_id, role) 
-      VALUES (?, ?, ?, ?)
-    `);
-    
-    let usersCreated = 0;
-    users.forEach(user => {
-      const result = userStmt.run(user);
-      if (result.changes > 0) usersCreated++;
-    });
-    console.log(`✅ ${usersCreated} demo users created`);
-    
-    // Add sample inventory
-    const inventoryItems = [
-      [1, 'Chicken', 50, 10],
-      [1, 'Flour', 20, 5],
-      [1, 'Oil', 30, 8],
-      [2, 'Chicken', 45, 10],
-      [2, 'Flour', 25, 5],
-      [2, 'Oil', 35, 8]
-    ];
-    
-    const inventoryStmt = db.prepare(`
-      INSERT OR IGNORE INTO inventory (stall_id, material_name, current_level, alert_level)
-      VALUES (?, ?, ?, ?)
-    `);
-
-
-    let inventoryCreated = 0;
-    inventoryItems.forEach(item => {
-      const result = inventoryStmt.run(item);
-      if (result.changes > 0) inventoryCreated++;
-    });
-    console.log(`✅ ${inventoryCreated} inventory items created`);
-    
-    // Add sample recipes
-    const recipes = [
-      ['Regular AGG', 'Chicken', 0.2],
-      ['Regular AGG', 'Flour', 0.05],
-      ['Regular AGG', 'Oil', 0.1],
-      ['Spicy AGG', 'Chicken', 0.2],
-      ['Spicy AGG', 'Flour', 0.05],
-      ['Spicy AGG', 'Oil', 0.1],
-      ['Large AGG', 'Chicken', 0.3],
-      ['Large AGG', 'Flour', 0.08],
-      ['Large AGG', 'Oil', 0.15],
-      ['Family Pack', 'Chicken', 0.8],
-      ['Family Pack', 'Flour', 0.2],
-      ['Family Pack', 'Oil', 0.3]
-    ];
-    
-    const recipeStmt = db.prepare(`
-      INSERT OR IGNORE INTO recipes (item_name, material_name, quantity_used)
-      VALUES (?, ?, ?)
-    `);
-    
-    let recipesCreated = 0;
-    recipes.forEach(recipe => {
-      const result = recipeStmt.run(recipe);
-      if (result.changes > 0) recipesCreated++;
-    });
-    console.log(`✅ ${recipesCreated} recipes created`);
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Error creating demo data:', error);
-    return false;
-  }
+const userCanAccessCompany = (user, companyId) => {
+  if (!user) return false;
+  if (user.role === 'super_super_admin') return true;
+  if (user.role === 'super_admin' && user.company_id === companyId) return true;
+  if (user.company_id === companyId) return true;
+  return false;
 };
 
-// Replace the initializeDatabase function:
-const initializeDatabase = () => {
-  try {
-    // For Render: use different path that's writable
-    const dbPath = process.env.NODE_ENV === 'production' 
-      ? '/tmp/agg_mvp.db'
-      : path.join(__dirname, 'agg_mvp.db');
-    
-    db = new Database(dbPath);
-    
-    // Enable better performance settings
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    
-    console.log('✅ SQLite database connected with better-sqlite3');
-    
-    // CREATE TABLES AND DEMO DATA
-    createTables();
-    createDemoUsers();
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    return false;
-  }
-};
+// ==================== HELPER FUNCTIONS ====================
 
-// JWT Authentication middleware
-const authenticateToken = (req, res, next) => {
+async function getUserById(id) {
+  try {
+    const res = await pool.query(`
+      SELECT u.*, c.name as company_name,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
+           FROM user_stall_assignments usa
+           JOIN stalls s ON usa.stall_id = s.id
+           WHERE usa.user_id = u.id),
+          '[]'
+        ) as assigned_stalls
+      FROM users u
+      LEFT JOIN companies c ON u.company_id = c.id
+      WHERE u.id = $1
+    `, [id]);
+    return res.rows[0];
+  } catch (err) {
+    console.error('getUserById error:', err.message);
+    throw err;
+  }
+}
+
+async function userCanAccessStall(userId, stallId) {
+  const user = await getUserById(userId);
+  if (!user) return false;
+  if (user.role === 'super_super_admin' || user.role === 'super_admin') return true;
+  const assRes = await pool.query('SELECT 1 FROM user_stall_assignments WHERE user_id = $1 AND stall_id = $2', [userId, stallId]);
+  return assRes.rowCount > 0;
+}
+
+// ==================== AUTHENTICATION ====================
+
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
+  if (!token) return res.status(401).json({ error: 'Access token required' });
 
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_for_development', (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
+  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', async (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    const user = await getUserById(decoded.id);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    
+    // Ensure company_id is set for admin users if missing
+    if (!user.company_id && (user.role === 'super_admin' || user.role === 'super_super_admin')) {
+      const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+      if (companyRes.rows[0]) {
+        user.company_id = companyRes.rows[0].id;
+        await pool.query('UPDATE users SET company_id = $1 WHERE id = $2', [user.company_id, user.id]);
+        console.log(`✅ Updated company_id for user ${user.username} to ${user.company_id}`);
+      }
     }
+    
     req.user = user;
     next();
   });
 };
 
-// ==================== ROUTES ====================
+// ==================== AUTH ROUTES ====================
 
-// Test route
-app.get('/api/test', (req, res) => {
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
   try {
-    if (!db) {
-      return res.json({ 
-        message: 'Backend is working! But database is not connected.',
-        status: 'Backend OK - Database Disconnected'
-      });
-    }
+    const userRes = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = userRes.rows[0];
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // FIXED: Use CURRENT_TIMESTAMP
-    const result = db.prepare('SELECT CURRENT_TIMESTAMP as time').get();
-    res.json({ 
-      message: 'Backend is working!', 
-      databaseTime: result.time,
-      status: 'Backend & Database OK'
-    });
-  } catch (error) {
-    console.error('Test route error:', error);
-    res.status(500).json({ 
-      error: 'Database connection failed',
-      details: error.message
-    });
-  }
-});
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    service: 'AGG MVP Backend',
-    database: db ? 'Connected' : 'Disconnected',
-    port: port
-  });
-});
-
-// ==================== ENHANCED HEALTH CHECKS ====================
-
-// Multiple health endpoints for better keep-alive
-app.get('/api/health1', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    endpoint: 'health1'
-  });
-});
-
-app.get('/api/health2', (req, res) => {
-  res.json({ 
-    status: 'awake', 
-    timestamp: new Date().toISOString(),
-    endpoint: 'health2' 
-  });
-});
-
-app.get('/api/health3', (req, res) => {
-  res.json({ 
-    status: 'active', 
-    timestamp: new Date().toISOString(),
-    endpoint: 'health3'
-  });
-});
-
-// Database warm-up endpoint
-app.get('/api/warmup', (req, res) => {
-  if (db) {
-    try {
-      // Keep database connection active
-      db.prepare('SELECT 1').get();
-    } catch (e) {
-      // Ignore errors
-    }
-  }
-  res.json({ 
-    warmed: true, 
-    timestamp: new Date().toISOString(),
-    message: 'Database connection kept alive'
-  });
-});
-
-// Simple ping
-app.get('/api/ping', (req, res) => {
-  res.json({ 
-    message: 'pong', 
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Login route
-app.post('/api/login', (req, res) => {
-  console.log('Login attempt for:', req.body.username);
-  
-  try {
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    // FIXED: Use better-sqlite3 syntax
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get([username]);
-
-    if (!user) {
-      console.log('User not found:', username);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    console.log('User found:', user.username, 'Role:', user.role);
-    
-    // Check password - for demo, also accept "password" without hashing
-    let validPassword = false;
-    if (password === 'password') {
-      validPassword = true;
-    } else {
-      validPassword = bcrypt.compareSync(password, user.password);
-    }
-
-    if (!validPassword) {
-      console.log('Invalid password for user:', username);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
+    const valid = bcrypt.compareSync(password, user.password);
+    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { 
-        id: user.id, 
-        username: user.username, 
-        stall_id: user.stall_id, 
-        role: user.role 
-      },
-      process.env.JWT_SECRET || 'fallback_secret_key_for_development',
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '24h' }
     );
 
-    console.log('Login successful for:', username);
-    
+    const fullUser = await getUserById(user.id);
     res.json({
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        stall_id: user.stall_id,
-        role: user.role
+        id: fullUser.id,
+        username: fullUser.username,
+        full_name: fullUser.full_name,
+        role: fullUser.role,
+        company_id: fullUser.company_id,
+        company_name: fullUser.company_name,
+        assigned_stalls: fullUser.assigned_stalls || []
       }
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error during login',
-      details: error.message 
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// Get stall inventory
-app.get('/api/inventory', authenticateToken, (req, res) => {
+// ==================== INVENTORY ROUTES ====================
+
+app.get('/api/inventory', authenticateToken, async (req, res) => {
   try {
-    const stallId = req.user.stall_id;
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
+    let stallIds = [];
+    const requestedStallId = req.query.stallId ? parseInt(req.query.stallId) : null;
+
+    if (requestedStallId) {
+      const allowed = await userCanAccessStall(req.user.id, requestedStallId);
+      if (!allowed) return res.status(403).json({ error: 'Access denied' });
+      stallIds = [requestedStallId];
+    } else if (req.user.role === 'super_super_admin') {
+      const stallsRes = await pool.query('SELECT id FROM stalls');
+      stallIds = stallsRes.rows.map(r => r.id);
+    } else if (req.user.role === 'super_admin') {
+      const stallsRes = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [req.user.company_id]);
+      stallIds = stallsRes.rows.map(r => r.id);
+    } else if (req.user.role === 'stall_admin') {
+      const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+      stallIds = assRes.rows.map(r => r.stall_id);
+    } else if (req.user.role === 'cashier') {
+      const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1 LIMIT 1', [req.user.id]);
+      if (assRes.rows[0]) stallIds = [assRes.rows[0].stall_id];
     }
 
-    const inventory = db.prepare(
-      'SELECT * FROM inventory WHERE stall_id = ? ORDER BY material_name'
-    ).all([stallId]);
-
-    res.json(inventory);
-  } catch (error) {
-    console.error('Inventory error:', error);
+    if (stallIds.length === 0) return res.json([]);
+    const inventoryRes = await pool.query(
+      'SELECT * FROM inventory WHERE stall_id = ANY($1::int[]) ORDER BY material_name',
+      [stallIds]
+    );
+    res.json(inventoryRes.rows);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
 
-// Sell item
-app.post('/api/sell', authenticateToken, (req, res) => {
+app.post('/api/inventory/update', authenticateToken, async (req, res) => {
+  const { materialName, newLevel, stallId } = req.body;
+  let targetStallId = stallId ? parseInt(stallId) : null;
+
+  if (!targetStallId) {
+    if (req.user.role === 'super_super_admin') {
+      return res.status(400).json({ error: 'stallId required for super_super_admin' });
+    }
+    targetStallId = req.user.assigned_stalls?.[0]?.id;
+  }
+
+  if (!targetStallId) return res.status(400).json({ error: 'No stall specified' });
+
+  const allowed = await userCanAccessStall(req.user.id, targetStallId);
+  if (!allowed) return res.status(403).json({ error: 'Access denied' });
+
   try {
-    const { itemName, price } = req.body;
-    const stallId = req.user.stall_id;
-
-    console.log(`Selling ${itemName} for stall ${stallId} at price ${price}`);
-
-    if (!itemName || !price) {
-      return res.status(400).json({ error: 'Item name and price are required' });
-    }
-
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    // Start transaction
-    const transaction = db.transaction(() => {
-      // Record sale
-      const saleResult = db.prepare(
-        'INSERT INTO sales (stall_id, item_name, price) VALUES (?, ?, ?)'
-      ).run([stallId, itemName, price]);
-
-      console.log('Sale recorded with ID:', saleResult.lastInsertRowid);
-
-      // Update inventory based on recipe
-      const recipes = db.prepare(
-        'SELECT * FROM recipes WHERE item_name = ?'
-      ).all([itemName]);
-
-      console.log('Recipes found:', recipes.length);
-
-      if (recipes.length === 0) {
-        throw new Error(`No recipe found for ${itemName}`);
-      }
-
-      // Update each inventory item
-      for (const recipe of recipes) {
-        console.log(`Updating ${recipe.material_name} by ${recipe.quantity_used}`);
-        
-        // FIXED: Use CURRENT_TIMESTAMP instead of datetime('now')
-        const updateResult = db.prepare(
-          'UPDATE inventory SET current_level = current_level - ?, updated_at = CURRENT_TIMESTAMP WHERE stall_id = ? AND material_name = ?'
-        ).run([recipe.quantity_used, stallId, recipe.material_name]);
-
-        if (updateResult.changes === 0) {
-          console.warn(`No inventory found for ${recipe.material_name} in stall ${stallId}`);
-        }
-      }
-
-      return { success: true };
-    });
-
-    transaction();
-
-    res.json({ 
-      success: true, 
-      message: `Sold ${itemName} successfully for RM ${price.toFixed(2)}!` 
-    });
-  } catch (error) {
-    console.error('Sell error:', error);
-    res.status(500).json({ 
-      error: 'Failed to process sale',
-      details: error.message,
-      suggestion: 'Check if recipes are properly set up in database'
-    });
+    const result = await pool.query(
+      `UPDATE inventory SET current_level = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE stall_id = $2 AND material_name = $3`,
+      [newLevel, targetStallId, materialName]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Material not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Update failed' });
   }
 });
 
-// Get today's sales for stall
-app.get('/api/stall-today-sales', authenticateToken, (req, res) => {
+// ==================== SALES ROUTES ====================
+
+app.post('/api/sell', authenticateToken, async (req, res) => {
+  const { itemName, price, stallId } = req.body;
+  let targetStallId = stallId ? parseInt(stallId) : null;
+
+  if (!targetStallId) {
+    targetStallId = req.user.assigned_stalls?.[0]?.id;
+  }
+  if (!targetStallId) return res.status(400).json({ error: 'No stall selected' });
+
+  const allowed = await userCanAccessStall(req.user.id, targetStallId);
+  if (!allowed) return res.status(403).json({ error: 'Access denied' });
+
+  const client = await pool.connect();
   try {
-    const stallId = req.user.stall_id;
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
+    await client.query('BEGIN');
+    await client.query(
+      'INSERT INTO sales (stall_id, item_name, price) VALUES ($1, $2, $3)',
+      [targetStallId, itemName, price]
+    );
+    const recipeRes = await client.query('SELECT material_name, quantity_used FROM recipes WHERE item_name = $1', [itemName]);
+    if (recipeRes.rows.length === 0) throw new Error('No recipe found for ' + itemName);
+    for (const recipe of recipeRes.rows) {
+      await client.query(
+        `UPDATE inventory SET current_level = current_level - $1, updated_at = CURRENT_TIMESTAMP
+         WHERE stall_id = $2 AND material_name = $3`,
+        [recipe.quantity_used, targetStallId, recipe.material_name]
+      );
     }
-
-    const result = db.prepare(
-      `SELECT COUNT(*) as items_sold, COALESCE(SUM(price), 0) as total_revenue 
-       FROM sales 
-       WHERE stall_id = ? AND DATE(created_at) = DATE('now')`
-    ).get([stallId]);
-
-    res.json(result);
-  } catch (error) {
-    console.error('Sales error:', error);
-    res.status(500).json({ error: 'Failed to fetch sales data' });
+    await client.query('COMMIT');
+    res.json({ success: true, message: `Sold ${itemName}` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
-// ==================== ADMIN ROUTES ====================
-
-// Get today's overall stats
-app.get('/api/admin/today-stats', authenticateToken, (req, res) => {
-  try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    const result = db.prepare(
-      `SELECT COUNT(*) as total_items, 
-              COALESCE(SUM(price), 0) as total_revenue,
-              COUNT(DISTINCT stall_id) as active_stalls
-       FROM sales 
-       WHERE DATE(created_at) = DATE('now')`
-    ).get();
-
-    res.json(result);
-  } catch (error) {
-    console.error('Admin stats error:', error);
-    res.status(500).json({ error: 'Failed to fetch admin stats' });
+// ==================== STALL TODAY SALES ====================
+app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
+  let targetStallId = req.query.stallId ? parseInt(req.query.stallId) : null;
+  if (!targetStallId) {
+    targetStallId = req.user.assigned_stalls?.[0]?.id;
   }
+  if (!targetStallId) {
+    if (req.user.role === 'super_admin') {
+      const result = await pool.query(`
+        SELECT COUNT(*) as items_sold, COALESCE(SUM(price), 0) as total_revenue
+        FROM sales
+        WHERE stall_id IN (SELECT id FROM stalls WHERE company_id = $1) AND DATE(created_at) = CURRENT_DATE
+      `, [req.user.company_id]);
+      return res.json(result.rows[0]);
+    }
+    return res.json({ items_sold: 0, total_revenue: 0 });
+  }
+
+  const allowed = await userCanAccessStall(req.user.id, targetStallId);
+  if (!allowed) return res.status(403).json({ error: 'Access denied' });
+
+  const result = await pool.query(
+    `SELECT COUNT(*) as items_sold, COALESCE(SUM(price), 0) as total_revenue
+     FROM sales
+     WHERE stall_id = $1 AND DATE(created_at) = CURRENT_DATE`,
+    [targetStallId]
+  );
+  res.json(result.rows[0]);
 });
 
-// Get low stock alerts
-app.get('/api/admin/low-stock', authenticateToken, (req, res) => {
+// ==================== STALL SALES STATISTICS ====================
+app.get('/api/stall-sales-stats', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    const stallId = req.query.stallId ? parseInt(req.query.stallId) : null;
+    if (!stallId) return res.status(400).json({ error: 'stallId required' });
 
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
+    const allowed = await userCanAccessStall(req.user.id, stallId);
+    if (!allowed) return res.status(403).json({ error: 'Access denied' });
 
-    const alerts = db.prepare(
-      `SELECT stall_id, material_name, current_level, alert_level 
-       FROM inventory 
-       WHERE current_level <= alert_level
-       ORDER BY stall_id, material_name`
-    ).all();
+    const todayRes = await pool.query(`
+      SELECT COALESCE(SUM(price), 0) as total
+      FROM sales
+      WHERE stall_id = $1 AND DATE(created_at) = CURRENT_DATE
+    `, [stallId]);
 
-    res.json(alerts);
-  } catch (error) {
-    console.error('Low stock error:', error);
-    res.status(500).json({ error: 'Failed to fetch low stock alerts' });
-  }
-});
+    const weekRes = await pool.query(`
+      SELECT COALESCE(SUM(price), 0) as total
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+    `, [stallId]);
 
-// Update inventory levels
-app.post('/api/inventory/update', authenticateToken, (req, res) => {
-  try {
-    const { materialName, newLevel } = req.body;
-    const stallId = req.user.stall_id;
+    const monthRes = await pool.query(`
+      SELECT COALESCE(SUM(price), 0) as total
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+    `, [stallId]);
 
-    console.log(`Updating inventory: ${materialName} to ${newLevel} for stall ${stallId}`);
+    const quarterRes = await pool.query(`
+      SELECT COALESCE(SUM(price), 0) as total
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '90 days'
+    `, [stallId]);
 
-    if (!materialName || newLevel === undefined) {
-      return res.status(400).json({ error: 'Material name and new level are required' });
-    }
-
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    // FIXED: Use CURRENT_TIMESTAMP instead of datetime('now')
-    const result = db.prepare(
-      'UPDATE inventory SET current_level = ?, updated_at = CURRENT_TIMESTAMP WHERE stall_id = ? AND material_name = ?'
-    ).run([newLevel, stallId, materialName]);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Inventory item not found' });
-    }
-
-    res.json({ 
-      success: true, 
-      message: `Updated ${materialName} to ${newLevel}kg` 
-    });
-  } catch (error) {
-    console.error('Update inventory error:', error);
-    res.status(500).json({ error: 'Failed to update inventory' });
-  }
-});
-
-// Get sales analytics for charts
-app.get('/api/sales-analytics', authenticateToken, (req, res) => {
-  try {
-    const stallId = req.user.stall_id;
-    const isAdmin = req.user.role === 'admin';
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    let query = `
-      SELECT 
-        DATE(created_at) as date,
-        item_name,
-        COUNT(*) as quantity,
-        SUM(price) as revenue
-      FROM sales 
-      WHERE created_at >= DATE('now', '-7 days')
-    `;
-
-    const params = [];
-    
-    if (!isAdmin) {
-      query += ' AND stall_id = ?';
-      params.push(stallId);
-    }
-
-    query += ' GROUP BY DATE(created_at), item_name ORDER BY date';
-
-    const analytics = db.prepare(query).all(params);
-    
-    // Format for charts
-    const dailySales = {};
-    const productSales = {};
-    
-    analytics.forEach(row => {
-      // Daily sales
-      if (!dailySales[row.date]) {
-        dailySales[row.date] = 0;
-      }
-      dailySales[row.date] += row.revenue;
-      
-      // Product sales
-      if (!productSales[row.item_name]) {
-        productSales[row.item_name] = 0;
-      }
-      productSales[row.item_name] += row.quantity;
-    });
+    const yearRes = await pool.query(`
+      SELECT COALESCE(SUM(price), 0) as total
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= CURRENT_DATE - INTERVAL '365 days'
+    `, [stallId]);
 
     res.json({
-      dailySales: Object.entries(dailySales).map(([date, revenue]) => ({ date, revenue })),
-      productSales: Object.entries(productSales).map(([product, quantity]) => ({ product, quantity }))
+      today: parseFloat(todayRes.rows[0]?.total || 0),
+      week: parseFloat(weekRes.rows[0]?.total || 0),
+      month: parseFloat(monthRes.rows[0]?.total || 0),
+      quarter: parseFloat(quarterRes.rows[0]?.total || 0),
+      year: parseFloat(yearRes.rows[0]?.total || 0)
     });
-  } catch (error) {
-    console.error('Analytics error:', error);
-    res.status(500).json({ error: 'Failed to fetch analytics' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch stall sales stats' });
   }
 });
 
-// Get all stalls for admin
-app.get('/api/admin/stalls', authenticateToken, (req, res) => {
+// ==================== SALES ANALYTICS (Enhanced) ====================
+app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+    const { stallId, days } = req.query;
+    let targetStallId = stallId ? parseInt(stallId) : null;
+    let dayRange = days ? parseInt(days) : 7;
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - dayRange);
+
+    // For super_admin, get all stalls in their company
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        // Get first company if none specified
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.json({ dailySales: [], productSales: {} });
+      }
+
+      const stallIdsRes = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [companyId]);
+      const stallIds = stallIdsRes.rows.map(r => r.id);
+      
+      if (stallIds.length === 0) {
+        return res.json({ dailySales: [], productSales: {} });
+      }
+
+      // Get daily sales for all stalls
+      const dailyRes = await pool.query(`
+        SELECT 
+          DATE(created_at) as date, 
+          COALESCE(SUM(price), 0) as revenue, 
+          COUNT(*) as items
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `, [stallIds, startDate]);
+
+      // Get product sales breakdown
+      const productRes = await pool.query(`
+        SELECT 
+          item_name, 
+          COUNT(*) as quantity,
+          COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY item_name
+        ORDER BY quantity DESC
+      `, [stallIds, startDate]);
+
+      const productSales = {};
+      productRes.rows.forEach(row => {
+        productSales[row.item_name] = {
+          quantity: parseInt(row.quantity),
+          revenue: parseFloat(row.revenue)
+        };
+      });
+
+      // Get total items and revenue for the period
+      const totalRes = await pool.query(`
+        SELECT 
+          COALESCE(SUM(price), 0) as total_revenue,
+          COUNT(*) as total_items
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+      `, [stallIds, startDate]);
+
+      // Get top performing stall
+      const topStallRes = await pool.query(`
+        SELECT 
+          s.name as stall_name,
+          COALESCE(SUM(sales.price), 0) as revenue
+        FROM sales
+        JOIN stalls s ON sales.stall_id = s.id
+        WHERE sales.stall_id = ANY($1::int[]) AND sales.created_at >= $2
+        GROUP BY s.name
+        ORDER BY revenue DESC
+        LIMIT 1
+      `, [stallIds, startDate]);
+
+      return res.json({
+        dailySales: dailyRes.rows,
+        productSales: productSales,
+        totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
+        totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
+        topStall: topStallRes.rows[0]?.stall_name || '-'
+      });
     }
 
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
+    // For single stall (stall_admin or cashier)
+    if (!targetStallId) {
+      targetStallId = req.user.assigned_stalls?.[0]?.id;
+    }
+    if (!targetStallId) {
+      return res.json({ dailySales: [], productSales: {}, totalItems: 0, totalRevenue: 0, topStall: '-' });
     }
 
-    const stalls = db.prepare(`
-      SELECT DISTINCT stall_id 
-      FROM inventory 
-      ORDER BY stall_id
-    `).all();
+    const allowed = await userCanAccessStall(req.user.id, targetStallId);
+    if (!allowed) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
-    res.json(stalls.map(s => s.stall_id));
-  } catch (error) {
-    console.error('Stalls error:', error);
-    res.status(500).json({ error: 'Failed to fetch stalls' });
+    const dailyRes = await pool.query(`
+      SELECT 
+        DATE(created_at) as date, 
+        COALESCE(SUM(price), 0) as revenue, 
+        COUNT(*) as items
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= $2
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `, [targetStallId, startDate]);
+
+    const productRes = await pool.query(`
+      SELECT 
+        item_name, 
+        COUNT(*) as quantity,
+        COALESCE(SUM(price), 0) as revenue
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= $2
+      GROUP BY item_name
+      ORDER BY quantity DESC
+    `, [targetStallId, startDate]);
+
+    const productSales = {};
+    productRes.rows.forEach(row => {
+      productSales[row.item_name] = {
+        quantity: parseInt(row.quantity),
+        revenue: parseFloat(row.revenue)
+      };
+    });
+
+    const totalRes = await pool.query(`
+      SELECT 
+        COALESCE(SUM(price), 0) as total_revenue,
+        COUNT(*) as total_items
+      FROM sales
+      WHERE stall_id = $1 AND created_at >= $2
+    `, [targetStallId, startDate]);
+
+    res.json({
+      dailySales: dailyRes.rows,
+      productSales: productSales,
+      totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
+      totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
+      topStall: '-'
+    });
+  } catch (err) {
+    console.error('Sales analytics error:', err);
+    res.status(500).json({ error: 'Failed to fetch analytics', details: err.message });
   }
 });
 
-// Get stall performance
-app.get('/api/admin/stall-performance', authenticateToken, (req, res) => {
+// ==================== COMPANY MANAGEMENT ====================
+
+// IMPORTANT: Specific company routes MUST come BEFORE generic /api/companies routes
+
+// ==================== COMPANY STALLS ====================
+app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
+  const companyId = parseInt(req.params.companyId);
+  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+  
+  if (!userCanAccessCompany(req.user, companyId) && req.user.role !== 'stall_admin') {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to access this company' });
+  }
+  
+  const result = await pool.query('SELECT * FROM stalls WHERE company_id = $1 ORDER BY name', [companyId]);
+  res.json(result.rows);
+});
+
+app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
+  const companyId = parseInt(req.params.companyId);
+  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { name, code, location } = req.body;
+  await pool.query(
+    'INSERT INTO stalls (company_id, name, code, location) VALUES ($1, $2, $3, $4)',
+    [companyId, name, code, location]
+  );
+  res.json({ success: true });
+});
+
+// ==================== COMPANY USERS ====================
+app.get('/api/companies/:companyId/users', authenticateToken, async (req, res) => {
+  const companyId = parseInt(req.params.companyId);
+  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+  
+  if (!userCanAccessCompany(req.user, companyId) && req.user.role !== 'stall_admin') {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to access this company' });
+  }
+
+  let query = `
+    SELECT u.id, u.username, u.full_name, u.role, u.is_active,
+      COALESCE(
+        (SELECT json_agg(json_build_object('id', s.id, 'name', s.name))
+         FROM user_stall_assignments usa
+         JOIN stalls s ON usa.stall_id = s.id
+         WHERE usa.user_id = u.id),
+        '[]'
+      ) as assigned_stalls
+    FROM users u
+    WHERE u.company_id = $1
+  `;
+
+  if (req.user.role === 'stall_admin') {
+    const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+    const allowedStallIds = userStalls.rows.map(r => r.stall_id);
+    query += ` AND (u.role = 'cashier' OR EXISTS (SELECT 1 FROM user_stall_assignments usa2 WHERE usa2.user_id = u.id AND usa2.stall_id = ANY($2::int[])))`;
+    const result = await pool.query(query, [companyId, allowedStallIds]);
+    return res.json(result.rows);
+  }
+
+  const result = await pool.query(query, [companyId]);
+  res.json(result.rows);
+});
+
+app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) => {
+  const companyId = parseInt(req.params.companyId);
+  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+
+  const { username, password, full_name, role, stall_ids } = req.body;
+
+  if (req.user.role === 'stall_admin' && role !== 'cashier') {
+    return res.status(403).json({ error: 'Stall Admin can only create Cashiers' });
+  }
+  if (req.user.role === 'stall_admin') {
+    const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+    const allowedStallIds = userStalls.rows.map(r => r.stall_id);
+    if (stall_ids && stall_ids.some(id => !allowedStallIds.includes(parseInt(id)))) {
+      return res.status(403).json({ error: 'You can only assign stalls that you manage' });
+    }
+  }
+  if (req.user.role === 'cashier') {
+    return res.status(403).json({ error: 'Cashier cannot create users' });
+  }
+
+  const hashed = bcrypt.hashSync(password, 10);
+  const userRes = await pool.query(
+    'INSERT INTO users (username, password, full_name, role, company_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [username, hashed, full_name, role, companyId]
+  );
+  const userId = userRes.rows[0].id;
+
+  if (stall_ids && stall_ids.length > 0) {
+    for (const sid of stall_ids) {
+      await pool.query('INSERT INTO user_stall_assignments (user_id, stall_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, sid]);
+    }
+  }
+
+  res.json({ success: true });
+});
+
+// ==================== COMPANY LOW STOCK ====================
+app.get('/api/companies/:companyId/low-stock', authenticateToken, async (req, res) => {
+  const companyId = parseInt(req.params.companyId);
+  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+
+  const result = await pool.query(`
+    SELECT s.name as stall_name, i.material_name, i.current_level, i.alert_level
+    FROM inventory i
+    JOIN stalls s ON i.stall_id = s.id
+    WHERE s.company_id = $1 AND i.current_level <= i.alert_level
+  `, [companyId]);
+  res.json(result.rows);
+});
+
+// ==================== GENERIC COMPANY ROUTES ====================
+app.get('/api/companies', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const result = await pool.query('SELECT * FROM companies ORDER BY name');
+  res.json(result.rows);
+});
+
+app.post('/api/companies', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { name, code, subscription_tier, max_stalls } = req.body;
+  const result = await pool.query(
+    'INSERT INTO companies (name, code, subscription_tier, max_stalls, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [name, code, subscription_tier || 'basic', max_stalls || 5, req.user.id]
+  );
+  res.json({ id: result.rows[0].id, success: true });
+});
+
+app.put('/api/companies/:id', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { name, subscription_tier, max_stalls, is_active } = req.body;
+  await pool.query(
+    'UPDATE companies SET name = COALESCE($1, name), subscription_tier = COALESCE($2, subscription_tier), max_stalls = COALESCE($3, max_stalls), is_active = COALESCE($4, is_active) WHERE id = $5',
+    [name, subscription_tier, max_stalls, is_active, req.params.id]
+  );
+  res.json({ success: true });
+});
+
+app.delete('/api/companies/:id', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  await pool.query('UPDATE companies SET is_active = false WHERE id = $1', [req.params.id]);
+  res.json({ success: true });
+});
+
+// ==================== STALL TOGGLE ====================
+app.put('/api/stalls/:stallId/toggle', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const stall = await pool.query('SELECT is_active FROM stalls WHERE id = $1', [req.params.stallId]);
+  if (!stall.rows[0]) return res.status(404).json({ error: 'Stall not found' });
+  await pool.query('UPDATE stalls SET is_active = $1 WHERE id = $2', [!stall.rows[0].is_active, req.params.stallId]);
+  res.json({ success: true });
+});
+
+// ==================== STALL DELETE ====================
+app.delete('/api/stalls/:id', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const stallId = parseInt(req.params.id);
+  if (isNaN(stallId)) return res.status(400).json({ error: 'Invalid stall ID' });
+
+  const stallCheck = await pool.query('SELECT id FROM stalls WHERE id = $1', [stallId]);
+  if (stallCheck.rows.length === 0) {
+    return res.status(404).json({ error: 'Stall not found' });
+  }
+
+  await pool.query('DELETE FROM user_stall_assignments WHERE stall_id = $1', [stallId]);
+  await pool.query('DELETE FROM inventory WHERE stall_id = $1', [stallId]);
+  await pool.query('DELETE FROM sales WHERE stall_id = $1', [stallId]);
+  await pool.query('DELETE FROM stalls WHERE id = $1', [stallId]);
+
+  res.json({ success: true });
+});
+
+// ==================== USER DELETE ====================
+app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req) && req.user.role !== 'stall_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const userId = parseInt(req.params.id);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+  if (userId === req.user.id) {
+    return res.status(400).json({ error: 'Cannot delete your own account' });
+  }
+
+  await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+  res.json({ success: true });
+});
+
+// ==================== USER UPDATE ====================
+app.put('/api/users/:id', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req) && req.user.role !== 'stall_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const userId = parseInt(req.params.id);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
+
+  const { full_name, role, stall_ids } = req.body;
+
+  await pool.query('UPDATE users SET full_name = $1, role = $2 WHERE id = $3', [full_name, role, userId]);
+
+  await pool.query('DELETE FROM user_stall_assignments WHERE user_id = $1', [userId]);
+  if (stall_ids && stall_ids.length > 0) {
+    for (const sid of stall_ids) {
+      await pool.query('INSERT INTO user_stall_assignments (user_id, stall_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, sid]);
+    }
+  }
+
+  res.json({ success: true });
+});
+
+// ==================== SYSTEM HEALTH (SSA only) ====================
+app.get('/api/system/health', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
+  const totalUsers = (await pool.query('SELECT COUNT(*) FROM users')).rows[0].count;
+  const totalStalls = (await pool.query('SELECT COUNT(*) FROM stalls')).rows[0].count;
+  const dbSize = (await pool.query("SELECT pg_database_size(current_database()) / 1024 / 1024 as size")).rows[0].size;
+  res.json({ total_users: parseInt(totalUsers), total_stalls: parseInt(totalStalls), db_size_mb: parseInt(dbSize), uptime: 99.95 });
+});
+
+// ==================== GLOBAL ANNOUNCEMENTS (SSA only) ====================
+app.get('/api/announcements', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
+  const result = await pool.query('SELECT * FROM announcements ORDER BY created_at DESC');
+  res.json(result.rows);
+});
+
+app.post('/api/announcements', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
+  const { title, content, target_roles, end_date } = req.body;
+  await pool.query(
+    'INSERT INTO announcements (title, content, target_roles, end_date, created_by) VALUES ($1, $2, $3, $4, $5)',
+    [title, content, target_roles, end_date, req.user.id]
+  );
+  res.json({ success: true });
+});
+
+app.delete('/api/announcements/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
+  await pool.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);
+  res.json({ success: true });
+});
+
+// ==================== HEALTH CHECK ====================
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// ==================== MENU MANAGEMENT ====================
+
+// Get all menu items (with recipes) – Allow any authenticated user
+app.get('/api/menu', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+    const result = await pool.query(`
+      SELECT m.item_name, m.price, m.description, m.category,
+        COALESCE(
+          (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
+           FROM recipes r
+           WHERE r.item_name = m.item_name),
+          '[]'
+        ) as recipe
+      FROM menu_items m
+      GROUP BY m.item_name, m.price, m.description, m.category
+      ORDER BY m.item_name
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error in /api/menu:', err);
+    res.status(500).json({ error: 'Failed to fetch menu', details: err.message });
+  }
+});
+
+// Create new menu item with recipe
+app.post('/api/menu', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  
+  const { item_name, price, description, category, recipe } = req.body;
+  
+  if (!item_name || !price) {
+    return res.status(400).json({ error: 'Item name and price are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    await client.query(
+      'INSERT INTO menu_items (item_name, price, description, category) VALUES ($1, $2, $3, $4) ON CONFLICT (item_name) DO UPDATE SET price = EXCLUDED.price, description = EXCLUDED.description, category = EXCLUDED.category',
+      [item_name, price, description || '', category || 'Main']
+    );
+    
+    await client.query('DELETE FROM recipes WHERE item_name = $1', [item_name]);
+    
+    if (recipe && recipe.length > 0) {
+      for (const ingredient of recipe) {
+        if (ingredient.material_name && ingredient.quantity_used) {
+          await client.query(
+            'INSERT INTO recipes (item_name, material_name, quantity_used) VALUES ($1, $2, $3)',
+            [item_name, ingredient.material_name, ingredient.quantity_used]
+          );
+        }
+      }
+    }
+    
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in POST /api/menu:', err);
+    res.status(500).json({ error: 'Failed to create menu item', details: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Update menu item
+app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  
+  const { itemName } = req.params;
+  const { price, description, category, recipe } = req.body;
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    await client.query(
+      'UPDATE menu_items SET price = $1, description = $2, category = $3 WHERE item_name = $4',
+      [price, description || '', category || 'Main', itemName]
+    );
+    
+    await client.query('DELETE FROM recipes WHERE item_name = $1', [itemName]);
+    if (recipe && recipe.length > 0) {
+      for (const ingredient of recipe) {
+        if (ingredient.material_name && ingredient.quantity_used) {
+          await client.query(
+            'INSERT INTO recipes (item_name, material_name, quantity_used) VALUES ($1, $2, $3)',
+            [itemName, ingredient.material_name, ingredient.quantity_used]
+          );
+        }
+      }
+    }
+    
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in PUT /api/menu:', err);
+    res.status(500).json({ error: 'Failed to update menu item', details: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete menu item
+app.delete('/api/menu/:itemName', authenticateToken, async (req, res) => {
+  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  
+  const { itemName } = req.params;
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM recipes WHERE item_name = $1', [itemName]);
+    await client.query('DELETE FROM menu_items WHERE item_name = $1', [itemName]);
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error in DELETE /api/menu:', err);
+    res.status(500).json({ error: 'Failed to delete menu item', details: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ==================== MATERIALS ====================
+// Get all available materials – Allow any authenticated user
+app.get('/api/materials', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT material_name FROM inventory 
+      UNION 
+      SELECT DISTINCT material_name FROM recipes
+      ORDER BY material_name
+    `);
+    let materials = result.rows.map(r => r.material_name);
+    if (materials.length === 0) {
+      materials = ['Chicken', 'Flour', 'Oil'];
+    }
+    materials = materials.filter(m => m !== 'Spices');
+    res.json(materials);
+  } catch (err) {
+    console.error('Error in /api/materials:', err);
+    res.json(['Chicken', 'Flour', 'Oil']);
+  }
+});
+
+// ==================== GRACEFUL SHUTDOWN ====================
+
+const gracefulShutdown = async () => {
+  console.log('🛑 Shutting down gracefully...');
+  try {
+    await pool.end();
+    console.log('✅ Database connections closed');
+  } catch (err) {
+    console.error('❌ Error closing database connections:', err.message);
+  }
+  process.exit(0);
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  gracefulShutdown();
+});
+
+// ==================== MENU PERFORMANCE ====================
+app.get('/api/menu-performance', authenticateToken, async (req, res) => {
+  try {
+    const { days } = req.query;
+    let dayRange = days ? parseInt(days) : 7;
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - dayRange);
+    
+    let query = `
+      SELECT item_name, COUNT(*) as quantity, SUM(price) as revenue
+      FROM sales
+      WHERE created_at >= $1
+    `;
+    
+    if (req.user.role === 'super_admin') {
+      query += ` AND stall_id IN (SELECT id FROM stalls WHERE company_id = $2)`;
+      const result = await pool.query(query + ` GROUP BY item_name ORDER BY quantity DESC`, [startDate, req.user.company_id]);
+      return res.json(result.rows);
+    }
+    
+    query += ` GROUP BY item_name ORDER BY quantity DESC`;
+    const result = await pool.query(query, [startDate]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error in /api/menu-performance:', err);
+    res.status(500).json({ error: 'Failed to fetch menu performance', details: err.message });
+  }
+});
+
+// ==================== STALL PERFORMANCE ====================
+app.get('/api/stall-performance', authenticateToken, async (req, res) => {
+  try {
+    const { days } = req.query;
+    let dayRange = days ? parseInt(days) : 1;
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - dayRange);
+
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.json([]);
+      }
+
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.company_id = $1
+        GROUP BY s.id, s.name, s.is_active
+        ORDER BY revenue DESC
+      `, [companyId, startDate]);
+
+      // Calculate growth (compare with previous period)
+      const previousStartDate = new Date(startDate);
+      previousStartDate.setDate(previousStartDate.getDate() - dayRange);
+      
+      const performance = result.rows.map(row => {
+        return {
+          id: row.id,
+          name: row.name,
+          is_active: row.is_active,
+          revenue: parseFloat(row.revenue),
+          items: parseInt(row.items_sold),
+          avgTransaction: parseFloat(row.avg_transaction),
+          growth: 0 // Can calculate if needed
+        };
+      });
+
+      return res.json(performance);
     }
 
-    if (!db) {
-      return res.status(500).json({ error: 'Database not available' });
-    }
-
-    const performance = db.prepare(
-      `SELECT stall_id, 
-              COUNT(*) as items_sold, 
-              COALESCE(SUM(price), 0) as total_revenue 
-       FROM sales 
-       WHERE DATE(created_at) = DATE('now') 
-       GROUP BY stall_id 
-       ORDER BY total_revenue DESC`
-    ).all();
-
-    res.json(performance);
-  } catch (error) {
-    console.error('Performance error:', error);
+    res.json([]);
+  } catch (err) {
+    console.error('Stall performance error:', err);
     res.status(500).json({ error: 'Failed to fetch stall performance' });
   }
 });
 
-// Initialize database route (for testing)
-app.post('/api/init-db', (req, res) => {
-  try {
-    initializeDatabase();
-    res.json({ message: 'Database initialized successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to initialize database' });
-  }
-});
-
-// Start server
-const startServer = () => {
-  const dbConnected = initializeDatabase();
-  
-  if (!dbConnected) {
-    console.log('⚠️  Starting server without database... Some features may not work.');
-  }
-
+// ==================== START SERVER ====================
+if (require.main === module) {
   app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 AGG MVP Backend Server running on port ${port}`);
-    console.log(`📍 Local: http://localhost:${port}`);
-    console.log(`🩺 Health check: http://localhost:${port}/api/health`);
-    console.log(`🧪 Test endpoint: http://localhost:${port}/api/test`);
-    console.log('');
-    console.log('📋 Demo Accounts:');
-    console.log('   Admin:    username: "admin", password: "password"');
-    console.log('   Stall 01: username: "stall_01", password: "password"');
-    console.log('   Stall 02: username: "stall_02", password: "password"');
+    console.log(`🚀 Server running on port ${port}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
-};
+}
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down server gracefully...');
-  if (db) {
-    db.close();
-    console.log('✅ Database connection closed');
-  }
-  process.exit(0);
-});
-
-// Start the server
-startServer();
+module.exports = app;

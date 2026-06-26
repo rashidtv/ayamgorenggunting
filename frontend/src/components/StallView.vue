@@ -9,8 +9,7 @@
           <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
         </div>
         <button @click="loadData" class="btn btn-outline retry-btn">
-          <span class="btn-icon">🔄</span>
-          Retry Connection
+          <span class="btn-icon">🔄</span> Retry Connection
         </button>
       </div>
     </div>
@@ -29,7 +28,7 @@
       <div class="stat-card">
         <div class="stat-icon items">📦</div>
         <div class="stat-info">
-          <div class="stat-value">{{ todaySales.items_sold || 0 }}</div>
+          <div class="stat-value">{{ formatNumber(todaySales.items_sold || 0) }}</div>
           <div class="stat-label">Items Sold</div>
           <div class="stat-trend">Today</div>
         </div>
@@ -40,7 +39,7 @@
         <div class="stat-info">
           <div class="stat-value">{{ lowStockCount }}</div>
           <div class="stat-label">Low Stock</div>
-          <div class="stat-trend" :class="{ 'warning': lowStockCount > 0 }">
+          <div class="stat-trend" :class="{ warning: lowStockCount > 0 }">
             {{ lowStockCount > 0 ? 'Needs Attention' : 'All Good' }}
           </div>
         </div>
@@ -48,7 +47,7 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Quick Sales Menu -->
     <div class="section">
       <div class="section-header">
         <div class="section-title">
@@ -57,37 +56,70 @@
         </div>
         <div class="section-actions">
           <div class="last-updated">
-            <span class="update-icon">🕒</span>
-            Updated: {{ lastUpdateTime }}
+            <span class="update-icon">🕒</span> Updated: {{ lastUpdateTime }}
           </div>
           <button @click="loadData" class="btn btn-ghost refresh-btn">
-            <span class="btn-icon">🔄</span>
-            Refresh
+            <span class="btn-icon">🔄</span> Refresh
           </button>
         </div>
       </div>
-      <div class="menu-grid">
-        <button 
+
+      <!-- DYNAMIC MENU FROM DATABASE -->
+      <div v-if="menuItems.length > 0" class="menu-grid">
+        <div 
           v-for="item in menuItems" 
-          :key="item.name"
-          @click="sellItem(item.name, item.price)"
-          class="menu-item"
-          :disabled="loading || connectionError"
+          :key="item.item_name"
+          class="menu-item-wrapper"
         >
-          <div class="item-icon">{{ item.icon }}</div>
-          <div class="item-info">
-            <div class="item-name">{{ item.name }}</div>
-            <div class="item-description">{{ item.description }}</div>
-          </div>
-          <div class="item-action">
-            <div class="item-price">{{ formatCurrency(item.price) }}</div>
-            <div class="sell-badge">
-              <span class="sell-icon">→</span>
-              SELL
+          <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
+            <div class="item-icon">{{ getIcon(item.item_name) }}</div>
+            <div class="item-info">
+              <div class="item-name">{{ item.item_name }}</div>
+              <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
             </div>
+            <div class="item-action">
+              <div class="item-price">{{ formatCurrency(item.price) }}</div>
+              <div class="quantity-controls">
+                <button 
+                  @click="adjustQuantity(item, -1)" 
+                  class="qty-btn"
+                  :disabled="loading || connectionError || !activeStallId || (menuQuantities[item.item_name] || 0) <= 0"
+                >
+                  −
+                </button>
+                <span class="qty-display">{{ menuQuantities[item.item_name] || 0 }}</span>
+                <button 
+                  @click="adjustQuantity(item, 1)" 
+                  class="qty-btn"
+                  :disabled="loading || connectionError || !activeStallId"
+                >
+                  +
+                </button>
+              </div>
+              <button 
+                @click="sellItemWithQuantity(item)" 
+                class="sell-badge"
+                :disabled="loading || connectionError || !activeStallId || (menuQuantities[item.item_name] || 0) <= 0"
+              >
+                <span class="sell-icon">→</span> SELL
+              </button>
+            </div>
+            <div class="item-glow"></div>
           </div>
-          <div class="item-glow"></div>
-        </button>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div v-else-if="!loadingData && !loadingMenu" class="empty-state menu-empty">
+        <span class="empty-icon">📋</span>
+        <h3>No Menu Items Available</h3>
+        <p>Please contact your administrator to set up menu items.</p>
+      </div>
+
+      <!-- MENU LOADING STATE -->
+      <div v-if="loadingMenu" class="loading-state small">
+        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+        <p>Loading menu...</p>
       </div>
     </div>
 
@@ -99,29 +131,16 @@
           <p>Current stock levels and alerts</p>
         </div>
         <div class="inventory-summary">
-          <div class="summary-item">
-            <span class="summary-label">Total Items</span>
-            <span class="summary-value">{{ processedInventory.length }}</span>
-          </div>
-          <div class="summary-item" :class="{ 'warning': lowStockCount > 0 }">
-            <span class="summary-label">Low Stock</span>
-            <span class="summary-value">{{ lowStockCount }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">In Stock</span>
-            <span class="summary-value">{{ processedInventory.length - lowStockCount }}</span>
-          </div>
+          <div class="summary-item"><span class="summary-label">Total Items</span><span class="summary-value">{{ processedInventory.length }}</span></div>
+          <div class="summary-item" :class="{ warning: lowStockCount > 0 }"><span class="summary-label">Low Stock</span><span class="summary-value">{{ lowStockCount }}</span></div>
+          <div class="summary-item"><span class="summary-label">In Stock</span><span class="summary-value">{{ processedInventory.length - lowStockCount }}</span></div>
         </div>
       </div>
-      
       <div class="inventory-grid">
         <div 
           v-for="item in processedInventory" 
           :key="item.material_name"
-          :class="['inventory-item', { 
-            'low-stock': item.current_level <= item.alert_level,
-            'critical-stock': item.current_level <= item.alert_level * 0.5
-          }]"
+          :class="['inventory-item', { 'low-stock': item.current_level <= item.alert_level, 'critical-stock': item.current_level <= item.alert_level * 0.5 }]"
         >
           <div class="inventory-header">
             <div class="material-info">
@@ -132,56 +151,25 @@
               </div>
             </div>
             <div class="stock-status" v-if="item.current_level <= item.alert_level">
-              <span class="status-badge" :class="{ 'critical': item.current_level <= item.alert_level * 0.5 }">
+              <span class="status-badge" :class="{ critical: item.current_level <= item.alert_level * 0.5 }">
                 {{ item.current_level <= item.alert_level * 0.5 ? 'CRITICAL' : 'LOW' }}
               </span>
             </div>
           </div>
-          
           <div class="stock-levels">
-            <div class="level-current">
-              <span class="level-value">{{ item.current_level.toFixed(2) }}</span>
-              <span class="level-unit">kg</span>
-            </div>
-            <div class="level-alert">
-              Alert at: {{ item.alert_level }}kg
-            </div>
+            <div class="level-current"><span class="level-value">{{ item.current_level.toFixed(2) }}</span><span class="level-unit">{{ getUnit(item.material_name) }}</span></div>
+            <div class="level-alert">Alert at: {{ item.alert_level }}{{ getUnit(item.material_name) }}</div>
           </div>
-          
           <div class="stock-progress">
             <div class="progress-info">
               <span class="progress-label">Stock Level</span>
               <span class="progress-percentage">{{ getStockPercentage(item) }}%</span>
             </div>
-            <div class="progress-bar">
-              <div 
-                class="progress-fill"
-                :style="{ width: getStockPercentage(item) + '%' }"
-                :class="{ 
-                  'low': item.current_level <= item.alert_level,
-                  'critical': item.current_level <= item.alert_level * 0.5
-                }"
-              ></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
           </div>
-          
-          <div class="inventory-actions">
-            <button 
-              @click="updateStock(item.material_name, item.current_level + 5)"
-              class="btn btn-outline stock-btn"
-              :disabled="connectionError"
-            >
-              <span class="btn-icon">+</span>
-              Add 5kg
-            </button>
-            <button 
-              @click="updateStock(item.material_name, item.current_level + 1)"
-              class="btn btn-ghost stock-btn"
-              :disabled="connectionError"
-            >
-              <span class="btn-icon">+</span>
-              Add 1kg
-            </button>
+          <div class="inventory-actions" v-if="role !== 'cashier'">
+            <button @click="updateStock(item.material_name, item.current_level + 5)" class="btn btn-outline stock-btn" :disabled="connectionError"><span class="btn-icon">+</span> Add 5{{ getUnit(item.material_name) }}</button>
+            <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError"><span class="btn-icon">+</span> Add 1{{ getUnit(item.material_name) }}</button>
           </div>
           <div class="inventory-glow"></div>
         </div>
@@ -189,92 +177,94 @@
     </div>
 
     <!-- Sales Analytics -->
-<div class="section" v-if="!loadingData && !connectionError">
-  <div class="section-header">
-    <div class="section-title">
-      <h2>Sales Analytics</h2>
-      <p>Last 7 days performance overview</p>
-    </div>
-    <div class="analytics-summary">
-      <div class="analytics-stat">
-        <div class="analytics-value">{{ getWeeklyTotal() }}</div>
-        <div class="analytics-label">Weekly Revenue</div>
-      </div>
-      <div class="analytics-stat">
-        <div class="analytics-value">{{ getWeeklyItems() }}</div>
-        <div class="analytics-label">Items Sold</div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="analytics-card">
-    <div v-if="analytics.dailySales.length === 0" class="no-data">
-      <div class="no-data-icon">📊</div>
-      <div class="no-data-text">
-        <h3>No Sales Data</h3>
-        <p>Start selling to see analytics here</p>
-      </div>
-    </div>
-    <div v-else class="analytics-content">
-      <div class="chart-header">
-        <h3>Daily Revenue Trend</h3>
-        <div class="chart-legend">
-          <div class="legend-item">
-            <div class="legend-color primary"></div>
-            <span>Daily Revenue</span>
+    <div class="section" v-if="!loadingData && !connectionError">
+      <div class="section-header">
+        <div class="section-title"><h2>Sales Analytics</h2><p>Last 7 days performance overview</p></div>
+        <div class="analytics-summary">
+          <div class="analytics-stat">
+            <div class="analytics-value">{{ getWeeklyTotal() }}</div>
+            <div class="analytics-label">Weekly Revenue</div>
+          </div>
+          <div class="analytics-stat">
+            <div class="analytics-value">{{ getWeeklyItems() }}</div>
+            <div class="analytics-label">Items Sold</div>
           </div>
         </div>
       </div>
-      <div class="sales-chart">
-        <div 
-          v-for="day in analytics.dailySales" 
-          :key="day.date"
-          class="chart-bar"
-        >
-          <div class="bar-container">
-            <div 
-              class="bar-fill"
-              :style="{ height: getBarHeight(day.revenue) + '%' }"
-            ></div>
-          </div>
-          <div class="bar-label">
-            <div class="bar-date">{{ formatDate(day.date) }}</div>
-            <div class="bar-revenue">{{ formatCurrency(day.revenue) }}</div>
-          </div>
+      <div class="analytics-card">
+        <div v-if="analytics.dailySales.length === 0" class="no-data">
+          <div class="no-data-icon">📊</div>
+          <div class="no-data-text"><h3>No Sales Data</h3><p>Start selling to see analytics here</p></div>
         </div>
-      </div>
-      
-      <!-- Product Sales Breakdown -->
-      <div class="product-breakdown" v-if="getProductSalesArray().length > 0">
-        <h4>Product Performance</h4>
-        <div class="product-grid">
-          <div 
-            v-for="product in getProductSalesArray()" 
-            :key="product.name"
-            class="product-item"
-          >
-            <div class="product-info">
-              <div class="product-name">{{ product.name }}</div>
-              <div class="product-sales">{{ product.quantity }} sold</div>
-            </div>
-            <div class="product-bar">
-              <div 
-                class="product-fill"
-                :style="{ width: getProductPercentage(product.quantity) + '%' }"
-              ></div>
+        <div v-else class="analytics-content">
+          <div class="chart-header">
+            <h3>Daily Revenue Trend</h3>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <div class="legend-color primary"></div>
+                <span>Daily Revenue</span>
+              </div>
             </div>
           </div>
+          <div class="chart-container">
+            <div class="chart-wrapper">
+              <!-- Trend Line -->
+              <div class="trend-line-container">
+                <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                  <polyline
+                    :points="getTrendPoints()"
+                    fill="none"
+                    stroke="#F94908"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    v-for="(point, index) in getTrendPointsArray()"
+                    :key="index"
+                    :cx="point.x"
+                    :cy="point.y"
+                    r="2.5"
+                    fill="#F94908"
+                  />
+                </svg>
+              </div>
+              <!-- Bar Chart -->
+              <div class="sales-chart">
+                <div v-for="day in analytics.dailySales" :key="day.date" class="chart-bar">
+                  <div class="bar-container">
+                    <div class="bar-fill" :style="{ height: getBarHeight(day.revenue) + '%' }"></div>
+                  </div>
+                  <div class="bar-label">
+                    <div class="bar-date">{{ formatDate(day.date) }}</div>
+                    <div class="bar-revenue">{{ formatCurrency(day.revenue) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Product Performance Breakdown -->
+          <div class="product-breakdown" v-if="getProductSalesArray().length > 0">
+            <h4>Product Performance</h4>
+            <div class="product-grid">
+              <div v-for="product in getProductSalesArray()" :key="product.name" class="product-item">
+                <div class="product-info">
+                  <div class="product-name">{{ product.name }}</div>
+                  <div class="product-sales">{{ product.quantity }} sold</div>
+                </div>
+                <div class="product-bar">
+                  <div class="product-fill" :style="{ width: getProductPercentage(product.quantity) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-    <!-- Loading State -->
     <div v-if="loadingData" class="loading-section">
-      <div class="loading-spinner">
-        <div class="spinner-ring"></div>
-      </div>
+      <div class="loading-spinner"><div class="spinner-ring"></div></div>
       <p>Loading stall data...</p>
     </div>
   </div>
@@ -283,64 +273,46 @@
 <script>
 import axios from 'axios'
 import { formatCurrency, formatNumber } from '../utils/currency.js'
-
-const API_BASE = 'https://agg-backend.onrender.com/api'
+import API_BASE from '../config/api.js'
+import { useAuthStore } from '../stores/auth'
 
 export default {
   name: 'StallView',
-  props: ['stallId', 'token'],
+  props: { 
+    stallId: { type: String, default: null }, 
+    token: { type: String, default: null },
+    role: { type: String, default: 'stall_admin' }
+  },
   data() {
     return {
       inventory: [],
       processedInventory: [],
-      todaySales: {
-        items_sold: 0,
-        total_revenue: 0
-      },
-      analytics: {
-        dailySales: [],
-        productSales: {}
-      },
+      todaySales: { items_sold: 0, total_revenue: 0 },
+      analytics: { dailySales: [], productSales: {} },
+      menuItems: [],
+      menuQuantities: {},
       loading: false,
       loadingData: false,
+      loadingMenu: false,
       connectionError: false,
       hasDuplicates: false,
       lastUpdateTime: 'Just now',
-      menuItems: [
-        { 
-          name: 'Regular AGG', 
-          price: 8.00, 
-          icon: '🍗',
-          description: 'Classic fried chicken'
-        },
-        { 
-          name: 'Spicy AGG', 
-          price: 9.00, 
-          icon: '🌶️',
-          description: 'Spicy flavor'
-        },
-        { 
-          name: 'Large AGG', 
-          price: 12.00, 
-          icon: '🍗',
-          description: 'Large portion'
-        },
-        { 
-          name: 'Family Pack', 
-          price: 25.00, 
-          icon: '👨‍👩‍👧‍👦',
-          description: 'Family bundle'
-        }
-      ]
+      iconMap: {
+        'Regular AGG': '🍗',
+        'Spicy AGG': '🌶️',
+        'Large AGG': '🍗',
+        'Family Pack': '👨‍👩‍👧‍👦'
+      }
     }
   },
   computed: {
-    lowStockCount() {
-      return this.processedInventory.filter(item => item.current_level <= item.alert_level).length
-    }
+    authStore() { return useAuthStore() },
+    lowStockCount() { return this.processedInventory.filter(item => item.current_level <= item.alert_level).length },
+    activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId }
   },
   mounted() {
     this.loadData()
+    this.loadMenu()
     this.interval = setInterval(this.loadData, 30000)
     this.updateTimeInterval = setInterval(this.updateLastUpdateTime, 60000)
   },
@@ -349,217 +321,260 @@ export default {
     clearInterval(this.updateTimeInterval)
   },
   methods: {
-    formatCurrency,
+    formatCurrency, 
     formatNumber,
-    
+
+    getIcon(itemName) {
+      return this.iconMap[itemName] || '🍗'
+    },
+
+    getUnit(materialName) {
+      return materialName === 'Oil' ? 'L' : 'kg'
+    },
+
     updateLastUpdateTime() {
       const now = new Date()
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', { 
-        hour: '2-digit', 
-        minute: '2-digit'
-      })
+      this.lastUpdateTime = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })
     },
-    
+
     async loadData() {
+      if (!this.activeStallId) return
       this.loadingData = true
       this.connectionError = false
-      
       try {
-        await Promise.all([
-          this.loadInventory(),
-          this.loadTodaySales(),
-          this.loadAnalytics()
-        ])
+        await Promise.all([this.loadInventory(), this.loadTodaySales(), this.loadAnalytics()])
         this.updateLastUpdateTime()
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error(error)
         this.connectionError = true
         this.$emit('show-notification', 'Failed to load data from server', 'error')
-      } finally {
-        this.loadingData = false
-      }
+      } finally { this.loadingData = false }
     },
-    
-    async loadInventory() {
+
+    async loadMenu() {
+      this.loadingMenu = true
       try {
-        const response = await axios.get(`${API_BASE}/inventory`, {
-          headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 10000
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
         })
-        this.processInventoryData(response.data)
+        this.menuItems = res.data.map(item => ({
+          ...item,
+          quantity: 0
+        }))
+        // Reset quantities for new menu
+        this.menuQuantities = {}
       } catch (error) {
-        console.error('Error loading inventory:', error)
-        throw error
+        console.error('Failed to load menu:', error)
+        this.menuItems = []
+        this.$emit('show-notification', 'Failed to load menu items', 'error')
+      } finally {
+        this.loadingMenu = false
       }
     },
-    
-    processInventoryData(inventoryData) {
-      const uniqueMap = new Map()
-      let hasDuplicates = false
-      
-      inventoryData.forEach(item => {
-        if (!uniqueMap.has(item.material_name)) {
-          uniqueMap.set(item.material_name, {
-            ...item,
-            current_level: Number(item.current_level),
-            alert_level: Number(item.alert_level)
-          })
+
+    async loadInventory() {
+      const response = await axios.get(`${API_BASE}/inventory`, {
+        params: { stallId: this.activeStallId },
+        headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+      })
+      this.processInventoryData(response.data)
+    },
+
+    processInventoryData(data) {
+      const map = new Map()
+      data.forEach(item => {
+        if (!map.has(item.material_name)) {
+          map.set(item.material_name, { ...item, current_level: Number(item.current_level), alert_level: Number(item.alert_level) })
         } else {
-          hasDuplicates = true
-          const existing = uniqueMap.get(item.material_name)
-          uniqueMap.set(item.material_name, {
-            ...existing,
-            current_level: existing.current_level + Number(item.current_level)
-          })
+          const existing = map.get(item.material_name)
+          existing.current_level += Number(item.current_level)
         }
       })
-      
-      this.inventory = inventoryData
-      this.processedInventory = Array.from(uniqueMap.values())
-      this.hasDuplicates = hasDuplicates
+      this.inventory = data
+      this.processedInventory = Array.from(map.values())
     },
-    
+
     async loadTodaySales() {
-      try {
-        const response = await axios.get(`${API_BASE}/stall-today-sales`, {
-          headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 10000
-        })
-        this.todaySales = response.data
-      } catch (error) {
-        console.error('Error loading sales:', error)
-        throw error
-      }
+      const response = await axios.get(`${API_BASE}/stall-today-sales`, {
+        params: { stallId: this.activeStallId },
+        headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+      })
+      this.todaySales = response.data
     },
-    
+
     async loadAnalytics() {
-      try {
-        const response = await axios.get(`${API_BASE}/sales-analytics`, {
-          headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 10000
-        })
-        this.analytics = response.data
-      } catch (error) {
-        console.error('Error loading analytics:', error)
-        throw error
+      const response = await axios.get(`${API_BASE}/sales-analytics`, {
+        params: { stallId: this.activeStallId, days: 7 },
+        headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+      })
+      this.analytics = response.data
+    },
+
+    // ==================== MENU QUANTITY METHODS ====================
+
+    adjustQuantity(item, delta) {
+      if (!this.activeStallId) return
+      const key = item.item_name
+      if (!this.menuQuantities[key]) {
+        this.menuQuantities[key] = 0
+      }
+      const newQty = this.menuQuantities[key] + delta
+      if (newQty < 0) return
+      this.menuQuantities[key] = newQty
+      // Update the menu item for display
+      const menuItem = this.menuItems.find(i => i.item_name === key)
+      if (menuItem) {
+        menuItem.quantity = newQty
       }
     },
-    
-    async sellItem(itemName, price) {
-      if (this.connectionError) {
-        this.$emit('show-notification', 'Server connection lost. Please check backend.', 'error')
+
+    async sellItemWithQuantity(item) {
+      const qty = this.menuQuantities[item.item_name] || 0
+      if (qty <= 0) {
+        this.$emit('show-notification', 'Please select quantity first', 'warning')
         return
       }
-
+      
       this.loading = true
       try {
-        await axios.post(`${API_BASE}/sell`, {
-          itemName,
-          price
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 10000
-        })
-        
-        // Reload data
-        await this.loadData()
-        
-        // Show success notification
-        this.$emit('show-notification', `Sold ${itemName} for ${this.formatCurrency(price)}!`, 'success')
-      } catch (error) {
-        console.error('Error selling item:', error)
-        if (error.code === 'ERR_NETWORK') {
-          this.connectionError = true
-          this.$emit('show-notification', 'Cannot connect to server. Check if backend is running.', 'error')
-        } else if (error.response?.status === 400) {
-          this.$emit('show-notification', error.response.data.error || 'Cannot sell item - recipe missing', 'error')
-        } else {
-          this.$emit('show-notification', 'Error selling item. Please try again.', 'error')
+        // Sell each quantity individually
+        for (let i = 0; i < qty; i++) {
+          await axios.post(`${API_BASE}/sell`, {
+            itemName: item.item_name,
+            price: item.price,
+            stallId: this.activeStallId
+          }, {
+            headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+          })
         }
+        // Reset quantity
+        this.menuQuantities[item.item_name] = 0
+        const menuItem = this.menuItems.find(i => i.item_name === item.item_name)
+        if (menuItem) {
+          menuItem.quantity = 0
+        }
+        await this.loadData()
+        this.$emit('show-notification', `Sold ${qty} × ${item.item_name} for ${this.formatCurrency(item.price * qty)}!`, 'success')
+      } catch (err) {
+        console.error(err)
+        this.$emit('show-notification', 'Error selling item', 'error')
       } finally {
         this.loading = false
       }
     },
-    
-    async updateStock(materialName, newLevel) {
-      if (this.connectionError) {
-        this.$emit('show-notification', 'Server connection lost.', 'error')
-        return
-      }
 
+    async sellItem(itemName, price) {
+      if (!this.activeStallId) return
+      this.loading = true
       try {
-        await axios.post(`${API_BASE}/inventory/update`, {
-          materialName,
-          newLevel
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` },
-          timeout: 10000
+        await axios.post(`${API_BASE}/sell`, { itemName, price, stallId: this.activeStallId }, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
         })
-        
+        await this.loadData()
+        this.$emit('show-notification', `Sold ${itemName} for ${this.formatCurrency(price)}!`, 'success')
+      } catch (err) {
+        console.error(err)
+        this.$emit('show-notification', 'Error selling item', 'error')
+      } finally { this.loading = false }
+    },
+
+    async updateStock(materialName, newLevel) {
+      try {
+        await axios.post(`${API_BASE}/inventory/update`, { materialName, newLevel, stallId: this.activeStallId }, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
         await this.loadInventory()
-        this.$emit('show-notification', `Updated ${materialName} stock to ${newLevel}kg`, 'success')
-      } catch (error) {
-        console.error('Error updating stock:', error)
-        if (error.code === 'ERR_NETWORK') {
-          this.connectionError = true
-        }
+        this.$emit('show-notification', `Updated ${materialName} to ${newLevel}${this.getUnit(materialName)}`, 'success')
+      } catch (err) {
+        console.error(err)
         this.$emit('show-notification', 'Error updating stock', 'error')
       }
     },
-    
+
     getStockPercentage(item) {
-      const maxLevel = Math.max(item.current_level, item.alert_level * 2)
-      return Math.min((item.current_level / maxLevel) * 100, 100)
+      const max = Math.max(item.current_level, item.alert_level * 2)
+      const percentage = Math.min((item.current_level / max) * 100, 100)
+      return percentage.toFixed(0)
     },
+
+    // ==================== ANALYTICS METHODS ====================
     
-   getWeeklyTotal() {
-  const total = this.analytics.dailySales.reduce((sum, day) => sum + day.revenue, 0);
-  return this.formatCurrency(total);
-},
-
-getWeeklyItems() {
-  // Handle both array and object formats for productSales
-  if (Array.isArray(this.analytics.productSales)) {
-    return this.analytics.productSales.reduce((sum, product) => sum + product.quantity, 0);
-  } else if (typeof this.analytics.productSales === 'object') {
-    return Object.values(this.analytics.productSales).reduce((sum, quantity) => sum + quantity, 0);
-  }
-  return 0;
-},
-
-getProductSalesArray() {
-  // Convert productSales to consistent array format
-  if (Array.isArray(this.analytics.productSales)) {
-    return this.analytics.productSales.map(item => ({
-      name: item.product || item.name || 'Unknown',
-      quantity: item.quantity || 0
-    }));
-  } else if (typeof this.analytics.productSales === 'object') {
-    return Object.entries(this.analytics.productSales).map(([name, quantity]) => ({
-      name,
-      quantity
-    }));
-  }
-  return [];
-},
-
-    getBarHeight(revenue) {
-      const maxRevenue = Math.max(...this.analytics.dailySales.map(d => d.revenue))
-      return maxRevenue > 0 ? (revenue / maxRevenue) * 80 : 0
+    getWeeklyTotal() {
+      const total = this.analytics.dailySales.reduce((sum, day) => {
+        const revenue = typeof day.revenue === 'number' ? day.revenue : parseFloat(day.revenue) || 0
+        return sum + revenue
+      }, 0)
+      return this.formatCurrency(total)
     },
-    
-   getProductPercentage(quantity) {
-  const productArray = this.getProductSalesArray();
-  const maxQuantity = Math.max(...productArray.map(p => p.quantity));
-  return maxQuantity > 0 ? (quantity / maxQuantity) * 100 : 0;
-},
-    
-    formatDate(dateString) {
-      return new Date(dateString).toLocaleDateString('en-MY', { 
-        weekday: 'short',
-        day: 'numeric'
+
+    getWeeklyItems() {
+      const total = this.analytics.dailySales.reduce((sum, day) => {
+        const items = typeof day.items === 'number' ? day.items : parseInt(day.items) || 0
+        return sum + items
+      }, 0)
+      return total
+    },
+
+    getProductSalesArray() {
+      const productSales = this.analytics.productSales || {}
+      return Object.keys(productSales).map(name => {
+        const data = productSales[name]
+        return {
+          name: name,
+          quantity: typeof data.quantity === 'number' ? data.quantity : parseInt(data.quantity) || 0,
+          revenue: typeof data.revenue === 'number' ? data.revenue : parseFloat(data.revenue) || 0
+        }
       })
-    }
+    },
+
+    // ==================== CHART METHODS ====================
+    
+    getBarHeight(revenue) {
+      const dailySales = this.analytics.dailySales || []
+      if (dailySales.length === 0) return 5
+      const max = Math.max(...dailySales.map(d => d.revenue || 0), 1)
+      return Math.max((revenue / max) * 80, 5)
+    },
+
+    getTrendPoints() {
+      const dailySales = this.analytics.dailySales || []
+      if (dailySales.length === 0) return ''
+      if (dailySales.length === 1) {
+        return '50,5'
+      }
+      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1)
+      const points = dailySales.map((day, index) => {
+        const x = (index / (dailySales.length - 1)) * 100
+        const y = 40 - ((day.revenue / maxRevenue) * 35)
+        return `${x},${y}`
+      })
+      return points.join(' ')
+    },
+
+    getTrendPointsArray() {
+      const dailySales = this.analytics.dailySales || []
+      if (dailySales.length === 0) return []
+      if (dailySales.length === 1) {
+        return [{ x: 50, y: 5 }]
+      }
+      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1)
+      return dailySales.map((day, index) => ({
+        x: (index / (dailySales.length - 1)) * 100,
+        y: 40 - ((day.revenue / maxRevenue) * 35)
+      }))
+    },
+
+    getProductPercentage(quantity) {
+      const productArray = this.getProductSalesArray()
+      const max = Math.max(...productArray.map(p => p.quantity), 1)
+      return Math.round((quantity / max) * 100)
+    },
+
+    formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+    },
+
+    onStallChanged(stallId) { this.loadData() }
   }
 }
 </script>
@@ -781,12 +796,10 @@ getProductSalesArray() {
   padding: var(--space-sm);
 }
 
-/* Menu Grid */
-.menu-grid {
-  padding: var(--space-lg);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--space);
+/* Menu Item Wrapper */
+.menu-item-wrapper {
+  display: flex;
+  flex-direction: column;
 }
 
 .menu-item {
@@ -797,7 +810,7 @@ getProductSalesArray() {
   background: var(--background);
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
-  cursor: pointer;
+  cursor: default;
   transition: var(--transition);
   text-align: left;
   width: 100%;
@@ -805,16 +818,15 @@ getProductSalesArray() {
   overflow: hidden;
 }
 
-.menu-item:hover:not(:disabled) {
+.menu-item.has-quantity {
   border-color: var(--primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: rgba(249, 73, 8, 0.05);
 }
 
-.menu-item:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.menu-item:hover:not(.has-quantity) {
+  border-color: var(--border);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .item-glow {
@@ -867,12 +879,56 @@ getProductSalesArray() {
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-xs);
+  min-width: 80px;
 }
 
 .item-price {
   font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--primary);
+}
+
+/* Quantity Controls */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.3rem 0;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qty-display {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--font-size);
+  color: var(--text);
 }
 
 .sell-badge {
@@ -882,14 +938,25 @@ getProductSalesArray() {
   border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
   font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
   display: flex;
   align-items: center;
   gap: 4px;
   text-transform: uppercase;
+  width: 100%;
+  justify-content: center;
 }
 
-.sell-icon {
-  font-size: var(--font-size-sm);
+.sell-badge:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.sell-badge:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Inventory Summary */
@@ -1226,13 +1293,43 @@ getProductSalesArray() {
   background: var(--primary);
 }
 
+/* Chart Container */
+.chart-container {
+  padding: 0.5rem 0;
+  position: relative;
+  width: 100%;
+}
+
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.trend-line-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 100%;
+}
+
 .sales-chart {
   display: flex;
-  align-items: end;
-  gap: var(--space);
-  height: 200px;
-  padding: var(--space) 0;
-  border-bottom: 1px solid var(--border);
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 0.5rem;
+  height: 180px;
+  padding: 50px 0 0 0;
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }
 
 .chart-bar {
@@ -1241,18 +1338,22 @@ getProductSalesArray() {
   flex-direction: column;
   align-items: center;
   height: 100%;
-  gap: var(--space-sm);
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .bar-container {
   flex: 1;
   width: 100%;
   max-width: 50px;
+  min-width: 20px;
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   background: var(--background);
   border-radius: var(--radius);
   padding: 4px;
+  height: 100%;
+  min-height: 20px;
 }
 
 .bar-fill {
@@ -1268,6 +1369,7 @@ getProductSalesArray() {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
   line-height: 1.2;
+  margin-top: 0.2rem;
 }
 
 .bar-date {
@@ -1278,7 +1380,7 @@ getProductSalesArray() {
 .bar-revenue {
   font-weight: 700;
   color: var(--text);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 
 /* Product Breakdown */
@@ -1367,6 +1469,39 @@ getProductSalesArray() {
   animation: spin 1s linear infinite;
 }
 
+.loading-state.small {
+  padding: 1.5rem 1rem;
+}
+
+.loading-spinner.small {
+  width: 32px;
+  height: 32px;
+}
+
+/* Empty State for Menu */
+.menu-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.menu-empty .empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.menu-empty h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.menu-empty p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -1398,17 +1533,64 @@ getProductSalesArray() {
     padding: var(--space);
   }
   
+  .menu-item {
+    flex-wrap: wrap;
+    padding: var(--space);
+  }
+  
+  .item-action {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .quantity-controls {
+    margin: 0;
+  }
+  
+  .sell-badge {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.65rem;
+  }
+  
   .inventory-grid {
     grid-template-columns: 1fr;
     padding: var(--space);
   }
   
   .sales-chart {
-    gap: var(--space-sm);
+    height: 140px;
+    gap: 0.3rem;
+    padding: 40px 0 0 0;
   }
   
   .bar-container {
-    max-width: 40px;
+    max-width: 35px;
+    min-width: 15px;
+    min-height: 15px;
+  }
+  
+  .bar-value {
+    font-size: 0.5rem;
+  }
+  
+  .bar-label {
+    font-size: 0.6rem;
+  }
+  
+  .bar-date {
+    font-size: 0.6rem;
+  }
+  
+  .bar-revenue {
+    font-size: 0.55rem;
+  }
+  
+  .trend-line-container {
+    height: 30px;
   }
   
   .inventory-actions {
@@ -1440,6 +1622,35 @@ getProductSalesArray() {
   
   .product-info {
     min-width: 100px;
+  }
+  
+  .sales-chart {
+    height: 110px;
+    gap: 0.2rem;
+    padding: 30px 0 0 0;
+  }
+  
+  .bar-container {
+    max-width: 25px;
+    min-width: 12px;
+    min-height: 12px;
+    padding: 2px;
+  }
+  
+  .bar-label {
+    font-size: 0.5rem;
+  }
+  
+  .bar-date {
+    font-size: 0.5rem;
+  }
+  
+  .bar-revenue {
+    font-size: 0.5rem;
+  }
+  
+  .trend-line-container {
+    height: 25px;
   }
 }
 </style>

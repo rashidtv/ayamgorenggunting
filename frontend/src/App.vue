@@ -1,7 +1,6 @@
- <!-- Force Deploy -->
 <template>
   <div id="app" :class="{
-    'admin-theme': user?.role === 'admin', 
+    'admin-theme': user?.role === 'admin',
     'stall-theme': user?.role === 'user',
     'dark-mode': darkMode
   }">
@@ -11,7 +10,7 @@
         <div class="install-info">
           <div class="install-icon">🍗</div>
           <div class="install-text">
-            <h3>Install AGG System</h3>
+            <h3>Install Chickory Hub</h3>
             <p>Get the app experience on your device</p>
           </div>
         </div>
@@ -25,75 +24,77 @@
     <div v-if="!user" class="auth-container">
       <Login @login-success="handleLoginSuccess" />
     </div>
-    
+
     <div v-else class="app-layout">
       <!-- Modern Header -->
       <header class="app-header">
-        <div class="header-content">
-          <div class="brand">
-            <div class="logo">
-              <span class="logo-icon">🍗</span>
-              <div class="logo-text">
-                <h1>Ayam Goreng Gunting</h1>
-                <span class="tagline">Business Management System</span>
-              </div>
-            </div>
-          </div>
-          <div class="header-controls">
-            <div class="control-group">
-              <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-                <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-              </button>
-              <div class="user-menu">
-                <span class="user-greeting">Hello, {{ user.username }}</span>
-                <div class="user-badge">
-                  <span class="user-role">{{ user.role === 'admin' ? 'Administrator' : `Stall ${user.stall_id}` }}</span>
-                </div>
-              </div>
-            </div>
-            <button @click="logout" class="btn btn-ghost logout-btn">
-              <span class="btn-icon">↩</span>
-              Sign Out
-            </button>
+  <div class="header-content">
+    <div class="brand">
+      <div class="logo">
+        <span class="logo-icon">🍗</span>
+        <div class="logo-text">
+          <h1>Chickory Hub</h1>
+          <span class="tagline">Ayam Goreng Gunting</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="control-group">
+        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+        </button>
+        <div class="user-menu">
+          <span class="user-greeting">Hello, {{ user.username }}</span>
+          <div class="user-badge">
+            <span class="user-role">{{ userRoleText }}</span>
           </div>
         </div>
-      </header>
+      </div>
+      <button @click="logout" class="btn btn-ghost logout-btn">
+        <span class="btn-icon">↩</span>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</header>
 
-      <!-- Main Content Area -->
+      <!-- Main Content -->
       <main class="main-content">
         <div class="content-wrapper">
           <div v-if="loading" class="loading-state">
-            <div class="loading-spinner">
-              <div class="spinner-ring"></div>
-            </div>
+            <div class="loading-spinner"><div class="spinner-ring"></div></div>
             <p>Loading your dashboard...</p>
           </div>
-          
           <div v-else class="dashboard-container">
-            <StallView 
-              v-if="user.role === 'user'" 
-              :stallId="user.stall_id" 
-              :token="token" 
+            <!-- Role-based routing -->
+            <SuperSuperAdminPanel
+              v-if="user.role === 'super_super_admin'"
+              :token="token"
               @show-notification="showNotification"
             />
-            
-            <AdminDashboard 
-              v-if="user.role === 'admin'" 
-              :token="token" 
+            <SuperAdminPanel
+              v-else-if="user.role === 'super_admin'"
+              :token="token"
               @show-notification="showNotification"
             />
+            <StallView
+              v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
+              :key="activeStallId"
+              :stallId="user.stall_id"
+              :token="token"
+              :role="user.role"
+              @show-notification="showNotification"
+            />
+            <AdminDashboard v-else :token="token" @show-notification="showNotification" />
           </div>
         </div>
       </main>
 
-      <!-- Enhanced Notifications -->
+      <!-- Notifications -->
       <div class="notifications-container">
         <transition-group name="notification-slide">
-          <div 
-            v-for="(notification, index) in notifications" 
-            :key="notification.id"
-            :class="['notification', `notification-${notification.type}`]"
-          >
+          <div v-for="(notification, index) in notifications" :key="notification.id"
+            :class="['notification', `notification-${notification.type}`]">
             <div class="notification-icon">
               <span v-if="notification.type === 'success'">✅</span>
               <span v-else-if="notification.type === 'error'">❌</span>
@@ -112,11 +113,11 @@
         </transition-group>
       </div>
 
-      <!-- Modern Footer -->
+      <!-- Footer -->
       <footer class="app-footer">
         <div class="footer-content">
           <div class="footer-brand">
-            <span class="footer-logo">🍗 AGG System</span>
+            <span class="footer-logo">🍗 Chickory Hub</span>
             <span class="footer-version">v2.0</span>
           </div>
           <div class="footer-info">
@@ -133,16 +134,21 @@
 </template>
 
 <script>
-import Login from './components/Login.vue'
-import StallView from './components/StallView.vue'
-import AdminDashboard from './components/AdminDashboard.vue'
+import Login from './components/Login.vue';
+import StallView from './components/StallView.vue';
+import AdminDashboard from './components/AdminDashboard.vue';
+import SuperAdminPanel from './components/SuperAdminPanel.vue';
+import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
+import { useAuthStore } from './stores/auth';
 
 export default {
   name: 'App',
   components: {
     Login,
     StallView,
-    AdminDashboard
+    AdminDashboard,
+    SuperAdminPanel,
+    SuperSuperAdminPanel,
   },
   data() {
     return {
@@ -155,244 +161,277 @@ export default {
       isPWA: false,
       showInstallPrompt: false,
       deferredPrompt: null,
-      updateSW: null,
-      isOnline: true
-    }
+      isOnline: true,
+      activeStallId: null,
+      stallDropdownOpen: false,
+      stallSelectorRef: null,
+    };
+  },
+  computed: {
+    authStore() {
+      return useAuthStore();
+    },
+    assignedStalls() {
+      return this.authStore.user?.assigned_stalls || [];
+    },
+    // FIXED: Only show stall selector for stall_admin (not super_admin)
+    showStallSelectorInHeader() {
+      return this.assignedStalls.length > 1 &&
+        (this.user?.role === 'stall_admin');
+    },
+    activeStallName() {
+      const stall = this.assignedStalls.find((s) => s.id === this.activeStallId);
+      return stall ? stall.name : 'No Stall';
+    },
+    userRoleText() {
+      if (this.user?.role === 'super_super_admin') return 'Super Super Admin';
+      if (this.user?.role === 'super_admin') return 'Super Admin';
+      if (this.user?.role === 'stall_admin') return 'Stall Admin';
+      if (this.user?.role === 'cashier') return 'Cashier';
+      return this.user?.role || 'User';
+    },
+  },
+  watch: {
+    activeStallId(newId) {
+      if (newId) {
+        this.authStore.switchStall(newId);
+        this.showNotification(`Switched to ${this.activeStallName}`, 'info');
+      }
+    },
   },
   methods: {
-    handleLoginSuccess(userData, authToken) {
-      this.loading = true
-      
-      setTimeout(() => {
-        this.user = userData
-        this.token = authToken
-        localStorage.setItem('user', JSON.stringify(userData))
-        localStorage.setItem('token', authToken)
-        localStorage.setItem('darkMode', this.darkMode)
-        this.loading = false
-        this.showNotification(`Welcome back, ${userData.username}!`, 'success')
-        this.updateLastUpdateTime()
-      }, 1200)
+    toggleStallDropdown() {
+      this.stallDropdownOpen = !this.stallDropdownOpen;
     },
-    
-    logout() {
-      this.showNotification('Signing out...', 'info')
-      
-      setTimeout(() => {
-        this.user = null
-        this.token = null
-        localStorage.removeItem('user')
-        localStorage.removeItem('token')
-        this.showNotification('Signed out successfully', 'success')
-      }, 600)
+    selectStall(stallId) {
+      this.activeStallId = stallId;
+      this.stallDropdownOpen = false;
     },
-    
-    showNotification(message, type = 'info') {
-      const notification = { 
-        message, 
-        type, 
-        id: Date.now() + Math.random(),
-        progress: 100
+    handleClickOutside(event) {
+      if (this.stallSelectorRef && !this.stallSelectorRef.contains(event.target)) {
+        this.stallDropdownOpen = false;
       }
-      
-      this.notifications.push(notification)
-      
-      // Animate progress bar
-      const progressInterval = setInterval(() => {
-        const noteIndex = this.notifications.findIndex(n => n.id === notification.id)
-        if (noteIndex !== -1) {
-          this.notifications[noteIndex].progress -= 2
-        }
-      }, 100)
+    },
+    handleLoginSuccess(userData, authToken) {
+      this.loading = true;
+      const authStore = useAuthStore();
+      authStore.setUser(userData, authToken);
 
-      // Auto-remove after 5 seconds
       setTimeout(() => {
-        clearInterval(progressInterval)
-        const index = this.notifications.findIndex(n => n.id === notification.id)
-        if (index !== -1) {
-          this.notifications.splice(index, 1)
+        this.user = userData;
+        this.token = authToken;
+        this.activeStallId =
+          authStore.activeStallId || userData.assigned_stalls?.[0]?.id || null;
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('darkMode', this.darkMode);
+        this.loading = false;
+        this.showNotification(`Welcome back, ${userData.username}!`, 'success');
+        this.updateLastUpdateTime();
+      }, 1200);
+    },
+    logout() {
+      const authStore = useAuthStore();
+      authStore.logout();
+      this.showNotification('Signing out...', 'info');
+
+      setTimeout(() => {
+        this.user = null;
+        this.token = null;
+        this.activeStallId = null;
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        this.showNotification('Signed out successfully', 'success');
+      }, 600);
+    },
+    showNotification(message, type = 'info') {
+      const notification = {
+        message,
+        type,
+        id: Date.now() + Math.random(),
+        progress: 100,
+      };
+      this.notifications.push(notification);
+
+      const progressInterval = setInterval(() => {
+        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
+        if (noteIndex !== -1) {
+          this.notifications[noteIndex].progress -= 2;
         }
-      }, 5000)
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(progressInterval);
+        const index = this.notifications.findIndex((n) => n.id === notification.id);
+        if (index !== -1) {
+          this.notifications.splice(index, 1);
+        }
+      }, 5000);
     },
-    
     removeNotification(index) {
-      this.notifications.splice(index, 1)
+      this.notifications.splice(index, 1);
     },
-    
     getNotificationTitle(type) {
       const titles = {
         success: 'Success',
         error: 'Error',
         warning: 'Warning',
-        info: 'Information'
-      }
-      return titles[type] || 'Notification'
+        info: 'Information',
+      };
+      return titles[type] || 'Notification';
     },
-    
     toggleDarkMode() {
-      this.darkMode = !this.darkMode
-      localStorage.setItem('darkMode', this.darkMode)
-      this.applyTheme()
+      this.darkMode = !this.darkMode;
+      localStorage.setItem('darkMode', this.darkMode);
+      this.applyTheme();
       this.showNotification(
-        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled', 
+        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
         'info'
-      )
+      );
     },
-    
     applyTheme() {
       if (this.darkMode) {
-        document.documentElement.classList.add('dark-theme')
+        document.documentElement.classList.add('dark-theme');
       } else {
-        document.documentElement.classList.remove('dark-theme')
+        document.documentElement.classList.remove('dark-theme');
       }
     },
-    
     updateLastUpdateTime() {
-      const now = new Date()
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', { 
-        hour: '2-digit', 
-        minute: '2-digit'
-      })
+      const now = new Date();
+      this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     },
-    
     initializePWA() {
-      this.isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                   window.navigator.standalone === true
+      this.isPWA =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
 
       window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault()
-        this.deferredPrompt = e
+        e.preventDefault();
+        this.deferredPrompt = e;
         setTimeout(() => {
-          this.showInstallPrompt = true
-        }, 3000)
-      })
+          this.showInstallPrompt = true;
+        }, 3000);
+      });
 
       window.addEventListener('appinstalled', () => {
-        this.showInstallPrompt = false
-        this.deferredPrompt = null
-        this.isPWA = true
-        this.showNotification('App installed successfully!', 'success')
-      })
+        this.showInstallPrompt = false;
+        this.deferredPrompt = null;
+        this.isPWA = true;
+        this.showNotification('App installed successfully!', 'success');
+      });
     },
-
     async installPWA() {
       if (this.deferredPrompt) {
-        this.deferredPrompt.prompt()
-        const { outcome } = await this.deferredPrompt.userChoice
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-          this.showInstallPrompt = false
+          this.showInstallPrompt = false;
         }
-        this.deferredPrompt = null
+        this.deferredPrompt = null;
       }
     },
-
     dismissInstall() {
-      this.showInstallPrompt = false
-      localStorage.setItem('installPromptDismissed', Date.now().toString())
+      this.showInstallPrompt = false;
+      localStorage.setItem('installPromptDismissed', Date.now().toString());
     },
-
     checkNetworkStatus() {
-      this.isOnline = navigator.onLine
-      
+      this.isOnline = navigator.onLine;
+
       window.addEventListener('online', () => {
-        this.isOnline = true
-        this.showNotification('Connection restored', 'success')
-      })
+        this.isOnline = true;
+        this.showNotification('Connection restored', 'success');
+      });
 
       window.addEventListener('offline', () => {
-        this.isOnline = false
-        this.showNotification('Working in offline mode', 'warning')
-      })
+        this.isOnline = false;
+        this.showNotification('Working in offline mode', 'warning');
+      });
     },
-    
     initializeApp() {
-      // Load preferences
-      const storedDarkMode = localStorage.getItem('darkMode')
+      const storedDarkMode = localStorage.getItem('darkMode');
       if (storedDarkMode === 'true') {
-        this.darkMode = true
+        this.darkMode = true;
       }
-      this.applyTheme()
+      this.applyTheme();
 
-      // Auto-update time
       setInterval(() => {
-        this.updateLastUpdateTime()
-      }, 60000)
+        this.updateLastUpdateTime();
+      }, 60000);
 
-      // Check for stored auth
-      const storedUser = localStorage.getItem('user')
-      const storedToken = localStorage.getItem('token')
-      
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('token');
+
       if (storedUser && storedToken) {
-        this.loading = true
+        this.loading = true;
         setTimeout(() => {
-          this.user = JSON.parse(storedUser)
-          this.token = storedToken
-          this.loading = false
-          this.showNotification('Welcome back!', 'success')
-          this.updateLastUpdateTime()
-        }, 1000)
+          const userData = JSON.parse(storedUser);
+          this.user = userData;
+          this.token = storedToken;
+          const authStore = useAuthStore();
+          authStore.setUser(userData, storedToken);
+          this.activeStallId =
+            authStore.activeStallId || userData.assigned_stalls?.[0]?.id || null;
+          this.loading = false;
+          this.showNotification('Welcome back!', 'success');
+          this.updateLastUpdateTime();
+        }, 1000);
       }
-    }
+    },
   },
   mounted() {
-    this.initializeApp()
-    this.initializePWA()
-    this.checkNetworkStatus()
-    
-    // Global error handler
+    this.initializeApp();
+    this.initializePWA();
+    this.checkNetworkStatus();
+    document.addEventListener('click', this.handleClickOutside);
     window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason)
-      this.showNotification('Something went wrong. Please try again.', 'error')
-    })
-  }
-}
+      console.error('Unhandled promise rejection:', event.reason);
+      this.showNotification('Something went wrong. Please try again.', 'error');
+    });
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside);
+  },
+};
 </script>
 
 <style>
-/* ===== MODERN DESIGN SYSTEM ===== */
+/* ===== ROOT VARIABLES ===== */
 :root {
-  /* Colors - Light Theme */
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #8b5cf6;
+  --primary: #F94908;
+  --primary-dark: #d63d07;
+  --primary-light: #fa6a2e;
+  --primary-gradient: linear-gradient(135deg, #F94908, #fa6a2e);
   --secondary: #64748b;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
-  
-  /* Neutrals */
   --background: #f8fafc;
   --surface: #ffffff;
-  --surface-elevated: #ffffff;
+  --surface-elevated: #f1f5f9;
   --text: #1e293b;
   --text-secondary: #64748b;
   --text-tertiary: #94a3b8;
   --border: #e2e8f0;
   --border-light: #f1f5f9;
-  
-  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  
-  /* Border Radius */
   --radius-sm: 6px;
   --radius: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  
-  /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space: 1rem;
   --space-md: 1.5rem;
   --space-lg: 2rem;
   --space-xl: 3rem;
-  
-  /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -400,8 +439,6 @@ export default {
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
-  
-  /* Transitions */
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -434,19 +471,18 @@ body {
   transition: var(--transition-slow);
 }
 
-/* Smooth transitions */
 .app-layout * {
   transition: var(--transition);
 }
 
-/* ===== LAYOUT COMPONENTS ===== */
+/* ===== LAYOUT ===== */
 .app-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Modern Header */
+/* ===== HEADER ===== */
 .app-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -485,7 +521,7 @@ body {
 
 .logo-icon {
   font-size: 2rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  background: var(--primary-gradient);
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
@@ -498,7 +534,7 @@ body {
 .logo-text h1 {
   font-size: var(--font-size-xl);
   font-weight: 700;
-  color: var(--text);
+  color: var(--primary);
   line-height: 1.2;
 }
 
@@ -508,6 +544,7 @@ body {
   font-weight: 500;
 }
 
+/* ===== HEADER CONTROLS ===== */
 .header-controls {
   display: flex;
   align-items: center;
@@ -549,7 +586,7 @@ body {
 }
 
 .user-badge {
-  background: var(--primary);
+  background: var(--primary-gradient);
   color: white;
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-xl);
@@ -557,7 +594,82 @@ body {
   font-weight: 600;
 }
 
-/* Button System */
+/* ===== STALL SELECTOR ===== */
+.stall-selector-modern {
+  position: relative;
+  margin-left: 1rem;
+}
+
+.stall-selector-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: var(--font-size-sm);
+}
+
+.stall-selector-trigger:hover {
+  border-color: var(--primary);
+  background: var(--surface-elevated);
+}
+
+.stall-icon {
+  font-size: 1rem;
+}
+
+.stall-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.dropdown-icon {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.stall-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.stall-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text);
+}
+
+.stall-option:hover {
+  background: var(--background);
+}
+
+.stall-option.active {
+  background: var(--primary-gradient);
+  color: white;
+}
+
+.active-check {
+  color: var(--success);
+  font-weight: bold;
+}
+
+/* ===== BUTTONS ===== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -574,7 +686,7 @@ body {
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: var(--primary-gradient);
   color: white;
 }
 
@@ -618,7 +730,7 @@ body {
   color: white;
 }
 
-/* Main Content */
+/* ===== MAIN CONTENT ===== */
 .main-content {
   flex: 1;
   padding: var(--space-lg);
@@ -638,7 +750,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Loading States */
+/* ===== LOADING ===== */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -670,7 +782,7 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Enhanced Notifications */
+/* ===== NOTIFICATIONS ===== */
 .notifications-container {
   position: fixed;
   top: var(--space);
@@ -774,7 +886,7 @@ body {
   transition: width 0.1s linear;
 }
 
-/* Modern Footer */
+/* ===== FOOTER ===== */
 .app-footer {
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -801,6 +913,7 @@ body {
 
 .footer-logo {
   font-weight: 600;
+  color: var(--primary);
 }
 
 .footer-version {
@@ -840,7 +953,7 @@ body {
   font-size: var(--font-size-xs);
 }
 
-/* PWA Install Prompt */
+/* ===== PWA ===== */
 .pwa-install-prompt {
   position: fixed;
   bottom: var(--space);
@@ -871,7 +984,7 @@ body {
 
 .install-icon {
   font-size: 2rem;
-  background: var(--primary);
+  background: var(--primary-gradient);
   color: white;
   width: 48px;
   height: 48px;
@@ -899,7 +1012,7 @@ body {
   justify-content: flex-end;
 }
 
-/* Responsive Design */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .header-content {
     padding: 0 var(--space);
@@ -937,9 +1050,46 @@ body {
   .notification {
     min-width: auto;
   }
+
+  .stall-selector-modern {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .stall-selector-trigger {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .stall-dropdown-menu {
+    width: 100%;
+    right: auto;
+    left: 0;
+  }
+
+  .user-menu {
+    flex-wrap: wrap;
+  }
 }
 
-/* Print Styles */
+@media (max-width: 480px) {
+  .logo-text h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  .header-content {
+    padding: var(--space-sm);
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+  }
+}
+
+/* ===== PRINT ===== */
 @media print {
   .app-header,
   .notifications-container,
@@ -947,13 +1097,13 @@ body {
   .pwa-install-prompt {
     display: none !important;
   }
-  
+
   .main-content {
     padding: 0;
   }
 }
 
-/* Accessibility */
+/* ===== ACCESSIBILITY ===== */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -962,7 +1112,6 @@ body {
   }
 }
 
-/* Focus styles */
 button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--primary);
