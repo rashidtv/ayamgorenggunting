@@ -23,6 +23,7 @@
             </div>
           </div>
           
+          <!-- Animated Brand Title -->
           <h1 class="brand-title">
             <span class="brand-text">Chickory</span>
             <span class="brand-text">Hub</span>
@@ -51,6 +52,7 @@
       <!-- Right Panel - Login Form -->
       <div class="login-panel">
         <div class="login-card">
+          <!-- Login Form -->
           <form @submit.prevent="login" class="login-form">
             <div class="form-header">
               <h2 class="form-title">Welcome Back</h2>
@@ -104,6 +106,7 @@
             </button>
           </form>
 
+          <!-- Chickory Hub Footer -->
           <div class="login-footer">
             <span class="footer-icon">🍗</span>
             <span class="footer-text">Chickory Hub —</span>
@@ -140,18 +143,21 @@ export default {
           password: this.password
         }, { timeout: 10000 })
         
-        // Log the response to verify structure
-        console.log('📤 Login response:', response.data)
-        console.log('📤 User data:', response.data.user)
-        console.log('📤 Token:', response.data.token)
+        // Log full response for debugging
+        console.log('📤 Full login response:', response)
+        console.log('📤 Response data:', response.data)
+        console.log('📤 User:', response.data?.user)
+        console.log('📤 Token:', response.data?.token)
         
-        // Check if data exists before emitting
+        // Emit the ENTIRE response data as a single object
         if (response.data && response.data.user && response.data.token) {
-          this.$emit('login-success', response.data.user, response.data.token)
+          this.$emit('login-success', response.data)
         } else {
           console.error('❌ Invalid login response structure:', response.data)
           this.error = 'Invalid server response. Please try again.'
+          this.loading = false
         }
+        
       } catch (error) {
         if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
           this.error = 'Cannot connect to server. Please check if backend is running.'
@@ -161,8 +167,12 @@ export default {
           this.error = 'Login failed. Please try again.'
         }
         console.error('❌ Login error:', error)
-      } finally {
         this.loading = false
+      } finally {
+        // Only set loading to false if not already done
+        if (this.loading) {
+          this.loading = false
+        }
       }
     }
   }
@@ -181,6 +191,7 @@ export default {
   padding: 1rem;
 }
 
+/* Animated Background */
 .background-animation {
   position: absolute;
   top: 0;
@@ -203,16 +214,44 @@ export default {
   animation: float 6s ease-in-out infinite;
 }
 
-.shape-1 { width: 120px; height: 120px; top: 10%; left: 5%; animation-delay: 0s; }
-.shape-2 { width: 80px; height: 80px; top: 60%; right: 5%; animation-delay: 2s; }
-.shape-3 { width: 60px; height: 60px; bottom: 20%; left: 10%; animation-delay: 4s; }
-.shape-4 { width: 90px; height: 90px; top: 20%; right: 10%; animation-delay: 1s; }
+.shape-1 {
+  width: 120px;
+  height: 120px;
+  top: 10%;
+  left: 5%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 80px;
+  height: 80px;
+  top: 60%;
+  right: 5%;
+  animation-delay: 2s;
+}
+
+.shape-3 {
+  width: 60px;
+  height: 60px;
+  bottom: 20%;
+  left: 10%;
+  animation-delay: 4s;
+}
+
+.shape-4 {
+  width: 90px;
+  height: 90px;
+  top: 20%;
+  right: 10%;
+  animation-delay: 1s;
+}
 
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
   50% { transform: translateY(-15px) rotate(180deg); }
 }
 
+/* Layout */
 .login-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -227,6 +266,7 @@ export default {
   position: relative;
 }
 
+/* ===== BRAND PANEL ===== */
 .brand-panel {
   background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
   color: white;
@@ -272,6 +312,7 @@ export default {
   max-width: 400px;
 }
 
+/* ===== LOGO ANIMATION ===== */
 .logo-animation {
   position: relative;
   width: 100px;
@@ -304,9 +345,23 @@ export default {
   animation: pulse 3s ease-in-out infinite;
 }
 
-.ring-1 { width: 80px; height: 80px; animation-delay: 0s; }
-.ring-2 { width: 95px; height: 95px; animation-delay: 1s; }
-.ring-3 { width: 110px; height: 110px; animation-delay: 2s; }
+.ring-1 {
+  width: 80px;
+  height: 80px;
+  animation-delay: 0s;
+}
+
+.ring-2 {
+  width: 95px;
+  height: 95px;
+  animation-delay: 1s;
+}
+
+.ring-3 {
+  width: 110px;
+  height: 110px;
+  animation-delay: 2s;
+}
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
@@ -318,6 +373,7 @@ export default {
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
 }
 
+/* ===== BRAND TITLE ===== */
 .brand-title {
   font-size: 2.8rem;
   font-weight: 800;
@@ -368,6 +424,7 @@ export default {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
 }
 
+/* Feature List */
 .feature-list {
   display: flex;
   flex-direction: column;
@@ -389,6 +446,7 @@ export default {
   flex-shrink: 0;
 }
 
+/* ===== LOGIN PANEL ===== */
 .login-panel {
   padding: 2rem;
   display: flex;
@@ -405,6 +463,7 @@ export default {
   flex-direction: column;
 }
 
+/* Login Form */
 .login-form {
   flex: 1;
   display: flex;
@@ -429,6 +488,7 @@ export default {
   font-size: 0.9rem;
 }
 
+/* Input Fields */
 .input-group {
   margin-bottom: 1.25rem;
   flex-shrink: 0;
@@ -487,6 +547,7 @@ export default {
   transform: scaleX(1);
 }
 
+/* Login Button */
 .modern-login-btn {
   width: 100%;
   background: linear-gradient(135deg, #F94908, #fa6a2e);
@@ -521,7 +582,12 @@ export default {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
   transition: left 0.5s ease;
 }
 
@@ -568,6 +634,7 @@ export default {
   font-size: 1rem;
 }
 
+/* ===== CHICKORY HUB FOOTER ===== */
 .login-footer {
   text-align: center;
   padding-top: 1.5rem;
@@ -596,28 +663,87 @@ export default {
   opacity: 0.7;
 }
 
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .login-container { padding: 0.5rem; align-items: stretch; }
-  .login-content { grid-template-columns: 1fr; height: auto; min-height: auto; margin: 0; }
-  .brand-panel { padding: 2rem 1.5rem; min-height: 180px; }
-  .brand-content { max-width: none; }
-  .logo-animation { width: 70px; height: 70px; margin-bottom: 1rem; }
-  .logo-icon { font-size: 2.5rem; }
+  .login-container {
+    padding: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .login-content {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: auto;
+    margin: 0;
+  }
+  
+  .brand-panel {
+    padding: 2rem 1.5rem;
+    min-height: 180px;
+  }
+  
+  .brand-content {
+    max-width: none;
+  }
+  
+  .logo-animation {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 1rem;
+  }
+  
+  .logo-icon {
+    font-size: 2.5rem;
+  }
+  
   .ring-1 { width: 55px; height: 55px; }
   .ring-2 { width: 65px; height: 65px; }
   .ring-3 { width: 75px; height: 75px; }
-  .brand-title { font-size: 2.2rem; }
-  .brand-subtitle { font-size: 1rem; }
-  .brand-tagline { font-size: 0.75rem; margin-bottom: 1.5rem; }
-  .feature-list { display: none; }
-  .login-panel { padding: 1.5rem; min-height: 400px; }
-  .login-card { min-height: auto; }
+  
+  .brand-title {
+    font-size: 2.2rem;
+  }
+  
+  .brand-subtitle {
+    font-size: 1rem;
+  }
+  
+  .brand-tagline {
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .feature-list {
+    display: none;
+  }
+  
+  .login-panel {
+    padding: 1.5rem;
+    min-height: 400px;
+  }
+  
+  .login-card {
+    min-height: auto;
+  }
 }
 
 @media (max-width: 480px) {
-  .brand-title { font-size: 1.8rem; }
-  .brand-subtitle { font-size: 0.85rem; }
-  .form-title { font-size: 1.4rem; }
-  .login-footer { font-size: 0.7rem; flex-direction: column; gap: 0.2rem; }
+  .brand-title {
+    font-size: 1.8rem;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .form-title {
+    font-size: 1.4rem;
+  }
+  
+  .login-footer {
+    font-size: 0.7rem;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
 }
 </style>

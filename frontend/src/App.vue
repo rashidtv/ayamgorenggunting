@@ -66,21 +66,17 @@
             <p>Loading your dashboard...</p>
           </div>
           <div v-else class="dashboard-container">
-            <!-- CRITICAL: Only render components when user is fully loaded -->
             <template v-if="user && user.role">
-              <!-- Super Super Admin -->
               <SuperSuperAdminPanel
                 v-if="user.role === 'super_super_admin'"
                 :token="token || ''"
                 @show-notification="showNotification"
               />
-              <!-- Super Admin -->
               <SuperAdminPanel
                 v-else-if="user.role === 'super_admin'"
                 :token="token || ''"
                 @show-notification="showNotification"
               />
-              <!-- Stall Admin / Cashier - Only render if stallId is valid -->
               <StallView
                 v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
                 :key="stallIdForView"
@@ -89,7 +85,6 @@
                 :role="user.role"
                 @show-notification="showNotification"
               />
-              <!-- Fallback -->
               <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
             </template>
           </div>
@@ -210,18 +205,23 @@ export default {
     },
   },
   methods: {
-    handleLoginSuccess(userData, authToken) {
-      console.log('🔵 handleLoginSuccess called');
-      console.log('User data:', userData);
-      console.log('Token:', authToken);
-
+    // RECEIVE ENTIRE RESPONSE DATA
+    handleLoginSuccess(responseData) {
+      console.log('🔵 handleLoginSuccess called with:', responseData);
+      
+      // Extract user and token from the response
+      const userData = responseData?.user;
+      const authToken = responseData?.token;
+      
       if (!userData || !authToken) {
-        console.error('❌ Invalid login data received');
-        this.loading = false;
+        console.error('❌ Invalid login response:', responseData);
         this.showNotification('Login failed. Please try again.', 'error');
         return;
       }
 
+      console.log('✅ User data extracted:', userData);
+      console.log('✅ Token extracted:', authToken);
+      
       this.loading = true;
       const authStore = useAuthStore();
 
