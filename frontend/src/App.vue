@@ -66,6 +66,7 @@
             <p>Loading your dashboard...</p>
           </div>
           <div v-else class="dashboard-container">
+            <!-- Use computed properties for safe role checks -->
             <SuperSuperAdminPanel
               v-if="isSSA"
               :token="token || ''"
@@ -178,7 +179,7 @@ export default {
       };
       return roleMap[this.user.role] || this.user.role || 'User';
     },
-    // Safe role checks
+    // Safe role checks - these never throw errors
     isSSA() {
       return this.user?.role === 'super_super_admin';
     },
@@ -188,15 +189,15 @@ export default {
     isStallUser() {
       return this.user?.role === 'stall_admin' || this.user?.role === 'cashier';
     },
-    // Safe stall ID - NEVER returns undefined
+    // Safe stall ID - NEVER returns undefined or null
     stallIdForView() {
-      // If no user or no stall needed, return empty string
+      // If no user or user doesn't need a stall, return empty string
       if (!this.user || !this.isStallUser) {
         return '';
       }
-      // Get stall ID from active or user object
-      const stallId = this.activeStallId || this.user?.stall_id;
-      // Always return a string, never undefined
+      // Get stall ID from activeStallId or user.stall_id
+      const stallId = this.activeStallId || this.user.stall_id;
+      // Always return a string
       return stallId ? String(stallId) : '';
     },
   },
