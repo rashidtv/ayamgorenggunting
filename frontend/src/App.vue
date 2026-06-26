@@ -215,42 +215,44 @@ export default {
   },
   methods: {
     handleLoginSuccess(userData, authToken) {
-      console.log('🔵 handleLoginSuccess called');
-      console.log('User data:', userData);
-      console.log('Token:', authToken);
-      
-      this.loading = true;
-      const authStore = useAuthStore();
-      
-      // Ensure all required fields exist
-      const safeUserData = {
-        ...userData,
-        stall_id: userData.stall_id || null,
-        assigned_stalls: userData.assigned_stalls || [],
-      };
-      
-      authStore.setUser(safeUserData, authToken);
+  console.log('🔵 handleLoginSuccess called');
+  console.log('User data:', userData);
+  console.log('Token:', authToken);
+  
+  // Guard against undefined values
+  if (!userData || !authToken) {
+    console.error('❌ Invalid login data received');
+    this.loading = false;
+    this.showNotification('Login failed. Please try again.', 'error');
+    return;
+  }
+  
+  this.loading = true;
+  const authStore = useAuthStore();
+  
+  const safeUserData = {
+    ...userData,
+    stall_id: userData.stall_id || null,
+    assigned_stalls: userData.assigned_stalls || [],
+  };
+  
+  authStore.setUser(safeUserData, authToken);
 
-      // Use nextTick to ensure DOM updates
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.user = safeUserData;
-          this.token = authToken;
-          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          
-          // Save to localStorage
-          localStorage.setItem('user', JSON.stringify(safeUserData));
-          localStorage.setItem('token', authToken);
-          localStorage.setItem('darkMode', this.darkMode);
-          
-          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
-          
-          this.loading = false;
-          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
-          this.updateLastUpdateTime();
-        }, 500);
-      });
-    },
+  this.$nextTick(() => {
+    setTimeout(() => {
+      this.user = safeUserData;
+      this.token = authToken;
+      this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
+      localStorage.setItem('user', JSON.stringify(safeUserData));
+      localStorage.setItem('token', authToken);
+      localStorage.setItem('darkMode', this.darkMode);
+      console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
+      this.loading = false;
+      this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
+      this.updateLastUpdateTime();
+    }, 500);
+  });
+}
     
     logout() {
       const authStore = useAuthStore();
