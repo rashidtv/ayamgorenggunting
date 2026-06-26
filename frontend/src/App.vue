@@ -185,18 +185,14 @@ export default {
       };
       return roleMap[this.user.role] || this.user.role || 'User';
     },
-    // Safe stall ID - NEVER returns undefined or null
     stallIdForView() {
-      // If no user or user doesn't need a stall, return empty string
       if (!this.user) return '';
       if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
         return '';
       }
-      // Get stall ID from activeStallId or user.stall_id
       const stallId = this.activeStallId || this.user.stall_id;
       return stallId ? String(stallId) : '';
     },
-    // Check if stall ID is valid (non-empty string)
     isValidStallId() {
       const id = this.stallIdForView;
       return id !== '' && id !== null && id !== undefined;
@@ -215,45 +211,44 @@ export default {
   },
   methods: {
     handleLoginSuccess(userData, authToken) {
-  console.log('🔵 handleLoginSuccess called');
-  console.log('User data:', userData);
-  console.log('Token:', authToken);
-  
-  // Guard against undefined values
-  if (!userData || !authToken) {
-    console.error('❌ Invalid login data received');
-    this.loading = false;
-    this.showNotification('Login failed. Please try again.', 'error');
-    return;
-  }
-  
-  this.loading = true;
-  const authStore = useAuthStore();
-  
-  const safeUserData = {
-    ...userData,
-    stall_id: userData.stall_id || null,
-    assigned_stalls: userData.assigned_stalls || [],
-  };
-  
-  authStore.setUser(safeUserData, authToken);
+      console.log('🔵 handleLoginSuccess called');
+      console.log('User data:', userData);
+      console.log('Token:', authToken);
 
-  this.$nextTick(() => {
-    setTimeout(() => {
-      this.user = safeUserData;
-      this.token = authToken;
-      this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-      localStorage.setItem('user', JSON.stringify(safeUserData));
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('darkMode', this.darkMode);
-      console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
-      this.loading = false;
-      this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
-      this.updateLastUpdateTime();
-    }, 500);
-  });
-}
-    
+      if (!userData || !authToken) {
+        console.error('❌ Invalid login data received');
+        this.loading = false;
+        this.showNotification('Login failed. Please try again.', 'error');
+        return;
+      }
+
+      this.loading = true;
+      const authStore = useAuthStore();
+
+      const safeUserData = {
+        ...userData,
+        stall_id: userData.stall_id || null,
+        assigned_stalls: userData.assigned_stalls || [],
+      };
+
+      authStore.setUser(safeUserData, authToken);
+
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.user = safeUserData;
+          this.token = authToken;
+          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
+          localStorage.setItem('user', JSON.stringify(safeUserData));
+          localStorage.setItem('token', authToken);
+          localStorage.setItem('darkMode', this.darkMode);
+          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
+          this.loading = false;
+          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
+          this.updateLastUpdateTime();
+        }, 500);
+      });
+    },
+
     logout() {
       const authStore = useAuthStore();
       authStore.logout();
@@ -268,7 +263,7 @@ export default {
         this.showNotification('Signed out successfully', 'success');
       }, 600);
     },
-    
+
     showNotification(message, type = 'info') {
       const notification = {
         message,
@@ -293,11 +288,11 @@ export default {
         }
       }, 5000);
     },
-    
+
     removeNotification(index) {
       this.notifications.splice(index, 1);
     },
-    
+
     getNotificationTitle(type) {
       const titles = {
         success: 'Success',
@@ -307,7 +302,7 @@ export default {
       };
       return titles[type] || 'Notification';
     },
-    
+
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
       localStorage.setItem('darkMode', this.darkMode);
@@ -317,7 +312,7 @@ export default {
         'info'
       );
     },
-    
+
     applyTheme() {
       if (this.darkMode) {
         document.documentElement.classList.add('dark-theme');
@@ -325,7 +320,7 @@ export default {
         document.documentElement.classList.remove('dark-theme');
       }
     },
-    
+
     updateLastUpdateTime() {
       const now = new Date();
       this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
@@ -333,7 +328,7 @@ export default {
         minute: '2-digit',
       });
     },
-    
+
     initializePWA() {
       this.isPWA =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -354,7 +349,7 @@ export default {
         this.showNotification('App installed successfully!', 'success');
       });
     },
-    
+
     async installPWA() {
       if (this.deferredPrompt) {
         this.deferredPrompt.prompt();
@@ -365,12 +360,12 @@ export default {
         this.deferredPrompt = null;
       }
     },
-    
+
     dismissInstall() {
       this.showInstallPrompt = false;
       localStorage.setItem('installPromptDismissed', Date.now().toString());
     },
-    
+
     checkNetworkStatus() {
       this.isOnline = navigator.onLine;
 
@@ -384,7 +379,7 @@ export default {
         this.showNotification('Working in offline mode', 'warning');
       });
     },
-    
+
     initializeApp() {
       const storedDarkMode = localStorage.getItem('darkMode');
       if (storedDarkMode === 'true') {
