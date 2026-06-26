@@ -66,26 +66,28 @@
             <p>Loading your dashboard...</p>
           </div>
           <div v-else class="dashboard-container">
-            <!-- Role-based routing -->
-            <SuperSuperAdminPanel
-              v-if="user?.role === 'super_super_admin'"
-              :token="token"
-              @show-notification="showNotification"
-            />
-            <SuperAdminPanel
-              v-else-if="user?.role === 'super_admin'"
-              :token="token"
-              @show-notification="showNotification"
-            />
-            <StallView
-              v-else-if="user?.role === 'stall_admin' || user?.role === 'cashier'"
-              :key="activeStallId || 'stall-view'"
-              :stallId="getStallId()"
-              :token="token"
-              :role="user?.role"
-              @show-notification="showNotification"
-            />
-            <AdminDashboard v-else :token="token" @show-notification="showNotification" />
+            <!-- Role-based routing with safe checks -->
+            <template v-if="user && user.role">
+              <SuperSuperAdminPanel
+                v-if="user.role === 'super_super_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+              />
+              <SuperAdminPanel
+                v-else-if="user.role === 'super_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+              />
+              <StallView
+                v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
+                :key="getStallId() || 'stall-view'"
+                :stallId="getStallId()"
+                :token="token || ''"
+                :role="user.role"
+                @show-notification="showNotification"
+              />
+              <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
+            </template>
           </div>
         </div>
       </main>
@@ -171,11 +173,13 @@ export default {
     },
     userRoleText() {
       if (!this.user) return 'Guest';
-      if (this.user.role === 'super_super_admin') return 'Super Super Admin';
-      if (this.user.role === 'super_admin') return 'Super Admin';
-      if (this.user.role === 'stall_admin') return 'Stall Admin';
-      if (this.user.role === 'cashier') return 'Cashier';
-      return this.user.role || 'User';
+      const roleMap = {
+        'super_super_admin': 'Super Super Admin',
+        'super_admin': 'Super Admin',
+        'stall_admin': 'Stall Admin',
+        'cashier': 'Cashier'
+      };
+      return roleMap[this.user.role] || this.user.role || 'User';
     },
   },
   watch: {
@@ -190,15 +194,25 @@ export default {
     },
   },
   methods: {
-    // SAFE METHOD to get stall_id – handles null/undefined gracefully
+    /**
+     * Safely get stall ID - returns empty string for users who don't need a stall
+     */
     getStallId() {
-      if (!this.user) return '';
-      // For SSA and SA, return empty string (they don't need a stall)
+      // Safety check
+      if (!this.user || !this.user.role) {
+        return '';
+      }
+      
+      // SSA and SA don't need stall_id
       if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
         return '';
       }
+      
       // For stall_admin and cashier, get the stall_id
-      return String(this.activeStallId || this.user.stall_id || '');
+      const stallId = this.activeStallId || this.user.stall_id;
+      
+      // Return as string, or empty string if null/undefined
+      return stallId ? String(stallId) : '';
     },
 
     handleLoginSuccess(userData, authToken) {
