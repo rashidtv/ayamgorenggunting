@@ -1044,4 +1044,4 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-</style>
+</style>// Force rebuild Fri Jun 26 16:11:40 UTC 2026
