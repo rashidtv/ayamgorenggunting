@@ -28,35 +28,36 @@
     <div v-else class="app-layout">
       <!-- Modern Header -->
       <header class="app-header">
-  <div class="header-content">
-    <div class="brand">
-      <div class="logo">
-        <span class="logo-icon">🍗</span>
-        <div class="logo-text">
-          <h1>Chickory Hub</h1>
-          <span class="tagline">Ayam Goreng Gunting</span>
-        </div>
-      </div>
-    </div>
-    <div class="header-controls">
-      <div class="control-group">
-        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-        </button>
-        <div class="user-menu">
-          <span class="user-greeting">Hello, {{ user.username }}</span>
-          <div class="user-badge">
-            <span class="user-role">{{ userRoleText }}</span>
+        <div class="header-content">
+          <div class="brand">
+            <div class="logo">
+              <span class="logo-icon">🍗</span>
+              <div class="logo-text">
+                <h1>Chickory Hub</h1>
+                <span class="tagline">Ayam Goreng Gunting</span>
+              </div>
+            </div>
+          </div>
+          <div class="header-controls">
+            <div class="control-group">
+              <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+                <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+              </button>
+              <div class="user-menu">
+                <span class="user-greeting">Hello, {{ user.username }}</span>
+                <!-- Hide badge when selector is shown -->
+                <div class="user-badge">
+                  <span class="user-role">{{ userRoleText }}</span>
+                </div>
+              </div>
+            </div>
+            <button @click="logout" class="btn btn-ghost logout-btn">
+              <span class="btn-icon">↩</span>
+              Sign Out
+            </button>
           </div>
         </div>
-      </div>
-      <button @click="logout" class="btn btn-ghost logout-btn">
-        <span class="btn-icon">↩</span>
-        Sign Out
-      </button>
-    </div>
-  </div>
-</header>
+      </header>
 
       <!-- Main Content -->
       <main class="main-content">
@@ -79,7 +80,7 @@
             />
             <StallView
               v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
-              :key="activeStallId"
+              :key="activeStallId || user.stall_id"
               :stallId="user.stall_id"
               :token="token"
               :role="user.role"
@@ -163,25 +164,11 @@ export default {
       deferredPrompt: null,
       isOnline: true,
       activeStallId: null,
-      stallDropdownOpen: false,
-      stallSelectorRef: null,
     };
   },
   computed: {
     authStore() {
       return useAuthStore();
-    },
-    assignedStalls() {
-      return this.authStore.user?.assigned_stalls || [];
-    },
-    // FIXED: Only show stall selector for stall_admin (not super_admin)
-    showStallSelectorInHeader() {
-      return this.assignedStalls.length > 1 &&
-        (this.user?.role === 'stall_admin');
-    },
-    activeStallName() {
-      const stall = this.assignedStalls.find((s) => s.id === this.activeStallId);
-      return stall ? stall.name : 'No Stall';
     },
     userRoleText() {
       if (this.user?.role === 'super_super_admin') return 'Super Super Admin';
@@ -192,26 +179,17 @@ export default {
     },
   },
   watch: {
-    activeStallId(newId) {
-      if (newId) {
-        this.authStore.switchStall(newId);
-        this.showNotification(`Switched to ${this.activeStallName}`, 'info');
-      }
+    // Watch for user changes to update activeStallId
+    user: {
+      handler(newUser) {
+        if (newUser && this.authStore) {
+          this.activeStallId = this.authStore.activeStallId || newUser.stall_id || null;
+        }
+      },
+      immediate: true,
     },
   },
   methods: {
-    toggleStallDropdown() {
-      this.stallDropdownOpen = !this.stallDropdownOpen;
-    },
-    selectStall(stallId) {
-      this.activeStallId = stallId;
-      this.stallDropdownOpen = false;
-    },
-    handleClickOutside(event) {
-      if (this.stallSelectorRef && !this.stallSelectorRef.contains(event.target)) {
-        this.stallDropdownOpen = false;
-      }
-    },
     handleLoginSuccess(userData, authToken) {
       this.loading = true;
       const authStore = useAuthStore();
@@ -220,8 +198,7 @@ export default {
       setTimeout(() => {
         this.user = userData;
         this.token = authToken;
-        this.activeStallId =
-          authStore.activeStallId || userData.assigned_stalls?.[0]?.id || null;
+        this.activeStallId = authStore.activeStallId || userData.stall_id || null;
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('token', authToken);
         localStorage.setItem('darkMode', this.darkMode);
@@ -230,6 +207,7 @@ export default {
         this.updateLastUpdateTime();
       }, 1200);
     },
+    
     logout() {
       const authStore = useAuthStore();
       authStore.logout();
@@ -244,6 +222,7 @@ export default {
         this.showNotification('Signed out successfully', 'success');
       }, 600);
     },
+    
     showNotification(message, type = 'info') {
       const notification = {
         message,
@@ -268,9 +247,11 @@ export default {
         }
       }, 5000);
     },
+    
     removeNotification(index) {
       this.notifications.splice(index, 1);
     },
+    
     getNotificationTitle(type) {
       const titles = {
         success: 'Success',
@@ -280,6 +261,7 @@ export default {
       };
       return titles[type] || 'Notification';
     },
+    
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
       localStorage.setItem('darkMode', this.darkMode);
@@ -289,6 +271,7 @@ export default {
         'info'
       );
     },
+    
     applyTheme() {
       if (this.darkMode) {
         document.documentElement.classList.add('dark-theme');
@@ -296,6 +279,7 @@ export default {
         document.documentElement.classList.remove('dark-theme');
       }
     },
+    
     updateLastUpdateTime() {
       const now = new Date();
       this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
@@ -303,6 +287,7 @@ export default {
         minute: '2-digit',
       });
     },
+    
     initializePWA() {
       this.isPWA =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -323,6 +308,7 @@ export default {
         this.showNotification('App installed successfully!', 'success');
       });
     },
+    
     async installPWA() {
       if (this.deferredPrompt) {
         this.deferredPrompt.prompt();
@@ -333,10 +319,12 @@ export default {
         this.deferredPrompt = null;
       }
     },
+    
     dismissInstall() {
       this.showInstallPrompt = false;
       localStorage.setItem('installPromptDismissed', Date.now().toString());
     },
+    
     checkNetworkStatus() {
       this.isOnline = navigator.onLine;
 
@@ -350,6 +338,7 @@ export default {
         this.showNotification('Working in offline mode', 'warning');
       });
     },
+    
     initializeApp() {
       const storedDarkMode = localStorage.getItem('darkMode');
       if (storedDarkMode === 'true') {
@@ -372,8 +361,7 @@ export default {
           this.token = storedToken;
           const authStore = useAuthStore();
           authStore.setUser(userData, storedToken);
-          this.activeStallId =
-            authStore.activeStallId || userData.assigned_stalls?.[0]?.id || null;
+          this.activeStallId = authStore.activeStallId || userData.stall_id || null;
           this.loading = false;
           this.showNotification('Welcome back!', 'success');
           this.updateLastUpdateTime();
@@ -385,14 +373,10 @@ export default {
     this.initializeApp();
     this.initializePWA();
     this.checkNetworkStatus();
-    document.addEventListener('click', this.handleClickOutside);
     window.addEventListener('unhandledrejection', (event) => {
       console.error('Unhandled promise rejection:', event.reason);
       this.showNotification('Something went wrong. Please try again.', 'error');
     });
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside);
   },
 };
 </script>
@@ -592,81 +576,6 @@ body {
   border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
   font-weight: 600;
-}
-
-/* ===== STALL SELECTOR ===== */
-.stall-selector-modern {
-  position: relative;
-  margin-left: 1rem;
-}
-
-.stall-selector-trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 2rem;
-  padding: 0.4rem 1rem;
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: var(--font-size-sm);
-}
-
-.stall-selector-trigger:hover {
-  border-color: var(--primary);
-  background: var(--surface-elevated);
-}
-
-.stall-icon {
-  font-size: 1rem;
-}
-
-.stall-name {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.dropdown-icon {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.stall-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  min-width: 200px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  z-index: 1000;
-  overflow: hidden;
-}
-
-.stall-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: var(--transition);
-  color: var(--text);
-}
-
-.stall-option:hover {
-  background: var(--background);
-}
-
-.stall-option.active {
-  background: var(--primary-gradient);
-  color: white;
-}
-
-.active-check {
-  color: var(--success);
-  font-weight: bold;
 }
 
 /* ===== BUTTONS ===== */
@@ -1049,23 +958,6 @@ body {
 
   .notification {
     min-width: auto;
-  }
-
-  .stall-selector-modern {
-    margin-left: 0;
-    width: 100%;
-    margin-top: 0.5rem;
-  }
-
-  .stall-selector-trigger {
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .stall-dropdown-menu {
-    width: 100%;
-    right: auto;
-    left: 0;
   }
 
   .user-menu {
