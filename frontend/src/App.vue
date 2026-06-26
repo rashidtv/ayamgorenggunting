@@ -66,26 +66,32 @@
             <p>Loading your dashboard...</p>
           </div>
           <div v-else class="dashboard-container">
-            <!-- Use computed properties for safe role checks -->
-            <SuperSuperAdminPanel
-              v-if="isSSA"
-              :token="token || ''"
-              @show-notification="showNotification"
-            />
-            <SuperAdminPanel
-              v-else-if="isSA"
-              :token="token || ''"
-              @show-notification="showNotification"
-            />
-            <StallView
-              v-else-if="isStallUser"
-              :key="stallIdForView"
-              :stallId="stallIdForView"
-              :token="token || ''"
-              :role="user?.role || 'stall_admin'"
-              @show-notification="showNotification"
-            />
-            <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
+            <!-- CRITICAL: Only render components when user is fully loaded -->
+            <template v-if="user && user.role">
+              <!-- Super Super Admin -->
+              <SuperSuperAdminPanel
+                v-if="user.role === 'super_super_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+              />
+              <!-- Super Admin -->
+              <SuperAdminPanel
+                v-else-if="user.role === 'super_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+              />
+              <!-- Stall Admin / Cashier - Only render if stallId is valid -->
+              <StallView
+                v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
+                :key="stallIdForView"
+                :stallId="stallIdForView"
+                :token="token || ''"
+                :role="user.role"
+                @show-notification="showNotification"
+              />
+              <!-- Fallback -->
+              <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
+            </template>
           </div>
         </div>
       </main>
@@ -179,26 +185,21 @@ export default {
       };
       return roleMap[this.user.role] || this.user.role || 'User';
     },
-    // Safe role checks - these never throw errors
-    isSSA() {
-      return this.user?.role === 'super_super_admin';
-    },
-    isSA() {
-      return this.user?.role === 'super_admin';
-    },
-    isStallUser() {
-      return this.user?.role === 'stall_admin' || this.user?.role === 'cashier';
-    },
     // Safe stall ID - NEVER returns undefined or null
     stallIdForView() {
       // If no user or user doesn't need a stall, return empty string
-      if (!this.user || !this.isStallUser) {
+      if (!this.user) return '';
+      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
         return '';
       }
       // Get stall ID from activeStallId or user.stall_id
       const stallId = this.activeStallId || this.user.stall_id;
-      // Always return a string
       return stallId ? String(stallId) : '';
+    },
+    // Check if stall ID is valid (non-empty string)
+    isValidStallId() {
+      const id = this.stallIdForView;
+      return id !== '' && id !== null && id !== undefined;
     },
   },
   watch: {
@@ -214,21 +215,41 @@ export default {
   },
   methods: {
     handleLoginSuccess(userData, authToken) {
+      console.log('🔵 handleLoginSuccess called');
+      console.log('User data:', userData);
+      console.log('Token:', authToken);
+      
       this.loading = true;
       const authStore = useAuthStore();
-      authStore.setUser(userData, authToken);
+      
+      // Ensure all required fields exist
+      const safeUserData = {
+        ...userData,
+        stall_id: userData.stall_id || null,
+        assigned_stalls: userData.assigned_stalls || [],
+      };
+      
+      authStore.setUser(safeUserData, authToken);
 
-      setTimeout(() => {
-        this.user = userData;
-        this.token = authToken;
-        this.activeStallId = authStore.activeStallId || userData.stall_id || null;
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', authToken);
-        localStorage.setItem('darkMode', this.darkMode);
-        this.loading = false;
-        this.showNotification(`Welcome back, ${userData.username}!`, 'success');
-        this.updateLastUpdateTime();
-      }, 1200);
+      // Use nextTick to ensure DOM updates
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.user = safeUserData;
+          this.token = authToken;
+          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
+          
+          // Save to localStorage
+          localStorage.setItem('user', JSON.stringify(safeUserData));
+          localStorage.setItem('token', authToken);
+          localStorage.setItem('darkMode', this.darkMode);
+          
+          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
+          
+          this.loading = false;
+          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
+          this.updateLastUpdateTime();
+        }, 500);
+      });
     },
     
     logout() {
@@ -381,11 +402,16 @@ export default {
         try {
           const userData = JSON.parse(storedUser);
           if (userData && typeof userData === 'object') {
-            this.user = userData;
+            const safeUserData = {
+              ...userData,
+              stall_id: userData.stall_id || null,
+              assigned_stalls: userData.assigned_stalls || [],
+            };
+            this.user = safeUserData;
             this.token = storedToken;
             const authStore = useAuthStore();
-            authStore.setUser(userData, storedToken);
-            this.activeStallId = authStore.activeStallId || userData.stall_id || null;
+            authStore.setUser(safeUserData, storedToken);
+            this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
           } else {
             localStorage.removeItem('user');
             localStorage.removeItem('token');
@@ -1044,4 +1070,4 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-</style>// Force rebuild Fri Jun 26 16:11:40 UTC 2026
+</style>
