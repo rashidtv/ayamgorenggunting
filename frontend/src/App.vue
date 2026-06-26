@@ -45,7 +45,6 @@
               </button>
               <div class="user-menu">
                 <span class="user-greeting">Hello, {{ user.username }}</span>
-                <!-- Hide badge when selector is shown -->
                 <div class="user-badge">
                   <span class="user-role">{{ userRoleText }}</span>
                 </div>
@@ -80,8 +79,8 @@
             />
             <StallView
               v-else-if="user.role === 'stall_admin' || user.role === 'cashier'"
-              :key="activeStallId || user.stall_id"
-              :stallId="user.stall_id"
+              :key="activeStallId || 'default'"
+              :stallId="String(activeStallId || user.stall_id || '')"
               :token="token"
               :role="user.role"
               @show-notification="showNotification"
@@ -171,19 +170,20 @@ export default {
       return useAuthStore();
     },
     userRoleText() {
-      if (this.user?.role === 'super_super_admin') return 'Super Super Admin';
-      if (this.user?.role === 'super_admin') return 'Super Admin';
-      if (this.user?.role === 'stall_admin') return 'Stall Admin';
-      if (this.user?.role === 'cashier') return 'Cashier';
-      return this.user?.role || 'User';
+      if (!this.user) return 'Guest';
+      if (this.user.role === 'super_super_admin') return 'Super Super Admin';
+      if (this.user.role === 'super_admin') return 'Super Admin';
+      if (this.user.role === 'stall_admin') return 'Stall Admin';
+      if (this.user.role === 'cashier') return 'Cashier';
+      return this.user.role || 'User';
     },
   },
   watch: {
-    // Watch for user changes to update activeStallId
     user: {
       handler(newUser) {
-        if (newUser && this.authStore) {
-          this.activeStallId = this.authStore.activeStallId || newUser.stall_id || null;
+        if (newUser) {
+          const authStore = useAuthStore();
+          this.activeStallId = authStore.activeStallId || newUser.stall_id || null;
         }
       },
       immediate: true,
@@ -355,17 +355,31 @@ export default {
 
       if (storedUser && storedToken) {
         this.loading = true;
-        setTimeout(() => {
+        try {
           const userData = JSON.parse(storedUser);
-          this.user = userData;
-          this.token = storedToken;
-          const authStore = useAuthStore();
-          authStore.setUser(userData, storedToken);
-          this.activeStallId = authStore.activeStallId || userData.stall_id || null;
+          // Ensure userData has required fields
+          if (userData && typeof userData === 'object') {
+            this.user = userData;
+            this.token = storedToken;
+            const authStore = useAuthStore();
+            authStore.setUser(userData, storedToken);
+            this.activeStallId = authStore.activeStallId || userData.stall_id || null;
+          } else {
+            // Invalid user data, clear localStorage
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('Failed to parse user data:', error);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        } finally {
           this.loading = false;
-          this.showNotification('Welcome back!', 'success');
-          this.updateLastUpdateTime();
-        }, 1000);
+          if (this.user) {
+            this.showNotification('Welcome back!', 'success');
+            this.updateLastUpdateTime();
+          }
+        }
       }
     },
   },
