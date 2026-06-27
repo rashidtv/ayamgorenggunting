@@ -480,9 +480,15 @@
 </template>
 
 <script>
-import axios from 'axios'
-import API_BASE from '../config/api.js'
-import MenuManagement from './MenuManagement.vue'
+import Login from './components/Login.vue';
+import StallView from './components/StallView.vue';
+import AdminDashboard from './components/AdminDashboard.vue';
+import SuperAdminPanel from './components/SuperAdminPanel.vue';
+import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
+import { useAuthStore } from './stores/auth';
+
+// Use environment variable or fallback
+const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
 
 export default {
   props: ['token'],
