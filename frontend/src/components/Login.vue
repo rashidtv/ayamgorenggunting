@@ -120,7 +120,9 @@
 
 <script>
 import axios from 'axios'
-import API_BASE from '../config/api.js'
+
+// Use environment variable or fallback
+const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
 
 export default {
   name: 'Login',
@@ -143,17 +145,9 @@ export default {
           password: this.password
         }, { timeout: 10000 })
         
-        // Log full response for debugging
-        console.log('📤 Full login response:', response)
-        console.log('📤 Response data:', response.data)
-        console.log('📤 User:', response.data?.user)
-        console.log('📤 Token:', response.data?.token)
-        
-        // Emit the ENTIRE response data as a single object
         if (response.data && response.data.user && response.data.token) {
           this.$emit('login-success', response.data)
         } else {
-          console.error('❌ Invalid login response structure:', response.data)
           this.error = 'Invalid server response. Please try again.'
           this.loading = false
         }
@@ -166,13 +160,8 @@ export default {
         } else {
           this.error = 'Login failed. Please try again.'
         }
-        console.error('❌ Login error:', error)
+        console.error('Login error:', error)
         this.loading = false
-      } finally {
-        // Only set loading to false if not already done
-        if (this.loading) {
-          this.loading = false
-        }
       }
     }
   }
