@@ -265,43 +265,24 @@ export default {
     },
 
     showNotification(message, type = 'info') {
-      const notification = {
-        message,
-        type,
-        id: Date.now() + Math.random(),
-        progress: 100,
-      };
-      this.notifications.push(notification);
-
-      const progressInterval = setInterval(() => {
-        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
-        if (noteIndex !== -1) {
-          this.notifications[noteIndex].progress -= 2;
-        }
-      }, 100);
-
-      setTimeout(() => {
-        clearInterval(progressInterval);
-        const index = this.notifications.findIndex((n) => n.id === notification.id);
-        if (index !== -1) {
-          this.notifications.splice(index, 1);
-        }
-      }, 5000);
-    },
-
-    removeNotification(index) {
-      this.notifications.splice(index, 1);
-    },
-
-    getNotificationTitle(type) {
-      const titles = {
-        success: 'Success',
-        error: 'Error',
-        warning: 'Warning',
-        info: 'Information',
-      };
-      return titles[type] || 'Notification';
-    },
+  // Disabled - no notifications will show
+  return;
+  
+  // Or if you want to keep for debugging but disable in production:
+  // if (import.meta.env.PROD) return;
+  
+  // Original code below (commented out)
+  /*
+  const notification = {
+    message,
+    type,
+    id: Date.now() + Math.random(),
+    progress: 100,
+  };
+  this.notifications.push(notification);
+  // ... rest of the method
+  */
+}
 
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
