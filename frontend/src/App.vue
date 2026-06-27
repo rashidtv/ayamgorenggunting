@@ -1,728 +1,1971 @@
 <template>
-  <div id="app" :class="{
-    'admin-theme': user?.role === 'admin',
-    'stall-theme': user?.role === 'user',
-    'dark-mode': darkMode
-  }">
-    <!-- PWA Install Prompt -->
-    <div v-if="showInstallPrompt" class="pwa-install-prompt">
-      <div class="install-content">
-        <div class="install-info">
-          <div class="install-icon">🍗</div>
-          <div class="install-text">
-            <h3>Install Chickory Hub</h3>
-            <p>Get the app experience on your device</p>
-          </div>
+  <div class="sa-dashboard">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2>🏢 Company Management</h2>
+        <p class="subtitle">Manage your company, stalls, inventory, and users</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stalls">🏪</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ stalls.length }}</div>
+          <div class="stat-label">Total Stalls</div>
         </div>
-        <div class="install-actions">
-          <button @click="dismissInstall" class="btn btn-outline">Later</button>
-          <button @click="installPWA" class="btn btn-primary">Install</button>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon users">👥</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ users.length }}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+      </div>
+      <div class="stat-card clickable" @click="scrollToInventory()">
+        <div class="stat-icon alert">⚠️</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ lowStock.length }}</div>
+          <div class="stat-label">Low Stock Alerts</div>
+          <div class="stat-hint">Click to view</div>
         </div>
       </div>
     </div>
 
-    <div v-if="!user" class="auth-container">
-      <Login @login-success="handleLoginSuccess" />
+    <!-- Period Selector + Export Button -->
+    <div class="period-selector-wrapper">
+      <div class="period-selector">
+        <button 
+          v-for="p in periods" 
+          :key="p.value"
+          :class="['period-btn', { active: selectedPeriod === p.value }]"
+          @click="selectedPeriod = p.value; refreshAllData()"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+      <button @click="exportExcel" class="btn btn-primary" :disabled="exporting">
+        <span v-if="exporting">⏳ Generating...</span>
+        <span v-else>📊 Export Excel</span>
+      </button>
     </div>
 
-    <div v-else class="app-layout">
-      <!-- Modern Header -->
-      <header class="app-header">
-        <div class="header-content">
-          <div class="brand">
-            <div class="logo">
-              <span class="logo-icon">🍗</span>
-              <div class="logo-text">
-                <h1>Chickory Hub</h1>
-                <span class="tagline">Ayam Goreng Gunting</span>
+    <!-- Consolidated Sales -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>📊 Consolidated Sales</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body">
+        <div class="consolidated-stats">
+          <div class="consolidated-stat">
+            <span class="stat-label">Total Revenue</span>
+            <span class="stat-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Total Items Sold</span>
+            <span class="stat-value">{{ consolidatedSales.totalItems || 0 }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Average per Stall</span>
+            <span class="stat-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Top Performing Stall</span>
+            <span class="stat-value highlight">{{ consolidatedSales.topStall || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Sales Trend -->
+    <div class="card full-width" id="chart-container">
+      <div class="card-header">
+        <h3>📈 Daily Sales Trend</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
+            <!-- Trend Line -->
+            <div class="trend-line-container">
+              <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getTrendPoints()"
+                  fill="none"
+                  stroke="#F94908"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+                <circle
+                  v-for="(point, index) in getTrendPointsArray()"
+                  :key="index"
+                  :cx="point.x"
+                  :cy="point.y"
+                  r="2.5"
+                  fill="#F94908"
+                />
+              </svg>
+            </div>
+            <!-- Bar Chart -->
+            <div class="chart-bars">
+              <div 
+                v-for="day in salesTrend" 
+                :key="day.date"
+                class="chart-bar-wrapper"
+              >
+                <div class="chart-bar" :style="{ height: getBarHeight(day.revenue) + '%' }">
+                  <span class="bar-value">{{ formatCurrency(day.revenue) }}</span>
+                </div>
+                <span class="bar-label">{{ formatDate(day.date) }}</span>
               </div>
             </div>
           </div>
-          <div class="header-controls">
-            <div class="control-group">
-              <!-- Notification Toggle Button -->
-              <button 
-                @click="toggleNotifications" 
-                class="control-btn" 
-                :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+          <div v-else class="empty-state">
+            <p>No sales data available for this period</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stall Performance Ranking -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🏆 Stall Performance Ranking</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Stall Name</th>
+              <th>Revenue</th>
+              <th>Items Sold</th>
+              <th>Avg Transaction</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(stall, index) in stallPerformance" :key="stall.id">
+              <td>{{ index + 1 }}</td>
+              <td><strong>{{ stall.name }}</strong></td>
+              <td>{{ formatCurrency(stall.revenue || 0) }}</td>
+              <td>{{ stall.items || 0 }}</td>
+              <td>{{ formatCurrency(stall.avgTransaction || 0) }}</td>
+              <td>
+                <span :class="['status-badge', getStallStatusClass(stall) ]">
+                  {{ getStallStatus(stall) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="stallPerformance.length === 0" class="empty-state">
+          <span class="empty-icon">📊</span>
+          <p>No sales data available for this period</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Performance -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🍗 Menu Performance</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Menu Item</th>
+              <th>Quantity Sold</th>
+              <th>Revenue</th>
+              <th>Percentage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in menuPerformance" :key="item.name">
+              <td>{{ index + 1 }}</td>
+              <td><strong>{{ item.name }}</strong></td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ formatCurrency(item.revenue || 0) }}</td>
+              <td>
+                <div class="performance-bar-container">
+                  <div class="performance-bar" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></div>
+                  <span class="performance-label">{{ getPerformancePercentage(item.quantity) }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="menuPerformance.length === 0" class="empty-state">
+          <span class="empty-icon">🍗</span>
+          <p>No menu sales data available for this period</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Management -->
+    <div class="card full-width">
+      <MenuManagement :token="token" @show-notification="$emit('show-notification', $event)" />
+    </div>
+
+    <!-- Stall Management -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🏪 Stall Management</h3>
+        <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New Stall</button>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="s in stalls" :key="s.id">
+              <td><strong>{{ s.name }}</strong></td>
+              <td><code>{{ s.code }}</code></td>
+              <td>{{ s.location || '-' }}</td>
+              <td>
+                <span :class="['status-badge', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button @click="openEditStallModal(s)" class="btn-icon-sm" title="Edit Stall">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="btn-icon-sm" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
+                  </button>
+                  <button @click="deleteStall(s.id, s.name)" class="btn-icon-sm danger" title="Delete Stall">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="stalls.length === 0" class="empty-state">
+          <span class="empty-icon">🏪</span>
+          <p>No stalls found. Create your first stall!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Management with Low Stock Filter -->
+    <div class="card full-width" id="inventory-section">
+      <div class="card-header">
+        <h3>📦 Inventory Management</h3>
+        <div class="header-actions">
+          <div class="filter-group">
+            <button 
+              @click="toggleLowStockFilter" 
+              class="btn" 
+              :class="showLowStockOnly ? 'btn-primary' : 'btn-outline'"
+              :disabled="lowStockCount === 0"
+            >
+              <span class="btn-icon">⚠️</span>
+              Low Stock 
+              <span class="filter-badge" v-if="lowStockCount > 0">{{ lowStockCount }}</span>
+            </button>
+            <button 
+              @click="clearFilter" 
+              class="btn btn-ghost btn-sm"
+              v-if="showLowStockOnly"
+            >
+              ✕ Clear Filter
+            </button>
+          </div>
+          <span class="badge-count">{{ stalls.length }} Stalls</span>
+          <button @click="loadAllStallsInventory()" class="btn btn-outline btn-sm">🔄 Refresh All</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div v-if="stalls.length === 0" class="empty-state">
+          <span class="empty-icon">📦</span>
+          <p>No stalls found. Create a stall first.</p>
+        </div>
+        <div v-for="stall in filteredStalls" :key="stall.id" class="stall-inventory-item">
+          <div class="stall-inventory-header" @click="toggleInventoryStall(stall.id)">
+            <div class="stall-info">
+              <span class="stall-name">{{ stall.name }}</span>
+              <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                {{ stall.is_active ? 'Active' : 'Inactive' }}
+              </span>
+              <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️ Low Stock</span>
+            </div>
+            <div class="stall-inventory-summary">
+              <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-chip">
+                {{ item.material_name }}: {{ item.current_level }}{{ getUnit(item.material_name) }}
+                <span v-if="item.current_level <= item.alert_level" class="low-stock-dot">⚠️</span>
+              </span>
+              <span class="toggle-icon">{{ expandedInventoryStall === stall.id ? '▲' : '▼' }}</span>
+            </div>
+          </div>
+          <div v-if="expandedInventoryStall === stall.id" class="stall-inventory-details">
+            <div class="inventory-edit-grid">
+              <div 
+                v-for="item in getFilteredStallInventory(stall.id)" 
+                :key="item.material_name" 
+                class="inventory-edit-item"
+                :class="{ 'low-stock-item': item.current_level <= item.alert_level }"
               >
-                <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-              </button>
-              <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-                <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-              </button>
-              <div class="user-menu">
-                <span class="user-greeting">Hello, {{ user?.username || 'User' }}</span>
-                <div class="user-badge">
-                  <span class="user-role">{{ userRoleText }}</span>
+                <div class="inventory-edit-info">
+                  <span class="material-name">{{ item.material_name }}</span>
+                  <span class="current-stock">Current: {{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+                  <span :class="['alert-badge', item.current_level <= item.alert_level ? 'low' : 'ok']">
+                    {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
+                  </span>
+                </div>
+                <div class="inventory-edit-controls">
+                  <input type="number" v-model.number="item.newLevel" :placeholder="item.current_level" step="0.5" class="inventory-input" />
+                  <button @click="updateInventoryStock(stall.id, item.material_name, item.newLevel)" class="btn btn-primary btn-sm">
+                    Update
+                  </button>
+                  <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn btn-outline btn-sm">+5</button>
+                  <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn btn-outline btn-sm">+1</button>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" :style="{ width: getInventoryPercentage(item) + '%' }" :class="item.current_level <= item.alert_level ? 'low' : ''"></div>
                 </div>
               </div>
             </div>
-            <button @click="logout" class="btn btn-ghost logout-btn">
-              <span class="btn-icon">↩</span>
-              Sign Out
-            </button>
+            <div class="inventory-actions-bottom">
+              <button @click="bulkUpdateInventory(stall.id)" class="btn btn-primary btn-sm">📦 Bulk Update All</button>
+              <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert Level</button>
+            </div>
           </div>
         </div>
-      </header>
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <div class="content-wrapper">
-          <div v-if="loading" class="loading-state">
-            <div class="loading-spinner"><div class="spinner-ring"></div></div>
-            <p>Loading your dashboard...</p>
-          </div>
-          <div v-else class="dashboard-container">
-            <template v-if="user && user.role">
-              <SuperSuperAdminPanel
-                v-if="user.role === 'super_super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              <SuperAdminPanel
-                v-else-if="user.role === 'super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              <StallView
-                v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
-                :key="stallIdForView"
-                :stallId="stallIdForView"
-                :token="token || ''"
-                :role="user.role"
-                @show-notification="showNotification"
-              />
-              <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
-            </template>
-          </div>
+        <div v-if="showLowStockOnly && filteredStalls.length === 0" class="empty-state">
+          <span class="empty-icon">✅</span>
+          <p>No stalls with low stock! All inventory levels are healthy.</p>
         </div>
-      </main>
-
-      <!-- Notifications -->
-      <div class="notifications-container">
-        <transition-group name="notification-slide">
-          <div v-for="(notification, index) in notifications" :key="notification.id"
-            :class="['notification', `notification-${notification.type}`]">
-            <div class="notification-icon">
-              <span v-if="notification.type === 'success'">✅</span>
-              <span v-else-if="notification.type === 'error'">❌</span>
-              <span v-else-if="notification.type === 'warning'">⚠️</span>
-              <span v-else>ℹ️</span>
-            </div>
-            <div class="notification-content">
-              <div class="notification-title">{{ getNotificationTitle(notification.type) }}</div>
-              <div class="notification-message">{{ notification.message }}</div>
-            </div>
-            <button @click="removeNotification(index)" class="notification-close">
-              <span>×</span>
-            </button>
-            <div class="notification-progress" :style="{ width: notification.progress + '%' }"></div>
-          </div>
-        </transition-group>
       </div>
+    </div>
 
-      <!-- Footer -->
-      <footer class="app-footer">
-        <div class="footer-content">
-          <div class="footer-brand">
-            <span class="footer-logo">🍗 Chickory Hub</span>
-            <span class="footer-version">v2.0</span>
+    <!-- User Management -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>👥 User Management</h3>
+        <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New User</button>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Assigned Stalls</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="u in users" :key="u.id">
+              <td><strong>{{ u.username }}</strong></td>
+              <td>{{ u.full_name || '-' }}</td>
+              <td><span class="role-badge">{{ u.role }}</span></td>
+              <td>{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button @click="openEditUserModal(u)" class="btn-icon-sm" title="Edit User">✏️</button>
+                  <button @click="deleteUser(u.id, u.username)" class="btn-icon-sm danger" title="Delete User">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="users.length === 0" class="empty-state">
+          <span class="empty-icon">👥</span>
+          <p>No users found. Create your first user!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Low Stock Alerts Section (Separate) -->
+    <div class="card full-width" id="low-stock-section">
+      <div class="card-header">
+        <h3>⚠️ Low Stock Alerts</h3>
+        <span class="badge-count">{{ lowStock.length }}</span>
+        <button @click="scrollToInventory()" class="btn btn-primary btn-sm">
+          📦 Manage Inventory
+        </button>
+      </div>
+      <div class="card-body">
+        <div v-if="lowStock.length === 0" class="empty-state small">
+          ✅ All stock levels are healthy
+        </div>
+        <div v-for="item in lowStock" :key="item.stall_name + item.material_name" class="alert-item">
+          <span class="alert-icon">⚠️</span>
+          <span class="alert-stall">{{ item.stall_name }}</span>
+          <span class="alert-material">{{ item.material_name }}</span>
+          <span class="alert-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+          <span class="alert-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
+          <button @click="scrollToInventory()" class="btn btn-sm btn-outline">View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- User Modal (Create/Edit) -->
+    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+      <div class="modal modal-lg">
+        <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Username</label>
+              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+            </div>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input v-model="userForm.full_name" placeholder="Full Name" />
+            </div>
           </div>
-          <div class="footer-info">
-            <span class="status-indicator" :class="{ online: isOnline }">
-              <span class="status-dot"></span>
-              {{ isOnline ? 'System Online' : 'Offline Mode' }}
-            </span>
-            <span class="last-sync">Last updated: {{ lastUpdateTime }}</span>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Password (leave blank to keep current)</label>
+              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
+              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep current" />
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select v-model="userForm.role">
+                <option value="stall_admin">Stall Admin</option>
+                <option value="cashier">Cashier</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Assign Stalls (for stall_admin and cashier):</label>
+            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
+              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
+            </select>
+            <small class="hint-text">Hold Ctrl/Cmd to select multiple stalls</small>
           </div>
         </div>
-      </footer>
+        <div class="modal-actions">
+          <button @click="closeUserModal" class="btn btn-ghost">Cancel</button>
+          <button @click="saveUser" class="btn btn-primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stall Modal (Create/Edit) -->
+    <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
+      <div class="modal">
+        <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
+        <div class="modal-body">
+          <input v-model="stallForm.name" placeholder="Stall Name" />
+          <input v-model="stallForm.code" placeholder="Stall Code" />
+          <input v-model="stallForm.location" placeholder="Location" />
+        </div>
+        <div class="modal-actions">
+          <button @click="stallModal=false" class="btn btn-ghost">Cancel</button>
+          <button @click="saveStall" class="btn btn-primary">{{ editingStall ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import Login from './components/Login.vue';
-import StallView from './components/StallView.vue';
-import AdminDashboard from './components/AdminDashboard.vue';
-import SuperAdminPanel from './components/SuperAdminPanel.vue';
-import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
-import { useAuthStore } from './stores/auth';
+import axios from 'axios'
+import API_BASE from '../config/api.js'
+import MenuManagement from './MenuManagement.vue'
 
 export default {
-  name: 'App',
+  props: ['token'],
   components: {
-    Login,
-    StallView,
-    AdminDashboard,
-    SuperAdminPanel,
-    SuperSuperAdminPanel,
+    MenuManagement
   },
   data() {
     return {
-      user: null,
-      token: null,
-      notifications: [],
-      darkMode: false,
-      loading: false,
-      lastUpdateTime: 'Just now',
-      isPWA: false,
-      showInstallPrompt: false,
-      deferredPrompt: null,
-      isOnline: true,
-      activeStallId: null,
-      notificationsEnabled: true, // Added: notification toggle state
-    };
+      companies: [],
+      stalls: [],
+      users: [],
+      lowStock: [],
+      consolidatedSales: {
+        totalRevenue: 0,
+        totalItems: 0,
+        averagePerStall: 0,
+        topStall: '-'
+      },
+      stallPerformance: [],
+      menuPerformance: [],
+      salesTrend: [],
+      productSales: {},
+      expandedStall: null,
+      selectedPeriod: 'week',
+      periods: [
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' },
+        { value: 'quarter', label: 'Quarter' },
+        { value: 'year', label: 'Year' }
+      ],
+      userModal: false,
+      editingUser: false,
+      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+      stallModal: false,
+      editingStall: false,
+      stallForm: { id: null, name: '', code: '', location: '' },
+      expandedInventoryStall: null,
+      stallInventory: {},
+      inventoryMaterials: ['Chicken', 'Flour', 'Oil'],
+      exporting: false,
+      showLowStockOnly: false, // New: filter for low stock
+      scrollToLowStock: false, // New: flag to scroll to low stock
+    }
   },
   computed: {
-    authStore() {
-      return useAuthStore();
+    lowStockCount() {
+      return this.lowStock.length
     },
-    userRoleText() {
-      if (!this.user) return 'Guest';
-      const roleMap = {
-        'super_super_admin': 'Super Super Admin',
-        'super_admin': 'Super Admin',
-        'stall_admin': 'Stall Admin',
-        'cashier': 'Cashier'
-      };
-      return roleMap[this.user.role] || this.user.role || 'User';
-    },
-    stallIdForView() {
-      if (!this.user) return '';
-      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
-        return '';
+    filteredStalls() {
+      if (!this.showLowStockOnly) {
+        return this.stalls
       }
-      const stallId = this.activeStallId || this.user.stall_id;
-      return stallId ? String(stallId) : '';
-    },
-    isValidStallId() {
-      const id = this.stallIdForView;
-      return id !== '' && id !== null && id !== undefined;
-    },
-  },
-  watch: {
-    user: {
-      handler(newUser) {
-        if (newUser) {
-          const authStore = useAuthStore();
-          this.activeStallId = authStore.activeStallId || newUser.stall_id || null;
-        }
-      },
-      immediate: true,
-    },
-  },
-  methods: {
-    // RECEIVE ENTIRE RESPONSE DATA
-    handleLoginSuccess(responseData) {
-      console.log('🔵 handleLoginSuccess called with:', responseData);
-      
-      // Extract user and token from the response
-      const userData = responseData?.user;
-      const authToken = responseData?.token;
-      
-      if (!userData || !authToken) {
-        console.error('❌ Invalid login response:', responseData);
-        this.showNotification('Login failed. Please try again.', 'error');
-        return;
-      }
-
-      console.log('✅ User data extracted:', userData);
-      console.log('✅ Token extracted:', authToken);
-      
-      this.loading = true;
-      const authStore = useAuthStore();
-
-      const safeUserData = {
-        ...userData,
-        stall_id: userData.stall_id || null,
-        assigned_stalls: userData.assigned_stalls || [],
-      };
-
-      authStore.setUser(safeUserData, authToken);
-
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.user = safeUserData;
-          this.token = authToken;
-          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          localStorage.setItem('user', JSON.stringify(safeUserData));
-          localStorage.setItem('token', authToken);
-          localStorage.setItem('darkMode', this.darkMode);
-          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
-          this.loading = false;
-          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
-          this.updateLastUpdateTime();
-        }, 500);
-      });
-    },
-
-    logout() {
-      const authStore = useAuthStore();
-      authStore.logout();
-      this.showNotification('Signing out...', 'info');
-
-      setTimeout(() => {
-        this.user = null;
-        this.token = null;
-        this.activeStallId = null;
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.showNotification('Signed out successfully', 'success');
-      }, 600);
-    },
-
-    showNotification(message, type = 'info') {
-      // Check if notifications are enabled
-      if (!this.notificationsEnabled) {
-        // Still log to console for debugging
-        console.log(`[🔕 Notification disabled] ${type}: ${message}`);
-        return;
-      }
-      
-      // Original notification code
-      const notification = {
-        message,
-        type,
-        id: Date.now() + Math.random(),
-        progress: 100,
-      };
-      this.notifications.push(notification);
-
-      const progressInterval = setInterval(() => {
-        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
-        if (noteIndex !== -1) {
-          this.notifications[noteIndex].progress -= 2;
-        }
-      }, 100);
-
-      setTimeout(() => {
-        clearInterval(progressInterval);
-        const index = this.notifications.findIndex((n) => n.id === notification.id);
-        if (index !== -1) {
-          this.notifications.splice(index, 1);
-        }
-      }, 5000);
-    },
-
-    // Toggle notifications on/off
-    toggleNotifications() {
-      this.notificationsEnabled = !this.notificationsEnabled;
-      localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
-      
-      // Show a brief notification about the change (only if enabling)
-      if (this.notificationsEnabled) {
-        this.showNotification('🔔 Notifications enabled', 'success');
-      } else {
-        // When disabling, we need to temporarily enable to show the message
-        // But we want to show it as a flash message, not in the queue
-        const tempEnabled = this.notificationsEnabled;
-        this.notificationsEnabled = true;
-        // Use a different method to show the message
-        const notification = {
-          message: '🔕 Notifications disabled',
-          type: 'info',
-          id: Date.now() + Math.random(),
-          progress: 100,
-        };
-        this.notifications.push(notification);
-        
-        setTimeout(() => {
-          const index = this.notifications.findIndex((n) => n.id === notification.id);
-          if (index !== -1) {
-            this.notifications.splice(index, 1);
-          }
-        }, 3000);
-        
-        // Revert to disabled
-        this.notificationsEnabled = tempEnabled;
-      }
-    },
-
-    removeNotification(index) {
-      this.notifications.splice(index, 1);
-    },
-
-    getNotificationTitle(type) {
-      const titles = {
-        success: 'Success',
-        error: 'Error',
-        warning: 'Warning',
-        info: 'Information',
-      };
-      return titles[type] || 'Notification';
-    },
-
-    toggleDarkMode() {
-      this.darkMode = !this.darkMode;
-      localStorage.setItem('darkMode', this.darkMode);
-      this.applyTheme();
-      this.showNotification(
-        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
-        'info'
-      );
-    },
-
-    applyTheme() {
-      if (this.darkMode) {
-        document.documentElement.classList.add('dark-theme');
-      } else {
-        document.documentElement.classList.remove('dark-theme');
-      }
-    },
-
-    updateLastUpdateTime() {
-      const now = new Date();
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    },
-
-    initializePWA() {
-      this.isPWA =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        this.deferredPrompt = e;
-        setTimeout(() => {
-          this.showInstallPrompt = true;
-        }, 3000);
-      });
-
-      window.addEventListener('appinstalled', () => {
-        this.showInstallPrompt = false;
-        this.deferredPrompt = null;
-        this.isPWA = true;
-        this.showNotification('App installed successfully!', 'success');
-      });
-    },
-
-    async installPWA() {
-      if (this.deferredPrompt) {
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          this.showInstallPrompt = false;
-        }
-        this.deferredPrompt = null;
-      }
-    },
-
-    dismissInstall() {
-      this.showInstallPrompt = false;
-      localStorage.setItem('installPromptDismissed', Date.now().toString());
-    },
-
-    checkNetworkStatus() {
-      this.isOnline = navigator.onLine;
-
-      window.addEventListener('online', () => {
-        this.isOnline = true;
-        this.showNotification('Connection restored', 'success');
-      });
-
-      window.addEventListener('offline', () => {
-        this.isOnline = false;
-        this.showNotification('Working in offline mode', 'warning');
-      });
-    },
-
-    initializeApp() {
-      const storedDarkMode = localStorage.getItem('darkMode');
-      if (storedDarkMode === 'true') {
-        this.darkMode = true;
-      }
-      this.applyTheme();
-
-      // Load notification preference from localStorage
-      const savedNotifications = localStorage.getItem('notificationsEnabled');
-      if (savedNotifications !== null) {
-        this.notificationsEnabled = JSON.parse(savedNotifications);
-      }
-
-      setInterval(() => {
-        this.updateLastUpdateTime();
-      }, 60000);
-
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
-
-      if (storedUser && storedToken) {
-        this.loading = true;
-        try {
-          const userData = JSON.parse(storedUser);
-          if (userData && typeof userData === 'object') {
-            const safeUserData = {
-              ...userData,
-              stall_id: userData.stall_id || null,
-              assigned_stalls: userData.assigned_stalls || [],
-            };
-            this.user = safeUserData;
-            this.token = storedToken;
-            const authStore = useAuthStore();
-            authStore.setUser(safeUserData, storedToken);
-            this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          } else {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-          }
-        } catch (error) {
-          console.error('Failed to parse user data:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-        } finally {
-          this.loading = false;
-          if (this.user) {
-            this.showNotification('Welcome back!', 'success');
-            this.updateLastUpdateTime();
-          }
-        }
-      }
-    },
+      // Only show stalls that have at least one low stock item
+      return this.stalls.filter(stall => {
+        const inventory = this.getStallInventory(stall.id)
+        return inventory.some(item => item.current_level <= item.alert_level)
+      })
+    }
   },
   mounted() {
-    this.initializeApp();
-    this.initializePWA();
-    this.checkNetworkStatus();
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      this.showNotification('Something went wrong. Please try again.', 'error');
-    });
+    this.loadData()
+    // Check if we need to scroll to inventory
+    if (this.$route?.query?.scrollTo === 'inventory') {
+      this.$nextTick(() => {
+        this.scrollToInventory()
+      })
+    }
   },
-};
+  methods: {
+    formatCurrency(amount) {
+      return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(amount)
+    },
+    formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+    },
+    getPeriodLabel() {
+      var p = this.periods.find(function(p) { return p.value === this.selectedPeriod }.bind(this))
+      return p ? p.label : 'Week'
+    },
+    getPerformancePercentage(quantity) {
+      var max = Math.max.apply(null, this.menuPerformance.map(function(p) { return p.quantity }).concat([1]))
+      return Math.round((quantity / max) * 100)
+    },
+    
+    // ==================== LOW STOCK FILTER ====================
+    toggleLowStockFilter() {
+      this.showLowStockOnly = !this.showLowStockOnly
+      if (this.showLowStockOnly && this.lowStockCount === 0) {
+        this.showLowStockOnly = false
+        this.$emit('show-notification', 'No low stock items found', 'info')
+        return
+      }
+      // Expand the first stall with low stock if filtering
+      if (this.showLowStockOnly) {
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+        this.$emit('show-notification', `Showing ${this.filteredStalls.length} stall(s) with low stock`, 'info')
+      } else {
+        this.$emit('show-notification', 'Showing all stalls', 'info')
+      }
+    },
+    
+    clearFilter() {
+      this.showLowStockOnly = false
+      this.$emit('show-notification', 'Filter cleared', 'info')
+    },
+    
+    hasLowStock(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      return inventory.some(item => item.current_level <= item.alert_level)
+    },
+    
+    getFilteredStallInventory(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      if (this.showLowStockOnly) {
+        return inventory.filter(item => item.current_level <= item.alert_level)
+      }
+      return inventory
+    },
+    
+    // ==================== SCROLL TO INVENTORY ====================
+    scrollToInventory() {
+      // Enable low stock filter
+      if (this.lowStockCount > 0) {
+        this.showLowStockOnly = true
+        // Expand the first stall with low stock
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+      }
+      
+      // Scroll to inventory section
+      this.$nextTick(() => {
+        const element = document.getElementById('inventory-section')
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          })
+          // Highlight the section briefly
+          element.classList.add('highlight-flash')
+          setTimeout(() => {
+            element.classList.remove('highlight-flash')
+          }, 2000)
+        }
+      })
+    },
+    
+    // ==================== STALL STATUS ====================
+    getStallStatus(stall) {
+      if (!stall.revenue || stall.revenue === 0) return 'No Sales'
+      if (stall.revenue > 1000) return 'Excellent'
+      if (stall.revenue > 500) return 'Good'
+      if (stall.revenue > 100) return 'Average'
+      return 'Poor'
+    },
+    getStallStatusClass(stall) {
+      if (!stall.revenue || stall.revenue === 0) return 'no-sales'
+      if (stall.revenue > 1000) return 'excellent'
+      if (stall.revenue > 500) return 'good'
+      if (stall.revenue > 100) return 'average'
+      return 'poor'
+    },
+    
+    // ==================== DATA LOADING ====================
+    async refreshAllData() {
+      await this.loadData()
+    },
+    
+    async loadData() {
+      try {
+        await Promise.all([
+          this.loadStalls(),
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadSalesAnalytics(),
+          this.loadStallPerformance(),
+          this.loadMenuPerformance()
+        ])
+        await this.loadAllStallsInventory()
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
+    
+    async loadStalls() {
+      var res = await axios.get(API_BASE + '/companies/1/stalls', { headers: { Authorization: 'Bearer ' + this.token } })
+      this.stalls = res.data
+      for (var i = 0; i < this.stalls.length; i++) {
+        var stall = this.stalls[i]
+        var salesRes = await axios.get(API_BASE + '/stall-today-sales?stallId=' + stall.id, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        stall.todayRevenue = salesRes.data.total_revenue || 0
+        stall.todayItems = salesRes.data.items_sold || 0
+      }
+    },
+    
+    async loadUsers() {
+      var res = await axios.get(API_BASE + '/companies/1/users', { headers: { Authorization: 'Bearer ' + this.token } })
+      this.users = res.data
+    },
+    
+    async loadLowStock() {
+      var res = await axios.get(API_BASE + '/companies/1/low-stock', { headers: { Authorization: 'Bearer ' + this.token } })
+      this.lowStock = res.data
+    },
+    
+    async loadSalesAnalytics() {
+      var days = 7
+      if (this.selectedPeriod === 'today') days = 1
+      else if (this.selectedPeriod === 'week') days = 7
+      else if (this.selectedPeriod === 'month') days = 30
+      else if (this.selectedPeriod === 'quarter') days = 90
+      else if (this.selectedPeriod === 'year') days = 365
+
+      try {
+        var res = await axios.get(API_BASE + '/sales-analytics?days=' + days, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        var data = res.data || {}
+        
+        this.salesTrend = data.dailySales || []
+        this.consolidatedSales.totalRevenue = data.totalRevenue || 0
+        this.consolidatedSales.totalItems = data.totalItems || 0
+        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+          (data.totalRevenue || 0) / this.stalls.length : 0
+        this.consolidatedSales.topStall = data.topStall || '-'
+        
+        this.productSales = data.productSales || {}
+        
+        await this.loadMenuPerformance()
+        
+      } catch (err) {
+        console.error('Failed to load sales analytics:', err)
+        this.salesTrend = []
+        this.consolidatedSales = {
+          totalRevenue: 0,
+          totalItems: 0,
+          averagePerStall: 0,
+          topStall: '-'
+        }
+        this.productSales = {}
+        this.$emit('show-notification', 'Failed to load sales data', 'error')
+      }
+    },
+    
+    async loadStallPerformance() {
+      var days = 7
+      if (this.selectedPeriod === 'today') days = 1
+      else if (this.selectedPeriod === 'week') days = 7
+      else if (this.selectedPeriod === 'month') days = 30
+      else if (this.selectedPeriod === 'quarter') days = 90
+      else if (this.selectedPeriod === 'year') days = 365
+
+      try {
+        var res = await axios.get(API_BASE + '/stall-performance?days=' + days, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.stallPerformance = res.data || []
+        
+        if (this.stallPerformance.length > 0 && !this.consolidatedSales.topStall) {
+          this.consolidatedSales.topStall = this.stallPerformance[0]?.name || '-'
+        }
+        
+      } catch (err) {
+        console.error('Failed to load stall performance:', err)
+        this.stallPerformance = []
+      }
+    },
+    
+    async loadMenuPerformance() {
+      try {
+        var productSales = this.productSales || {}
+        var menuPerformance = Object.keys(productSales).map(function(name) {
+          return {
+            name: name,
+            quantity: productSales[name].quantity || 0,
+            revenue: productSales[name].revenue || 0
+          }
+        })
+        menuPerformance.sort(function(a, b) { return b.quantity - a.quantity })
+        this.menuPerformance = menuPerformance
+      } catch (err) {
+        console.error('Failed to load menu performance:', err)
+        this.menuPerformance = []
+      }
+    },
+    
+    // ==================== CHART METHODS ====================
+    getBarHeight(revenue) {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return 5
+      var max = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      return Math.max((revenue / max) * 80, 5)
+    },
+
+    getTrendPoints() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return ''
+      if (dailySales.length === 1) {
+        return '50,5'
+      }
+      var maxRevenue = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      var points = dailySales.map(function(day, index) {
+        var x = (index / (dailySales.length - 1)) * 100
+        var y = 40 - ((day.revenue / maxRevenue) * 35)
+        return x + ',' + y
+      })
+      return points.join(' ')
+    },
+
+    getTrendPointsArray() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return []
+      if (dailySales.length === 1) {
+        return [{ x: 50, y: 5 }]
+      }
+      var maxRevenue = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      return dailySales.map(function(day, index) {
+        return {
+          x: (index / (dailySales.length - 1)) * 100,
+          y: 40 - ((day.revenue / maxRevenue) * 35)
+        }
+      })
+    },
+
+    // ==================== INVENTORY MANAGEMENT ====================
+    getUnit(materialName) {
+      return materialName === 'Oil' ? 'L' : 'kg'
+    },
+
+    async loadAllStallsInventory() {
+      for (var i = 0; i < this.stalls.length; i++) {
+        var stall = this.stalls[i]
+        try {
+          var res = await axios.get(API_BASE + '/inventory?stallId=' + stall.id, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.stallInventory[stall.id] = res.data.map(function(item) {
+            return {
+              ...item,
+              newLevel: item.current_level
+            }
+          })
+        } catch (err) {
+          // Silently fail – inventory will load on expand
+        }
+      }
+    },
+
+    toggleInventoryStall(stallId) {
+      this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
+      if (this.expandedInventoryStall === stallId) {
+        this.loadStallInventory(stallId)
+      }
+    },
+
+    async loadStallInventory(stallId) {
+      try {
+        var res = await axios.get(API_BASE + '/inventory?stallId=' + stallId, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.stallInventory[stallId] = res.data.map(function(item) {
+          return {
+            ...item,
+            newLevel: item.current_level
+          }
+        })
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to load inventory', 'error')
+      }
+    },
+
+    getStallInventory(stallId) {
+      return this.stallInventory[stallId] || []
+    },
+
+    getStallInventorySummary(stallId) {
+      var inventory = this.getStallInventory(stallId)
+      if (inventory.length === 0) {
+        return [
+          { material_name: 'Chicken', current_level: '?', alert_level: 10 },
+          { material_name: 'Flour', current_level: '?', alert_level: 5 },
+          { material_name: 'Oil', current_level: '?', alert_level: 8 }
+        ]
+      }
+      return inventory
+    },
+
+    getInventoryPercentage(item) {
+      var max = Math.max(item.current_level, item.alert_level * 2)
+      return Math.min((item.current_level / max) * 100, 100)
+    },
+
+    async updateInventoryStock(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      try {
+        await axios.post(API_BASE + '/inventory/update', {
+          stallId: stallId,
+          materialName: materialName,
+          newLevel: parseFloat(newLevel)
+        }, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', materialName + ' updated to ' + newLevel + this.getUnit(materialName), 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stock', 'error')
+      }
+    },
+
+    async quickAddStock(stallId, materialName, amount) {
+      var inventory = this.stallInventory[stallId] || []
+      var item = null
+      for (var i = 0; i < inventory.length; i++) {
+        if (inventory[i].material_name === materialName) {
+          item = inventory[i]
+          break
+        }
+      }
+      if (item) {
+        var newLevel = item.current_level + amount
+        await this.updateInventoryStock(stallId, materialName, newLevel)
+      }
+    },
+
+    async bulkUpdateInventory(stallId) {
+      var inventory = this.stallInventory[stallId] || []
+      if (inventory.length === 0) return
+
+      try {
+        for (var i = 0; i < inventory.length; i++) {
+          var item = inventory[i]
+          if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+            await axios.post(API_BASE + '/inventory/update', {
+              stallId: stallId,
+              materialName: item.material_name,
+              newLevel: item.newLevel
+            }, {
+              headers: { Authorization: 'Bearer ' + this.token }
+            })
+          }
+        }
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks updated successfully', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Bulk update failed', 'error')
+      }
+    },
+
+    async resetInventoryToAlert(stallId) {
+      if (!confirm('Reset all stocks to alert levels for this stall?')) return
+      
+      var inventory = this.stallInventory[stallId] || []
+      try {
+        for (var i = 0; i < inventory.length; i++) {
+          var item = inventory[i]
+          await axios.post(API_BASE + '/inventory/update', {
+            stallId: stallId,
+            materialName: item.material_name,
+            newLevel: item.alert_level
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+        }
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Reset failed', 'error')
+      }
+    },
+
+    // ==================== USER CRUD ====================
+    openUserModal() {
+      this.editingUser = false
+      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+      this.userModal = true
+    },
+    
+    openEditUserModal(user) {
+      this.editingUser = true
+      this.userForm = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || '',
+        role: user.role,
+        password: '',
+        stall_ids: (user.assigned_stalls || []).map(function(s) { return s.id })
+      }
+      this.userModal = true
+    },
+    
+    closeUserModal() {
+      this.userModal = false
+      this.editingUser = false
+    },
+    
+    async saveUser() {
+      try {
+        var payload = {
+          full_name: this.userForm.full_name,
+          role: this.userForm.role,
+          stall_ids: this.userForm.stall_ids
+        }
+        
+        if (this.userForm.password && this.userForm.password.trim() !== '') {
+          payload.password = this.userForm.password
+        }
+        
+        if (this.editingUser) {
+          await axios.put(API_BASE + '/users/' + this.userForm.id, payload, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'User updated successfully', 'success')
+        } else {
+          if (!this.userForm.password || this.userForm.password.trim() === '') {
+            this.$emit('show-notification', 'Password is required for new user', 'error')
+            return
+          }
+          payload.username = this.userForm.username
+          payload.password = this.userForm.password
+          await axios.post(API_BASE + '/companies/1/users', payload, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'User created successfully', 'success')
+        }
+        this.closeUserModal()
+        this.loadUsers()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+    
+    async deleteUser(userId, username) {
+      if (confirm('Are you sure you want to delete user "' + username + '"? This action cannot be undone.')) {
+        try {
+          await axios.delete(API_BASE + '/users/' + userId, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.loadUsers()
+          this.$emit('show-notification', 'User "' + username + '" deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete user', 'error')
+        }
+      }
+    },
+
+    // ==================== STALL CRUD ====================
+    openStallModal() {
+      this.editingStall = false
+      this.stallForm = { id: null, name: '', code: '', location: '' }
+      this.stallModal = true
+    },
+
+    openEditStallModal(stall) {
+      this.editingStall = true
+      this.stallForm = {
+        id: stall.id,
+        name: stall.name,
+        code: stall.code,
+        location: stall.location || ''
+      }
+      this.stallModal = true
+    },
+
+    async saveStall() {
+      try {
+        if (this.editingStall) {
+          await axios.put(API_BASE + '/stalls/' + this.stallForm.id, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'Stall updated successfully', 'success')
+        } else {
+          await axios.post(API_BASE + '/companies/1/stalls', {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'Stall created successfully', 'success')
+        }
+        this.stallModal = false
+        this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+
+    async toggleStallStatus(stall) {
+      try {
+        await axios.put(API_BASE + '/stalls/' + stall.id + '/toggle', {}, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.loadStalls()
+        this.$emit('show-notification', 'Stall ' + (stall.is_active ? 'deactivated' : 'activated'), 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stall status', 'error')
+      }
+    },
+
+    async deleteStall(stallId, stallName) {
+      if (confirm('Are you sure you want to delete stall "' + stallName + '"? This will remove all associated inventory and sales data.')) {
+        try {
+          await axios.delete(API_BASE + '/stalls/' + stallId, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.loadStalls()
+          this.$emit('show-notification', 'Stall "' + stallName + '" deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete stall', 'error')
+        }
+      }
+    },
+
+    // ==================== EXCEL EXPORT ====================
+    async exportExcel() {
+      if (this.exporting) return
+      this.exporting = true
+      
+      try {
+        this.$emit('show-notification', 'Generating Excel file...', 'info')
+        
+        var ExcelJS = await import('exceljs')
+        var saveAsModule = await import('file-saver')
+        var saveAs = saveAsModule.saveAs
+        var html2canvas = await import('html2canvas')
+        
+        var chartContainer = document.getElementById('sales-chart')
+        var chartImageBase64 = null
+        
+        if (chartContainer && this.salesTrend.length > 0) {
+          try {
+            var canvas = await html2canvas.default(chartContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              width: chartContainer.scrollWidth,
+              height: chartContainer.scrollHeight
+            })
+            chartImageBase64 = canvas.toDataURL('image/png')
+          } catch (err) {
+            console.error('Failed to capture chart:', err)
+          }
+        }
+        
+        var workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Chickory Hub'
+        workbook.created = new Date()
+        
+        // Sheet 1: Consolidated Sales
+        var sheet1 = workbook.addWorksheet('Consolidated Sales')
+        sheet1.addRow(['📊 CONSOLIDATED SALES', '', ''])
+        sheet1.addRow(['Period', this.getPeriodLabel(), ''])
+        sheet1.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0), ''])
+        sheet1.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0, ''])
+        sheet1.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0), ''])
+        sheet1.addRow(['Top Performing Stall', this.consolidatedSales.topStall || '-', ''])
+        sheet1.addRow(['', '', ''])
+        sheet1.addRow(['📈 DAILY SALES TREND', '', ''])
+        sheet1.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
+        
+        for (var i = 0; i < this.salesTrend.length; i++) {
+          var day = this.salesTrend[i]
+          sheet1.addRow([
+            this.formatDate(day.date),
+            day.revenue || 0,
+            day.items || 0
+          ])
+        }
+        
+        if (chartImageBase64) {
+          sheet1.addRow(['', '', ''])
+          sheet1.addRow(['📊 Chart:', '', ''])
+          var imageId = workbook.addImage({
+            base64: chartImageBase64,
+            extension: 'png'
+          })
+          var imageRow = 10 + this.salesTrend.length + 2
+          sheet1.addImage(imageId, {
+            tl: { col: 0, row: imageRow },
+            ext: { width: 700, height: 350 }
+          })
+        }
+        
+        sheet1.getColumn(1).width = 30
+        sheet1.getColumn(2).width = 18
+        sheet1.getColumn(3).width = 15
+        
+        // Sheet 2: Stall Performance
+        var sheet2 = workbook.addWorksheet('Stall Performance')
+        sheet2.addRow(['🏆 STALL PERFORMANCE RANKING', '', '', '', '', ''])
+        sheet2.addRow(['Rank', 'Stall Name', 'Revenue (RM)', 'Items Sold', 'Avg Transaction (RM)', 'Status'])
+        
+        for (var j = 0; j < this.stallPerformance.length; j++) {
+          var stall = this.stallPerformance[j]
+          sheet2.addRow([
+            j + 1,
+            stall.name,
+            stall.revenue || 0,
+            stall.items || 0,
+            stall.avgTransaction || 0,
+            this.getStallStatus(stall)
+          ])
+        }
+        
+        var headerRow2 = sheet2.getRow(2)
+        headerRow2.font = { bold: true }
+        sheet2.getColumn(1).width = 8
+        sheet2.getColumn(2).width = 22
+        sheet2.getColumn(3).width = 15
+        sheet2.getColumn(4).width = 12
+        sheet2.getColumn(5).width = 18
+        sheet2.getColumn(6).width = 12
+        
+        // Sheet 3: Menu Performance
+        var sheet3 = workbook.addWorksheet('Menu Performance')
+        sheet3.addRow(['🍗 MENU PERFORMANCE', '', '', '', ''])
+        sheet3.addRow(['Rank', 'Menu Item', 'Quantity Sold', 'Revenue (RM)', 'Percentage'])
+        
+        for (var k = 0; k < this.menuPerformance.length; k++) {
+          var item = this.menuPerformance[k]
+          sheet3.addRow([
+            k + 1,
+            item.name,
+            item.quantity || 0,
+            item.revenue || 0,
+            this.getPerformancePercentage(item.quantity) + '%'
+          ])
+        }
+        
+        var headerRow3 = sheet3.getRow(2)
+        headerRow3.font = { bold: true }
+        sheet3.getColumn(1).width = 8
+        sheet3.getColumn(2).width = 22
+        sheet3.getColumn(3).width = 15
+        sheet3.getColumn(4).width = 15
+        sheet3.getColumn(5).width = 12
+        
+        // Sheet 4: Low Stock Alerts
+        var sheet4 = workbook.addWorksheet('Low Stock Alerts')
+        sheet4.addRow(['⚠️ LOW STOCK ALERTS', '', '', ''])
+        sheet4.addRow(['Stall Name', 'Material', 'Current Level', 'Alert Level'])
+        
+        for (var l = 0; l < this.lowStock.length; l++) {
+          var alert = this.lowStock[l]
+          sheet4.addRow([
+            alert.stall_name,
+            alert.material_name,
+            alert.current_level + this.getUnit(alert.material_name),
+            alert.alert_level + this.getUnit(alert.material_name)
+          ])
+        }
+        
+        if (this.lowStock.length === 0) {
+          sheet4.addRow(['✅ All stock levels are healthy!', '', '', ''])
+        }
+        
+        sheet4.getColumn(1).width = 22
+        sheet4.getColumn(2).width = 18
+        sheet4.getColumn(3).width = 15
+        sheet4.getColumn(4).width = 15
+        
+        var buffer = await workbook.xlsx.writeBuffer()
+        var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        
+        var fileName = 'Chickory_Hub_Report_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
+        saveAs(blob, fileName)
+        
+        this.$emit('show-notification', 'Excel file downloaded successfully!', 'success')
+      } catch (error) {
+        console.error('Export error:', error)
+        this.$emit('show-notification', 'Failed to export Excel file: ' + error.message, 'error')
+      } finally {
+        this.exporting = false
+      }
+    }
+  }
+}
 </script>
 
-<style>
-/* ===== ROOT VARIABLES ===== */
-:root {
-  --primary: #F94908;
-  --primary-dark: #d63d07;
-  --primary-light: #fa6a2e;
-  --primary-gradient: linear-gradient(135deg, #F94908, #fa6a2e);
-  --secondary: #64748b;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #3b82f6;
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-elevated: #f1f5f9;
-  --text: #1e293b;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space: 1rem;
-  --space-md: 1.5rem;
-  --space-lg: 2rem;
-  --space-xl: 3rem;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Dark Theme */
-.dark-theme {
-  --background: #0f172a;
-  --surface: #1e293b;
-  --surface-elevated: #334155;
-  --text: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --border: #334155;
-  --border-light: #1e293b;
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-}
-
-/* Base Styles */
-* {
-  margin: 0;
+<style scoped>
+.sa-dashboard {
   padding: 0;
-  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-body {
-  font-family: var(--font-family);
-  background: var(--background);
-  color: var(--text);
-  line-height: 1.6;
-  transition: var(--transition-slow);
-}
-
-.app-layout * {
-  transition: var(--transition);
-}
-
-/* ===== LAYOUT ===== */
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ===== HEADER ===== */
-.app-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.dark-theme .app-header {
-  background: rgba(30, 41, 59, 0.8);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
+/* Page Header */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 70px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.brand {
+.header-left h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.header-left .subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0 0;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
+  gap: 1rem;
+  transition: all 0.2s;
+  position: relative;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
+.stat-card.clickable {
+  cursor: pointer;
 }
 
-.logo-icon {
-  font-size: 2rem;
-  background: var(--primary-gradient);
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.15);
+  border-color: #F94908;
+}
+
+.stat-card.clickable:active {
+  transform: scale(0.98);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.logo-text h1 {
-  font-size: var(--font-size-xl);
+.stat-icon.stalls { background: #dbeafe; color: #2563eb; }
+.stat-icon.users { background: #e0f2fe; color: #0284c7; }
+.stat-icon.alert { background: #fef3c7; color: #d97706; }
+
+.stat-info .stat-value {
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--text);
   line-height: 1.2;
 }
 
-.tagline {
-  font-size: var(--font-size-xs);
+.stat-info .stat-label {
+  font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+.stat-hint {
+  font-size: 0.65rem;
+  color: #F94908;
   font-weight: 500;
+  margin-top: 2px;
+  opacity: 0.7;
 }
 
-/* ===== HEADER CONTROLS ===== */
-.header-controls {
+.stat-card.clickable:hover .stat-hint {
+  opacity: 1;
+}
+
+/* Period Selector + Export Button */
+.period-selector-wrapper {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.control-group {
+.period-selector {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
-.control-btn {
-  background: var(--background);
+.period-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-sm);
+  background: var(--surface);
   cursor: pointer;
-  transition: var(--transition);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.period-btn:hover {
+  border-color: #F94908;
+  color: var(--text);
+}
+
+.period-btn.active {
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  color: white;
+  border-color: #F94908;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.control-btn:hover {
-  background: var(--surface-elevated);
-  border-color: var(--primary);
+.stat-icon.stalls { background: #dbeafe; color: #2563eb; }
+.stat-icon.users { background: #e0f2fe; color: #0284c7; }
+.stat-icon.alert { background: #fef3c7; color: #d97706; }
+
+.stat-info .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
 }
 
-.control-btn .control-icon {
-  font-size: 1.1rem;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.user-greeting {
-  font-size: var(--font-size-sm);
+.stat-info .stat-label {
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
-.user-badge {
-  background: var(--primary-gradient);
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card.full-width {
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--background);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.card-header h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* Consolidated Stats */
+.consolidated-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.consolidated-stat {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.consolidated-stat .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.consolidated-stat .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.consolidated-stat .stat-value.highlight {
+  color: #F94908;
+}
+
+/* Tables */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+}
+
+.data-table tr:hover td {
+  background: var(--background);
+}
+
+.data-table code {
+  background: var(--background);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active { background: #d1fae5; color: #059669; }
+.status-badge.inactive { background: #fee2e2; color: #dc2626; }
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+.role-badge {
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.badge-count {
+  background: #F94908;
   color: white;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
+  padding: 0.1rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
-/* ===== BUTTONS ===== */
+.period-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+/* Chart */
+.chart-container {
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.chart-wrapper {
+  position: relative;
+}
+
+.trend-line-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  gap: 0.5rem;
+  padding-top: 45px;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 50px;
+  background: linear-gradient(180deg, #F94908, #fa6a2e);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+  transition: height 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.bar-value {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: -1rem;
+  white-space: nowrap;
+}
+
+.bar-label {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+
+/* Performance Bar */
+.performance-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.performance-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #F94908, #fa6a2e);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.performance-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 40px;
+}
+
+/* Inventory Management */
+.stall-inventory-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.stall-inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stall-inventory-header:hover {
+  background: var(--background);
+}
+
+.stall-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stall-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.low-stock-warning {
+  font-size: 0.7rem;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.stall-inventory-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.inventory-chip {
+  background: var(--background);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.low-stock-dot {
+  color: #dc2626;
+  font-size: 0.7rem;
+}
+
+.stall-inventory-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border-light);
+  background: var(--background);
+}
+
+.inventory-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.inventory-edit-item {
+  background: var(--surface);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.inventory-edit-item.low-stock-item {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.inventory-edit-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.inventory-edit-info .material-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.inventory-edit-info .current-stock {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.alert-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+}
+
+.alert-badge.low { background: #fee2e2; color: #dc2626; }
+.alert-badge.ok { background: #d1fae5; color: #059669; }
+
+.inventory-edit-controls {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inventory-input {
+  width: 80px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.inventory-input:focus {
+  outline: none;
+  border-color: #F94908;
+}
+
+.progress-bar-container {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-container .progress-bar {
+  height: 100%;
+  background: #10b981;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-container .progress-bar.low {
+  background: #ef4444;
+}
+
+.inventory-actions-bottom {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.filter-badge {
+  background: white;
+  color: #F94908;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Highlight Flash for Inventory Section */
+.highlight-flash {
+  animation: highlightPulse 1.5s ease;
+  border-color: #F94908 !important;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.3) !important;
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(249, 73, 8, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0); }
+}
+
+/* Alerts */
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: #fef3c7;
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.alert-item:last-child { margin-bottom: 0; }
+.alert-icon { font-size: 1rem; }
+.alert-stall { font-weight: 600; }
+.alert-material { color: var(--text-secondary); }
+.alert-level { font-weight: 600; color: #dc2626; }
+.alert-threshold { font-size: 0.75rem; color: var(--text-tertiary); }
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space);
-  border-radius: var(--radius);
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: var(--font-size-sm);
-  text-decoration: none;
+  font-size: 0.85rem;
   border: none;
   cursor: pointer;
-  transition: var(--transition);
-  font-family: inherit;
+  transition: all 0.2s;
 }
 
 .btn-primary {
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
   color: white;
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-outline {
@@ -732,8 +1975,12 @@ body {
 }
 
 .btn-outline:hover {
-  background: var(--surface-elevated);
-  border-color: var(--primary);
+  background: var(--background);
+}
+
+.btn-sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
 }
 
 .btn-ghost {
@@ -742,391 +1989,162 @@ body {
 }
 
 .btn-ghost:hover {
-  background: var(--surface-elevated);
-  color: var(--text);
+  background: var(--background);
 }
 
-.btn-icon {
-  font-size: var(--font-size);
-}
-
-.logout-btn {
-  color: var(--error);
-}
-
-.logout-btn:hover {
-  background: var(--error);
-  color: white;
-}
-
-/* ===== MAIN CONTENT ===== */
-.main-content {
-  flex: 1;
-  padding: var(--space-lg);
-}
-
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.dashboard-container {
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ===== LOADING ===== */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-xl);
-  color: var(--text-secondary);
-}
-
-.loading-spinner {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space);
-}
-
-.spinner-ring {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 3px solid transparent;
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ===== NOTIFICATIONS ===== */
-.notifications-container {
-  position: fixed;
-  top: var(--space);
-  right: var(--space);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  max-width: 400px;
-}
-
-.notification {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  border-left: 4px solid var(--primary);
-  padding: var(--space);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space);
-  min-width: 320px;
-  animation: slideInRight 0.3s ease-out;
-}
-
-.notification-success {
-  border-left-color: var(--success);
-}
-
-.notification-error {
-  border-left-color: var(--error);
-}
-
-.notification-warning {
-  border-left-color: var(--warning);
-}
-
-.notification-info {
-  border-left-color: var(--info);
-}
-
-.notification-slide-enter-active,
-.notification-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.notification-slide-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.notification-slide-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.notification-icon {
-  font-size: var(--font-size-lg);
-  flex-shrink: 0;
-}
-
-.notification-content {
-  flex: 1;
-}
-
-.notification-title {
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-xs);
-}
-
-.notification-message {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.notification-close {
-  background: none;
+.btn-icon-sm {
+  background: transparent;
   border: none;
-  color: var(--text-tertiary);
+  padding: 0.2rem 0.4rem;
   cursor: pointer;
-  padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: var(--transition);
-  flex-shrink: 0;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: all 0.2s;
 }
 
-.notification-close:hover {
-  background: var(--background);
-  color: var(--text);
-}
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
 
-.notification-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 3px;
-  background: currentColor;
-  transition: width 0.1s linear;
-}
-
-/* ===== FOOTER ===== */
-.app-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: var(--space) 0;
-  margin-top: auto;
-}
-
-.footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.footer-logo {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.footer-version {
-  background: var(--background);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 500;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--error);
-}
-
-.status-indicator.online .status-dot {
-  background: var(--success);
-}
-
-.last-sync {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: var(--font-size-xs);
-}
-
-/* ===== PWA ===== */
-.pwa-install-prompt {
+/* Modals */
+.modal-overlay {
   position: fixed;
-  bottom: var(--space);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 10000;
-  max-width: 400px;
-  width: 90%;
-  animation: slideUp 0.3s ease-out;
-}
-
-.install-content {
-  padding: var(--space);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space);
-}
-
-.install-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.install-icon {
-  font-size: 2rem;
-  background: var(--primary-gradient);
-  color: white;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
 }
 
-.install-text h3 {
-  font-size: var(--font-size);
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: var(--space-xs);
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.install-text p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+.modal-lg { max-width: 700px; }
+.modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
 }
 
-.install-actions {
+.modal-body {
   display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-/* ===== RESPONSIVE ===== */
+.modal-body input,
+.modal-body select {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.modal-body input:focus,
+.modal-body select:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.empty-state .empty-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state.small {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Form Helpers */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hint-text {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.stall-select-multiple {
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .header-content {
-    padding: 0 var(--space);
+  .page-header {
     flex-direction: column;
-    gap: var(--space);
-    height: auto;
-    padding: var(--space);
+    align-items: flex-start;
   }
-
-  .header-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .user-greeting {
-    display: none;
-  }
-
-  .main-content {
-    padding: var(--space);
-  }
-
-  .footer-content {
-    flex-direction: column;
-    gap: var(--space);
-    text-align: center;
-  }
-
-  .notifications-container {
-    left: var(--space);
-    right: var(--space);
-    max-width: none;
-  }
-
-  .notification {
-    min-width: auto;
-  }
-
-  .user-menu {
-    flex-wrap: wrap;
-  }
+  
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .consolidated-stats { grid-template-columns: 1fr 1fr; }
+  .data-table { font-size: 0.8rem; }
+  .data-table th, .data-table td { padding: 0.4rem 0.5rem; }
+  .modal { width: 95%; padding: 1rem; }
+  .chart-bars { height: 120px; }
+  .form-row { grid-template-columns: 1fr; }
+  .inventory-edit-grid { grid-template-columns: 1fr; }
+  .stall-inventory-header { flex-direction: column; align-items: flex-start; }
+  .inventory-edit-controls { flex-wrap: wrap; }
+  .inventory-actions-bottom { flex-direction: column; }
+  .header-actions { flex-direction: column; align-items: stretch; }
 }
 
 @media (max-width: 480px) {
-  .logo-text h1 {
-    font-size: var(--font-size-lg);
-  }
-
-  .header-content {
-    padding: var(--space-sm);
-  }
-
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1.5rem;
-  }
-}
-
-/* ===== PRINT ===== */
-@media print {
-  .app-header,
-  .notifications-container,
-  .app-footer,
-  .pwa-install-prompt {
-    display: none !important;
-  }
-
-  .main-content {
-    padding: 0;
-  }
-}
-
-/* ===== ACCESSIBILITY ===== */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-button:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  .stats-grid { grid-template-columns: 1fr; }
+  .consolidated-stats { grid-template-columns: 1fr; }
+  .period-selector-wrapper { flex-direction: column; align-items: stretch; }
+  .period-selector { justify-content: center; }
+  .period-btn { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
 }
 </style>
