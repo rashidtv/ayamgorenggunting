@@ -1,94 +1,224 @@
 <template>
-  <div class="ssa-dashboard">
+  <div class="sa-dashboard">
     <!-- Page Header -->
     <div class="page-header">
-      <h2>👑 Super Admin Dashboard</h2>
-      <p class="subtitle">System-wide management & monitoring</p>
+      <div class="header-left">
+        <h2>🏢 Company Management</h2>
+        <p class="subtitle">Manage your company, stalls, inventory, and users</p>
+      </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Quick Stats -->
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon users">👥</div>
-        <div class="stat-info">
-          <div class="stat-value">{{ health.total_users || 0 }}</div>
-          <div class="stat-label">Total Users</div>
-        </div>
-      </div>
       <div class="stat-card">
         <div class="stat-icon stalls">🏪</div>
         <div class="stat-info">
-          <div class="stat-value">{{ health.total_stalls || 0 }}</div>
+          <div class="stat-value">{{ stalls.length }}</div>
           <div class="stat-label">Total Stalls</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon db">💾</div>
+        <div class="stat-icon users">👥</div>
         <div class="stat-info">
-          <div class="stat-value">{{ health.db_size_mb || 0 }} MB</div>
-          <div class="stat-label">Database Size</div>
+          <div class="stat-value">{{ users.length }}</div>
+          <div class="stat-label">Total Users</div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon uptime">📈</div>
+      <!-- CLICKABLE LOW STOCK STAT CARD -->
+      <div class="stat-card clickable" @click="scrollToInventory()">
+        <div class="stat-icon alert">⚠️</div>
         <div class="stat-info">
-          <div class="stat-value">{{ health.uptime || 99.95 }}%</div>
-          <div class="stat-label">Uptime</div>
+          <div class="stat-value">{{ lowStock.length }}</div>
+          <div class="stat-label">Low Stock Alerts</div>
+          <div class="stat-hint">Click to view</div>
         </div>
       </div>
     </div>
 
-    <!-- Two Column Layout -->
-    <div class="two-col">
-      <!-- Left: Announcements -->
-      <div class="card">
-        <div class="card-header">
-          <h3>📢 Global Announcements</h3>
-          <button @click="showAnnouncementModal = true" class="btn btn-primary btn-sm">
-            + New
-          </button>
-        </div>
-        <div class="card-body">
-          <div v-if="announcements.length === 0" class="empty-state">
-            <span class="empty-icon">📭</span>
-            <p>No announcements yet</p>
-          </div>
-          <div v-for="a in announcements" :key="a.id" class="announcement-item">
-            <div class="announcement-content">
-              <strong>{{ a.title }}</strong>
-              <p>{{ a.content }}</p>
-              <small>Target: {{ a.target_roles?.join(', ') || 'All' }}</small>
-            </div>
-            <button @click="deleteAnnouncement(a.id)" class="btn-delete">✕</button>
-          </div>
-        </div>
+    <!-- Period Selector + Export Button -->
+    <div class="period-selector-wrapper">
+      <div class="period-selector">
+        <button 
+          v-for="p in periods" 
+          :key="p.value"
+          :class="['period-btn', { active: selectedPeriod === p.value }]"
+          @click="selectedPeriod = p.value; refreshAllData()"
+        >
+          {{ p.label }}
+        </button>
       </div>
-
-      <!-- Right: Quick Actions -->
-      <div class="card">
-        <div class="card-header">
-          <h3>⚡ Quick Actions</h3>
-        </div>
-        <div class="card-body">
-          <div class="quick-actions">
-            <button @click="openCompanyModal()" class="quick-btn">
-              <span class="quick-icon">🏢</span>
-              <span>New Company</span>
-            </button>
-            <button @click="loadData" class="quick-btn">
-              <span class="quick-icon">🔄</span>
-              <span>Refresh Data</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <button @click="exportExcel" class="btn btn-primary" :disabled="exporting">
+        <span v-if="exporting">⏳ Generating...</span>
+        <span v-else>📊 Export Excel</span>
+      </button>
     </div>
 
-    <!-- Companies Table -->
+    <!-- Consolidated Sales -->
     <div class="card full-width">
       <div class="card-header">
-        <h3>🏢 Companies</h3>
-        <button @click="openCompanyModal()" class="btn btn-primary btn-sm">+ New</button>
+        <h3>📊 Consolidated Sales</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body">
+        <div class="consolidated-stats">
+          <div class="consolidated-stat">
+            <span class="stat-label">Total Revenue</span>
+            <span class="stat-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Total Items Sold</span>
+            <span class="stat-value">{{ consolidatedSales.totalItems || 0 }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Average per Stall</span>
+            <span class="stat-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</span>
+          </div>
+          <div class="consolidated-stat">
+            <span class="stat-label">Top Performing Stall</span>
+            <span class="stat-value highlight">{{ consolidatedSales.topStall || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Sales Trend -->
+    <div class="card full-width" id="chart-container">
+      <div class="card-header">
+        <h3>📈 Daily Sales Trend</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
+            <div class="trend-line-container">
+              <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getTrendPoints()"
+                  fill="none"
+                  stroke="#F94908"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+                <circle
+                  v-for="(point, index) in getTrendPointsArray()"
+                  :key="index"
+                  :cx="point.x"
+                  :cy="point.y"
+                  r="2.5"
+                  fill="#F94908"
+                />
+              </svg>
+            </div>
+            <div class="chart-bars">
+              <div 
+                v-for="day in salesTrend" 
+                :key="day.date"
+                class="chart-bar-wrapper"
+              >
+                <div class="chart-bar" :style="{ height: getBarHeight(day.revenue) + '%' }">
+                  <span class="bar-value">{{ formatCurrency(day.revenue) }}</span>
+                </div>
+                <span class="bar-label">{{ formatDate(day.date) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <p>No sales data available for this period</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stall Performance Ranking -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🏆 Stall Performance Ranking</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Stall Name</th>
+              <th>Revenue</th>
+              <th>Items Sold</th>
+              <th>Avg Transaction</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(stall, index) in stallPerformance" :key="stall.id">
+              <td>{{ index + 1 }}</td>
+              <td><strong>{{ stall.name }}</strong></td>
+              <td>{{ formatCurrency(stall.revenue || 0) }}</td>
+              <td>{{ stall.items || 0 }}</td>
+              <td>{{ formatCurrency(stall.avgTransaction || 0) }}</td>
+              <td>
+                <span :class="['status-badge', getStallStatusClass(stall) ]">
+                  {{ getStallStatus(stall) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="stallPerformance.length === 0" class="empty-state">
+          <span class="empty-icon">📊</span>
+          <p>No sales data available for this period</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Performance -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🍗 Menu Performance</h3>
+        <span class="period-label">{{ getPeriodLabel() }}</span>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Menu Item</th>
+              <th>Quantity Sold</th>
+              <th>Revenue</th>
+              <th>Percentage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in menuPerformance" :key="item.name">
+              <td>{{ index + 1 }}</td>
+              <td><strong>{{ item.name }}</strong></td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ formatCurrency(item.revenue || 0) }}</td>
+              <td>
+                <div class="performance-bar-container">
+                  <div class="performance-bar" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></div>
+                  <span class="performance-label">{{ getPerformancePercentage(item.quantity) }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="menuPerformance.length === 0" class="empty-state">
+          <span class="empty-icon">🍗</span>
+          <p>No menu sales data available for this period</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Management -->
+    <div class="card full-width">
+      <MenuManagement :token="token" @show-notification="$emit('show-notification', $event)" />
+    </div>
+
+    <!-- Stall Management -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>🏪 Stall Management</h3>
+        <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New Stall</button>
       </div>
       <div class="card-body table-responsive">
         <table class="data-table">
@@ -96,193 +226,262 @@
             <tr>
               <th>Name</th>
               <th>Code</th>
-              <th>Tier</th>
-              <th>Max Stalls</th>
+              <th>Location</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in companies" :key="c.id">
-              <td><strong>{{ c.name }}</strong></td>
-              <td><code>{{ c.code }}</code></td>
-              <td><span class="badge-tier">{{ c.subscription_tier || 'basic' }}</span></td>
-              <td>{{ c.max_stalls || 5 }}</td>
+            <tr v-for="s in stalls" :key="s.id">
+              <td><strong>{{ s.name }}</strong></td>
+              <td><code>{{ s.code }}</code></td>
+              <td>{{ s.location || '-' }}</td>
               <td>
-                <span :class="['status-badge', c.is_active ? 'active' : 'inactive']">
-                  {{ c.is_active ? 'Active' : 'Inactive' }}
+                <span :class="['status-badge', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
               <td>
                 <div class="action-buttons">
-                  <button @click="selectCompany(c)" class="btn-icon-sm" title="Manage Stalls & Users">📋</button>
-                  <button @click="openEditCompany(c)" class="btn-icon-sm" title="Edit">✏️</button>
-                  <button @click="toggleCompany(c)" class="btn-icon-sm" :title="c.is_active ? 'Deactivate' : 'Activate'">
-                    {{ c.is_active ? '⏸️' : '▶️' }}
+                  <button @click="openEditStallModal(s)" class="btn-icon-sm" title="Edit Stall">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="btn-icon-sm" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
                   </button>
+                  <button @click="deleteStall(s.id, s.name)" class="btn-icon-sm danger" title="Delete Stall">🗑️</button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-if="companies.length === 0" class="empty-state">
-          <span class="empty-icon">🏢</span>
-          <p>No companies created yet</p>
+        <div v-if="stalls.length === 0" class="empty-state">
+          <span class="empty-icon">🏪</span>
+          <p>No stalls found. Create your first stall!</p>
         </div>
       </div>
     </div>
 
-    <!-- Stall & User Management for Selected Company -->
-    <div v-if="selectedCompany" class="card full-width selected-company">
+    <!-- ============================================ -->
+    <!-- INVENTORY MANAGEMENT WITH LOW STOCK FILTER   -->
+    <!-- ============================================ -->
+    <div class="card full-width" id="inventory-section">
       <div class="card-header">
-        <h3>📍 {{ selectedCompany.name }} – Management</h3>
-        <button @click="selectedCompany = null" class="btn-close">✕ Close</button>
+        <h3>📦 Inventory Management</h3>
+        <div class="header-actions">
+          <!-- LOW STOCK FILTER BUTTON -->
+          <div class="filter-group">
+            <button 
+              @click="toggleLowStockFilter" 
+              class="btn" 
+              :class="showLowStockOnly ? 'btn-primary' : 'btn-outline'"
+              :disabled="lowStockCount === 0"
+            >
+              <span class="btn-icon">⚠️</span>
+              Low Stock 
+              <span class="filter-badge" v-if="lowStockCount > 0">{{ lowStockCount }}</span>
+            </button>
+            <button 
+              @click="clearFilter" 
+              class="btn btn-ghost btn-sm"
+              v-if="showLowStockOnly"
+            >
+              ✕ Clear Filter
+            </button>
+          </div>
+          <span class="badge-count">{{ stalls.length }} Stalls</span>
+          <button @click="loadAllStallsInventory()" class="btn btn-outline btn-sm">🔄 Refresh All</button>
+        </div>
       </div>
       <div class="card-body">
-        <!-- Tabs -->
-        <div class="tabs">
-          <button class="tab active">Stalls</button>
-          <button class="tab">Users</button>
+        <div v-if="stalls.length === 0" class="empty-state">
+          <span class="empty-icon">📦</span>
+          <p>No stalls found. Create a stall first.</p>
         </div>
-
-        <!-- Stalls -->
-        <div class="sub-section">
-          <div class="sub-header">
-            <h4>Stalls</h4>
-            <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New Stall</button>
+        <!-- FILTERED STALLS -->
+        <div v-for="stall in filteredStalls" :key="stall.id" class="stall-inventory-item">
+          <div class="stall-inventory-header" @click="toggleInventoryStall(stall.id)">
+            <div class="stall-info">
+              <span class="stall-name">{{ stall.name }}</span>
+              <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                {{ stall.is_active ? 'Active' : 'Inactive' }}
+              </span>
+              <!-- LOW STOCK WARNING BADGE -->
+              <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️ Low Stock</span>
+            </div>
+            <div class="stall-inventory-summary">
+              <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-chip">
+                {{ item.material_name }}: {{ item.current_level }}{{ getUnit(item.material_name) }}
+                <span v-if="item.current_level <= item.alert_level" class="low-stock-dot">⚠️</span>
+              </span>
+              <span class="toggle-icon">{{ expandedInventoryStall === stall.id ? '▲' : '▼' }}</span>
+            </div>
           </div>
-          <table class="data-table compact">
-            <thead>
-              <tr><th>Name</th><th>Code</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="s in stalls" :key="s.id">
-                <td>{{ s.name }}</td>
-                <td><code>{{ s.code }}</code></td>
-                <td>
-                  <span :class="['status-badge', s.is_active ? 'active' : 'inactive']">
-                    {{ s.is_active ? 'Active' : 'Inactive' }}
+          <div v-if="expandedInventoryStall === stall.id" class="stall-inventory-details">
+            <div class="inventory-edit-grid">
+              <!-- FILTERED INVENTORY ITEMS (shows only low stock when filter is on) -->
+              <div 
+                v-for="item in getFilteredStallInventory(stall.id)" 
+                :key="item.material_name" 
+                class="inventory-edit-item"
+                :class="{ 'low-stock-item': item.current_level <= item.alert_level }"
+              >
+                <div class="inventory-edit-info">
+                  <span class="material-name">{{ item.material_name }}</span>
+                  <span class="current-stock">Current: {{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+                  <span :class="['alert-badge', item.current_level <= item.alert_level ? 'low' : 'ok']">
+                    {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
                   </span>
-                </td>
-                <td>
-                  <button @click="toggleStall(s)" class="btn-icon-sm">
-                    {{ s.is_active ? '⏸️' : '▶️' }}
+                </div>
+                <div class="inventory-edit-controls">
+                  <input type="number" v-model.number="item.newLevel" :placeholder="item.current_level" step="0.5" class="inventory-input" />
+                  <button @click="updateInventoryStock(stall.id, item.material_name, item.newLevel)" class="btn btn-primary btn-sm">
+                    Update
                   </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn btn-outline btn-sm">+5</button>
+                  <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn btn-outline btn-sm">+1</button>
+                </div>
+                <!-- PROGRESS BAR TURNS RED FOR LOW STOCK -->
+                <div class="progress-bar-container">
+                  <div class="progress-bar" :style="{ width: getInventoryPercentage(item) + '%' }" :class="item.current_level <= item.alert_level ? 'low' : ''"></div>
+                </div>
+              </div>
+            </div>
+            <div class="inventory-actions-bottom">
+              <button @click="bulkUpdateInventory(stall.id)" class="btn btn-primary btn-sm">📦 Bulk Update All</button>
+              <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert Level</button>
+            </div>
+          </div>
         </div>
-
-        <!-- Users -->
-        <div class="sub-section">
-          <div class="sub-header">
-            <h4>Users</h4>
-            <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New User</button>
-          </div>
-          <table class="data-table compact">
-            <thead>
-              <tr><th>Username</th><th>Role</th><th>Stalls</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="u in users" :key="u.id">
-                <td>{{ u.username }}</td>
-                <td><span class="role-badge">{{ u.role }}</span></td>
-                <td>{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Low Stock Alerts -->
-        <div class="sub-section">
-          <h4>⚠️ Low Stock Alerts</h4>
-          <div v-if="lowStock.length === 0" class="empty-state small">
-            ✅ All stock levels are healthy
-          </div>
-          <div v-for="item in lowStock" :key="item.stall_name + item.material_name" class="alert-item">
-            <span class="alert-icon">⚠️</span>
-            <span>{{ item.stall_name }} – {{ item.material_name }}: {{ item.current_level }}kg (Alert: {{ item.alert_level }}kg)</span>
-          </div>
+        <div v-if="showLowStockOnly && filteredStalls.length === 0" class="empty-state">
+          <span class="empty-icon">✅</span>
+          <p>No stalls with low stock! All inventory levels are healthy.</p>
         </div>
       </div>
     </div>
 
-    <!-- Modals -->
-    <div v-if="companyModal" class="modal-overlay" @click.self="companyModal=false">
-      <div class="modal">
-        <h3>{{ editingCompany ? 'Edit Company' : 'New Company' }}</h3>
+    <!-- User Management -->
+    <div class="card full-width">
+      <div class="card-header">
+        <h3>👥 User Management</h3>
+        <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New User</button>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Assigned Stalls</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="u in users" :key="u.id">
+              <td><strong>{{ u.username }}</strong></td>
+              <td>{{ u.full_name || '-' }}</td>
+              <td><span class="role-badge">{{ u.role }}</span></td>
+              <td>{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button @click="openEditUserModal(u)" class="btn-icon-sm" title="Edit User">✏️</button>
+                  <button @click="deleteUser(u.id, u.username)" class="btn-icon-sm danger" title="Delete User">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="users.length === 0" class="empty-state">
+          <span class="empty-icon">👥</span>
+          <p>No users found. Create your first user!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- ENHANCED LOW STOCK ALERTS SECTION            -->
+    <!-- ============================================ -->
+    <div class="card full-width" id="low-stock-section">
+      <div class="card-header">
+        <h3>⚠️ Low Stock Alerts</h3>
+        <span class="badge-count">{{ lowStock.length }}</span>
+        <button @click="scrollToInventory()" class="btn btn-primary btn-sm">
+          📦 Manage Inventory
+        </button>
+      </div>
+      <div class="card-body">
+        <div v-if="lowStock.length === 0" class="empty-state small">
+          ✅ All stock levels are healthy
+        </div>
+        <div v-for="item in lowStock" :key="item.stall_name + item.material_name" class="alert-item">
+          <span class="alert-icon">⚠️</span>
+          <span class="alert-stall">{{ item.stall_name }}</span>
+          <span class="alert-material">{{ item.material_name }}</span>
+          <span class="alert-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+          <span class="alert-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
+          <!-- VIEW BUTTON ON EACH ALERT -->
+          <button @click="scrollToInventory()" class="btn btn-sm btn-outline">View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- User Modal (Create/Edit) -->
+    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+      <div class="modal modal-lg">
+        <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
         <div class="modal-body">
-          <input v-model="companyForm.name" placeholder="Company Name" />
-          <input v-model="companyForm.code" placeholder="Company Code" />
-          <select v-model="companyForm.subscription_tier">
-            <option>basic</option>
-            <option>premium</option>
-            <option>enterprise</option>
-          </select>
-          <input type="number" v-model="companyForm.max_stalls" placeholder="Max Stalls" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Username</label>
+              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+            </div>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input v-model="userForm.full_name" placeholder="Full Name" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Password (leave blank to keep current)</label>
+              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
+              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep current" />
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select v-model="userForm.role">
+                <option value="stall_admin">Stall Admin</option>
+                <option value="cashier">Cashier</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Assign Stalls (for stall_admin and cashier):</label>
+            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
+              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
+            </select>
+            <small class="hint-text">Hold Ctrl/Cmd to select multiple stalls</small>
+          </div>
         </div>
         <div class="modal-actions">
-          <button @click="companyModal=false" class="btn btn-ghost">Cancel</button>
-          <button @click="saveCompany" class="btn btn-primary">{{ editingCompany ? 'Update' : 'Create' }}</button>
+          <button @click="closeUserModal" class="btn btn-ghost">Cancel</button>
+          <button @click="saveUser" class="btn btn-primary">{{ editingUser ? 'Update' : 'Create' }}</button>
         </div>
       </div>
     </div>
 
+    <!-- Stall Modal (Create/Edit) -->
     <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
       <div class="modal">
-        <h3>New Stall</h3>
+        <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
         <div class="modal-body">
-          <input v-model="newStall.name" placeholder="Stall Name" />
-          <input v-model="newStall.code" placeholder="Stall Code" />
-          <input v-model="newStall.location" placeholder="Location" />
+          <input v-model="stallForm.name" placeholder="Stall Name" />
+          <input v-model="stallForm.code" placeholder="Stall Code" />
+          <input v-model="stallForm.location" placeholder="Location" />
         </div>
         <div class="modal-actions">
           <button @click="stallModal=false" class="btn btn-ghost">Cancel</button>
-          <button @click="createStall" class="btn btn-primary">Create</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="userModal" class="modal-overlay" @click.self="userModal=false">
-      <div class="modal">
-        <h3>New User</h3>
-        <div class="modal-body">
-          <input v-model="newUser.username" placeholder="Username" />
-          <input type="password" v-model="newUser.password" placeholder="Password" />
-          <input v-model="newUser.full_name" placeholder="Full Name" />
-          <select v-model="newUser.role">
-            <option value="stall_admin">Stall Admin</option>
-            <option value="cashier">Cashier</option>
-          </select>
-          <select v-if="newUser.role === 'stall_admin'" multiple v-model="newUser.stall_ids">
-            <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button @click="userModal=false" class="btn btn-ghost">Cancel</button>
-          <button @click="createUser" class="btn btn-primary">Create</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showAnnouncementModal" class="modal-overlay" @click.self="showAnnouncementModal=false">
-      <div class="modal">
-        <h3>📢 New Announcement</h3>
-        <div class="modal-body">
-          <input v-model="newAnnouncement.title" placeholder="Title" />
-          <textarea v-model="newAnnouncement.content" placeholder="Content" rows="3"></textarea>
-          <select multiple v-model="newAnnouncement.target_roles">
-            <option>super_super_admin</option>
-            <option>super_admin</option>
-            <option>stall_admin</option>
-            <option>cashier</option>
-          </select>
-          <input type="date" v-model="newAnnouncement.end_date" />
-        </div>
-        <div class="modal-actions">
-          <button @click="showAnnouncementModal=false" class="btn btn-ghost">Cancel</button>
-          <button @click="createAnnouncement" class="btn btn-primary">Create</button>
+          <button @click="saveStall" class="btn btn-primary">{{ editingStall ? 'Update' : 'Create' }}</button>
         </div>
       </div>
     </div>
@@ -291,145 +490,831 @@
 
 <script>
 import axios from 'axios'
-import API_BASE from '../config/api.js'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
+import MenuManagement from './MenuManagement.vue'
 
 export default {
   props: ['token'],
+  components: {
+    MenuManagement
+  },
   data() {
     return {
-      health: { total_users: 0, total_stalls: 0, db_size_mb: 0, uptime: 99.95 },
-      announcements: [],
       companies: [],
-      selectedCompany: null,
       stalls: [],
       users: [],
       lowStock: [],
-      companyModal: false,
-      editingCompany: false,
-      companyForm: { name: '', code: '', subscription_tier: 'basic', max_stalls: 5 },
-      stallModal: false,
-      newStall: { name: '', code: '', location: '' },
+      consolidatedSales: {
+        totalRevenue: 0,
+        totalItems: 0,
+        averagePerStall: 0,
+        topStall: '-'
+      },
+      stallPerformance: [],
+      menuPerformance: [],
+      salesTrend: [],
+      productSales: {},
+      expandedStall: null,
+      selectedPeriod: 'week',
+      periods: [
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' },
+        { value: 'quarter', label: 'Quarter' },
+        { value: 'year', label: 'Year' }
+      ],
       userModal: false,
-      newUser: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
-      showAnnouncementModal: false,
-      newAnnouncement: { title: '', content: '', target_roles: [], end_date: '' }
+      editingUser: false,
+      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+      stallModal: false,
+      editingStall: false,
+      stallForm: { id: null, name: '', code: '', location: '' },
+      expandedInventoryStall: null,
+      stallInventory: {},
+      inventoryMaterials: ['Chicken', 'Flour', 'Oil'],
+      exporting: false,
+      // NEW: Low stock filter state
+      showLowStockOnly: false,
+    }
+  },
+  computed: {
+    lowStockCount() {
+      return this.lowStock.length
+    },
+    // NEW: Filtered stalls for low stock
+    filteredStalls() {
+      if (!this.showLowStockOnly) {
+        return this.stalls
+      }
+      // Only show stalls that have at least one low stock item
+      return this.stalls.filter(stall => {
+        const inventory = this.getStallInventory(stall.id)
+        return inventory.some(item => item.current_level <= item.alert_level)
+      })
     }
   },
   mounted() {
     this.loadData()
   },
   methods: {
+    formatCurrency(amount) {
+      return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(amount)
+    },
+    formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+    },
+    getPeriodLabel() {
+      var p = this.periods.find(function(p) { return p.value === this.selectedPeriod }.bind(this))
+      return p ? p.label : 'Week'
+    },
+    getPerformancePercentage(quantity) {
+      var max = Math.max.apply(null, this.menuPerformance.map(function(p) { return p.quantity }).concat([1]))
+      return Math.round((quantity / max) * 100)
+    },
+    
+    // =============================================
+    // NEW: LOW STOCK FILTER METHODS
+    // =============================================
+    toggleLowStockFilter() {
+      this.showLowStockOnly = !this.showLowStockOnly
+      if (this.showLowStockOnly && this.lowStockCount === 0) {
+        this.showLowStockOnly = false
+        this.$emit('show-notification', 'No low stock items found', 'info')
+        return
+      }
+      // Expand the first stall with low stock if filtering
+      if (this.showLowStockOnly) {
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+        this.$emit('show-notification', `Showing ${this.filteredStalls.length} stall(s) with low stock`, 'info')
+      } else {
+        this.$emit('show-notification', 'Showing all stalls', 'info')
+      }
+    },
+    
+    clearFilter() {
+      this.showLowStockOnly = false
+      this.$emit('show-notification', 'Filter cleared', 'info')
+    },
+    
+    hasLowStock(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      return inventory.some(item => item.current_level <= item.alert_level)
+    },
+    
+    getFilteredStallInventory(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      if (this.showLowStockOnly) {
+        return inventory.filter(item => item.current_level <= item.alert_level)
+      }
+      return inventory
+    },
+    
+    // =============================================
+    // NEW: SCROLL TO INVENTORY
+    // =============================================
+    scrollToInventory() {
+      // Enable low stock filter
+      if (this.lowStockCount > 0) {
+        this.showLowStockOnly = true
+        // Expand the first stall with low stock
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+      }
+      
+      // Scroll to inventory section with smooth animation
+      this.$nextTick(() => {
+        const element = document.getElementById('inventory-section')
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          })
+          // Highlight the section briefly
+          element.classList.add('highlight-flash')
+          setTimeout(() => {
+            element.classList.remove('highlight-flash')
+          }, 2000)
+        }
+      })
+    },
+    
+    // ==================== STALL STATUS ====================
+    getStallStatus(stall) {
+      if (!stall.revenue || stall.revenue === 0) return 'No Sales'
+      if (stall.revenue > 1000) return 'Excellent'
+      if (stall.revenue > 500) return 'Good'
+      if (stall.revenue > 100) return 'Average'
+      return 'Poor'
+    },
+    getStallStatusClass(stall) {
+      if (!stall.revenue || stall.revenue === 0) return 'no-sales'
+      if (stall.revenue > 1000) return 'excellent'
+      if (stall.revenue > 500) return 'good'
+      if (stall.revenue > 100) return 'average'
+      return 'poor'
+    },
+    
+    // ==================== DATA LOADING ====================
+    async refreshAllData() {
+      await this.loadData()
+    },
+    
     async loadData() {
       try {
-        const [health, ann, comp] = await Promise.all([
-          axios.get(`${API_BASE}/system/health`, { headers: { Authorization: `Bearer ${this.token}` } }),
-          axios.get(`${API_BASE}/announcements`, { headers: { Authorization: `Bearer ${this.token}` } }),
-          axios.get(`${API_BASE}/companies`, { headers: { Authorization: `Bearer ${this.token}` } })
+        await Promise.all([
+          this.loadStalls(),
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadSalesAnalytics(),
+          this.loadStallPerformance(),
+          this.loadMenuPerformance()
         ])
-        this.health = health.data
-        this.announcements = ann.data
-        this.companies = comp.data
-        if (this.selectedCompany) {
-          this.loadStalls()
-          this.loadUsers()
-          this.loadLowStock()
-        }
+        await this.loadAllStallsInventory()
         this.$emit('show-notification', 'Data refreshed', 'success')
       } catch (err) {
         this.$emit('show-notification', err.message, 'error')
       }
     },
-    selectCompany(company) {
-      this.selectedCompany = company
-      this.loadStalls()
-      this.loadUsers()
-      this.loadLowStock()
-    },
+    
     async loadStalls() {
-      const res = await axios.get(`${API_BASE}/companies/${this.selectedCompany.id}/stalls`, { headers: { Authorization: `Bearer ${this.token}` } })
+      var res = await axios.get(API_BASE + '/companies/1/stalls', { headers: { Authorization: 'Bearer ' + this.token } })
       this.stalls = res.data
+      for (var i = 0; i < this.stalls.length; i++) {
+        var stall = this.stalls[i]
+        var salesRes = await axios.get(API_BASE + '/stall-today-sales?stallId=' + stall.id, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        stall.todayRevenue = salesRes.data.total_revenue || 0
+        stall.todayItems = salesRes.data.items_sold || 0
+      }
     },
+    
     async loadUsers() {
-      const res = await axios.get(`${API_BASE}/companies/${this.selectedCompany.id}/users`, { headers: { Authorization: `Bearer ${this.token}` } })
+      var res = await axios.get(API_BASE + '/companies/1/users', { headers: { Authorization: 'Bearer ' + this.token } })
       this.users = res.data
     },
+    
     async loadLowStock() {
-      const res = await axios.get(`${API_BASE}/companies/${this.selectedCompany.id}/low-stock`, { headers: { Authorization: `Bearer ${this.token}` } })
+      var res = await axios.get(API_BASE + '/companies/1/low-stock', { headers: { Authorization: 'Bearer ' + this.token } })
       this.lowStock = res.data
     },
-    openCompanyModal(company = null) {
-      this.editingCompany = !!company
-      this.companyForm = company ? { ...company } : { name: '', code: '', subscription_tier: 'basic', max_stalls: 5 }
-      this.companyModal = true
-    },
-    openEditCompany(company) { this.openCompanyModal(company) },
-    async saveCompany() {
+    
+    async loadSalesAnalytics() {
+      var days = 7
+      if (this.selectedPeriod === 'today') days = 1
+      else if (this.selectedPeriod === 'week') days = 7
+      else if (this.selectedPeriod === 'month') days = 30
+      else if (this.selectedPeriod === 'quarter') days = 90
+      else if (this.selectedPeriod === 'year') days = 365
+
       try {
-        if (this.editingCompany) {
-          await axios.put(`${API_BASE}/companies/${this.companyForm.id}`, this.companyForm, { headers: { Authorization: `Bearer ${this.token}` } })
-        } else {
-          await axios.post(`${API_BASE}/companies`, this.companyForm, { headers: { Authorization: `Bearer ${this.token}` } })
+        var res = await axios.get(API_BASE + '/sales-analytics?days=' + days, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        var data = res.data || {}
+        
+        this.salesTrend = data.dailySales || []
+        this.consolidatedSales.totalRevenue = data.totalRevenue || 0
+        this.consolidatedSales.totalItems = data.totalItems || 0
+        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+          (data.totalRevenue || 0) / this.stalls.length : 0
+        this.consolidatedSales.topStall = data.topStall || '-'
+        
+        this.productSales = data.productSales || {}
+        
+        await this.loadMenuPerformance()
+        
+      } catch (err) {
+        console.error('Failed to load sales analytics:', err)
+        this.salesTrend = []
+        this.consolidatedSales = {
+          totalRevenue: 0,
+          totalItems: 0,
+          averagePerStall: 0,
+          topStall: '-'
         }
-        this.companyModal = false
-        this.loadData()
-        this.$emit('show-notification', this.editingCompany ? 'Company updated' : 'Company created', 'success')
-      } catch (err) { this.$emit('show-notification', 'Operation failed', 'error') }
+        this.productSales = {}
+        this.$emit('show-notification', 'Failed to load sales data', 'error')
+      }
     },
-    async toggleCompany(company) {
-      await axios.put(`${API_BASE}/companies/${company.id}`, { is_active: !company.is_active }, { headers: { Authorization: `Bearer ${this.token}` } })
-      this.loadData()
+    
+    async loadStallPerformance() {
+      var days = 7
+      if (this.selectedPeriod === 'today') days = 1
+      else if (this.selectedPeriod === 'week') days = 7
+      else if (this.selectedPeriod === 'month') days = 30
+      else if (this.selectedPeriod === 'quarter') days = 90
+      else if (this.selectedPeriod === 'year') days = 365
+
+      try {
+        var res = await axios.get(API_BASE + '/stall-performance?days=' + days, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.stallPerformance = res.data || []
+        
+        if (this.stallPerformance.length > 0 && !this.consolidatedSales.topStall) {
+          this.consolidatedSales.topStall = this.stallPerformance[0]?.name || '-'
+        }
+        
+      } catch (err) {
+        console.error('Failed to load stall performance:', err)
+        this.stallPerformance = []
+      }
     },
-    openStallModal() { this.newStall = { name: '', code: '', location: '' }; this.stallModal = true },
-    async createStall() {
-      await axios.post(`${API_BASE}/companies/${this.selectedCompany.id}/stalls`, this.newStall, { headers: { Authorization: `Bearer ${this.token}` } })
-      this.stallModal = false
-      this.loadStalls()
-      this.$emit('show-notification', 'Stall created', 'success')
+    
+    async loadMenuPerformance() {
+      try {
+        var productSales = this.productSales || {}
+        var menuPerformance = Object.keys(productSales).map(function(name) {
+          return {
+            name: name,
+            quantity: productSales[name].quantity || 0,
+            revenue: productSales[name].revenue || 0
+          }
+        })
+        menuPerformance.sort(function(a, b) { return b.quantity - a.quantity })
+        this.menuPerformance = menuPerformance
+      } catch (err) {
+        console.error('Failed to load menu performance:', err)
+        this.menuPerformance = []
+      }
     },
-    async toggleStall(stall) {
-      await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, { headers: { Authorization: `Bearer ${this.token}` } })
-      this.loadStalls()
+    
+    // ==================== CHART METHODS ====================
+    getBarHeight(revenue) {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return 5
+      var max = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      return Math.max((revenue / max) * 80, 5)
     },
-    openUserModal() { this.newUser = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }; this.userModal = true },
-    async createUser() {
-      await axios.post(`${API_BASE}/companies/${this.selectedCompany.id}/users`, this.newUser, { headers: { Authorization: `Bearer ${this.token}` } })
+
+    getTrendPoints() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return ''
+      if (dailySales.length === 1) {
+        return '50,5'
+      }
+      var maxRevenue = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      var points = dailySales.map(function(day, index) {
+        var x = (index / (dailySales.length - 1)) * 100
+        var y = 40 - ((day.revenue / maxRevenue) * 35)
+        return x + ',' + y
+      })
+      return points.join(' ')
+    },
+
+    getTrendPointsArray() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return []
+      if (dailySales.length === 1) {
+        return [{ x: 50, y: 5 }]
+      }
+      var maxRevenue = Math.max.apply(null, dailySales.map(function(d) { return d.revenue || 0 }).concat([1]))
+      return dailySales.map(function(day, index) {
+        return {
+          x: (index / (dailySales.length - 1)) * 100,
+          y: 40 - ((day.revenue / maxRevenue) * 35)
+        }
+      })
+    },
+
+    // ==================== INVENTORY MANAGEMENT ====================
+    getUnit(materialName) {
+      return materialName === 'Oil' ? 'L' : 'kg'
+    },
+
+    async loadAllStallsInventory() {
+      for (var i = 0; i < this.stalls.length; i++) {
+        var stall = this.stalls[i]
+        try {
+          var res = await axios.get(API_BASE + '/inventory?stallId=' + stall.id, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.stallInventory[stall.id] = res.data.map(function(item) {
+            return {
+              ...item,
+              newLevel: item.current_level
+            }
+          })
+        } catch (err) {
+          // Silently fail – inventory will load on expand
+        }
+      }
+    },
+
+    toggleInventoryStall(stallId) {
+      this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
+      if (this.expandedInventoryStall === stallId) {
+        this.loadStallInventory(stallId)
+      }
+    },
+
+    async loadStallInventory(stallId) {
+      try {
+        var res = await axios.get(API_BASE + '/inventory?stallId=' + stallId, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.stallInventory[stallId] = res.data.map(function(item) {
+          return {
+            ...item,
+            newLevel: item.current_level
+          }
+        })
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to load inventory', 'error')
+      }
+    },
+
+    getStallInventory(stallId) {
+      return this.stallInventory[stallId] || []
+    },
+
+    getStallInventorySummary(stallId) {
+      var inventory = this.getStallInventory(stallId)
+      if (inventory.length === 0) {
+        return [
+          { material_name: 'Chicken', current_level: '?', alert_level: 10 },
+          { material_name: 'Flour', current_level: '?', alert_level: 5 },
+          { material_name: 'Oil', current_level: '?', alert_level: 8 }
+        ]
+      }
+      return inventory
+    },
+
+    getInventoryPercentage(item) {
+      var max = Math.max(item.current_level, item.alert_level * 2)
+      return Math.min((item.current_level / max) * 100, 100)
+    },
+
+    async updateInventoryStock(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      try {
+        await axios.post(API_BASE + '/inventory/update', {
+          stallId: stallId,
+          materialName: materialName,
+          newLevel: parseFloat(newLevel)
+        }, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', materialName + ' updated to ' + newLevel + this.getUnit(materialName), 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stock', 'error')
+      }
+    },
+
+    async quickAddStock(stallId, materialName, amount) {
+      var inventory = this.stallInventory[stallId] || []
+      var item = null
+      for (var i = 0; i < inventory.length; i++) {
+        if (inventory[i].material_name === materialName) {
+          item = inventory[i]
+          break
+        }
+      }
+      if (item) {
+        var newLevel = item.current_level + amount
+        await this.updateInventoryStock(stallId, materialName, newLevel)
+      }
+    },
+
+    async bulkUpdateInventory(stallId) {
+      var inventory = this.stallInventory[stallId] || []
+      if (inventory.length === 0) return
+
+      try {
+        for (var i = 0; i < inventory.length; i++) {
+          var item = inventory[i]
+          if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+            await axios.post(API_BASE + '/inventory/update', {
+              stallId: stallId,
+              materialName: item.material_name,
+              newLevel: item.newLevel
+            }, {
+              headers: { Authorization: 'Bearer ' + this.token }
+            })
+          }
+        }
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks updated successfully', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Bulk update failed', 'error')
+      }
+    },
+
+    async resetInventoryToAlert(stallId) {
+      if (!confirm('Reset all stocks to alert levels for this stall?')) return
+      
+      var inventory = this.stallInventory[stallId] || []
+      try {
+        for (var i = 0; i < inventory.length; i++) {
+          var item = inventory[i]
+          await axios.post(API_BASE + '/inventory/update', {
+            stallId: stallId,
+            materialName: item.material_name,
+            newLevel: item.alert_level
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+        }
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Reset failed', 'error')
+      }
+    },
+
+    // ==================== USER CRUD ====================
+    openUserModal() {
+      this.editingUser = false
+      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+      this.userModal = true
+    },
+    
+    openEditUserModal(user) {
+      this.editingUser = true
+      this.userForm = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || '',
+        role: user.role,
+        password: '',
+        stall_ids: (user.assigned_stalls || []).map(function(s) { return s.id })
+      }
+      this.userModal = true
+    },
+    
+    closeUserModal() {
       this.userModal = false
-      this.loadUsers()
-      this.$emit('show-notification', 'User created', 'success')
+      this.editingUser = false
     },
-    async createAnnouncement() {
-      await axios.post(`${API_BASE}/announcements`, this.newAnnouncement, { headers: { Authorization: `Bearer ${this.token}` } })
-      this.showAnnouncementModal = false
-      this.loadData()
-      this.$emit('show-notification', 'Announcement created', 'success')
+    
+    async saveUser() {
+      try {
+        var payload = {
+          full_name: this.userForm.full_name,
+          role: this.userForm.role,
+          stall_ids: this.userForm.stall_ids
+        }
+        
+        if (this.userForm.password && this.userForm.password.trim() !== '') {
+          payload.password = this.userForm.password
+        }
+        
+        if (this.editingUser) {
+          await axios.put(API_BASE + '/users/' + this.userForm.id, payload, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'User updated successfully', 'success')
+        } else {
+          if (!this.userForm.password || this.userForm.password.trim() === '') {
+            this.$emit('show-notification', 'Password is required for new user', 'error')
+            return
+          }
+          payload.username = this.userForm.username
+          payload.password = this.userForm.password
+          await axios.post(API_BASE + '/companies/1/users', payload, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'User created successfully', 'success')
+        }
+        this.closeUserModal()
+        this.loadUsers()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
     },
-    async deleteAnnouncement(id) {
-      await axios.delete(`${API_BASE}/announcements/${id}`, { headers: { Authorization: `Bearer ${this.token}` } })
-      this.loadData()
+    
+    async deleteUser(userId, username) {
+      if (confirm('Are you sure you want to delete user "' + username + '"? This action cannot be undone.')) {
+        try {
+          await axios.delete(API_BASE + '/users/' + userId, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.loadUsers()
+          this.$emit('show-notification', 'User "' + username + '" deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete user', 'error')
+        }
+      }
+    },
+
+    // ==================== STALL CRUD ====================
+    openStallModal() {
+      this.editingStall = false
+      this.stallForm = { id: null, name: '', code: '', location: '' }
+      this.stallModal = true
+    },
+
+    openEditStallModal(stall) {
+      this.editingStall = true
+      this.stallForm = {
+        id: stall.id,
+        name: stall.name,
+        code: stall.code,
+        location: stall.location || ''
+      }
+      this.stallModal = true
+    },
+
+    async saveStall() {
+      try {
+        if (this.editingStall) {
+          await axios.put(API_BASE + '/stalls/' + this.stallForm.id, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'Stall updated successfully', 'success')
+        } else {
+          await axios.post(API_BASE + '/companies/1/stalls', {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.$emit('show-notification', 'Stall created successfully', 'success')
+        }
+        this.stallModal = false
+        this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+
+    async toggleStallStatus(stall) {
+      try {
+        await axios.put(API_BASE + '/stalls/' + stall.id + '/toggle', {}, {
+          headers: { Authorization: 'Bearer ' + this.token }
+        })
+        this.loadStalls()
+        this.$emit('show-notification', 'Stall ' + (stall.is_active ? 'deactivated' : 'activated'), 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stall status', 'error')
+      }
+    },
+
+    async deleteStall(stallId, stallName) {
+      if (confirm('Are you sure you want to delete stall "' + stallName + '"? This will remove all associated inventory and sales data.')) {
+        try {
+          await axios.delete(API_BASE + '/stalls/' + stallId, {
+            headers: { Authorization: 'Bearer ' + this.token }
+          })
+          this.loadStalls()
+          this.$emit('show-notification', 'Stall "' + stallName + '" deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete stall', 'error')
+        }
+      }
+    },
+
+    // ==================== EXCEL EXPORT ====================
+    async exportExcel() {
+      if (this.exporting) return
+      this.exporting = true
+      
+      try {
+        this.$emit('show-notification', 'Generating Excel file...', 'info')
+        
+        var ExcelJS = await import('exceljs')
+        var saveAsModule = await import('file-saver')
+        var saveAs = saveAsModule.saveAs
+        var html2canvas = await import('html2canvas')
+        
+        var chartContainer = document.getElementById('sales-chart')
+        var chartImageBase64 = null
+        
+        if (chartContainer && this.salesTrend.length > 0) {
+          try {
+            var canvas = await html2canvas.default(chartContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              width: chartContainer.scrollWidth,
+              height: chartContainer.scrollHeight
+            })
+            chartImageBase64 = canvas.toDataURL('image/png')
+          } catch (err) {
+            console.error('Failed to capture chart:', err)
+          }
+        }
+        
+        var workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Chickory Hub'
+        workbook.created = new Date()
+        
+        // Sheet 1: Consolidated Sales
+        var sheet1 = workbook.addWorksheet('Consolidated Sales')
+        sheet1.addRow(['📊 CONSOLIDATED SALES', '', ''])
+        sheet1.addRow(['Period', this.getPeriodLabel(), ''])
+        sheet1.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0), ''])
+        sheet1.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0, ''])
+        sheet1.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0), ''])
+        sheet1.addRow(['Top Performing Stall', this.consolidatedSales.topStall || '-', ''])
+        sheet1.addRow(['', '', ''])
+        sheet1.addRow(['📈 DAILY SALES TREND', '', ''])
+        sheet1.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
+        
+        for (var i = 0; i < this.salesTrend.length; i++) {
+          var day = this.salesTrend[i]
+          sheet1.addRow([
+            this.formatDate(day.date),
+            day.revenue || 0,
+            day.items || 0
+          ])
+        }
+        
+        if (chartImageBase64) {
+          sheet1.addRow(['', '', ''])
+          sheet1.addRow(['📊 Chart:', '', ''])
+          var imageId = workbook.addImage({
+            base64: chartImageBase64,
+            extension: 'png'
+          })
+          var imageRow = 10 + this.salesTrend.length + 2
+          sheet1.addImage(imageId, {
+            tl: { col: 0, row: imageRow },
+            ext: { width: 700, height: 350 }
+          })
+        }
+        
+        sheet1.getColumn(1).width = 30
+        sheet1.getColumn(2).width = 18
+        sheet1.getColumn(3).width = 15
+        
+        // Sheet 2: Stall Performance
+        var sheet2 = workbook.addWorksheet('Stall Performance')
+        sheet2.addRow(['🏆 STALL PERFORMANCE RANKING', '', '', '', '', ''])
+        sheet2.addRow(['Rank', 'Stall Name', 'Revenue (RM)', 'Items Sold', 'Avg Transaction (RM)', 'Status'])
+        
+        for (var j = 0; j < this.stallPerformance.length; j++) {
+          var stall = this.stallPerformance[j]
+          sheet2.addRow([
+            j + 1,
+            stall.name,
+            stall.revenue || 0,
+            stall.items || 0,
+            stall.avgTransaction || 0,
+            this.getStallStatus(stall)
+          ])
+        }
+        
+        var headerRow2 = sheet2.getRow(2)
+        headerRow2.font = { bold: true }
+        sheet2.getColumn(1).width = 8
+        sheet2.getColumn(2).width = 22
+        sheet2.getColumn(3).width = 15
+        sheet2.getColumn(4).width = 12
+        sheet2.getColumn(5).width = 18
+        sheet2.getColumn(6).width = 12
+        
+        // Sheet 3: Menu Performance
+        var sheet3 = workbook.addWorksheet('Menu Performance')
+        sheet3.addRow(['🍗 MENU PERFORMANCE', '', '', '', ''])
+        sheet3.addRow(['Rank', 'Menu Item', 'Quantity Sold', 'Revenue (RM)', 'Percentage'])
+        
+        for (var k = 0; k < this.menuPerformance.length; k++) {
+          var item = this.menuPerformance[k]
+          sheet3.addRow([
+            k + 1,
+            item.name,
+            item.quantity || 0,
+            item.revenue || 0,
+            this.getPerformancePercentage(item.quantity) + '%'
+          ])
+        }
+        
+        var headerRow3 = sheet3.getRow(2)
+        headerRow3.font = { bold: true }
+        sheet3.getColumn(1).width = 8
+        sheet3.getColumn(2).width = 22
+        sheet3.getColumn(3).width = 15
+        sheet3.getColumn(4).width = 15
+        sheet3.getColumn(5).width = 12
+        
+        // Sheet 4: Low Stock Alerts (NEW)
+        var sheet4 = workbook.addWorksheet('Low Stock Alerts')
+        sheet4.addRow(['⚠️ LOW STOCK ALERTS', '', '', ''])
+        sheet4.addRow(['Stall Name', 'Material', 'Current Level', 'Alert Level'])
+        
+        for (var l = 0; l < this.lowStock.length; l++) {
+          var alert = this.lowStock[l]
+          sheet4.addRow([
+            alert.stall_name,
+            alert.material_name,
+            alert.current_level + this.getUnit(alert.material_name),
+            alert.alert_level + this.getUnit(alert.material_name)
+          ])
+        }
+        
+        if (this.lowStock.length === 0) {
+          sheet4.addRow(['✅ All stock levels are healthy!', '', '', ''])
+        }
+        
+        sheet4.getColumn(1).width = 22
+        sheet4.getColumn(2).width = 18
+        sheet4.getColumn(3).width = 15
+        sheet4.getColumn(4).width = 15
+        
+        var buffer = await workbook.xlsx.writeBuffer()
+        var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        
+        var fileName = 'Chickory_Hub_Report_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
+        saveAs(blob, fileName)
+        
+        this.$emit('show-notification', 'Excel file downloaded successfully!', 'success')
+      } catch (error) {
+        console.error('Export error:', error)
+        this.$emit('show-notification', 'Failed to export Excel file: ' + error.message, 'error')
+      } finally {
+        this.exporting = false
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.ssa-dashboard {
+.sa-dashboard {
   padding: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Page Header */
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.page-header h2 {
+.header-left h2 {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
 }
 
-.page-header .subtitle {
+.header-left .subtitle {
   color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0.25rem 0 0 0;
@@ -459,6 +1344,33 @@ export default {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
+/* CLICKABLE STAT CARD */
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.15);
+  border-color: #F94908;
+}
+
+.stat-card.clickable:active {
+  transform: scale(0.98);
+}
+
+.stat-hint {
+  font-size: 0.65rem;
+  color: #F94908;
+  font-weight: 500;
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.stat-card.clickable:hover .stat-hint {
+  opacity: 1;
+}
+
 .stat-icon {
   width: 48px;
   height: 48px;
@@ -470,10 +1382,9 @@ export default {
   flex-shrink: 0;
 }
 
-.stat-icon.users { background: #e0f2fe; color: #0284c7; }
 .stat-icon.stalls { background: #dbeafe; color: #2563eb; }
-.stat-icon.db { background: #ede9fe; color: #7c3aed; }
-.stat-icon.uptime { background: #d1fae5; color: #059669; }
+.stat-icon.users { background: #e0f2fe; color: #0284c7; }
+.stat-icon.alert { background: #fef3c7; color: #d97706; }
 
 .stat-info .stat-value {
   font-size: 1.5rem;
@@ -487,12 +1398,43 @@ export default {
   color: var(--text-secondary);
 }
 
-/* Two Column Layout */
-.two-col {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
+/* Period Selector + Export Button */
+.period-selector-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.period-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.period-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.period-btn:hover {
+  border-color: #F94908;
+  color: var(--text);
+}
+
+.period-btn.active {
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  color: white;
+  border-color: #F94908;
 }
 
 /* Cards */
@@ -504,7 +1446,6 @@ export default {
 }
 
 .card.full-width {
-  grid-column: 1 / -1;
   margin-bottom: 1.5rem;
 }
 
@@ -515,6 +1456,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   background: var(--background);
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .card-header h3 {
@@ -527,85 +1470,62 @@ export default {
   padding: 1.25rem;
 }
 
-/* Buttons */
-.btn {
-  display: inline-flex;
+/* Header Actions with Filter */
+.header-actions {
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
-  color: white;
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+.filter-badge {
+  background: white;
+  color: #F94908;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 2px;
 }
 
-.btn-sm {
-  padding: 0.3rem 0.75rem;
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Consolidated Stats */
+.consolidated-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.consolidated-stat {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.consolidated-stat .stat-label {
+  display: block;
   font-size: 0.75rem;
-}
-
-.btn-ghost {
-  background: transparent;
   color: var(--text-secondary);
+  margin-bottom: 0.25rem;
 }
 
-.btn-ghost:hover {
-  background: var(--background);
-}
-
-.btn-close {
-  background: transparent;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-}
-
-.btn-close:hover {
-  background: var(--background);
+.consolidated-stat .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
   color: var(--text);
 }
 
-.btn-delete {
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-}
-
-.btn-delete:hover {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-.btn-icon-sm {
-  background: transparent;
-  border: none;
-  padding: 0.2rem 0.4rem;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.btn-icon-sm:hover {
-  background: var(--background);
+.consolidated-stat .stat-value.highlight {
+  color: #F94908;
 }
 
 /* Tables */
@@ -647,11 +1567,6 @@ export default {
   font-size: 0.8rem;
 }
 
-.data-table.compact td,
-.data-table.compact th {
-  padding: 0.4rem 0.6rem;
-}
-
 /* Status Badges */
 .status-badge {
   padding: 0.15rem 0.6rem;
@@ -661,23 +1576,13 @@ export default {
   text-transform: uppercase;
 }
 
-.status-badge.active {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.status-badge.inactive {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.badge-tier {
-  background: var(--background);
-  padding: 0.1rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  text-transform: capitalize;
-}
+.status-badge.active { background: #d1fae5; color: #059669; }
+.status-badge.inactive { background: #fee2e2; color: #dc2626; }
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
 
 .role-badge {
   background: #e0e7ff;
@@ -689,132 +1594,293 @@ export default {
   font-weight: 500;
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: 0.25rem;
-}
-
-/* Announcements */
-.announcement-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.announcement-item:last-child {
-  border-bottom: none;
-}
-
-.announcement-content strong {
-  display: block;
-  font-size: 0.9rem;
-}
-
-.announcement-content p {
-  margin: 0.2rem 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.announcement-content small {
+.badge-count {
+  background: #F94908;
+  color: white;
+  padding: 0.1rem 0.6rem;
+  border-radius: 20px;
   font-size: 0.7rem;
-  color: var(--text-tertiary);
+  font-weight: 600;
 }
 
-/* Quick Actions */
-.quick-actions {
+.period-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+/* Chart */
+.chart-container {
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.chart-wrapper {
+  position: relative;
+}
+
+.trend-line-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  gap: 0.5rem;
+  padding-top: 45px;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-bar-wrapper {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 50px;
+  background: linear-gradient(180deg, #F94908, #fa6a2e);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+  transition: height 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.bar-value {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: -1rem;
+  white-space: nowrap;
+}
+
+.bar-label {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+
+/* Performance Bar */
+.performance-bar-container {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.quick-btn {
+.performance-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #F94908, #fa6a2e);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.performance-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 40px;
+}
+
+/* ============================================ */
+/* INVENTORY MANAGEMENT STYLES                  */
+/* ============================================ */
+
+.stall-inventory-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.stall-inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stall-inventory-header:hover {
+  background: var(--background);
+}
+
+.stall-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stall-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* LOW STOCK WARNING BADGE */
+.low-stock-warning {
+  font-size: 0.7rem;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.stall-inventory-summary {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.inventory-chip {
   background: var(--background);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
   border: 1px solid var(--border);
+}
+
+.low-stock-dot {
+  color: #dc2626;
+  font-size: 0.7rem;
+}
+
+.stall-inventory-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border-light);
+  background: var(--background);
+}
+
+.inventory-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+/* LOW STOCK ITEM HIGHLIGHT */
+.inventory-edit-item {
+  background: var(--surface);
+  padding: 0.75rem;
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text);
+  border: 1px solid var(--border);
 }
 
-.quick-btn:hover {
-  border-color: #F94908;
-  background: rgba(249, 73, 8, 0.05);
+.inventory-edit-item.low-stock-item {
+  border-color: #dc2626;
+  background: #fef2f2;
 }
 
-.quick-icon {
-  font-size: 1.2rem;
+.inventory-edit-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 2rem 1rem;
+.inventory-edit-info .material-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.inventory-edit-info .current-stock {
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
-.empty-state .empty-icon {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
+.alert-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
 }
 
-.empty-state.small {
-  padding: 0.5rem;
+.alert-badge.low { background: #fee2e2; color: #dc2626; }
+.alert-badge.ok { background: #d1fae5; color: #059669; }
+
+.inventory-edit-controls {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inventory-input {
+  width: 80px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   font-size: 0.85rem;
 }
 
-/* Tabs */
-.tabs {
+.inventory-input:focus {
+  outline: none;
+  border-color: #F94908;
+}
+
+/* PROGRESS BAR - TURNS RED FOR LOW STOCK */
+.progress-bar-container {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-container .progress-bar {
+  height: 100%;
+  background: #10b981;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-container .progress-bar.low {
+  background: #ef4444;
+}
+
+.inventory-actions-bottom {
+  margin-top: 0.75rem;
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
-.tab {
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  font-weight: 500;
-  cursor: pointer;
-  color: var(--text-secondary);
+/* HIGHLIGHT FLASH FOR INVENTORY SECTION */
+.highlight-flash {
+  animation: highlightPulse 1.5s ease;
+  border-color: #F94908 !important;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.3) !important;
 }
 
-.tab.active {
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
-  color: white;
-}
-
-/* Sub Sections */
-.sub-section {
-  margin-top: 1.25rem;
-}
-
-.sub-section:first-child {
-  margin-top: 0;
-}
-
-.sub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.sub-header h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin: 0;
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(249, 73, 8, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0); }
 }
 
 /* Alerts */
@@ -827,15 +1893,82 @@ export default {
   border-radius: 6px;
   margin-bottom: 0.3rem;
   font-size: 0.85rem;
+  flex-wrap: wrap;
 }
 
-.alert-item:last-child {
-  margin-bottom: 0;
+.alert-item:last-child { margin-bottom: 0; }
+.alert-icon { font-size: 1rem; }
+.alert-stall { font-weight: 600; }
+.alert-material { color: var(--text-secondary); }
+.alert-level { font-weight: 600; color: #dc2626; }
+.alert-threshold { font-size: 0.75rem; color: var(--text-tertiary); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.alert-icon {
+.btn-primary {
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-outline:hover {
+  background: var(--background);
+}
+
+.btn-sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--background);
+}
+
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  border-radius: 4px;
   font-size: 1rem;
+  transition: all 0.2s;
 }
+
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
 
 /* Modals */
 .modal-overlay {
@@ -861,6 +1994,7 @@ export default {
   overflow-y: auto;
 }
 
+.modal-lg { max-width: 700px; }
 .modal h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
@@ -873,8 +2007,7 @@ export default {
 }
 
 .modal-body input,
-.modal-body select,
-.modal-body textarea {
+.modal-body select {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -885,8 +2018,7 @@ export default {
 }
 
 .modal-body input:focus,
-.modal-body select:focus,
-.modal-body textarea:focus {
+.modal-body select:focus {
   outline: none;
   border-color: #F94908;
   box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
@@ -899,42 +2031,84 @@ export default {
   margin-top: 1rem;
 }
 
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.empty-state .empty-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state.small {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Form Helpers */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hint-text {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.stall-select-multiple {
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-  .two-col {
-    grid-template-columns: 1fr;
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .data-table {
-    font-size: 0.8rem;
-  }
-  
-  .data-table th,
-  .data-table td {
-    padding: 0.4rem 0.5rem;
-  }
-  
-  .modal {
-    width: 95%;
-    padding: 1rem;
-  }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .consolidated-stats { grid-template-columns: 1fr 1fr; }
+  .data-table { font-size: 0.8rem; }
+  .data-table th, .data-table td { padding: 0.4rem 0.5rem; }
+  .modal { width: 95%; padding: 1rem; }
+  .chart-bars { height: 120px; }
+  .form-row { grid-template-columns: 1fr; }
+  .inventory-edit-grid { grid-template-columns: 1fr; }
+  .stall-inventory-header { flex-direction: column; align-items: flex-start; }
+  .inventory-edit-controls { flex-wrap: wrap; }
+  .inventory-actions-bottom { flex-direction: column; }
+  .header-actions { flex-direction: column; align-items: stretch; }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .stat-card {
-    padding: 0.75rem;
-  }
-  
-  .stat-info .stat-value {
-    font-size: 1.2rem;
-  }
+  .stats-grid { grid-template-columns: 1fr; }
+  .consolidated-stats { grid-template-columns: 1fr; }
+  .period-selector-wrapper { flex-direction: column; align-items: stretch; }
+  .period-selector { justify-content: center; }
+  .period-btn { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
 }
 </style>

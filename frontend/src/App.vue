@@ -40,6 +40,14 @@
           </div>
           <div class="header-controls">
             <div class="control-group">
+              <!-- Notification Toggle Button -->
+              <button 
+                @click="toggleNotifications" 
+                class="control-btn" 
+                :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+              >
+                <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+              </button>
               <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
                 <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
               </button>
@@ -164,6 +172,7 @@ export default {
       deferredPrompt: null,
       isOnline: true,
       activeStallId: null,
+      notificationsEnabled: true, // Added: notification toggle state
     };
   },
   computed: {
@@ -265,24 +274,85 @@ export default {
     },
 
     showNotification(message, type = 'info') {
-  // Disabled - no notifications will show
-  return;
-  
-  // Or if you want to keep for debugging but disable in production:
-  // if (import.meta.env.PROD) return;
-  
-  // Original code below (commented out)
-  /*
-  const notification = {
-    message,
-    type,
-    id: Date.now() + Math.random(),
-    progress: 100,
-  };
-  this.notifications.push(notification);
-  // ... rest of the method
-  */
-}
+      // Check if notifications are enabled
+      if (!this.notificationsEnabled) {
+        // Still log to console for debugging
+        console.log(`[🔕 Notification disabled] ${type}: ${message}`);
+        return;
+      }
+      
+      // Original notification code
+      const notification = {
+        message,
+        type,
+        id: Date.now() + Math.random(),
+        progress: 100,
+      };
+      this.notifications.push(notification);
+
+      const progressInterval = setInterval(() => {
+        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
+        if (noteIndex !== -1) {
+          this.notifications[noteIndex].progress -= 2;
+        }
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(progressInterval);
+        const index = this.notifications.findIndex((n) => n.id === notification.id);
+        if (index !== -1) {
+          this.notifications.splice(index, 1);
+        }
+      }, 5000);
+    },
+
+    // Toggle notifications on/off
+    toggleNotifications() {
+      this.notificationsEnabled = !this.notificationsEnabled;
+      localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
+      
+      // Show a brief notification about the change (only if enabling)
+      if (this.notificationsEnabled) {
+        this.showNotification('🔔 Notifications enabled', 'success');
+      } else {
+        // When disabling, we need to temporarily enable to show the message
+        // But we want to show it as a flash message, not in the queue
+        const tempEnabled = this.notificationsEnabled;
+        this.notificationsEnabled = true;
+        // Use a different method to show the message
+        const notification = {
+          message: '🔕 Notifications disabled',
+          type: 'info',
+          id: Date.now() + Math.random(),
+          progress: 100,
+        };
+        this.notifications.push(notification);
+        
+        setTimeout(() => {
+          const index = this.notifications.findIndex((n) => n.id === notification.id);
+          if (index !== -1) {
+            this.notifications.splice(index, 1);
+          }
+        }, 3000);
+        
+        // Revert to disabled
+        this.notificationsEnabled = tempEnabled;
+      }
+    },
+
+    removeNotification(index) {
+      this.notifications.splice(index, 1);
+    },
+
+    getNotificationTitle(type) {
+      const titles = {
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Information',
+      };
+      return titles[type] || 'Notification';
+    },
 
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
@@ -367,6 +437,12 @@ export default {
         this.darkMode = true;
       }
       this.applyTheme();
+
+      // Load notification preference from localStorage
+      const savedNotifications = localStorage.getItem('notificationsEnabled');
+      if (savedNotifications !== null) {
+        this.notificationsEnabled = JSON.parse(savedNotifications);
+      }
 
       setInterval(() => {
         this.updateLastUpdateTime();
@@ -590,11 +666,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1rem;
 }
 
 .control-btn:hover {
   background: var(--surface-elevated);
   border-color: var(--primary);
+}
+
+.control-btn .control-icon {
+  font-size: 1.1rem;
 }
 
 .user-menu {
