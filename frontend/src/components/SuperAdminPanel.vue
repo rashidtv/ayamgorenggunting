@@ -24,11 +24,13 @@
           <div class="stat-label">Total Users</div>
         </div>
       </div>
-      <div class="stat-card">
+      <!-- CLICKABLE LOW STOCK STAT CARD -->
+      <div class="stat-card clickable" @click="scrollToInventory()">
         <div class="stat-icon alert">⚠️</div>
         <div class="stat-info">
           <div class="stat-value">{{ lowStock.length }}</div>
           <div class="stat-label">Low Stock Alerts</div>
+          <div class="stat-hint">Click to view</div>
         </div>
       </div>
     </div>
@@ -88,7 +90,6 @@
       <div class="card-body">
         <div class="chart-container">
           <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
-            <!-- Trend Line -->
             <div class="trend-line-container">
               <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
                 <polyline
@@ -109,7 +110,6 @@
                 />
               </svg>
             </div>
-            <!-- Bar Chart -->
             <div class="chart-bars">
               <div 
                 v-for="day in salesTrend" 
@@ -260,11 +260,33 @@
       </div>
     </div>
 
-    <!-- Inventory Management -->
-    <div class="card full-width">
+    <!-- ============================================ -->
+    <!-- INVENTORY MANAGEMENT WITH LOW STOCK FILTER   -->
+    <!-- ============================================ -->
+    <div class="card full-width" id="inventory-section">
       <div class="card-header">
         <h3>📦 Inventory Management</h3>
         <div class="header-actions">
+          <!-- LOW STOCK FILTER BUTTON -->
+          <div class="filter-group">
+            <button 
+              @click="toggleLowStockFilter" 
+              class="btn" 
+              :class="showLowStockOnly ? 'btn-primary' : 'btn-outline'"
+              :disabled="lowStockCount === 0"
+            >
+              <span class="btn-icon">⚠️</span>
+              Low Stock 
+              <span class="filter-badge" v-if="lowStockCount > 0">{{ lowStockCount }}</span>
+            </button>
+            <button 
+              @click="clearFilter" 
+              class="btn btn-ghost btn-sm"
+              v-if="showLowStockOnly"
+            >
+              ✕ Clear Filter
+            </button>
+          </div>
           <span class="badge-count">{{ stalls.length }} Stalls</span>
           <button @click="loadAllStallsInventory()" class="btn btn-outline btn-sm">🔄 Refresh All</button>
         </div>
@@ -274,13 +296,16 @@
           <span class="empty-icon">📦</span>
           <p>No stalls found. Create a stall first.</p>
         </div>
-        <div v-for="stall in stalls" :key="stall.id" class="stall-inventory-item">
+        <!-- FILTERED STALLS -->
+        <div v-for="stall in filteredStalls" :key="stall.id" class="stall-inventory-item">
           <div class="stall-inventory-header" @click="toggleInventoryStall(stall.id)">
             <div class="stall-info">
               <span class="stall-name">{{ stall.name }}</span>
               <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
                 {{ stall.is_active ? 'Active' : 'Inactive' }}
               </span>
+              <!-- LOW STOCK WARNING BADGE -->
+              <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️ Low Stock</span>
             </div>
             <div class="stall-inventory-summary">
               <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-chip">
@@ -292,7 +317,13 @@
           </div>
           <div v-if="expandedInventoryStall === stall.id" class="stall-inventory-details">
             <div class="inventory-edit-grid">
-              <div v-for="item in getStallInventory(stall.id)" :key="item.material_name" class="inventory-edit-item">
+              <!-- FILTERED INVENTORY ITEMS (shows only low stock when filter is on) -->
+              <div 
+                v-for="item in getFilteredStallInventory(stall.id)" 
+                :key="item.material_name" 
+                class="inventory-edit-item"
+                :class="{ 'low-stock-item': item.current_level <= item.alert_level }"
+              >
                 <div class="inventory-edit-info">
                   <span class="material-name">{{ item.material_name }}</span>
                   <span class="current-stock">Current: {{ item.current_level }}{{ getUnit(item.material_name) }}</span>
@@ -308,6 +339,7 @@
                   <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn btn-outline btn-sm">+5</button>
                   <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn btn-outline btn-sm">+1</button>
                 </div>
+                <!-- PROGRESS BAR TURNS RED FOR LOW STOCK -->
                 <div class="progress-bar-container">
                   <div class="progress-bar" :style="{ width: getInventoryPercentage(item) + '%' }" :class="item.current_level <= item.alert_level ? 'low' : ''"></div>
                 </div>
@@ -318,6 +350,10 @@
               <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert Level</button>
             </div>
           </div>
+        </div>
+        <div v-if="showLowStockOnly && filteredStalls.length === 0" class="empty-state">
+          <span class="empty-icon">✅</span>
+          <p>No stalls with low stock! All inventory levels are healthy.</p>
         </div>
       </div>
     </div>
@@ -361,11 +397,16 @@
       </div>
     </div>
 
-    <!-- Low Stock Alerts -->
-    <div class="card full-width">
+    <!-- ============================================ -->
+    <!-- ENHANCED LOW STOCK ALERTS SECTION            -->
+    <!-- ============================================ -->
+    <div class="card full-width" id="low-stock-section">
       <div class="card-header">
         <h3>⚠️ Low Stock Alerts</h3>
         <span class="badge-count">{{ lowStock.length }}</span>
+        <button @click="scrollToInventory()" class="btn btn-primary btn-sm">
+          📦 Manage Inventory
+        </button>
       </div>
       <div class="card-body">
         <div v-if="lowStock.length === 0" class="empty-state small">
@@ -377,6 +418,8 @@
           <span class="alert-material">{{ item.material_name }}</span>
           <span class="alert-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
           <span class="alert-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
+          <!-- VIEW BUTTON ON EACH ALERT -->
+          <button @click="scrollToInventory()" class="btn btn-sm btn-outline">View</button>
         </div>
       </div>
     </div>
@@ -447,7 +490,7 @@
 
 <script>
 import axios from 'axios'
-import API_BASE from '../config/api.js'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 import MenuManagement from './MenuManagement.vue'
 
 export default {
@@ -489,7 +532,25 @@ export default {
       expandedInventoryStall: null,
       stallInventory: {},
       inventoryMaterials: ['Chicken', 'Flour', 'Oil'],
-      exporting: false
+      exporting: false,
+      // NEW: Low stock filter state
+      showLowStockOnly: false,
+    }
+  },
+  computed: {
+    lowStockCount() {
+      return this.lowStock.length
+    },
+    // NEW: Filtered stalls for low stock
+    filteredStalls() {
+      if (!this.showLowStockOnly) {
+        return this.stalls
+      }
+      // Only show stalls that have at least one low stock item
+      return this.stalls.filter(stall => {
+        const inventory = this.getStallInventory(stall.id)
+        return inventory.some(item => item.current_level <= item.alert_level)
+      })
     }
   },
   mounted() {
@@ -509,6 +570,79 @@ export default {
     getPerformancePercentage(quantity) {
       var max = Math.max.apply(null, this.menuPerformance.map(function(p) { return p.quantity }).concat([1]))
       return Math.round((quantity / max) * 100)
+    },
+    
+    // =============================================
+    // NEW: LOW STOCK FILTER METHODS
+    // =============================================
+    toggleLowStockFilter() {
+      this.showLowStockOnly = !this.showLowStockOnly
+      if (this.showLowStockOnly && this.lowStockCount === 0) {
+        this.showLowStockOnly = false
+        this.$emit('show-notification', 'No low stock items found', 'info')
+        return
+      }
+      // Expand the first stall with low stock if filtering
+      if (this.showLowStockOnly) {
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+        this.$emit('show-notification', `Showing ${this.filteredStalls.length} stall(s) with low stock`, 'info')
+      } else {
+        this.$emit('show-notification', 'Showing all stalls', 'info')
+      }
+    },
+    
+    clearFilter() {
+      this.showLowStockOnly = false
+      this.$emit('show-notification', 'Filter cleared', 'info')
+    },
+    
+    hasLowStock(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      return inventory.some(item => item.current_level <= item.alert_level)
+    },
+    
+    getFilteredStallInventory(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      if (this.showLowStockOnly) {
+        return inventory.filter(item => item.current_level <= item.alert_level)
+      }
+      return inventory
+    },
+    
+    // =============================================
+    // NEW: SCROLL TO INVENTORY
+    // =============================================
+    scrollToInventory() {
+      // Enable low stock filter
+      if (this.lowStockCount > 0) {
+        this.showLowStockOnly = true
+        // Expand the first stall with low stock
+        const firstLowStockStall = this.filteredStalls[0]
+        if (firstLowStockStall) {
+          this.expandedInventoryStall = firstLowStockStall.id
+          this.loadStallInventory(firstLowStockStall.id)
+        }
+      }
+      
+      // Scroll to inventory section with smooth animation
+      this.$nextTick(() => {
+        const element = document.getElementById('inventory-section')
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          })
+          // Highlight the section briefly
+          element.classList.add('highlight-flash')
+          setTimeout(() => {
+            element.classList.remove('highlight-flash')
+          }, 2000)
+        }
+      })
     },
     
     // ==================== STALL STATUS ====================
@@ -773,6 +907,7 @@ export default {
           headers: { Authorization: 'Bearer ' + this.token }
         })
         await this.loadStallInventory(stallId)
+        await this.loadLowStock()
         this.$emit('show-notification', materialName + ' updated to ' + newLevel + this.getUnit(materialName), 'success')
       } catch (err) {
         this.$emit('show-notification', 'Failed to update stock', 'error')
@@ -812,6 +947,7 @@ export default {
           }
         }
         await this.loadStallInventory(stallId)
+        await this.loadLowStock()
         this.$emit('show-notification', 'All stocks updated successfully', 'success')
       } catch (err) {
         this.$emit('show-notification', 'Bulk update failed', 'error')
@@ -834,6 +970,7 @@ export default {
           })
         }
         await this.loadStallInventory(stallId)
+        await this.loadLowStock()
         this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
       } catch (err) {
         this.$emit('show-notification', 'Reset failed', 'error')
@@ -989,175 +1126,167 @@ export default {
     },
 
     // ==================== EXCEL EXPORT ====================
-async exportExcel() {
-  if (this.exporting) return
-  this.exporting = true
-  
-  try {
-    this.$emit('show-notification', 'Generating Excel file...', 'info')
-    
-    // Import required libraries
-    var ExcelJS = await import('exceljs')
-    var saveAsModule = await import('file-saver')
-    var saveAs = saveAsModule.saveAs
-    var html2canvas = await import('html2canvas')
-    
-    // ============================================================
-    // CAPTURE CHART AS IMAGE
-    // ============================================================
-    var chartContainer = document.getElementById('sales-chart')
-    var chartImageBase64 = null
-    
-    if (chartContainer && this.salesTrend.length > 0) {
+    async exportExcel() {
+      if (this.exporting) return
+      this.exporting = true
+      
       try {
-        var canvas = await html2canvas.default(chartContainer, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          width: chartContainer.scrollWidth,
-          height: chartContainer.scrollHeight
-        })
-        chartImageBase64 = canvas.toDataURL('image/png')
-      } catch (err) {
-        console.error('Failed to capture chart:', err)
+        this.$emit('show-notification', 'Generating Excel file...', 'info')
+        
+        var ExcelJS = await import('exceljs')
+        var saveAsModule = await import('file-saver')
+        var saveAs = saveAsModule.saveAs
+        var html2canvas = await import('html2canvas')
+        
+        var chartContainer = document.getElementById('sales-chart')
+        var chartImageBase64 = null
+        
+        if (chartContainer && this.salesTrend.length > 0) {
+          try {
+            var canvas = await html2canvas.default(chartContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              width: chartContainer.scrollWidth,
+              height: chartContainer.scrollHeight
+            })
+            chartImageBase64 = canvas.toDataURL('image/png')
+          } catch (err) {
+            console.error('Failed to capture chart:', err)
+          }
+        }
+        
+        var workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Chickory Hub'
+        workbook.created = new Date()
+        
+        // Sheet 1: Consolidated Sales
+        var sheet1 = workbook.addWorksheet('Consolidated Sales')
+        sheet1.addRow(['📊 CONSOLIDATED SALES', '', ''])
+        sheet1.addRow(['Period', this.getPeriodLabel(), ''])
+        sheet1.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0), ''])
+        sheet1.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0, ''])
+        sheet1.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0), ''])
+        sheet1.addRow(['Top Performing Stall', this.consolidatedSales.topStall || '-', ''])
+        sheet1.addRow(['', '', ''])
+        sheet1.addRow(['📈 DAILY SALES TREND', '', ''])
+        sheet1.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
+        
+        for (var i = 0; i < this.salesTrend.length; i++) {
+          var day = this.salesTrend[i]
+          sheet1.addRow([
+            this.formatDate(day.date),
+            day.revenue || 0,
+            day.items || 0
+          ])
+        }
+        
+        if (chartImageBase64) {
+          sheet1.addRow(['', '', ''])
+          sheet1.addRow(['📊 Chart:', '', ''])
+          var imageId = workbook.addImage({
+            base64: chartImageBase64,
+            extension: 'png'
+          })
+          var imageRow = 10 + this.salesTrend.length + 2
+          sheet1.addImage(imageId, {
+            tl: { col: 0, row: imageRow },
+            ext: { width: 700, height: 350 }
+          })
+        }
+        
+        sheet1.getColumn(1).width = 30
+        sheet1.getColumn(2).width = 18
+        sheet1.getColumn(3).width = 15
+        
+        // Sheet 2: Stall Performance
+        var sheet2 = workbook.addWorksheet('Stall Performance')
+        sheet2.addRow(['🏆 STALL PERFORMANCE RANKING', '', '', '', '', ''])
+        sheet2.addRow(['Rank', 'Stall Name', 'Revenue (RM)', 'Items Sold', 'Avg Transaction (RM)', 'Status'])
+        
+        for (var j = 0; j < this.stallPerformance.length; j++) {
+          var stall = this.stallPerformance[j]
+          sheet2.addRow([
+            j + 1,
+            stall.name,
+            stall.revenue || 0,
+            stall.items || 0,
+            stall.avgTransaction || 0,
+            this.getStallStatus(stall)
+          ])
+        }
+        
+        var headerRow2 = sheet2.getRow(2)
+        headerRow2.font = { bold: true }
+        sheet2.getColumn(1).width = 8
+        sheet2.getColumn(2).width = 22
+        sheet2.getColumn(3).width = 15
+        sheet2.getColumn(4).width = 12
+        sheet2.getColumn(5).width = 18
+        sheet2.getColumn(6).width = 12
+        
+        // Sheet 3: Menu Performance
+        var sheet3 = workbook.addWorksheet('Menu Performance')
+        sheet3.addRow(['🍗 MENU PERFORMANCE', '', '', '', ''])
+        sheet3.addRow(['Rank', 'Menu Item', 'Quantity Sold', 'Revenue (RM)', 'Percentage'])
+        
+        for (var k = 0; k < this.menuPerformance.length; k++) {
+          var item = this.menuPerformance[k]
+          sheet3.addRow([
+            k + 1,
+            item.name,
+            item.quantity || 0,
+            item.revenue || 0,
+            this.getPerformancePercentage(item.quantity) + '%'
+          ])
+        }
+        
+        var headerRow3 = sheet3.getRow(2)
+        headerRow3.font = { bold: true }
+        sheet3.getColumn(1).width = 8
+        sheet3.getColumn(2).width = 22
+        sheet3.getColumn(3).width = 15
+        sheet3.getColumn(4).width = 15
+        sheet3.getColumn(5).width = 12
+        
+        // Sheet 4: Low Stock Alerts (NEW)
+        var sheet4 = workbook.addWorksheet('Low Stock Alerts')
+        sheet4.addRow(['⚠️ LOW STOCK ALERTS', '', '', ''])
+        sheet4.addRow(['Stall Name', 'Material', 'Current Level', 'Alert Level'])
+        
+        for (var l = 0; l < this.lowStock.length; l++) {
+          var alert = this.lowStock[l]
+          sheet4.addRow([
+            alert.stall_name,
+            alert.material_name,
+            alert.current_level + this.getUnit(alert.material_name),
+            alert.alert_level + this.getUnit(alert.material_name)
+          ])
+        }
+        
+        if (this.lowStock.length === 0) {
+          sheet4.addRow(['✅ All stock levels are healthy!', '', '', ''])
+        }
+        
+        sheet4.getColumn(1).width = 22
+        sheet4.getColumn(2).width = 18
+        sheet4.getColumn(3).width = 15
+        sheet4.getColumn(4).width = 15
+        
+        var buffer = await workbook.xlsx.writeBuffer()
+        var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        
+        var fileName = 'Chickory_Hub_Report_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
+        saveAs(blob, fileName)
+        
+        this.$emit('show-notification', 'Excel file downloaded successfully!', 'success')
+      } catch (error) {
+        console.error('Export error:', error)
+        this.$emit('show-notification', 'Failed to export Excel file: ' + error.message, 'error')
+      } finally {
+        this.exporting = false
       }
     }
-    
-    // ============================================================
-    // CREATE WORKBOOK WITH EXCELJS
-    // ============================================================
-    var workbook = new ExcelJS.Workbook()
-    workbook.creator = 'Chickory Hub'
-    workbook.created = new Date()
-    
-    // ============================================================
-    // 1. Consolidated Sales Sheet
-    // ============================================================
-    var sheet1 = workbook.addWorksheet('Consolidated Sales')
-    
-    // Add headers
-    sheet1.addRow(['📊 CONSOLIDATED SALES', '', ''])
-    sheet1.addRow(['Period', this.getPeriodLabel(), ''])
-    sheet1.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0), ''])
-    sheet1.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0, ''])
-    sheet1.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0), ''])
-    sheet1.addRow(['Top Performing Stall', this.consolidatedSales.topStall || '-', ''])
-    sheet1.addRow(['', '', ''])
-    sheet1.addRow(['📈 DAILY SALES TREND (Bar Chart + Trend Line)', '', ''])
-    sheet1.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
-    
-    // Add daily sales data
-    for (var i = 0; i < this.salesTrend.length; i++) {
-      var day = this.salesTrend[i]
-      sheet1.addRow([
-        this.formatDate(day.date),
-        day.revenue || 0,
-        day.items || 0
-      ])
-    }
-    
-    // Insert chart image if available
-    if (chartImageBase64) {
-      // Add a blank row before image
-      sheet1.addRow(['', '', ''])
-      sheet1.addRow(['📊 Chart:', '', ''])
-      
-      // Insert image at cell A12 (adjust based on rows count)
-      var imageId = workbook.addImage({
-        base64: chartImageBase64,
-        extension: 'png'
-      })
-      
-      // Calculate where to place the image (after the data)
-      var imageRow = 10 + this.salesTrend.length + 2
-      sheet1.addImage(imageId, {
-        tl: { col: 0, row: imageRow },
-        ext: { width: 700, height: 350 }
-      })
-    }
-    
-    // Set column widths
-    sheet1.getColumn(1).width = 30
-    sheet1.getColumn(2).width = 18
-    sheet1.getColumn(3).width = 15
-    
-    // ============================================================
-    // 2. Stall Performance Sheet
-    // ============================================================
-    var sheet2 = workbook.addWorksheet('Stall Performance')
-    
-    sheet2.addRow(['🏆 STALL PERFORMANCE RANKING', '', '', '', '', ''])
-    sheet2.addRow(['Rank', 'Stall Name', 'Revenue (RM)', 'Items Sold', 'Avg Transaction (RM)', 'Status'])
-    
-    for (var j = 0; j < this.stallPerformance.length; j++) {
-      var stall = this.stallPerformance[j]
-      sheet2.addRow([
-        j + 1,
-        stall.name,
-        stall.revenue || 0,
-        stall.items || 0,
-        stall.avgTransaction || 0,
-        this.getStallStatus(stall)
-      ])
-    }
-    
-    // Style the header row
-    var headerRow2 = sheet2.getRow(2)
-    headerRow2.font = { bold: true }
-    
-    sheet2.getColumn(1).width = 8
-    sheet2.getColumn(2).width = 22
-    sheet2.getColumn(3).width = 15
-    sheet2.getColumn(4).width = 12
-    sheet2.getColumn(5).width = 18
-    sheet2.getColumn(6).width = 12
-    
-    // ============================================================
-    // 3. Menu Performance Sheet
-    // ============================================================
-    var sheet3 = workbook.addWorksheet('Menu Performance')
-    
-    sheet3.addRow(['🍗 MENU PERFORMANCE', '', '', '', ''])
-    sheet3.addRow(['Rank', 'Menu Item', 'Quantity Sold', 'Revenue (RM)', 'Percentage'])
-    
-    for (var k = 0; k < this.menuPerformance.length; k++) {
-      var item = this.menuPerformance[k]
-      sheet3.addRow([
-        k + 1,
-        item.name,
-        item.quantity || 0,
-        item.revenue || 0,
-        this.getPerformancePercentage(item.quantity) + '%'
-      ])
-    }
-    
-    // Style the header row
-    var headerRow3 = sheet3.getRow(2)
-    headerRow3.font = { bold: true }
-    
-    sheet3.getColumn(1).width = 8
-    sheet3.getColumn(2).width = 22
-    sheet3.getColumn(3).width = 15
-    sheet3.getColumn(4).width = 15
-    sheet3.getColumn(5).width = 12
-    
-    // ============================================================
-    // GENERATE & DOWNLOAD
-    // ============================================================
-    var buffer = await workbook.xlsx.writeBuffer()
-    var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    
-    var fileName = 'Chickory_Hub_Report_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
-    saveAs(blob, fileName)
-    
-    this.$emit('show-notification', 'Excel file downloaded successfully!', 'success')
-  } catch (error) {
-    console.error('Export error:', error)
-    this.$emit('show-notification', 'Failed to export Excel file: ' + error.message, 'error')
-  } finally {
-    this.exporting = false
-  }
-}
   }
 }
 </script>
@@ -1189,6 +1318,84 @@ async exportExcel() {
   color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0.25rem 0 0 0;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* CLICKABLE STAT CARD */
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.15);
+  border-color: #F94908;
+}
+
+.stat-card.clickable:active {
+  transform: scale(0.98);
+}
+
+.stat-hint {
+  font-size: 0.65rem;
+  color: #F94908;
+  font-weight: 500;
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.stat-card.clickable:hover .stat-hint {
+  opacity: 1;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-icon.stalls { background: #dbeafe; color: #2563eb; }
+.stat-icon.users { background: #e0f2fe; color: #0284c7; }
+.stat-icon.alert { background: #fef3c7; color: #d97706; }
+
+.stat-info .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.stat-info .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 /* Period Selector + Export Button */
@@ -1230,57 +1437,6 @@ async exportExcel() {
   border-color: #F94908;
 }
 
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.stat-icon.stalls { background: #dbeafe; color: #2563eb; }
-.stat-icon.users { background: #e0f2fe; color: #0284c7; }
-.stat-icon.alert { background: #fef3c7; color: #d97706; }
-
-.stat-info .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.stat-info .stat-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
 /* Cards */
 .card {
   background: var(--surface);
@@ -1300,6 +1456,8 @@ async exportExcel() {
   justify-content: space-between;
   align-items: center;
   background: var(--background);
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .card-header h3 {
@@ -1310,6 +1468,35 @@ async exportExcel() {
 
 .card-body {
   padding: 1.25rem;
+}
+
+/* Header Actions with Filter */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.filter-badge {
+  background: white;
+  color: #F94908;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Consolidated Stats */
@@ -1514,7 +1701,10 @@ async exportExcel() {
   min-width: 40px;
 }
 
-/* Inventory Management */
+/* ============================================ */
+/* INVENTORY MANAGEMENT STYLES                  */
+/* ============================================ */
+
 .stall-inventory-item {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1535,6 +1725,28 @@ async exportExcel() {
 
 .stall-inventory-header:hover {
   background: var(--background);
+}
+
+.stall-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stall-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* LOW STOCK WARNING BADGE */
+.low-stock-warning {
+  font-size: 0.7rem;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 600;
 }
 
 .stall-inventory-summary {
@@ -1569,11 +1781,17 @@ async exportExcel() {
   gap: 0.75rem;
 }
 
+/* LOW STOCK ITEM HIGHLIGHT */
 .inventory-edit-item {
   background: var(--surface);
   padding: 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--border);
+}
+
+.inventory-edit-item.low-stock-item {
+  border-color: #dc2626;
+  background: #fef2f2;
 }
 
 .inventory-edit-info {
@@ -1624,6 +1842,7 @@ async exportExcel() {
   border-color: #F94908;
 }
 
+/* PROGRESS BAR - TURNS RED FOR LOW STOCK */
 .progress-bar-container {
   margin-top: 0.5rem;
   width: 100%;
@@ -1648,12 +1867,20 @@ async exportExcel() {
   margin-top: 0.75rem;
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* HIGHLIGHT FLASH FOR INVENTORY SECTION */
+.highlight-flash {
+  animation: highlightPulse 1.5s ease;
+  border-color: #F94908 !important;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.3) !important;
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(249, 73, 8, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 73, 8, 0); }
 }
 
 /* Alerts */
@@ -1874,6 +2101,7 @@ async exportExcel() {
   .stall-inventory-header { flex-direction: column; align-items: flex-start; }
   .inventory-edit-controls { flex-wrap: wrap; }
   .inventory-actions-bottom { flex-direction: column; }
+  .header-actions { flex-direction: column; align-items: stretch; }
 }
 
 @media (max-width: 480px) {
