@@ -126,7 +126,7 @@
           </div>
         </div>
 
-        <!-- Modern Chart Section - FIXED -->
+        <!-- Modern Chart Section -->
         <div class="chart-card" :class="{ 'fullscreen-mode': chartFullscreen }">
           <div class="chart-card-header">
             <div>
@@ -155,7 +155,7 @@
           </div>
 
           <div class="chart-body">
-            <!-- Chart Summary -->
+            <!-- Chart Summary - FIXED ALIGNMENT -->
             <div class="chart-stats" v-if="salesTrend.length > 0">
               <div class="chart-stat">
                 <span class="chart-stat-label">Peak</span>
@@ -179,7 +179,7 @@
               </div>
             </div>
 
-            <!-- The Chart - FIXED -->
+            <!-- The Chart -->
             <div class="chart-wrapper" ref="chartWrapper" id="sales-chart">
               <div v-if="salesTrend.length > 0" class="chart-container">
                 <!-- Bars -->
@@ -309,7 +309,7 @@
           </div>
         </div>
 
-        <!-- Menu Performance - FIXED with proper data loading -->
+        <!-- Menu Performance -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -769,14 +769,24 @@ export default {
   },
   methods: {
     // =============================================
-    // FORMATTING
+    // FORMATTING - FIXED
     // =============================================
     formatCurrency(amount) {
-      return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(amount)
+      const num = Number(amount) || 0
+      return new Intl.NumberFormat('en-MY', { 
+        style: 'currency', 
+        currency: 'MYR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(num)
     },
+    
     formatNumber(value) {
-      return new Intl.NumberFormat('en-MY').format(value || 0)
+      const num = Number(value) || 0
+      const rounded = Math.round(num)
+      return new Intl.NumberFormat('en-MY').format(rounded)
     },
+    
     formatShortDate(dateStr) {
       if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
@@ -816,7 +826,11 @@ export default {
       return total / this.salesTrend.length
     },
     getTotalItems() {
-      return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
+      // FIXED: Properly sum items from salesTrend
+      return this.salesTrend.reduce((sum, d) => {
+        const items = parseInt(d.items) || 0
+        return sum + items
+      }, 0)
     },
     getTrendDirection() {
       if (this.salesTrend.length < 2) return 'neutral'
@@ -893,7 +907,7 @@ export default {
     },
     
     // =============================================
-    // CHART VIEW - FIXED
+    // CHART VIEW
     // =============================================
     setChartView(viewId) {
       this.chartView = viewId
@@ -920,7 +934,6 @@ export default {
       this.chartFullscreen = !this.chartFullscreen
       if (this.chartFullscreen) {
         document.body.style.overflow = 'hidden'
-        // Add a backdrop to hide background content
         const backdrop = document.createElement('div')
         backdrop.id = 'fullscreen-backdrop'
         backdrop.style.cssText = `
@@ -941,7 +954,7 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP - FIXED
+    // TOOLTIP
     // =============================================
     showTooltip(index) {
       this.hoveredIndex = index
@@ -1002,7 +1015,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED to load on period change
+    // DATA LOADING - FIXED
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1052,19 +1065,28 @@ export default {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         const data = res.data || {}
-        this.salesTrend = data.dailySales || []
-        this.consolidatedSales.totalRevenue = data.totalRevenue || 0
-        this.consolidatedSales.totalItems = data.totalItems || 0
+        
+        // FIXED: Properly parse items as integers
+        this.salesTrend = (data.dailySales || []).map(day => ({
+          ...day,
+          items: parseInt(day.items) || 0,
+          revenue: parseFloat(day.revenue) || 0
+        }))
+        
+        // FIXED: Ensure totalItems is a proper integer
+        this.consolidatedSales.totalItems = parseInt(data.totalItems) || 0
+        this.consolidatedSales.totalRevenue = parseFloat(data.totalRevenue) || 0
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-          (data.totalRevenue || 0) / this.stalls.length : 0
+          (parseFloat(data.totalRevenue) || 0) / this.stalls.length : 0
         this.consolidatedSales.topStall = data.topStall || '-'
-        this.consolidatedSales.topRevenue = data.topRevenue || 0
+        this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         this.productSales = data.productSales || {}
-        // Load menu performance after sales data
+        
         await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
         this.salesTrend = []
+        this.consolidatedSales.totalItems = 0
       }
     },
     async loadStallPerformance() {
@@ -1086,8 +1108,8 @@ export default {
         const productSales = this.productSales || {}
         this.menuPerformance = Object.keys(productSales).map(name => ({
           name: name,
-          quantity: productSales[name].quantity || 0,
-          revenue: productSales[name].revenue || 0
+          quantity: parseInt(productSales[name].quantity) || 0,
+          revenue: parseFloat(productSales[name].revenue) || 0
         })).sort((a, b) => b.quantity - a.quantity)
       } catch (err) {
         this.menuPerformance = []
@@ -1615,7 +1637,6 @@ export default {
   opacity: 1;
 }
 
-/* Responsive fix for stat hover overlap */
 @media (max-width: 768px) {
   .stat-card .stat-hover {
     display: none;
@@ -1837,7 +1858,7 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* CHART CARD - FIXED                          */
+/* CHART CARD                                   */
 /* ============================================ */
 .chart-card {
   background: var(--surface);
@@ -1961,10 +1982,12 @@ export default {
   padding: 1.25rem;
 }
 
-/* Chart Stats */
+/* ============================================ */
+/* CHART STATS - FIXED ALIGNMENT               */
+/* ============================================ */
 .chart-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   margin-bottom: 1rem;
   padding: 0.5rem;
@@ -1974,6 +1997,11 @@ export default {
 
 .chart-stat {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
 }
 
 .chart-stat-label {
@@ -1982,13 +2010,15 @@ export default {
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  margin-bottom: 0.1rem;
 }
 
 .chart-stat-value {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .chart-stat-value.up { color: #10b981; }
@@ -1997,9 +2027,12 @@ export default {
 .chart-stat-sub {
   font-size: 0.5rem;
   color: var(--text-tertiary);
+  margin-top: 0.05rem;
 }
 
-/* Chart Wrapper */
+/* ============================================ */
+/* CHART WRAPPER                                */
+/* ============================================ */
 .chart-wrapper {
   position: relative;
   height: 200px;
@@ -2011,7 +2044,6 @@ export default {
   height: 100%;
 }
 
-/* Chart Bars */
 .chart-bars-container {
   display: flex;
   align-items: flex-end;
@@ -2099,7 +2131,7 @@ export default {
   r: 5;
 }
 
-/* Tooltip - FIXED alignment */
+/* Tooltip */
 .chart-tooltip-modern {
   position: absolute;
   background: var(--surface);
@@ -2960,7 +2992,6 @@ export default {
     height: calc(100vh - 200px);
   }
   
-  /* Fix tooltip on mobile */
   .chart-tooltip-modern {
     min-width: 80px;
     padding: 0.3rem 0.5rem;
@@ -2969,6 +3000,16 @@ export default {
   
   .tooltip-revenue {
     font-size: 0.7rem;
+  }
+  
+  /* Fix chart stats alignment on tablet */
+  .chart-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+  }
+  
+  .chart-stat-value {
+    font-size: 0.8rem;
   }
 }
 
@@ -2987,8 +3028,23 @@ export default {
   .chart-bar-label { font-size: 0.4rem; }
   .chart-nav-label { min-width: 60px; font-size: 0.6rem; }
   
-  .chart-stats { grid-template-columns: repeat(2, 1fr); }
-  .chart-stat-value { font-size: 0.75rem; }
+  .chart-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+    padding: 0.35rem;
+  }
+  
+  .chart-stat {
+    padding: 0.15rem;
+  }
+  
+  .chart-stat-value {
+    font-size: 0.75rem;
+  }
+  
+  .chart-stat-label {
+    font-size: 0.5rem;
+  }
   
   .header-left h1 { font-size: 1rem; }
   .header-badge { width: 36px; height: 36px; font-size: 1.2rem; }
