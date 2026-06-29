@@ -127,7 +127,7 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- WORKING CHART - USING VUE COMPUTED          -->
+        <!-- CHART WITH TREND LINE                       -->
         <!-- ============================================ -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
           <div class="chart-modern-header">
@@ -167,15 +167,16 @@
               </div>
             </div>
 
-            <!-- The Chart - Working Version -->
+            <!-- The Chart -->
             <div class="chart-modern-wrapper" ref="chartWrapper">
               <div v-if="chartData.length > 0" class="chart-modern-container">
+                <!-- Bars -->
                 <div class="chart-modern-bars">
                   <div 
                     v-for="(item, index) in chartData" 
                     :key="index"
                     class="chart-modern-bar-group"
-                    @mouseenter="showTooltip(index)"
+                    @mouseenter="showTooltip(index, $event)"
                     @mouseleave="hideTooltip"
                   >
                     <div class="chart-modern-bar-track">
@@ -194,10 +195,51 @@
                   </div>
                 </div>
 
+                <!-- Trend Line SVG -->
+                <svg class="chart-trend-line-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="trendAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
+                      <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Area under trend line -->
+                  <polygon
+                    :points="getAreaPoints()"
+                    fill="url(#trendAreaGradient)"
+                    opacity="0.6"
+                  />
+                  <!-- Trend line -->
+                  <polyline
+                    :points="getLinePoints()"
+                    fill="none"
+                    stroke="#F94908"
+                    stroke-width="2.5"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <!-- Points on trend line -->
+                  <circle
+                    v-for="(point, index) in getLinePointsArray()"
+                    :key="index"
+                    :cx="point.x"
+                    :cy="point.y"
+                    r="3.5"
+                    fill="#F94908"
+                    stroke="white"
+                    stroke-width="2"
+                    @mouseenter="showTooltip(index, $event)"
+                    @mouseleave="hideTooltip"
+                  />
+                </svg>
+
                 <!-- Tooltip -->
-                <div v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartData.length" 
-                     class="chart-modern-tooltip" 
-                     :style="tooltipPosition">
+                <div 
+                  v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartData.length" 
+                  class="chart-modern-tooltip" 
+                  :style="tooltipPosition"
+                  ref="tooltipRef"
+                >
                   <div class="chart-modern-tooltip-date">{{ chartData[hoveredIndex]?.fullDate || '' }}</div>
                   <div class="chart-modern-tooltip-revenue">{{ formatCurrency(chartData[hoveredIndex]?.value || 0) }}</div>
                   <div class="chart-modern-tooltip-items">{{ formatNumber(chartData[hoveredIndex]?.items || 0) }} items</div>
@@ -821,6 +863,40 @@ export default {
     },
     
     // =============================================
+    // TREND LINE SVG METHODS
+    // =============================================
+    getAreaPoints() {
+      const data = this.chartData
+      if (data.length === 0) return ''
+      const max = Math.max(...data.map(d => d.value || 0), 1)
+      const points = data.map((item, i) => {
+        const x = (i / (data.length - 1)) * 100
+        const y = 100 - ((item.value / max) * 80) - 10
+        return `${x},${y}`
+      })
+      return `0,100,${points.join(',')},100,100`
+    },
+    getLinePoints() {
+      const data = this.chartData
+      if (data.length === 0) return ''
+      const max = Math.max(...data.map(d => d.value || 0), 1)
+      return data.map((item, i) => {
+        const x = (i / (data.length - 1)) * 100
+        const y = 100 - ((item.value / max) * 80) - 10
+        return `${x},${y}`
+      }).join(' ')
+    },
+    getLinePointsArray() {
+      const data = this.chartData
+      if (data.length === 0) return []
+      const max = Math.max(...data.map(d => d.value || 0), 1)
+      return data.map((item, i) => ({
+        x: (i / (data.length - 1)) * 100,
+        y: 100 - ((item.value / max) * 80) - 10
+      }))
+    },
+    
+    // =============================================
     // CHART NAVIGATION
     // =============================================
     navigateChart(direction) {
@@ -861,23 +937,52 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP - FIXED
+    // TOOLTIP - FIXED for responsive
     // =============================================
-    showTooltip(index) {
+    showTooltip(index, event) {
       this.hoveredIndex = index
       this.tooltipVisible = true
+      
       const data = this.chartData
-      if (data.length > 0) {
-        const x = (index / data.length) * 100 + (100 / data.length / 2)
-        this.tooltipPosition = {
-          left: `calc(${x}% - 60px)`,
-          top: '5px'
-        }
+      if (data.length === 0) return
+      
+      // Calculate position based on index
+      const totalBars = data.length
+      const position = (index / (totalBars - 1)) * 100
+      
+      // Set tooltip position
+      this.tooltipPosition = {
+        left: `calc(${position}% - 60px)`,
+        top: '5px'
       }
+      
+      // Adjust for mobile if needed
+      this.$nextTick(() => {
+        const tooltip = this.$refs.tooltipRef
+        if (tooltip && window.innerWidth < 768) {
+          const rect = tooltip.getBoundingClientRect()
+          const wrapper = this.$refs.chartWrapper
+          if (wrapper) {
+            const wrapperRect = wrapper.getBoundingClientRect()
+            // If tooltip goes off screen, adjust position
+            if (rect.left < 10) {
+              this.tooltipPosition.left = '5px'
+              this.tooltipPosition.transform = 'translateX(0)'
+            } else if (rect.right > window.innerWidth - 10) {
+              this.tooltipPosition.left = 'auto'
+              this.tooltipPosition.right = '5px'
+              this.tooltipPosition.transform = 'translateX(0)'
+            }
+          }
+        }
+      })
     },
     hideTooltip() {
       this.tooltipVisible = false
       this.hoveredIndex = null
+      // Reset transform
+      this.tooltipPosition.transform = 'translateX(-50%)'
+      this.tooltipPosition.right = 'auto'
     },
     
     // =============================================
@@ -1755,7 +1860,7 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* MODERN CHART - WORKING VERSION               */
+/* MODERN CHART                                 */
 /* ============================================ */
 .chart-modern {
   background: var(--surface);
@@ -1879,7 +1984,7 @@ export default {
   height: 100%;
 }
 
-/* Bars - WORKING */
+/* Bars */
 .chart-modern-bars {
   display: flex;
   align-items: flex-end;
@@ -1888,6 +1993,8 @@ export default {
   width: 100%;
   gap: 8px;
   padding: 0 4px;
+  position: relative;
+  z-index: 1;
 }
 
 .chart-modern-bar-group {
@@ -1898,6 +2005,7 @@ export default {
   height: 100%;
   cursor: pointer;
   min-width: 0;
+  position: relative;
 }
 
 .chart-modern-bar-track {
@@ -1965,7 +2073,29 @@ export default {
   opacity: 1;
 }
 
-/* Tooltip */
+/* Trend Line SVG */
+.chart-trend-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 250px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chart-trend-line-svg circle {
+  pointer-events: all;
+  cursor: pointer;
+  transition: r 0.2s, fill 0.2s;
+}
+
+.chart-trend-line-svg circle:hover {
+  r: 5;
+  fill: var(--primary-dark);
+}
+
+/* Tooltip - FIXED responsive */
 .chart-modern-tooltip {
   position: absolute;
   background: var(--surface);
@@ -1976,6 +2106,7 @@ export default {
   z-index: 10;
   pointer-events: none;
   min-width: 90px;
+  max-width: 200px;
   animation: fadeIn 0.15s ease;
   transform: translateX(-50%);
   top: 5px;
@@ -2808,6 +2939,7 @@ export default {
   
   .chart-modern-body { padding: 0.75rem; }
   .chart-modern-bars { height: 200px; }
+  .chart-trend-line-svg { height: 200px; }
   .chart-modern-wrapper { min-height: 200px; }
   
   .chart-modern-stats {
@@ -2835,6 +2967,17 @@ export default {
   .stall-rank-revenue { min-width: unset; }
   
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
+  
+  .chart-modern-tooltip {
+    min-width: 70px;
+    max-width: 150px;
+    padding: 0.3rem 0.5rem;
+    transform: translateX(-50%);
+  }
+  
+  .chart-modern-tooltip-revenue { font-size: 0.7rem; }
+  .chart-modern-tooltip-date { font-size: 0.5rem; }
+  .chart-modern-tooltip-items { font-size: 0.5rem; }
 }
 
 @media (max-width: 480px) {
@@ -2848,6 +2991,7 @@ export default {
   .kpi-value { font-size: 0.95rem; }
   
   .chart-modern-bars { height: 150px; gap: 4px; }
+  .chart-trend-line-svg { height: 150px; }
   .chart-modern-wrapper { min-height: 150px; }
   .chart-modern-bar { max-width: 24px; min-width: 4px; }
   .chart-modern-bar-label { font-size: 0.4rem; }
@@ -2880,11 +3024,14 @@ export default {
   
   .chart-modern-tooltip {
     min-width: 60px;
+    max-width: 120px;
     padding: 0.2rem 0.4rem;
+    transform: translateX(-50%);
+    top: 2px;
   }
   
   .chart-modern-tooltip-revenue { font-size: 0.6rem; }
-  .chart-modern-tooltip-date { font-size: 0.5rem; }
-  .chart-modern-tooltip-items { font-size: 0.5rem; }
+  .chart-modern-tooltip-date { font-size: 0.45rem; }
+  .chart-modern-tooltip-items { font-size: 0.45rem; }
 }
 </style>
