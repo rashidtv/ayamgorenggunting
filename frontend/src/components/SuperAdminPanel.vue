@@ -139,7 +139,7 @@
                   v-for="view in chartViews" 
                   :key="view.id"
                   :class="['chart-view-btn', { active: chartView === view.id }]"
-                  @click="chartView = view.id"
+                  @click="setChartView(view.id)"
                   :title="view.label"
                 >
                   {{ view.icon }}
@@ -148,7 +148,7 @@
               <button @click="toggleChartFullscreen" class="chart-fullscreen-btn" :title="chartFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
                 {{ chartFullscreen ? '✕' : '⛶' }}
               </button>
-              <button v-if="chartFullscreen" @click="toggleChartFullscreen" class="chart-exit-btn" title="Exit Fullscreen">
+              <button v-if="chartFullscreen" @click="toggleChartFullscreen" class="chart-exit-btn">
                 ✕ Exit
               </button>
             </div>
@@ -206,8 +206,8 @@
                   </div>
                 </div>
 
-                <!-- Trend Line Overlay -->
-                <svg class="chart-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- Trend Line Overlay - Only show in mixed/line mode -->
+                <svg v-if="chartView === 'mixed' || chartView === 'line'" class="chart-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="trendArea" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.12" />
@@ -309,7 +309,7 @@
           </div>
         </div>
 
-        <!-- Menu Performance -->
+        <!-- Menu Performance - FIXED with proper data loading -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -893,6 +893,13 @@ export default {
     },
     
     // =============================================
+    // CHART VIEW - FIXED
+    // =============================================
+    setChartView(viewId) {
+      this.chartView = viewId
+    },
+    
+    // =============================================
     // CHART NAVIGATION
     // =============================================
     navigateChart(direction) {
@@ -913,9 +920,20 @@ export default {
       this.chartFullscreen = !this.chartFullscreen
       if (this.chartFullscreen) {
         document.body.style.overflow = 'hidden'
+        // Add a backdrop to hide background content
+        const backdrop = document.createElement('div')
+        backdrop.id = 'fullscreen-backdrop'
+        backdrop.style.cssText = `
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: var(--surface);
+          z-index: 9998;
+        `
+        document.body.appendChild(backdrop)
       } else {
         document.body.style.overflow = ''
-        // Exit fullscreen mode in browser if it was triggered
+        const backdrop = document.getElementById('fullscreen-backdrop')
+        if (backdrop) backdrop.remove()
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
@@ -923,14 +941,13 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP
+    // TOOLTIP - FIXED
     // =============================================
     showTooltip(index) {
       this.hoveredIndex = index
       this.tooltipVisible = true
       const wrapper = this.$refs.chartWrapper
       if (wrapper) {
-        const rect = wrapper.getBoundingClientRect()
         const data = this.chartVisibleData
         if (data.length > 1) {
           const x = (index / (data.length - 1)) * 100
@@ -985,7 +1002,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING
+    // DATA LOADING - FIXED to load on period change
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1043,8 +1060,11 @@ export default {
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = data.topRevenue || 0
         this.productSales = data.productSales || {}
+        // Load menu performance after sales data
+        await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
+        this.salesTrend = []
       }
     },
     async loadStallPerformance() {
@@ -1595,6 +1615,13 @@ export default {
   opacity: 1;
 }
 
+/* Responsive fix for stat hover overlap */
+@media (max-width: 768px) {
+  .stat-card .stat-hover {
+    display: none;
+  }
+}
+
 .stat-icon {
   font-size: 1.5rem;
   width: 40px;
@@ -2072,7 +2099,7 @@ export default {
   r: 5;
 }
 
-/* Tooltip */
+/* Tooltip - FIXED alignment */
 .chart-tooltip-modern {
   position: absolute;
   background: var(--surface);
@@ -2084,6 +2111,7 @@ export default {
   pointer-events: none;
   min-width: 100px;
   animation: fadeIn 0.15s ease;
+  transform: translateX(-50%);
 }
 
 .tooltip-date {
@@ -2930,6 +2958,17 @@ export default {
   
   .chart-card.fullscreen-mode .chart-wrapper {
     height: calc(100vh - 200px);
+  }
+  
+  /* Fix tooltip on mobile */
+  .chart-tooltip-modern {
+    min-width: 80px;
+    padding: 0.3rem 0.5rem;
+    transform: translateX(-50%);
+  }
+  
+  .tooltip-revenue {
+    font-size: 0.7rem;
   }
 }
 
