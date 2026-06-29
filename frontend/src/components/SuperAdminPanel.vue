@@ -126,7 +126,7 @@
           </div>
         </div>
 
-        <!-- Modern Chart Section -->
+        <!-- Modern Chart Section - FIXED -->
         <div class="chart-card" :class="{ 'fullscreen-mode': chartFullscreen }">
           <div class="chart-card-header">
             <div>
@@ -155,7 +155,7 @@
           </div>
 
           <div class="chart-body">
-            <!-- Chart Summary - FIXED ALIGNMENT -->
+            <!-- Chart Summary -->
             <div class="chart-stats" v-if="salesTrend.length > 0">
               <div class="chart-stat">
                 <span class="chart-stat-label">Peak</span>
@@ -179,16 +179,16 @@
               </div>
             </div>
 
-            <!-- The Chart -->
+            <!-- The Chart - FIXED with proper bar rendering -->
             <div class="chart-wrapper" ref="chartWrapper" id="sales-chart">
               <div v-if="salesTrend.length > 0" class="chart-container">
-                <!-- Bars -->
+                <!-- Bars Container -->
                 <div class="chart-bars-container">
                   <div 
                     v-for="(day, index) in chartVisibleData" 
                     :key="day.date"
                     class="chart-bar-group"
-                    @mouseenter="showTooltip(index)"
+                    @mouseenter="showTooltip(index, $event)"
                     @mouseleave="hideTooltip"
                   >
                     <div class="chart-bar-track">
@@ -198,6 +198,7 @@
                           height: getBarHeight(day.revenue) + '%',
                           '--bar-color': getBarColor(index)
                         }"
+                        :data-index="index"
                       >
                         <span class="chart-bar-value">{{ formatCurrency(day.revenue) }}</span>
                       </div>
@@ -210,7 +211,7 @@
                 <svg v-if="chartView === 'mixed' || chartView === 'line'" class="chart-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="trendArea" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.12" />
+                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
                       <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
                     </linearGradient>
                   </defs>
@@ -223,7 +224,7 @@
                     :points="getLinePoints()"
                     fill="none"
                     stroke="#F94908"
-                    stroke-width="2"
+                    stroke-width="2.5"
                     stroke-linejoin="round"
                     stroke-linecap="round"
                   />
@@ -232,23 +233,14 @@
                     :key="index"
                     :cx="point.x"
                     :cy="point.y"
-                    r="3.5"
+                    r="4"
                     fill="#F94908"
                     stroke="white"
-                    stroke-width="1.5"
-                    @mouseenter="showTooltip(index)"
+                    stroke-width="2"
+                    @mouseenter="showTooltip(index, $event)"
                     @mouseleave="hideTooltip"
                   />
                 </svg>
-
-                <!-- Tooltip -->
-                <div v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartVisibleData.length" 
-                     class="chart-tooltip-modern" 
-                     :style="tooltipPosition">
-                  <div class="tooltip-date">{{ formatFullDate(chartVisibleData[hoveredIndex]?.date) }}</div>
-                  <div class="tooltip-revenue">{{ formatCurrency(chartVisibleData[hoveredIndex]?.revenue || 0) }}</div>
-                  <div class="tooltip-items">{{ formatNumber(chartVisibleData[hoveredIndex]?.items || 0) }} items</div>
-                </div>
               </div>
 
               <!-- Empty State -->
@@ -769,7 +761,7 @@ export default {
   },
   methods: {
     // =============================================
-    // FORMATTING - FIXED
+    // FORMATTING
     // =============================================
     formatCurrency(amount) {
       const num = Number(amount) || 0
@@ -826,7 +818,6 @@ export default {
       return total / this.salesTrend.length
     },
     getTotalItems() {
-      // FIXED: Properly sum items from salesTrend
       return this.salesTrend.reduce((sum, d) => {
         const items = parseInt(d.items) || 0
         return sum + items
@@ -863,7 +854,7 @@ export default {
     },
     
     // =============================================
-    // CHART DRAWING
+    // CHART DRAWING - FIXED
     // =============================================
     getBarHeight(revenue) {
       const data = this.chartVisibleData
@@ -954,23 +945,23 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP
+    // TOOLTIP - FIXED with proper alignment
     // =============================================
-    showTooltip(index) {
+    showTooltip(index, event) {
       this.hoveredIndex = index
       this.tooltipVisible = true
+      
+      // Get the bar element position
       const wrapper = this.$refs.chartWrapper
       if (wrapper) {
         const data = this.chartVisibleData
-        if (data.length > 1) {
-          const x = (index / (data.length - 1)) * 100
+        if (data.length > 0) {
+          // Calculate position based on index
+          const barWidth = 100 / data.length
+          const xPosition = (index / data.length) * 100 + (barWidth / 2)
+          
           this.tooltipPosition = {
-            left: `calc(${x}% - 60px)`,
-            top: '5px'
-          }
-        } else {
-          this.tooltipPosition = {
-            left: 'calc(50% - 60px)',
+            left: `calc(${xPosition}% - 60px)`,
             top: '5px'
           }
         }
@@ -1015,7 +1006,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED
+    // DATA LOADING
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1066,14 +1057,12 @@ export default {
         })
         const data = res.data || {}
         
-        // FIXED: Properly parse items as integers
         this.salesTrend = (data.dailySales || []).map(day => ({
           ...day,
           items: parseInt(day.items) || 0,
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // FIXED: Ensure totalItems is a proper integer
         this.consolidatedSales.totalItems = parseInt(data.totalItems) || 0
         this.consolidatedSales.totalRevenue = parseFloat(data.totalRevenue) || 0
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
@@ -2031,11 +2020,13 @@ export default {
 }
 
 /* ============================================ */
-/* CHART WRAPPER                                */
+/* CHART WRAPPER - FIXED BAR CHART            */
 /* ============================================ */
 .chart-wrapper {
   position: relative;
   height: 200px;
+  width: 100%;
+  overflow: visible;
 }
 
 .chart-container {
@@ -2044,13 +2035,15 @@ export default {
   height: 100%;
 }
 
+/* Bar Chart - FIXED */
 .chart-bars-container {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: space-around;
   height: 100%;
-  padding: 0 4px;
-  gap: 4px;
+  width: 100%;
+  padding: 0 2px;
+  gap: 2px;
 }
 
 .chart-bar-group {
@@ -2061,7 +2054,7 @@ export default {
   height: 100%;
   cursor: pointer;
   position: relative;
-  z-index: 1;
+  min-width: 0;
 }
 
 .chart-bar-track {
@@ -2069,34 +2062,53 @@ export default {
   width: 100%;
   display: flex;
   align-items: flex-end;
-  min-height: 10px;
+  justify-content: center;
+  min-height: 8px;
+  position: relative;
 }
 
 .chart-bar-fill {
-  width: 100%;
-  max-width: 36px;
+  width: 70%;
+  max-width: 40px;
+  min-width: 8px;
   min-height: 3px;
   border-radius: 3px 3px 0 0;
   background: var(--bar-color, var(--primary));
-  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   margin: 0 auto;
+  will-change: height;
+}
+
+.chart-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.6;
 }
 
 .chart-bar-fill:hover {
   opacity: 0.85;
+  transform: scaleY(1.02);
+  transform-origin: bottom;
 }
 
 .chart-bar-value {
   position: absolute;
-  top: -1.1rem;
+  top: -1.2rem;
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.5rem;
   color: var(--text-tertiary);
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .chart-bar-group:hover .chart-bar-value {
@@ -2108,6 +2120,7 @@ export default {
   color: var(--text-tertiary);
   margin-top: 4px;
   text-align: center;
+  white-space: nowrap;
 }
 
 /* Trend Line SVG */
@@ -2124,14 +2137,15 @@ export default {
 .chart-trend-line circle {
   pointer-events: all;
   cursor: pointer;
-  transition: r 0.2s;
+  transition: r 0.2s, fill 0.2s;
 }
 
 .chart-trend-line circle:hover {
   r: 5;
+  fill: #d63d07;
 }
 
-/* Tooltip */
+/* Tooltip - FIXED */
 .chart-tooltip-modern {
   position: absolute;
   background: var(--surface);
@@ -2144,6 +2158,7 @@ export default {
   min-width: 100px;
   animation: fadeIn 0.15s ease;
   transform: translateX(-50%);
+  top: 5px;
 }
 
 .tooltip-date {
@@ -2969,7 +2984,7 @@ export default {
   
   .chart-body { padding: 0.75rem; }
   .chart-wrapper { height: 150px; }
-  .chart-bar-fill { max-width: 28px; }
+  .chart-bar-fill { max-width: 28px; min-width: 6px; }
   
   .tab-pill { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
   .tab-pill-label { font-size: 0.7rem; }
@@ -3002,7 +3017,6 @@ export default {
     font-size: 0.7rem;
   }
   
-  /* Fix chart stats alignment on tablet */
   .chart-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.35rem;
@@ -3024,7 +3038,7 @@ export default {
   .kpi-value { font-size: 0.95rem; }
   
   .chart-wrapper { height: 120px; }
-  .chart-bar-fill { max-width: 20px; }
+  .chart-bar-fill { max-width: 20px; min-width: 4px; }
   .chart-bar-label { font-size: 0.4rem; }
   .chart-nav-label { min-width: 60px; font-size: 0.6rem; }
   
@@ -3061,6 +3075,15 @@ export default {
   
   .chart-card.fullscreen-mode .chart-wrapper {
     height: calc(100vh - 160px);
+  }
+  
+  .chart-tooltip-modern {
+    min-width: 60px;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .tooltip-revenue {
+    font-size: 0.6rem;
   }
 }
 </style>
