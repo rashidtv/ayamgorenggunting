@@ -127,7 +127,7 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- MODERN MINIMALIST CHART - COMPLETELY REDESIGNED -->
+        <!-- MODERN CHART WITH VUE-SVG-CHARTS            -->
         <!-- ============================================ -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
           <div class="chart-modern-header">
@@ -136,16 +136,6 @@
               <span class="chart-modern-sub">{{ getPeriodLabel() }} trend</span>
             </div>
             <div class="chart-modern-controls">
-              <div class="chart-modern-views">
-                <button 
-                  v-for="view in chartViews" 
-                  :key="view.id"
-                  :class="['chart-modern-view', { active: chartView === view.id }]"
-                  @click="setChartView(view.id)"
-                >
-                  {{ view.icon }}
-                </button>
-              </div>
               <button @click="toggleChartFullscreen" class="chart-modern-fullscreen">
                 {{ chartFullscreen ? '✕' : '⛶' }}
               </button>
@@ -177,64 +167,25 @@
               </div>
             </div>
 
-            <!-- The Chart - Modern Minimalist -->
+            <!-- The Chart - Using vue-svg-charts -->
             <div class="chart-modern-wrapper" ref="chartWrapper">
               <div v-if="salesTrend.length > 0" class="chart-modern-container">
-                <!-- Bars -->
-                <div class="chart-modern-bars">
-                  <div 
-                    v-for="(day, index) in chartVisibleData" 
-                    :key="day.date"
-                    class="chart-modern-bar-group"
-                    @mouseenter="showTooltip(index)"
-                    @mouseleave="hideTooltip"
-                  >
-                    <div class="chart-modern-bar-track">
-                      <div 
-                        class="chart-modern-bar" 
-                        :style="{ 
-                          height: getModernBarHeight(day.revenue) + '%',
-                          '--bar-color': getModernBarColor(index)
-                        }"
-                      >
-                        <div class="chart-modern-bar-glow"></div>
-                      </div>
-                    </div>
-                    <span class="chart-modern-bar-label">{{ formatShortDate(day.date) }}</span>
-                    <span class="chart-modern-bar-value">{{ formatCurrency(day.revenue) }}</span>
-                  </div>
-                </div>
-
-                <!-- Trend Line -->
-                <svg v-if="chartView === 'line' || chartView === 'mixed'" class="chart-modern-line" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="modernArea" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
-                      <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
-                    </linearGradient>
-                  </defs>
-                  <polygon :points="getModernAreaPoints()" fill="url(#modernArea)" />
-                  <polyline :points="getModernLinePoints()" fill="none" stroke="#F94908" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-                  <circle
-                    v-for="(point, index) in getModernLinePointsArray()"
-                    :key="index"
-                    :cx="point.x"
-                    :cy="point.y"
-                    r="3.5"
-                    fill="#F94908"
-                    stroke="white"
-                    stroke-width="2"
-                    @mouseenter="showTooltip(index)"
-                    @mouseleave="hideTooltip"
-                  />
-                </svg>
-
-                <!-- Tooltip -->
-                <div v-if="tooltipVisible && hoveredIndex !== null" class="chart-modern-tooltip" :style="tooltipPosition">
-                  <div class="chart-modern-tooltip-date">{{ formatFullDate(chartVisibleData[hoveredIndex]?.date) }}</div>
-                  <div class="chart-modern-tooltip-revenue">{{ formatCurrency(chartVisibleData[hoveredIndex]?.revenue || 0) }}</div>
-                  <div class="chart-modern-tooltip-items">{{ formatNumber(chartVisibleData[hoveredIndex]?.items || 0) }} items</div>
-                </div>
+                <!-- Bar Chart with vue-svg-charts -->
+                <BarGraph
+                  :points="chartData"
+                  :show-values="true"
+                  :colors="chartColors"
+                  :bar-width="barWidth"
+                  :line="showTrendLine"
+                  :line-color="'#F94908'"
+                  :label-position="'bottom'"
+                  :value-position="'top'"
+                  :value-font-size="'10px'"
+                  :label-font-size="'10px'"
+                  :height="chartHeight"
+                  :rounded-corners="4"
+                  animation-duration="800"
+                />
               </div>
 
               <div v-else class="chart-modern-empty">
@@ -614,10 +565,15 @@
 
 <script>
 import axios from 'axios'
+import { BarGraph } from 'vue-svg-charts'
+
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
   props: ['token'],
+  components: {
+    BarGraph
+  },
   data() {
     return {
       // Tabs
@@ -629,16 +585,16 @@ export default {
         { id: 'users', label: 'Users', icon: '👥' }
       ],
       
-      // Chart Views
-      chartViews: [
-        { id: 'bars', label: 'Bar Chart', icon: '▦' },
-        { id: 'line', label: 'Line Chart', icon: '∿' },
-        { id: 'mixed', label: 'Mixed', icon: '⊹' }
-      ],
-      chartView: 'bars',
+      // Chart settings
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
+      chartHeight: 250,
+      barWidth: 40,
+      showTrendLine: true,
+      
+      // Chart colors
+      chartColors: ['#F94908', '#fa6a2e', '#fb8b5a', '#fcaa86', '#fdc9b2', '#fddcc6', '#fde8d9'],
       
       // Data
       stalls: [],
@@ -663,11 +619,6 @@ export default {
         { value: 'quarter', label: 'Quarter' },
         { value: 'year', label: 'Year' }
       ],
-      
-      // Tooltip
-      tooltipVisible: false,
-      hoveredIndex: null,
-      tooltipPosition: { left: '50%', top: '10px' },
       
       // Inventory
       expandedInventoryStall: null,
@@ -700,6 +651,15 @@ export default {
     },
     chartVisibleData() {
       return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+    },
+    chartData() {
+      return this.chartVisibleData.map(day => ({
+        label: this.formatShortDate(day.date),
+        value: day.revenue || 0,
+        // For tooltip/extra data
+        items: day.items || 0,
+        date: day.date
+      }))
     },
     
     filteredInventoryStalls() {
@@ -841,57 +801,6 @@ export default {
     },
     
     // =============================================
-    // MODERN CHART DRAWING
-    // =============================================
-    getModernBarHeight(revenue) {
-      const data = this.chartVisibleData
-      if (data.length === 0) return 5
-      const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      return Math.max((revenue / max) * 80, 4)
-    },
-    getModernBarColor(index) {
-      const colors = ['#F94908', '#fa6a2e', '#fb8b5a', '#fcaa86', '#fdc9b2']
-      return colors[index % colors.length]
-    },
-    getModernAreaPoints() {
-      const data = this.chartVisibleData
-      if (data.length === 0) return ''
-      const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      const points = data.map((day, i) => {
-        const x = (i / (data.length - 1)) * 100
-        const y = 100 - ((day.revenue / max) * 85)
-        return `${x},${y}`
-      })
-      return `0,100,${points.join(',')},100,100`
-    },
-    getModernLinePoints() {
-      const data = this.chartVisibleData
-      if (data.length === 0) return ''
-      const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      return data.map((day, i) => {
-        const x = (i / (data.length - 1)) * 100
-        const y = 100 - ((day.revenue / max) * 85)
-        return `${x},${y}`
-      }).join(' ')
-    },
-    getModernLinePointsArray() {
-      const data = this.chartVisibleData
-      if (data.length === 0) return []
-      const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      return data.map((day, i) => ({
-        x: (i / (data.length - 1)) * 100,
-        y: 100 - ((day.revenue / max) * 85)
-      }))
-    },
-    
-    // =============================================
-    // CHART VIEW
-    // =============================================
-    setChartView(viewId) {
-      this.chartView = viewId
-    },
-    
-    // =============================================
     // CHART NAVIGATION
     // =============================================
     navigateChart(direction) {
@@ -912,6 +821,8 @@ export default {
       this.chartFullscreen = !this.chartFullscreen
       if (this.chartFullscreen) {
         document.body.style.overflow = 'hidden'
+        this.chartHeight = 500
+        this.barWidth = 60
         const backdrop = document.createElement('div')
         backdrop.id = 'fullscreen-backdrop'
         backdrop.style.cssText = `
@@ -923,32 +834,14 @@ export default {
         document.body.appendChild(backdrop)
       } else {
         document.body.style.overflow = ''
+        this.chartHeight = 250
+        this.barWidth = 40
         const backdrop = document.getElementById('fullscreen-backdrop')
         if (backdrop) backdrop.remove()
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
       }
-    },
-    
-    // =============================================
-    // TOOLTIP
-    // =============================================
-    showTooltip(index) {
-      this.hoveredIndex = index
-      this.tooltipVisible = true
-      const data = this.chartVisibleData
-      if (data.length > 0) {
-        const x = (index / data.length) * 100 + (100 / data.length / 2)
-        this.tooltipPosition = {
-          left: `calc(${x}% - 60px)`,
-          top: '5px'
-        }
-      }
-    },
-    hideTooltip() {
-      this.tooltipVisible = false
-      this.hoveredIndex = null
     },
     
     // =============================================
@@ -1826,7 +1719,7 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* MODERN MINIMALIST CHART - COMPLETELY REDESIGNED */
+/* MODERN CHART WITH VUE-SVG-CHARTS            */
 /* ============================================ */
 .chart-modern {
   background: var(--surface);
@@ -1847,6 +1740,7 @@ export default {
   border-radius: 0;
   border: none;
   padding: 1.5rem;
+  overflow: auto;
 }
 
 .chart-modern-header {
@@ -1877,35 +1771,6 @@ export default {
   align-items: center;
 }
 
-.chart-modern-views {
-  display: flex;
-  gap: 2px;
-  background: var(--background);
-  padding: 2px;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
-}
-
-.chart-modern-view {
-  padding: 0.1rem 0.4rem;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: var(--transition);
-  color: var(--text-tertiary);
-}
-
-.chart-modern-view:hover {
-  color: var(--text);
-}
-
-.chart-modern-view.active {
-  background: var(--primary);
-  color: white;
-}
-
 .chart-modern-fullscreen {
   padding: 0.1rem 0.5rem;
   border: 1px solid var(--border);
@@ -1926,7 +1791,7 @@ export default {
   padding: 1.25rem;
 }
 
-/* Chart Stats - Minimalist */
+/* Chart Stats */
 .chart-modern-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1968,155 +1833,32 @@ export default {
 /* Chart Wrapper */
 .chart-modern-wrapper {
   position: relative;
-  height: 200px;
   width: 100%;
+  min-height: 250px;
 }
 
 .chart-modern-container {
   position: relative;
   width: 100%;
-  height: 100%;
 }
 
-/* Modern Minimalist Bars */
-.chart-modern-bars {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 100%;
-  width: 100%;
-  gap: 6px;
-}
-
-.chart-modern-bar-group {
+.chart-modern-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
-  height: 100%;
-  cursor: pointer;
-  min-width: 0;
-}
-
-.chart-modern-bar-track {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
   justify-content: center;
-  min-height: 8px;
-  position: relative;
-}
-
-.chart-modern-bar {
-  width: 65%;
-  max-width: 36px;
-  min-width: 6px;
-  min-height: 3px;
-  border-radius: 4px 4px 2px 2px;
-  background: var(--bar-color, var(--primary));
-  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  margin: 0 auto;
-  will-change: height;
-}
-
-.chart-modern-bar-glow {
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 4px;
-  background: radial-gradient(ellipse, rgba(255,255,255,0.4) 0%, transparent 70%);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar-glow {
-  opacity: 1;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar {
-  opacity: 0.85;
-  transform: scaleY(1.03);
-  transform-origin: bottom;
-}
-
-.chart-modern-bar-label {
-  font-size: 0.5rem;
-  color: var(--text-tertiary);
-  margin-top: 4px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.chart-modern-bar-value {
-  font-size: 0.5rem;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar-value {
-  opacity: 1;
-}
-
-/* Trend Line */
-.chart-modern-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.chart-modern-line circle {
-  pointer-events: all;
-  cursor: pointer;
-  transition: r 0.2s, fill 0.2s;
-}
-
-.chart-modern-line circle:hover {
-  r: 5;
-  fill: var(--primary-dark);
-}
-
-/* Tooltip - Clean & Minimal */
-.chart-modern-tooltip {
-  position: absolute;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  z-index: 10;
-  pointer-events: none;
-  min-width: 90px;
-  animation: fadeIn 0.15s ease;
-  transform: translateX(-50%);
-  top: 5px;
-}
-
-.chart-modern-tooltip-date {
-  font-size: 0.6rem;
+  height: 250px;
   color: var(--text-secondary);
-  font-weight: 600;
 }
 
-.chart-modern-tooltip-revenue {
+.chart-modern-empty span {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.chart-modern-empty p {
   font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.chart-modern-tooltip-items {
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
+  margin: 0;
 }
 
 /* Chart Navigation */
@@ -2168,25 +1910,6 @@ export default {
   font-weight: 500;
   min-width: 80px;
   text-align: center;
-}
-
-.chart-modern-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-secondary);
-}
-
-.chart-modern-empty span {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.chart-modern-empty p {
-  font-size: 0.85rem;
-  margin: 0;
 }
 
 /* ============================================ */
@@ -2928,9 +2651,7 @@ export default {
   .kpi-value { font-size: 1.1rem; }
   
   .chart-modern-body { padding: 0.75rem; }
-  .chart-modern-wrapper { height: 150px; }
-  .chart-modern-bar { max-width: 28px; min-width: 4px; }
-  .chart-modern-bar-label { font-size: 0.45rem; }
+  .chart-modern-wrapper { min-height: 200px; }
   
   .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -2957,14 +2678,6 @@ export default {
   .stall-rank-revenue { min-width: unset; }
   
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
-  
-  .chart-modern-tooltip {
-    min-width: 70px;
-    padding: 0.3rem 0.5rem;
-    transform: translateX(-50%);
-  }
-  
-  .chart-modern-tooltip-revenue { font-size: 0.7rem; }
 }
 
 @media (max-width: 480px) {
@@ -2977,10 +2690,7 @@ export default {
   .kpi-card { padding: 0.5rem; }
   .kpi-value { font-size: 0.95rem; }
   
-  .chart-modern-wrapper { height: 120px; }
-  .chart-modern-bar { max-width: 20px; min-width: 3px; }
-  .chart-modern-bar-label { font-size: 0.4rem; }
-  .chart-modern-bar-value { font-size: 0.4rem; }
+  .chart-modern-wrapper { min-height: 180px; }
   
   .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -3006,14 +2716,5 @@ export default {
   .list-item-btn { font-size: 0.75rem; }
   
   .empty-state-modern span { font-size: 1.5rem; }
-  
-  .chart-modern-tooltip {
-    min-width: 60px;
-    padding: 0.2rem 0.4rem;
-  }
-  
-  .chart-modern-tooltip-revenue { font-size: 0.6rem; }
-  .chart-modern-tooltip-date { font-size: 0.5rem; }
-  .chart-modern-tooltip-items { font-size: 0.5rem; }
 }
 </style>
