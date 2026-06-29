@@ -126,144 +126,131 @@
           </div>
         </div>
 
-        <!-- Modern Chart Section - FIXED -->
-        <div class="chart-card" :class="{ 'fullscreen-mode': chartFullscreen }">
-          <div class="chart-card-header">
-            <div>
+        <!-- ============================================ -->
+        <!-- MODERN MINIMALIST CHART - COMPLETELY REDESIGNED -->
+        <!-- ============================================ -->
+        <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
+          <div class="chart-modern-header">
+            <div class="chart-modern-title">
               <h3>Sales Overview</h3>
-              <span class="chart-subtitle">{{ getPeriodLabel() }} trend</span>
+              <span class="chart-modern-sub">{{ getPeriodLabel() }} trend</span>
             </div>
-            <div class="chart-actions">
-              <div class="chart-view-group">
+            <div class="chart-modern-controls">
+              <div class="chart-modern-views">
                 <button 
                   v-for="view in chartViews" 
                   :key="view.id"
-                  :class="['chart-view-btn', { active: chartView === view.id }]"
+                  :class="['chart-modern-view', { active: chartView === view.id }]"
                   @click="setChartView(view.id)"
-                  :title="view.label"
                 >
                   {{ view.icon }}
                 </button>
               </div>
-              <button @click="toggleChartFullscreen" class="chart-fullscreen-btn" :title="chartFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+              <button @click="toggleChartFullscreen" class="chart-modern-fullscreen">
                 {{ chartFullscreen ? '✕' : '⛶' }}
-              </button>
-              <button v-if="chartFullscreen" @click="toggleChartFullscreen" class="chart-exit-btn">
-                ✕ Exit
               </button>
             </div>
           </div>
 
-          <div class="chart-body">
-            <!-- Chart Summary -->
-            <div class="chart-stats" v-if="salesTrend.length > 0">
-              <div class="chart-stat">
-                <span class="chart-stat-label">Peak</span>
-                <span class="chart-stat-value">{{ formatCurrency(getPeakRevenue()) }}</span>
-                <span class="chart-stat-sub">{{ getPeakDay() }}</span>
+          <div class="chart-modern-body">
+            <!-- Stats Row -->
+            <div class="chart-modern-stats" v-if="salesTrend.length > 0">
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Peak</span>
+                <span class="chart-modern-stat-value">{{ formatCurrency(getPeakRevenue()) }}</span>
+                <span class="chart-modern-stat-sub">{{ getPeakDay() }}</span>
               </div>
-              <div class="chart-stat">
-                <span class="chart-stat-label">Average</span>
-                <span class="chart-stat-value">{{ formatCurrency(getAverageRevenue()) }}</span>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Average</span>
+                <span class="chart-modern-stat-value">{{ formatCurrency(getAverageRevenue()) }}</span>
               </div>
-              <div class="chart-stat">
-                <span class="chart-stat-label">Items</span>
-                <span class="chart-stat-value">{{ formatNumber(getTotalItems()) }}</span>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Items</span>
+                <span class="chart-modern-stat-value">{{ formatNumber(getTotalItems()) }}</span>
               </div>
-              <div class="chart-stat">
-                <span class="chart-stat-label">Trend</span>
-                <span class="chart-stat-value" :class="getTrendDirection()">
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Trend</span>
+                <span class="chart-modern-stat-value" :class="getTrendDirection()">
                   {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
                   {{ getTrendPercentage() }}%
                 </span>
               </div>
             </div>
 
-            <!-- The Chart - FIXED with proper bar rendering -->
-            <div class="chart-wrapper" ref="chartWrapper" id="sales-chart">
-              <div v-if="salesTrend.length > 0" class="chart-container">
-                <!-- Bars Container -->
-                <div class="chart-bars-container">
+            <!-- The Chart - Modern Minimalist -->
+            <div class="chart-modern-wrapper" ref="chartWrapper">
+              <div v-if="salesTrend.length > 0" class="chart-modern-container">
+                <!-- Bars -->
+                <div class="chart-modern-bars">
                   <div 
                     v-for="(day, index) in chartVisibleData" 
                     :key="day.date"
-                    class="chart-bar-group"
-                    @mouseenter="showTooltip(index, $event)"
+                    class="chart-modern-bar-group"
+                    @mouseenter="showTooltip(index)"
                     @mouseleave="hideTooltip"
                   >
-                    <div class="chart-bar-track">
+                    <div class="chart-modern-bar-track">
                       <div 
-                        class="chart-bar-fill" 
+                        class="chart-modern-bar" 
                         :style="{ 
-                          height: getBarHeight(day.revenue) + '%',
-                          '--bar-color': getBarColor(index)
+                          height: getModernBarHeight(day.revenue) + '%',
+                          '--bar-color': getModernBarColor(index)
                         }"
-                        :data-index="index"
                       >
-                        <span class="chart-bar-value">{{ formatCurrency(day.revenue) }}</span>
+                        <div class="chart-modern-bar-glow"></div>
                       </div>
                     </div>
-                    <span class="chart-bar-label">{{ formatShortDate(day.date) }}</span>
+                    <span class="chart-modern-bar-label">{{ formatShortDate(day.date) }}</span>
+                    <span class="chart-modern-bar-value">{{ formatCurrency(day.revenue) }}</span>
                   </div>
                 </div>
 
-                <!-- Trend Line Overlay - Only show in mixed/line mode -->
-                <svg v-if="chartView === 'mixed' || chartView === 'line'" class="chart-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- Trend Line -->
+                <svg v-if="chartView === 'line' || chartView === 'mixed'" class="chart-modern-line" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
-                    <linearGradient id="trendArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <linearGradient id="modernArea" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
                       <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
                     </linearGradient>
                   </defs>
-                  <polygon
-                    :points="getAreaPoints()"
-                    fill="url(#trendArea)"
-                    opacity="0.6"
-                  />
-                  <polyline
-                    :points="getLinePoints()"
-                    fill="none"
-                    stroke="#F94908"
-                    stroke-width="2.5"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
-                  />
+                  <polygon :points="getModernAreaPoints()" fill="url(#modernArea)" />
+                  <polyline :points="getModernLinePoints()" fill="none" stroke="#F94908" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
                   <circle
-                    v-for="(point, index) in getLinePointsArray()"
+                    v-for="(point, index) in getModernLinePointsArray()"
                     :key="index"
                     :cx="point.x"
                     :cy="point.y"
-                    r="4"
+                    r="3.5"
                     fill="#F94908"
                     stroke="white"
                     stroke-width="2"
-                    @mouseenter="showTooltip(index, $event)"
+                    @mouseenter="showTooltip(index)"
                     @mouseleave="hideTooltip"
                   />
                 </svg>
+
+                <!-- Tooltip -->
+                <div v-if="tooltipVisible && hoveredIndex !== null" class="chart-modern-tooltip" :style="tooltipPosition">
+                  <div class="chart-modern-tooltip-date">{{ formatFullDate(chartVisibleData[hoveredIndex]?.date) }}</div>
+                  <div class="chart-modern-tooltip-revenue">{{ formatCurrency(chartVisibleData[hoveredIndex]?.revenue || 0) }}</div>
+                  <div class="chart-modern-tooltip-items">{{ formatNumber(chartVisibleData[hoveredIndex]?.items || 0) }} items</div>
+                </div>
               </div>
 
-              <!-- Empty State -->
-              <div v-else class="chart-empty">
-                <span class="chart-empty-icon">📊</span>
+              <div v-else class="chart-modern-empty">
+                <span>📊</span>
                 <p>No sales data available</p>
               </div>
             </div>
 
-            <!-- Chart Navigation -->
-            <div v-if="salesTrend.length > chartWindow" class="chart-nav">
-              <button @click="navigateChart('prev')" class="chart-nav-btn" :disabled="chartOffset <= 0">
-                ←
-              </button>
-              <span class="chart-nav-label">
+            <!-- Navigation -->
+            <div v-if="salesTrend.length > chartWindow" class="chart-modern-nav">
+              <button @click="navigateChart('prev')" class="chart-modern-nav-btn" :disabled="chartOffset <= 0">←</button>
+              <span class="chart-modern-nav-label">
                 {{ chartOffset + 1 }}–{{ Math.min(chartOffset + chartWindow, salesTrend.length) }} of {{ salesTrend.length }}
               </span>
-              <button @click="navigateChart('next')" class="chart-nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">
-                →
-              </button>
-              <button @click="resetChartNavigation" class="chart-nav-btn reset" v-if="chartOffset > 0 || chartWindow < salesTrend.length">
-                ↺
-              </button>
+              <button @click="navigateChart('next')" class="chart-modern-nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">→</button>
+              <button @click="resetChartNavigation" class="chart-modern-nav-btn reset" v-if="chartOffset > 0 || chartWindow < salesTrend.length">↺</button>
             </div>
           </div>
         </div>
@@ -648,7 +635,7 @@ export default {
         { id: 'line', label: 'Line Chart', icon: '∿' },
         { id: 'mixed', label: 'Mixed', icon: '⊹' }
       ],
-      chartView: 'mixed',
+      chartView: 'bars',
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
@@ -854,19 +841,19 @@ export default {
     },
     
     // =============================================
-    // CHART DRAWING - FIXED
+    // MODERN CHART DRAWING
     // =============================================
-    getBarHeight(revenue) {
+    getModernBarHeight(revenue) {
       const data = this.chartVisibleData
       if (data.length === 0) return 5
       const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      return Math.max((revenue / max) * 75, 3)
+      return Math.max((revenue / max) * 80, 4)
     },
-    getBarColor(index) {
+    getModernBarColor(index) {
       const colors = ['#F94908', '#fa6a2e', '#fb8b5a', '#fcaa86', '#fdc9b2']
       return colors[index % colors.length]
     },
-    getAreaPoints() {
+    getModernAreaPoints() {
       const data = this.chartVisibleData
       if (data.length === 0) return ''
       const max = Math.max(...data.map(d => d.revenue || 0), 1)
@@ -877,7 +864,7 @@ export default {
       })
       return `0,100,${points.join(',')},100,100`
     },
-    getLinePoints() {
+    getModernLinePoints() {
       const data = this.chartVisibleData
       if (data.length === 0) return ''
       const max = Math.max(...data.map(d => d.revenue || 0), 1)
@@ -887,7 +874,7 @@ export default {
         return `${x},${y}`
       }).join(' ')
     },
-    getLinePointsArray() {
+    getModernLinePointsArray() {
       const data = this.chartVisibleData
       if (data.length === 0) return []
       const max = Math.max(...data.map(d => d.revenue || 0), 1)
@@ -945,25 +932,17 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP - FIXED with proper alignment
+    // TOOLTIP
     // =============================================
-    showTooltip(index, event) {
+    showTooltip(index) {
       this.hoveredIndex = index
       this.tooltipVisible = true
-      
-      // Get the bar element position
-      const wrapper = this.$refs.chartWrapper
-      if (wrapper) {
-        const data = this.chartVisibleData
-        if (data.length > 0) {
-          // Calculate position based on index
-          const barWidth = 100 / data.length
-          const xPosition = (index / data.length) * 100 + (barWidth / 2)
-          
-          this.tooltipPosition = {
-            left: `calc(${xPosition}% - 60px)`,
-            top: '5px'
-          }
+      const data = this.chartVisibleData
+      if (data.length > 0) {
+        const x = (index / data.length) * 100 + (100 / data.length / 2)
+        this.tooltipPosition = {
+          left: `calc(${x}% - 60px)`,
+          top: '5px'
         }
       }
     },
@@ -1474,7 +1453,7 @@ export default {
   --shadow: 0 2px 8px rgba(0,0,0,0.06);
   --radius: 12px;
   --radius-sm: 8px;
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================ */
@@ -1847,17 +1826,17 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* CHART CARD                                   */
+/* MODERN MINIMALIST CHART - COMPLETELY REDESIGNED */
 /* ============================================ */
-.chart-card {
+.chart-modern {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  position: relative;
+  transition: var(--transition);
 }
 
-.chart-card.fullscreen-mode {
+.chart-modern.fullscreen {
   position: fixed;
   top: 0;
   left: 0;
@@ -1867,20 +1846,10 @@ export default {
   background: var(--surface);
   border-radius: 0;
   border: none;
-  margin: 0;
-  padding: 0;
+  padding: 1.5rem;
 }
 
-.chart-card.fullscreen-mode .chart-body {
-  height: calc(100vh - 80px);
-  overflow: auto;
-}
-
-.chart-card.fullscreen-mode .chart-wrapper {
-  height: calc(100vh - 280px);
-}
-
-.chart-card-header {
+.chart-modern-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -1890,25 +1859,25 @@ export default {
   gap: 0.5rem;
 }
 
-.chart-card-header h3 {
+.chart-modern-title h3 {
   font-size: 0.95rem;
   font-weight: 600;
   margin: 0;
   color: var(--text);
 }
 
-.chart-subtitle {
+.chart-modern-sub {
   font-size: 0.7rem;
   color: var(--text-secondary);
 }
 
-.chart-actions {
+.chart-modern-controls {
   display: flex;
   gap: 0.35rem;
   align-items: center;
 }
 
-.chart-view-group {
+.chart-modern-views {
   display: flex;
   gap: 2px;
   background: var(--background);
@@ -1917,7 +1886,7 @@ export default {
   border: 1px solid var(--border-light);
 }
 
-.chart-view-btn {
+.chart-modern-view {
   padding: 0.1rem 0.4rem;
   border: none;
   border-radius: 4px;
@@ -1928,18 +1897,16 @@ export default {
   color: var(--text-tertiary);
 }
 
-.chart-view-btn:hover {
+.chart-modern-view:hover {
   color: var(--text);
 }
 
-.chart-view-btn.active {
+.chart-modern-view.active {
   background: var(--primary);
   color: white;
-  box-shadow: 0 2px 6px rgba(249, 73, 8, 0.2);
 }
 
-.chart-fullscreen-btn,
-.chart-exit-btn {
+.chart-modern-fullscreen {
   padding: 0.1rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1950,114 +1917,88 @@ export default {
   color: var(--text-tertiary);
 }
 
-.chart-fullscreen-btn:hover,
-.chart-exit-btn:hover {
+.chart-modern-fullscreen:hover {
   border-color: var(--primary);
   color: var(--text);
 }
 
-.chart-exit-btn {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fecaca;
-}
-
-.chart-exit-btn:hover {
-  background: #fecaca;
-  color: #dc2626;
-}
-
-.chart-body {
+.chart-modern-body {
   padding: 1.25rem;
 }
 
-/* ============================================ */
-/* CHART STATS - FIXED ALIGNMENT               */
-/* ============================================ */
-.chart-stats {
+/* Chart Stats - Minimalist */
+.chart-modern-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   padding: 0.5rem;
   background: var(--background);
   border-radius: var(--radius-sm);
 }
 
-.chart-stat {
+.chart-modern-stat {
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.25rem;
 }
 
-.chart-stat-label {
+.chart-modern-stat-label {
   display: block;
   font-size: 0.55rem;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 0.1rem;
+  letter-spacing: 0.5px;
 }
 
-.chart-stat-value {
+.chart-modern-stat-value {
   display: block;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-.chart-stat-value.up { color: #10b981; }
-.chart-stat-value.down { color: #ef4444; }
+.chart-modern-stat-value.up { color: #10b981; }
+.chart-modern-stat-value.down { color: #ef4444; }
 
-.chart-stat-sub {
+.chart-modern-stat-sub {
   font-size: 0.5rem;
   color: var(--text-tertiary);
-  margin-top: 0.05rem;
 }
 
-/* ============================================ */
-/* CHART WRAPPER - FIXED BAR CHART            */
-/* ============================================ */
-.chart-wrapper {
+/* Chart Wrapper */
+.chart-modern-wrapper {
   position: relative;
   height: 200px;
   width: 100%;
-  overflow: visible;
 }
 
-.chart-container {
+.chart-modern-container {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-/* Bar Chart - FIXED */
-.chart-bars-container {
+/* Modern Minimalist Bars */
+.chart-modern-bars {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
   height: 100%;
   width: 100%;
-  padding: 0 2px;
-  gap: 2px;
+  gap: 6px;
 }
 
-.chart-bar-group {
+.chart-modern-bar-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
   height: 100%;
   cursor: pointer;
-  position: relative;
   min-width: 0;
 }
 
-.chart-bar-track {
+.chart-modern-bar-track {
   flex: 1;
   width: 100%;
   display: flex;
@@ -2067,55 +2008,43 @@ export default {
   position: relative;
 }
 
-.chart-bar-fill {
-  width: 70%;
-  max-width: 40px;
-  min-width: 8px;
+.chart-modern-bar {
+  width: 65%;
+  max-width: 36px;
+  min-width: 6px;
   min-height: 3px;
-  border-radius: 3px 3px 0 0;
+  border-radius: 4px 4px 2px 2px;
   background: var(--bar-color, var(--primary));
-  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   margin: 0 auto;
   will-change: height;
 }
 
-.chart-bar-fill::after {
-  content: '';
+.chart-modern-bar-glow {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 30%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
-  border-radius: 3px 3px 0 0;
-  opacity: 0.6;
-}
-
-.chart-bar-fill:hover {
-  opacity: 0.85;
-  transform: scaleY(1.02);
-  transform-origin: bottom;
-}
-
-.chart-bar-value {
-  position: absolute;
-  top: -1.2rem;
+  top: -2px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.5rem;
-  color: var(--text-tertiary);
-  white-space: nowrap;
+  width: 60%;
+  height: 4px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.4) 0%, transparent 70%);
+  border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+  transition: opacity 0.3s;
 }
 
-.chart-bar-group:hover .chart-bar-value {
+.chart-modern-bar-group:hover .chart-modern-bar-glow {
   opacity: 1;
 }
 
-.chart-bar-label {
+.chart-modern-bar-group:hover .chart-modern-bar {
+  opacity: 0.85;
+  transform: scaleY(1.03);
+  transform-origin: bottom;
+}
+
+.chart-modern-bar-label {
   font-size: 0.5rem;
   color: var(--text-tertiary);
   margin-top: 4px;
@@ -2123,8 +2052,20 @@ export default {
   white-space: nowrap;
 }
 
-/* Trend Line SVG */
-.chart-trend-line {
+.chart-modern-bar-value {
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.chart-modern-bar-group:hover .chart-modern-bar-value {
+  opacity: 1;
+}
+
+/* Trend Line */
+.chart-modern-line {
   position: absolute;
   top: 0;
   left: 0;
@@ -2134,52 +2075,52 @@ export default {
   z-index: 2;
 }
 
-.chart-trend-line circle {
+.chart-modern-line circle {
   pointer-events: all;
   cursor: pointer;
   transition: r 0.2s, fill 0.2s;
 }
 
-.chart-trend-line circle:hover {
+.chart-modern-line circle:hover {
   r: 5;
-  fill: #d63d07;
+  fill: var(--primary-dark);
 }
 
-/* Tooltip - FIXED */
-.chart-tooltip-modern {
+/* Tooltip - Clean & Minimal */
+.chart-modern-tooltip {
   position: absolute;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   z-index: 10;
   pointer-events: none;
-  min-width: 100px;
+  min-width: 90px;
   animation: fadeIn 0.15s ease;
   transform: translateX(-50%);
   top: 5px;
 }
 
-.tooltip-date {
-  font-size: 0.65rem;
+.chart-modern-tooltip-date {
+  font-size: 0.6rem;
   color: var(--text-secondary);
   font-weight: 600;
 }
 
-.tooltip-revenue {
+.chart-modern-tooltip-revenue {
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--primary);
 }
 
-.tooltip-items {
+.chart-modern-tooltip-items {
   font-size: 0.6rem;
   color: var(--text-tertiary);
 }
 
 /* Chart Navigation */
-.chart-nav {
+.chart-modern-nav {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2190,7 +2131,7 @@ export default {
   border-radius: var(--radius-sm);
 }
 
-.chart-nav-btn {
+.chart-modern-nav-btn {
   padding: 0.15rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -2201,27 +2142,27 @@ export default {
   color: var(--text-secondary);
 }
 
-.chart-nav-btn:hover:not(:disabled) {
+.chart-modern-nav-btn:hover:not(:disabled) {
   border-color: var(--primary);
   color: var(--text);
 }
 
-.chart-nav-btn:disabled {
+.chart-modern-nav-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.chart-nav-btn.reset {
+.chart-modern-nav-btn.reset {
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.chart-nav-btn.reset:hover:not(:disabled) {
+.chart-modern-nav-btn.reset:hover:not(:disabled) {
   background: var(--primary);
   color: white;
 }
 
-.chart-nav-label {
+.chart-modern-nav-label {
   font-size: 0.7rem;
   color: var(--text-secondary);
   font-weight: 500;
@@ -2229,8 +2170,7 @@ export default {
   text-align: center;
 }
 
-/* Chart Empty */
-.chart-empty {
+.chart-modern-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2239,9 +2179,14 @@ export default {
   color: var(--text-secondary);
 }
 
-.chart-empty-icon {
+.chart-modern-empty span {
   font-size: 2rem;
   margin-bottom: 0.5rem;
+}
+
+.chart-modern-empty p {
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 /* ============================================ */
@@ -2982,9 +2927,17 @@ export default {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-value { font-size: 1.1rem; }
   
-  .chart-body { padding: 0.75rem; }
-  .chart-wrapper { height: 150px; }
-  .chart-bar-fill { max-width: 28px; min-width: 6px; }
+  .chart-modern-body { padding: 0.75rem; }
+  .chart-modern-wrapper { height: 150px; }
+  .chart-modern-bar { max-width: 28px; min-width: 4px; }
+  .chart-modern-bar-label { font-size: 0.45rem; }
+  
+  .chart-modern-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+  }
+  
+  .chart-modern-stat-value { font-size: 0.8rem; }
   
   .tab-pill { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
   .tab-pill-label { font-size: 0.7rem; }
@@ -3003,28 +2956,15 @@ export default {
   .stall-rank { min-width: unset; }
   .stall-rank-revenue { min-width: unset; }
   
-  .chart-card.fullscreen-mode .chart-wrapper {
-    height: calc(100vh - 200px);
-  }
+  .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
   
-  .chart-tooltip-modern {
-    min-width: 80px;
+  .chart-modern-tooltip {
+    min-width: 70px;
     padding: 0.3rem 0.5rem;
     transform: translateX(-50%);
   }
   
-  .tooltip-revenue {
-    font-size: 0.7rem;
-  }
-  
-  .chart-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.35rem;
-  }
-  
-  .chart-stat-value {
-    font-size: 0.8rem;
-  }
+  .chart-modern-tooltip-revenue { font-size: 0.7rem; }
 }
 
 @media (max-width: 480px) {
@@ -3037,28 +2977,22 @@ export default {
   .kpi-card { padding: 0.5rem; }
   .kpi-value { font-size: 0.95rem; }
   
-  .chart-wrapper { height: 120px; }
-  .chart-bar-fill { max-width: 20px; min-width: 4px; }
-  .chart-bar-label { font-size: 0.4rem; }
-  .chart-nav-label { min-width: 60px; font-size: 0.6rem; }
+  .chart-modern-wrapper { height: 120px; }
+  .chart-modern-bar { max-width: 20px; min-width: 3px; }
+  .chart-modern-bar-label { font-size: 0.4rem; }
+  .chart-modern-bar-value { font-size: 0.4rem; }
   
-  .chart-stats {
+  .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.25rem;
     padding: 0.35rem;
   }
   
-  .chart-stat {
-    padding: 0.15rem;
-  }
+  .chart-modern-stat { padding: 0.15rem; }
+  .chart-modern-stat-value { font-size: 0.75rem; }
+  .chart-modern-stat-label { font-size: 0.5rem; }
   
-  .chart-stat-value {
-    font-size: 0.75rem;
-  }
-  
-  .chart-stat-label {
-    font-size: 0.5rem;
-  }
+  .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
   
   .header-left h1 { font-size: 1rem; }
   .header-badge { width: 36px; height: 36px; font-size: 1.2rem; }
@@ -3073,17 +3007,13 @@ export default {
   
   .empty-state-modern span { font-size: 1.5rem; }
   
-  .chart-card.fullscreen-mode .chart-wrapper {
-    height: calc(100vh - 160px);
-  }
-  
-  .chart-tooltip-modern {
+  .chart-modern-tooltip {
     min-width: 60px;
     padding: 0.2rem 0.4rem;
   }
   
-  .tooltip-revenue {
-    font-size: 0.6rem;
-  }
+  .chart-modern-tooltip-revenue { font-size: 0.6rem; }
+  .chart-modern-tooltip-date { font-size: 0.5rem; }
+  .chart-modern-tooltip-items { font-size: 0.5rem; }
 }
 </style>
