@@ -241,35 +241,36 @@
           <div class="card-header">
             <h3>📦 Inventory Management</h3>
             <div class="header-actions">
-              <div class="filter-group">
-                <button 
-                  @click="toggleLowStockFilter" 
-                  class="btn" 
-                  :class="showLowStockOnly ? 'btn-primary' : 'btn-outline'"
-                  :disabled="lowStockCount === 0"
-                >
-                  <span class="btn-icon">⚠️</span>
-                  Low Stock 
-                  <span class="filter-badge" v-if="lowStockCount > 0">{{ lowStockCount }}</span>
-                </button>
-                <button 
-                  @click="clearFilter" 
-                  class="btn btn-ghost btn-sm"
-                  v-if="showLowStockOnly"
-                >
-                  ✕ Clear Filter
-                </button>
-              </div>
-              <span class="badge-count">{{ stalls.length }} Stalls</span>
               <button @click="loadAllStallsInventory()" class="btn btn-outline btn-sm">🔄 Refresh</button>
             </div>
           </div>
           <div class="card-body">
+            <!-- Search & Filter Controls -->
+            <div class="table-controls">
+              <div class="search-box">
+                <input 
+                  type="text" 
+                  v-model="inventorySearch" 
+                  placeholder="🔍 Search stalls or materials..." 
+                  class="search-input"
+                />
+              </div>
+              <div class="filter-box">
+                <select v-model="inventoryFilter" class="filter-select">
+                  <option value="all">All Stalls</option>
+                  <option value="low">⚠️ Low Stock Only</option>
+                  <option value="active">Active Stalls</option>
+                  <option value="inactive">Inactive Stalls</option>
+                </select>
+              </div>
+              <span class="filter-result">{{ filteredInventoryStalls.length }} stalls</span>
+            </div>
+
             <div v-if="stalls.length === 0" class="empty-state">
               <span class="empty-icon">📦</span>
               <p>No stalls found. Create a stall first.</p>
             </div>
-            <div v-for="stall in filteredStalls" :key="stall.id" class="stall-inventory-item">
+            <div v-for="stall in filteredInventoryStalls" :key="stall.id" class="stall-inventory-item">
               <div class="stall-inventory-header" @click="toggleInventoryStall(stall.id)">
                 <div class="stall-info">
                   <span class="stall-name">{{ stall.name }}</span>
@@ -289,7 +290,7 @@
               <div v-if="expandedInventoryStall === stall.id" class="stall-inventory-details">
                 <div class="inventory-edit-grid">
                   <div 
-                    v-for="item in getFilteredStallInventory(stall.id)" 
+                    v-for="item in getFilteredInventoryItems(stall.id)" 
                     :key="item.material_name" 
                     class="inventory-edit-item"
                     :class="{ 'low-stock-item': item.current_level <= item.alert_level }"
@@ -320,15 +321,15 @@
                 </div>
               </div>
             </div>
-            <div v-if="showLowStockOnly && filteredStalls.length === 0" class="empty-state">
-              <span class="empty-icon">✅</span>
-              <p>No stalls with low stock! All inventory levels are healthy.</p>
+            <div v-if="filteredInventoryStalls.length === 0" class="empty-state">
+              <span class="empty-icon">🔍</span>
+              <p>No stalls match your search criteria</p>
             </div>
 
             <!-- Low Stock Alerts Summary -->
             <div v-if="lowStock.length > 0" class="low-stock-summary">
               <h4>📋 Low Stock Alerts Summary</h4>
-              <div v-for="item in lowStock" :key="item.stall_name + item.material_name" class="alert-item compact">
+              <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-item compact">
                 <span class="alert-icon">⚠️</span>
                 <span class="alert-stall">{{ item.stall_name }}</span>
                 <span class="alert-material">{{ item.material_name }}</span>
@@ -360,10 +361,11 @@
               <div class="filter-box">
                 <select v-model="stallStatusFilter" class="filter-select">
                   <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="active">🟢 Active</option>
+                  <option value="inactive">⚪ Inactive</option>
                 </select>
               </div>
+              <span class="filter-result">{{ filteredStallsList.length }} stalls</span>
             </div>
             <div class="table-responsive">
               <table class="data-table">
@@ -401,7 +403,7 @@
                 </tbody>
               </table>
               <div v-if="filteredStallsList.length === 0" class="empty-state">
-                <span class="empty-icon">🏪</span>
+                <span class="empty-icon">🔍</span>
                 <p>No stalls found matching your criteria</p>
               </div>
             </div>
@@ -429,10 +431,11 @@
               <div class="filter-box">
                 <select v-model="userRoleFilter" class="filter-select">
                   <option value="all">All Roles</option>
-                  <option value="stall_admin">Stall Admin</option>
-                  <option value="cashier">Cashier</option>
+                  <option value="stall_admin">👤 Stall Admin</option>
+                  <option value="cashier">💰 Cashier</option>
                 </select>
               </div>
+              <span class="filter-result">{{ filteredUsersList.length }} users</span>
             </div>
             <div class="table-responsive">
               <table class="data-table">
@@ -463,7 +466,7 @@
                 </tbody>
               </table>
               <div v-if="filteredUsersList.length === 0" class="empty-state">
-                <span class="empty-icon">👥</span>
+                <span class="empty-icon">🔍</span>
                 <p>No users found matching your criteria</p>
               </div>
             </div>
@@ -581,7 +584,10 @@ export default {
       // Inventory
       expandedInventoryStall: null,
       stallInventory: {},
-      showLowStockOnly: false,
+      
+      // Inventory tab filters
+      inventorySearch: '',
+      inventoryFilter: 'all',
       
       // Stalls tab filters
       stallSearch: '',
@@ -606,15 +612,37 @@ export default {
     lowStockCount() {
       return this.lowStock.length
     },
-    filteredStalls() {
-      if (!this.showLowStockOnly) {
-        return this.stalls
-      }
+    
+    // ===== INVENTORY FILTERS =====
+    filteredInventoryStalls() {
       return this.stalls.filter(stall => {
-        const inventory = this.getStallInventory(stall.id)
-        return inventory.some(item => item.current_level <= item.alert_level)
+        // Search filter
+        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                              this.getStallInventory(stall.id).some(item => 
+                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                              )
+        
+        // Status filter
+        const matchesStatus = this.inventoryFilter === 'all' || 
+                              (this.inventoryFilter === 'active' && stall.is_active) ||
+                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+        
+        return matchesSearch && matchesStatus
       })
     },
+    
+    filteredLowStock() {
+      if (this.inventorySearch) {
+        return this.lowStock.filter(item => 
+          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
+      }
+      return this.lowStock
+    },
+    
+    // ===== STALLS FILTERS =====
     filteredStallsList() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
@@ -625,6 +653,8 @@ export default {
         return matchesSearch && matchesStatus
       })
     },
+    
+    // ===== USERS FILTERS =====
     filteredUsersList() {
       return this.users.filter(user => {
         const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
@@ -644,6 +674,10 @@ export default {
     switchTab(tabId) {
       this.activeTab = tabId
       if (tabId === 'inventory') {
+        // Auto-apply low stock filter when coming from the alert
+        if (this.lowStock.length > 0) {
+          this.inventoryFilter = 'low'
+        }
         this.$nextTick(() => {
           const element = document.getElementById('inventory-section')
           if (element) {
@@ -864,10 +898,15 @@ export default {
       }
       return inventory
     },
-    getFilteredStallInventory(stallId) {
+    getFilteredInventoryItems(stallId) {
       const inventory = this.getStallInventory(stallId)
-      if (this.showLowStockOnly) {
+      if (this.inventoryFilter === 'low') {
         return inventory.filter(item => item.current_level <= item.alert_level)
+      }
+      if (this.inventorySearch) {
+        return inventory.filter(item => 
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
       }
       return inventory
     },
@@ -878,28 +917,6 @@ export default {
     getInventoryPercentage(item) {
       var max = Math.max(item.current_level, item.alert_level * 2)
       return Math.min((item.current_level / max) * 100, 100)
-    },
-    toggleLowStockFilter() {
-      this.showLowStockOnly = !this.showLowStockOnly
-      if (this.showLowStockOnly && this.lowStockCount === 0) {
-        this.showLowStockOnly = false
-        this.$emit('show-notification', 'No low stock items found', 'info')
-        return
-      }
-      if (this.showLowStockOnly) {
-        const firstLowStockStall = this.filteredStalls[0]
-        if (firstLowStockStall) {
-          this.expandedInventoryStall = firstLowStockStall.id
-          this.loadStallInventory(firstLowStockStall.id)
-        }
-        this.$emit('show-notification', `Showing ${this.filteredStalls.length} stall(s) with low stock`, 'info')
-      } else {
-        this.$emit('show-notification', 'Showing all stalls', 'info')
-      }
-    },
-    clearFilter() {
-      this.showLowStockOnly = false
-      this.$emit('show-notification', 'Filter cleared', 'info')
     },
     async updateInventoryStock(stallId, materialName, newLevel) {
       if (newLevel === undefined || newLevel === null || newLevel === '') {
@@ -1132,12 +1149,10 @@ export default {
         workbook.creator = 'Chickory Hub'
         workbook.created = new Date()
         
-        // Different export based on active tab
         let sheet
         let fileName
         
         if (this.activeTab === 'dashboard') {
-          // Dashboard Export
           sheet = workbook.addWorksheet('Dashboard')
           sheet.addRow(['📊 CHICKORY HUB DASHBOARD', '', ''])
           sheet.addRow(['Period', this.getPeriodLabel(), ''])
@@ -1152,7 +1167,6 @@ export default {
             sheet.addRow([this.formatDate(day.date), day.revenue || 0, day.items || 0])
           }
           
-          // Add chart if available
           const chartContainer = document.getElementById('sales-chart')
           if (chartContainer && this.salesTrend.length > 0) {
             try {
@@ -1170,11 +1184,10 @@ export default {
           
           fileName = 'Chickory_Hub_Dashboard_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
         } else if (this.activeTab === 'inventory') {
-          // Inventory Export
           sheet = workbook.addWorksheet('Inventory')
           sheet.addRow(['📦 INVENTORY MANAGEMENT', '', '', ''])
           sheet.addRow(['Stall Name', 'Material', 'Current Level', 'Alert Level', 'Status'])
-          for (var stall of this.stalls) {
+          for (var stall of this.filteredInventoryStalls) {
             const inventory = this.getStallInventory(stall.id)
             for (var item of inventory) {
               sheet.addRow([
@@ -1188,7 +1201,6 @@ export default {
           }
           fileName = 'Chickory_Hub_Inventory_' + new Date().toISOString().split('T')[0] + '.xlsx'
         } else if (this.activeTab === 'stalls') {
-          // Stalls Export
           sheet = workbook.addWorksheet('Stalls')
           sheet.addRow(['🏪 STALL MANAGEMENT', '', '', ''])
           sheet.addRow(['Name', 'Code', 'Location', 'Status'])
@@ -1202,7 +1214,6 @@ export default {
           }
           fileName = 'Chickory_Hub_Stalls_' + new Date().toISOString().split('T')[0] + '.xlsx'
         } else if (this.activeTab === 'users') {
-          // Users Export
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['👥 USER MANAGEMENT', '', '', ''])
           sheet.addRow(['Username', 'Full Name', 'Role', 'Assigned Stalls'])
@@ -1217,7 +1228,6 @@ export default {
           fileName = 'Chickory_Hub_Users_' + new Date().toISOString().split('T')[0] + '.xlsx'
         }
         
-        // Set column widths
         sheet.columns.forEach(col => {
           col.width = Math.max(col.width || 0, 20)
         })
@@ -1500,6 +1510,81 @@ export default {
 }
 
 /* ============================================ */
+/* TABLE CONTROLS (Search & Filter)             */
+/* ============================================ */
+.table-controls {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.filter-box {
+  min-width: 140px;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.filter-result {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: 0.3rem 0.75rem;
+  background: var(--background);
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid var(--border-light);
+}
+
+/* ============================================ */
 /* CONSOLIDATED STATS                           */
 /* ============================================ */
 .consolidated-stats {
@@ -1649,58 +1734,6 @@ export default {
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
   font-size: 0.8rem;
-}
-
-/* ============================================ */
-/* TABLE CONTROLS (Search & Filter)             */
-/* ============================================ */
-.table-controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.search-box {
-  flex: 1;
-  min-width: 200px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: var(--surface);
-  color: var(--text);
-  transition: all 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
-}
-
-.filter-box {
-  min-width: 150px;
-}
-
-.filter-select {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #F94908;
 }
 
 /* ============================================ */
@@ -1955,6 +1988,25 @@ export default {
   margin-bottom: 0.2rem;
 }
 
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: #fef3c7;
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.alert-item:last-child { margin-bottom: 0; }
+.alert-icon { font-size: 1rem; }
+.alert-stall { font-weight: 600; }
+.alert-material { color: var(--text-secondary); }
+.alert-level { font-weight: 600; color: #dc2626; }
+.alert-threshold { font-size: 0.75rem; color: var(--text-tertiary); }
+
 /* ============================================ */
 /* HEADER ACTIONS                               */
 /* ============================================ */
@@ -1963,22 +2015,6 @@ export default {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.filter-badge {
-  background: white;
-  color: #F94908;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  margin-left: 2px;
 }
 
 /* ============================================ */
@@ -2211,6 +2247,7 @@ export default {
   .inventory-actions-bottom { flex-direction: column; }
   .header-actions { flex-direction: column; align-items: stretch; }
   .table-controls { flex-direction: column; }
+  .filter-result { align-self: flex-start; }
 }
 
 @media (max-width: 480px) {
@@ -2219,5 +2256,7 @@ export default {
   .period-selector-wrapper { flex-direction: column; align-items: stretch; }
   .period-selector { justify-content: center; }
   .period-btn { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
+  .search-box { min-width: 100%; }
+  .filter-box { min-width: 100%; }
 }
 </style>
