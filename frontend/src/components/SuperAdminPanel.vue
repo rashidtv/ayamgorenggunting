@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <!-- Period Selector + Export (Only on Dashboard) -->
+    <!-- Period Selector + Export -->
     <div v-if="activeTab === 'dashboard'" class="period-selector-wrapper">
       <div class="period-selector">
         <button 
@@ -89,10 +89,16 @@
               <div class="consolidated-stat">
                 <span class="stat-label">Total Revenue</span>
                 <span class="stat-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</span>
+                <span class="stat-change" v-if="getRevenueChange() !== null">
+                  {{ getRevenueChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+                </span>
               </div>
               <div class="consolidated-stat">
                 <span class="stat-label">Total Items Sold</span>
                 <span class="stat-value">{{ consolidatedSales.totalItems || 0 }}</span>
+                <span class="stat-change" v-if="getItemsChange() !== null">
+                  {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
+                </span>
               </div>
               <div class="consolidated-stat">
                 <span class="stat-label">Average per Stall</span>
@@ -101,27 +107,92 @@
               <div class="consolidated-stat">
                 <span class="stat-label">Top Performing Stall</span>
                 <span class="stat-value highlight">{{ consolidatedSales.topStall || '-' }}</span>
+                <span class="stat-change" v-if="consolidatedSales.topRevenue">
+                  {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Daily Sales Trend -->
+        <!-- Enhanced Daily Sales Trend with Navigation -->
         <div class="card full-width" id="chart-container">
           <div class="card-header">
-            <h3>📈 Daily Sales Trend</h3>
-            <span class="period-label">{{ getPeriodLabel() }}</span>
+            <div class="chart-header-left">
+              <h3>📈 Daily Sales Trend</h3>
+              <span class="period-label">{{ getPeriodLabel() }}</span>
+            </div>
+            <div class="chart-controls">
+              <div class="chart-view-toggle">
+                <button 
+                  @click="chartView = 'bars'" 
+                  :class="['view-btn', { active: chartView === 'bars' }]"
+                  title="Bar Chart"
+                >
+                  📊
+                </button>
+                <button 
+                  @click="chartView = 'line'" 
+                  :class="['view-btn', { active: chartView === 'line' }]"
+                  title="Line Chart"
+                >
+                  📈
+                </button>
+                <button 
+                  @click="chartView = 'mixed'" 
+                  :class="['view-btn', { active: chartView === 'mixed' }]"
+                  title="Mixed Chart"
+                >
+                  📉
+                </button>
+              </div>
+              <button @click="toggleChartFullscreen" class="btn btn-ghost btn-sm" title="Fullscreen">
+                ⛶
+              </button>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="chart-container">
+          <div class="card-body" :class="{ 'chart-fullscreen': chartFullscreen }">
+            <div class="chart-container" ref="chartContainer">
+              <!-- Chart Summary Stats -->
+              <div class="chart-summary" v-if="salesTrend.length > 0">
+                <div class="summary-stat">
+                  <span class="summary-label">Peak Revenue</span>
+                  <span class="summary-value">{{ formatCurrency(getPeakRevenue()) }}</span>
+                  <span class="summary-day">{{ getPeakDay() }}</span>
+                </div>
+                <div class="summary-stat">
+                  <span class="summary-label">Average Daily</span>
+                  <span class="summary-value">{{ formatCurrency(getAverageRevenue()) }}</span>
+                </div>
+                <div class="summary-stat">
+                  <span class="summary-label">Total Items</span>
+                  <span class="summary-value">{{ getTotalItems() }}</span>
+                </div>
+                <div class="summary-stat">
+                  <span class="summary-label">Trend</span>
+                  <span class="summary-value" :class="getTrendDirection()">
+                    {{ getTrendDirection() === 'up' ? '📈' : getTrendDirection() === 'down' ? '📉' : '➡️' }}
+                    {{ getTrendPercentage() }}%
+                  </span>
+                </div>
+              </div>
+
+              <!-- Chart -->
               <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
-                <div class="trend-line-container">
+                <!-- Trend Line (always shown overlay) -->
+                <div class="trend-line-container" v-if="chartView !== 'line'">
                   <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#fa6a2e;stop-opacity:0.8" />
+                      </linearGradient>
+                    </defs>
                     <polyline
                       :points="getTrendPoints()"
                       fill="none"
-                      stroke="#F94908"
-                      stroke-width="2"
+                      stroke="url(#trendGradient)"
+                      stroke-width="3"
                       stroke-linejoin="round"
                       stroke-linecap="round"
                     />
@@ -130,16 +201,60 @@
                       :key="index"
                       :cx="point.x"
                       :cy="point.y"
-                      r="2.5"
+                      r="4"
                       fill="#F94908"
+                      stroke="white"
+                      stroke-width="2"
+                      @mouseenter="showTooltip(index)"
+                      @mouseleave="hideTooltip"
                     />
                   </svg>
                 </div>
-                <div class="chart-bars">
+                
+                <!-- Trend Line Only View -->
+                <div v-if="chartView === 'line'" class="line-chart-container">
+                  <svg class="line-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.3" />
+                        <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.02" />
+                      </linearGradient>
+                    </defs>
+                    <polygon
+                      :points="getAreaPoints()"
+                      fill="url(#areaGradient)"
+                    />
+                    <polyline
+                      :points="getLinePoints()"
+                      fill="none"
+                      stroke="#F94908"
+                      stroke-width="3"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle
+                      v-for="(point, index) in getLinePointsArray()"
+                      :key="index"
+                      :cx="point.x"
+                      :cy="point.y"
+                      r="4"
+                      fill="#F94908"
+                      stroke="white"
+                      stroke-width="2"
+                      @mouseenter="showTooltip(index)"
+                      @mouseleave="hideTooltip"
+                    />
+                  </svg>
+                </div>
+
+                <!-- Bar Chart -->
+                <div v-if="chartView !== 'line'" class="chart-bars">
                   <div 
-                    v-for="day in salesTrend" 
+                    v-for="(day, index) in salesTrend" 
                     :key="day.date"
                     class="chart-bar-wrapper"
+                    @mouseenter="showTooltip(index)"
+                    @mouseleave="hideTooltip"
                   >
                     <div class="chart-bar" :style="{ height: getBarHeight(day.revenue) + '%' }">
                       <span class="bar-value">{{ formatCurrency(day.revenue) }}</span>
@@ -147,9 +262,35 @@
                     <span class="bar-label">{{ formatDate(day.date) }}</span>
                   </div>
                 </div>
+
+                <!-- Tooltip -->
+                <div v-if="tooltipVisible && hoveredIndex !== null" 
+                     class="chart-tooltip" 
+                     :style="tooltipPosition">
+                  <div class="tooltip-date">{{ formatDate(salesTrend[hoveredIndex]?.date) }}</div>
+                  <div class="tooltip-revenue">{{ formatCurrency(salesTrend[hoveredIndex]?.revenue || 0) }}</div>
+                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items sold</div>
+                </div>
               </div>
               <div v-else class="empty-state">
+                <span class="empty-icon">📊</span>
                 <p>No sales data available for this period</p>
+              </div>
+
+              <!-- Chart Navigation -->
+              <div v-if="salesTrend.length > 0" class="chart-navigation">
+                <button @click="navigateChart('prev')" class="nav-btn" :disabled="chartOffset <= 0">
+                  ◀
+                </button>
+                <span class="nav-label">
+                  Showing {{ getChartRangeLabel() }}
+                </span>
+                <button @click="navigateChart('next')" class="nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">
+                  ▶
+                </button>
+                <button @click="resetChartNavigation" class="nav-btn reset-btn" v-if="chartOffset > 0 || chartWindow < salesTrend.length">
+                  🔄 Reset
+                </button>
               </div>
             </div>
           </div>
@@ -175,7 +316,11 @@
               </thead>
               <tbody>
                 <tr v-for="(stall, index) in stallPerformance" :key="stall.id">
-                  <td>{{ index + 1 }}</td>
+                  <td>
+                    <span class="rank-badge" :class="getRankClass(index)">
+                      {{ index + 1 }}
+                    </span>
+                  </td>
                   <td><strong>{{ stall.name }}</strong></td>
                   <td>{{ formatCurrency(stall.revenue || 0) }}</td>
                   <td>{{ stall.items || 0 }}</td>
@@ -245,7 +390,6 @@
             </div>
           </div>
           <div class="card-body">
-            <!-- Search & Filter Controls -->
             <div class="table-controls">
               <div class="search-box">
                 <input 
@@ -326,7 +470,6 @@
               <p>No stalls match your search criteria</p>
             </div>
 
-            <!-- Low Stock Alerts Summary -->
             <div v-if="lowStock.length > 0" class="low-stock-summary">
               <h4>📋 Low Stock Alerts Summary</h4>
               <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-item compact">
@@ -566,7 +709,8 @@ export default {
         totalRevenue: 0,
         totalItems: 0,
         averagePerStall: 0,
-        topStall: '-'
+        topStall: '-',
+        topRevenue: 0
       },
       stallPerformance: [],
       menuPerformance: [],
@@ -581,11 +725,18 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
+      // Chart settings
+      chartView: 'mixed',
+      chartFullscreen: false,
+      chartOffset: 0,
+      chartWindow: 7,
+      tooltipVisible: false,
+      hoveredIndex: null,
+      tooltipPosition: { left: '50%', top: '50%' },
+      
       // Inventory
       expandedInventoryStall: null,
       stallInventory: {},
-      
-      // Inventory tab filters
       inventorySearch: '',
       inventoryFilter: 'all',
       
@@ -613,21 +764,24 @@ export default {
       return this.lowStock.length
     },
     
+    // ===== CHART NAVIGATION =====
+    visibleTrendData() {
+      const start = this.chartOffset
+      const end = Math.min(this.chartOffset + this.chartWindow, this.salesTrend.length)
+      return this.salesTrend.slice(start, end)
+    },
+    
     // ===== INVENTORY FILTERS =====
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
-        // Search filter
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
                               this.getStallInventory(stall.id).some(item => 
                                 item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
                               )
-        
-        // Status filter
         const matchesStatus = this.inventoryFilter === 'all' || 
                               (this.inventoryFilter === 'active' && stall.is_active) ||
                               (this.inventoryFilter === 'inactive' && !stall.is_active) ||
                               (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-        
         return matchesSearch && matchesStatus
       })
     },
@@ -674,7 +828,6 @@ export default {
     switchTab(tabId) {
       this.activeTab = tabId
       if (tabId === 'inventory') {
-        // Auto-apply low stock filter when coming from the alert
         if (this.lowStock.length > 0) {
           this.inventoryFilter = 'low'
         }
@@ -696,12 +849,123 @@ export default {
     formatDate(dateStr) {
       return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
     },
+    formatDateFull(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-MY', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'short' 
+      })
+    },
     getPeriodLabel() {
       var p = this.periods.find(p => p.value === this.selectedPeriod)
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
+    },
+
+    // =============================================
+    // CHART SUMMARY STATS
+    // =============================================
+    getPeakRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      return Math.max(...this.salesTrend.map(d => d.revenue || 0))
+    },
+    getPeakDay() {
+      if (this.salesTrend.length === 0) return ''
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      const day = this.salesTrend.find(d => d.revenue === max)
+      return day ? this.formatDate(day.date) : ''
+    },
+    getAverageRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+      return total / this.salesTrend.length
+    },
+    getTotalItems() {
+      return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
+    },
+    getTrendDirection() {
+      if (this.salesTrend.length < 2) return 'neutral'
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (last > first) return 'up'
+      if (last < first) return 'down'
+      return 'neutral'
+    },
+    getTrendPercentage() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100).toFixed(1)
+    },
+    getRevenueChange() {
+      if (this.salesTrend.length < 2) return null
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return null
+      return ((last - first) / first * 100)
+    },
+    getItemsChange() {
+      if (this.salesTrend.length < 2) return null
+      const first = this.salesTrend[0]?.items || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.items || 0
+      if (first === 0) return null
+      return ((last - first) / first * 100)
+    },
+
+    // =============================================
+    // CHART NAVIGATION
+    // =============================================
+    getChartRangeLabel() {
+      const start = this.chartOffset + 1
+      const end = Math.min(this.chartOffset + this.chartWindow, this.salesTrend.length)
+      return `${start} - ${end} of ${this.salesTrend.length} days`
+    },
+    navigateChart(direction) {
+      if (direction === 'prev' && this.chartOffset > 0) {
+        this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
+      } else if (direction === 'next' && this.chartOffset + this.chartWindow < this.salesTrend.length) {
+        this.chartOffset = Math.min(
+          this.salesTrend.length - this.chartWindow,
+          this.chartOffset + this.chartWindow
+        )
+      }
+    },
+    resetChartNavigation() {
+      this.chartOffset = 0
+      this.chartWindow = Math.min(7, this.salesTrend.length)
+    },
+    toggleChartFullscreen() {
+      this.chartFullscreen = !this.chartFullscreen
+      if (this.chartFullscreen) {
+        document.body.style.overflow = 'hidden'
+      } else {
+        document.body.style.overflow = ''
+      }
+    },
+
+    // =============================================
+    // CHART TOOLTIP
+    // =============================================
+    showTooltip(index) {
+      this.hoveredIndex = index
+      this.tooltipVisible = true
+      // Position tooltip near the hovered element
+      const container = this.$refs.chartContainer
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        const x = (index / (this.salesTrend.length - 1)) * 100
+        this.tooltipPosition = {
+          left: `calc(${x}% - 60px)`,
+          top: '10px'
+        }
+      }
+    },
+    hideTooltip() {
+      this.tooltipVisible = false
+      this.hoveredIndex = null
     },
 
     // =============================================
@@ -721,9 +985,81 @@ export default {
       if (stall.revenue > 100) return 'average'
       return 'poor'
     },
+    getRankClass(index) {
+      if (index === 0) return 'gold'
+      if (index === 1) return 'silver'
+      if (index === 2) return 'bronze'
+      return ''
+    },
     getPerformancePercentage(quantity) {
       var max = Math.max.apply(null, this.menuPerformance.map(p => p.quantity).concat([1]))
       return Math.round((quantity / max) * 100)
+    },
+
+    // =============================================
+    // CHART DRAWING
+    // =============================================
+    getBarHeight(revenue) {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return 5
+      var max = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      return Math.max((revenue / max) * 80, 5)
+    },
+    
+    // For mixed/bar charts - trend line overlay
+    getTrendPoints() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return ''
+      if (dailySales.length === 1) return '50,5'
+      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      return dailySales.map((day, index) => {
+        var x = (index / (dailySales.length - 1)) * 100
+        var y = 40 - ((day.revenue / maxRevenue) * 35)
+        return x + ',' + y
+      }).join(' ')
+    },
+    getTrendPointsArray() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return []
+      if (dailySales.length === 1) return [{ x: 50, y: 5 }]
+      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      return dailySales.map((day, index) => ({
+        x: (index / (dailySales.length - 1)) * 100,
+        y: 40 - ((day.revenue / maxRevenue) * 35)
+      }))
+    },
+    
+    // For line chart - area fill
+    getAreaPoints() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return ''
+      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      var points = dailySales.map((day, index) => {
+        var x = (index / (dailySales.length - 1)) * 100
+        var y = 100 - ((day.revenue / maxRevenue) * 85)
+        return x + ',' + y
+      })
+      return '0,100,' + points.join(',') + ',100,100'
+    },
+    getLinePoints() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return ''
+      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      return dailySales.map((day, index) => {
+        var x = (index / (dailySales.length - 1)) * 100
+        var y = 100 - ((day.revenue / maxRevenue) * 85)
+        return x + ',' + y
+      }).join(' ')
+    },
+    getLinePointsArray() {
+      var dailySales = this.salesTrend || []
+      if (dailySales.length === 0) return []
+      if (dailySales.length === 1) return [{ x: 50, y: 5 }]
+      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
+      return dailySales.map((day, index) => ({
+        x: (index / (dailySales.length - 1)) * 100,
+        y: 100 - ((day.revenue / maxRevenue) * 85)
+      }))
     },
 
     // =============================================
@@ -743,6 +1079,7 @@ export default {
           this.loadMenuPerformance()
         ])
         await this.loadAllStallsInventory()
+        this.resetChartNavigation()
         this.$emit('show-notification', 'Data refreshed', 'success')
       } catch (err) {
         this.$emit('show-notification', err.message, 'error')
@@ -783,6 +1120,7 @@ export default {
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           (data.totalRevenue || 0) / this.stalls.length : 0
         this.consolidatedSales.topStall = data.topStall || '-'
+        this.consolidatedSales.topRevenue = data.topRevenue || 0
         this.productSales = data.productSales || {}
         await this.loadMenuPerformance()
       } catch (err) {
@@ -816,37 +1154,6 @@ export default {
       } catch (err) {
         this.menuPerformance = []
       }
-    },
-
-    // =============================================
-    // CHART METHODS
-    // =============================================
-    getBarHeight(revenue) {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return 5
-      var max = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return Math.max((revenue / max) * 80, 5)
-    },
-    getTrendPoints() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return ''
-      if (dailySales.length === 1) return '50,5'
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => {
-        var x = (index / (dailySales.length - 1)) * 100
-        var y = 40 - ((day.revenue / maxRevenue) * 35)
-        return x + ',' + y
-      }).join(' ')
-    },
-    getTrendPointsArray() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return []
-      if (dailySales.length === 1) return [{ x: 50, y: 5 }]
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => ({
-        x: (index / (dailySales.length - 1)) * 100,
-        y: 40 - ((day.revenue / maxRevenue) * 35)
-      }))
     },
 
     // =============================================
@@ -1358,6 +1665,18 @@ export default {
   color: var(--text-secondary);
 }
 
+.stat-change {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--success);
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.stat-change:has(↓) {
+  color: var(--error);
+}
+
 /* ============================================ */
 /* PERIOD SELECTOR                              */
 /* ============================================ */
@@ -1505,12 +1824,363 @@ export default {
   margin: 0;
 }
 
+.chart-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .card-body {
   padding: 1.25rem;
 }
 
+.card-body.chart-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: var(--surface);
+  padding: 2rem;
+  overflow: auto;
+  animation: fadeIn 0.3s ease;
+}
+
 /* ============================================ */
-/* TABLE CONTROLS (Search & Filter)             */
+/* CHART CONTROLS                               */
+/* ============================================ */
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-view-toggle {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--background);
+  padding: 0.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.view-btn {
+  padding: 0.2rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.view-btn:hover {
+  background: var(--surface-elevated);
+}
+
+.view-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.3);
+}
+
+/* ============================================ */
+/* CHART SUMMARY                                */
+/* ============================================ */
+.chart-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: 8px;
+}
+
+.summary-stat {
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.summary-value.up {
+  color: var(--success);
+}
+
+.summary-value.down {
+  color: var(--error);
+}
+
+.summary-day {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================ */
+/* CHART                                        */
+/* ============================================ */
+.chart-container {
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.chart-wrapper {
+  position: relative;
+}
+
+.trend-line-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trend-svg circle {
+  cursor: pointer;
+  pointer-events: all;
+  transition: r 0.2s;
+}
+
+.trend-svg circle:hover {
+  r: 6;
+}
+
+/* ============================================ */
+/* LINE CHART                                   */
+/* ============================================ */
+.line-chart-container {
+  width: 100%;
+  height: 180px;
+  position: relative;
+}
+
+.line-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.line-chart-svg circle {
+  cursor: pointer;
+  pointer-events: all;
+  transition: r 0.2s;
+}
+
+.line-chart-svg circle:hover {
+  r: 6;
+}
+
+/* ============================================ */
+/* BAR CHART                                    */
+/* ============================================ */
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 180px;
+  gap: 0.5rem;
+  padding-top: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  cursor: pointer;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 50px;
+  background: linear-gradient(180deg, #F94908, #fa6a2e);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+  transition: height 0.3s ease, transform 0.2s;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.chart-bar-wrapper:hover .chart-bar {
+  transform: scaleY(1.02);
+  transform-origin: bottom;
+  box-shadow: 0 2px 12px rgba(249, 73, 8, 0.3);
+}
+
+.bar-value {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: -1rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chart-bar-wrapper:hover .bar-value {
+  opacity: 1;
+}
+
+.bar-label {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+
+/* ============================================ */
+/* CHART TOOLTIP                                */
+/* ============================================ */
+.chart-tooltip {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  min-width: 120px;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.tooltip-date {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.tooltip-revenue {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.tooltip-items {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================ */
+/* CHART NAVIGATION                             */
+/* ============================================ */
+.chart-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: var(--background);
+  border-radius: 8px;
+}
+
+.nav-btn {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  color: var(--text);
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nav-btn.reset-btn {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.nav-btn.reset-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+}
+
+.nav-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* ============================================ */
+/* CONSOLIDATED STATS                           */
+/* ============================================ */
+.consolidated-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.consolidated-stat {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.consolidated-stat .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.consolidated-stat .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.consolidated-stat .stat-value.highlight {
+  color: #F94908;
+}
+
+.period-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+/* ============================================ */
+/* TABLE CONTROLS                               */
 /* ============================================ */
 .table-controls {
   display: flex;
@@ -1585,117 +2255,6 @@ export default {
 }
 
 /* ============================================ */
-/* CONSOLIDATED STATS                           */
-/* ============================================ */
-.consolidated-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.consolidated-stat {
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.consolidated-stat .stat-label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.consolidated-stat .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.consolidated-stat .stat-value.highlight {
-  color: #F94908;
-}
-
-.period-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-}
-
-/* ============================================ */
-/* CHARTS                                       */
-/* ============================================ */
-.chart-container {
-  padding: 0.5rem 0;
-  position: relative;
-}
-
-.chart-wrapper {
-  position: relative;
-}
-
-.trend-line-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.trend-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.chart-bars {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 200px;
-  gap: 0.5rem;
-  padding-top: 45px;
-  position: relative;
-  z-index: 1;
-}
-
-.chart-bar-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  height: 100%;
-}
-
-.chart-bar {
-  width: 100%;
-  max-width: 50px;
-  background: linear-gradient(180deg, #F94908, #fa6a2e);
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
-  position: relative;
-  transition: height 0.3s ease;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.bar-value {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: -1rem;
-  white-space: nowrap;
-}
-
-.bar-label {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: 0.3rem;
-}
-
-/* ============================================ */
 /* TABLES                                       */
 /* ============================================ */
 .table-responsive {
@@ -1754,6 +2313,34 @@ export default {
 .status-badge.average { background: #fef3c7; color: #d97706; }
 .status-badge.poor { background: #fee2e2; color: #dc2626; }
 .status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+}
+
+.rank-badge.gold {
+  background: #fbbf24;
+  color: #78350f;
+}
+
+.rank-badge.silver {
+  background: #d1d5db;
+  color: #374151;
+}
+
+.rank-badge.bronze {
+  background: #f59e0b;
+  color: #78350f;
+}
 
 .role-badge {
   background: #e0e7ff;
@@ -2248,6 +2835,28 @@ export default {
   .header-actions { flex-direction: column; align-items: stretch; }
   .table-controls { flex-direction: column; }
   .filter-result { align-self: flex-start; }
+  
+  .chart-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .chart-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .chart-navigation {
+    flex-wrap: wrap;
+  }
+  
+  .nav-label {
+    min-width: 80px;
+    font-size: 0.7rem;
+  }
+  
+  .card-body.chart-fullscreen {
+    padding: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2258,5 +2867,24 @@ export default {
   .period-btn { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
   .search-box { min-width: 100%; }
   .filter-box { min-width: 100%; }
+  
+  .chart-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .chart-bars {
+    height: 100px;
+    gap: 0.25rem;
+  }
+  
+  .bar-value {
+    font-size: 0.5rem;
+    margin-top: -0.8rem;
+  }
+  
+  .bar-label {
+    font-size: 0.5rem;
+  }
 }
 </style>
