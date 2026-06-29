@@ -1,77 +1,93 @@
 <template>
   <div class="sa-dashboard">
     <!-- ============================================ -->
-    <!-- HEADER SECTION                               -->
+    <!-- MODERN HEADER                                -->
     <!-- ============================================ -->
-    <div class="page-header">
-      <div class="header-left">
-        <h2>🏢 Company Management</h2>
-        <p class="subtitle">Manage your company, stalls, inventory, and users</p>
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="header-badge">🏢</div>
+          <div>
+            <h1>Company Management</h1>
+            <p>Real-time insights & control</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <button @click="refreshAllData" class="header-btn" title="Refresh Data">
+            <span class="refresh-icon">⟳</span>
+          </button>
+          <button @click="exportCurrentTab" class="header-btn primary" :disabled="exporting">
+            <span>{{ exporting ? '...' : '⬇' }}</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <!-- Stats Cards -->
+    <!-- ============================================ -->
+    <!-- STATS CARDS - Minimalist                     -->
+    <!-- ============================================ -->
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon stalls">🏪</div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stalls.length }}</div>
-          <div class="stat-label">Total Stalls</div>
+      <div class="stat-card" style="--stat-color: #2563eb;">
+        <div class="stat-icon">🏪</div>
+        <div class="stat-content">
+          <span class="stat-number">{{ stalls.length }}</span>
+          <span class="stat-label">Total Stalls</span>
         </div>
+        <div class="stat-trend up">+12%</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon users">👥</div>
-        <div class="stat-info">
-          <div class="stat-value">{{ users.length }}</div>
-          <div class="stat-label">Total Users</div>
+      <div class="stat-card" style="--stat-color: #7c3aed;">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <span class="stat-number">{{ users.length }}</span>
+          <span class="stat-label">Total Users</span>
         </div>
+        <div class="stat-trend up">+8%</div>
       </div>
-      <div class="stat-card clickable" @click="switchTab('inventory')">
-        <div class="stat-icon alert">⚠️</div>
-        <div class="stat-info">
-          <div class="stat-value">{{ lowStock.length }}</div>
-          <div class="stat-label">Low Stock Alerts</div>
-          <div class="stat-hint">Click to view</div>
+      <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content">
+          <span class="stat-number">{{ lowStock.length }}</span>
+          <span class="stat-label">Low Stock Alerts</span>
         </div>
+        <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
+          {{ lowStock.length > 0 ? '⚠️ Needs attention' : '✅ All good' }}
+        </div>
+        <div class="stat-hover">Click to view →</div>
       </div>
     </div>
 
-    <!-- Period Selector + Export -->
-    <div v-if="activeTab === 'dashboard'" class="period-selector-wrapper">
-      <div class="period-selector">
+    <!-- ============================================ -->
+    <!-- PERIOD SELECTOR                              -->
+    <!-- ============================================ -->
+    <div v-if="activeTab === 'dashboard'" class="period-section">
+      <div class="period-pills">
         <button 
           v-for="p in periods" 
           :key="p.value"
-          :class="['period-btn', { active: selectedPeriod === p.value }]"
+          :class="['period-pill', { active: selectedPeriod === p.value }]"
           @click="selectedPeriod = p.value; refreshAllData()"
         >
           {{ p.label }}
         </button>
       </div>
-      <button @click="exportCurrentTab" class="btn btn-primary" :disabled="exporting">
-        <span v-if="exporting">⏳ Generating...</span>
-        <span v-else>📊 Export Excel</span>
-      </button>
     </div>
 
     <!-- ============================================ -->
-    <!-- TAB NAVIGATION - Mobile Friendly             -->
+    <!-- TAB NAVIGATION - Modern Pills                -->
     <!-- ============================================ -->
-    <div class="tab-navigation-wrapper">
-      <div class="tab-navigation">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.id"
-          :class="['tab-btn', { active: activeTab === tab.id }]"
-          @click="switchTab(tab.id)"
-        >
-          <span class="tab-icon">{{ tab.icon }}</span>
-          <span class="tab-label">{{ tab.label }}</span>
-          <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge">
-            {{ lowStock.length }}
-          </span>
-        </button>
-      </div>
+    <div class="tab-nav">
+      <button 
+        v-for="tab in tabs" 
+        :key="tab.id"
+        :class="['tab-pill', { active: activeTab === tab.id }]"
+        @click="switchTab(tab.id)"
+      >
+        <span class="tab-pill-icon">{{ tab.icon }}</span>
+        <span class="tab-pill-label">{{ tab.label }}</span>
+        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-pill-badge">
+          {{ lowStock.length }}
+        </span>
+      </button>
     </div>
 
     <!-- ============================================ -->
@@ -80,295 +96,240 @@
     <div class="tab-content">
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
-        <!-- Consolidated Sales -->
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>📊 Consolidated Sales</h3>
-            <span class="period-label">{{ getPeriodLabel() }}</span>
+        
+        <!-- Modern KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Revenue</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              {{ getRevenueChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+            </div>
           </div>
-          <div class="card-body">
-            <div class="consolidated-stats">
-              <div class="consolidated-stat">
-                <span class="stat-label">Total Revenue</span>
-                <span class="stat-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</span>
-                <span class="stat-change" v-if="getRevenueChange() !== null">
-                  {{ getRevenueChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getRevenueChange()).toFixed(1) }}%
-                </span>
-              </div>
-              <div class="consolidated-stat">
-                <span class="stat-label">Total Items Sold</span>
-                <span class="stat-value">{{ consolidatedSales.totalItems || 0 }}</span>
-                <span class="stat-change" v-if="getItemsChange() !== null">
-                  {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
-                </span>
-              </div>
-              <div class="consolidated-stat">
-                <span class="stat-label">Average per Stall</span>
-                <span class="stat-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</span>
-              </div>
-              <div class="consolidated-stat">
-                <span class="stat-label">Top Performing Stall</span>
-                <span class="stat-value highlight">{{ consolidatedSales.topStall || '-' }}</span>
-                <span class="stat-change" v-if="consolidatedSales.topRevenue">
-                  {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
-                </span>
-              </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Items Sold</div>
+            <div class="kpi-value">{{ consolidatedSales.totalItems || 0 }}</div>
+            <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+              {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Average per Stall</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
+          </div>
+          <div class="kpi-card highlight">
+            <div class="kpi-label">🏆 Top Stall</div>
+            <div class="kpi-value" style="font-size: 1.1rem;">{{ consolidatedSales.topStall || '-' }}</div>
+            <div class="kpi-change" v-if="consolidatedSales.topRevenue">
+              {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
             </div>
           </div>
         </div>
 
-        <!-- Minimalist Daily Sales Trend -->
-        <div class="card full-width" id="chart-container">
-          <div class="card-header">
-            <div class="chart-header-left">
-              <h3>📈 Daily Sales Trend</h3>
-              <span class="period-label">{{ getPeriodLabel() }}</span>
+        <!-- Modern Chart Section -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <h3>Sales Overview</h3>
+              <span class="chart-subtitle">{{ getPeriodLabel() }} trend</span>
             </div>
-            <div class="chart-controls">
-              <div class="chart-view-toggle">
+            <div class="chart-actions">
+              <div class="chart-view-group">
                 <button 
-                  @click="chartView = 'bars'" 
-                  :class="['view-btn', { active: chartView === 'bars' }]"
-                  title="Bar Chart"
+                  v-for="view in chartViews" 
+                  :key="view.id"
+                  :class="['chart-view-btn', { active: chartView === view.id }]"
+                  @click="chartView = view.id"
+                  :title="view.label"
                 >
-                  ▦
-                </button>
-                <button 
-                  @click="chartView = 'line'" 
-                  :class="['view-btn', { active: chartView === 'line' }]"
-                  title="Line Chart"
-                >
-                  ∿
-                </button>
-                <button 
-                  @click="chartView = 'mixed'" 
-                  :class="['view-btn', { active: chartView === 'mixed' }]"
-                  title="Mixed Chart"
-                >
-                  ⊹
+                  {{ view.icon }}
                 </button>
               </div>
-              <button @click="toggleChartFullscreen" class="btn btn-ghost btn-sm" title="Fullscreen">
+              <button @click="toggleChartFullscreen" class="chart-fullscreen-btn" title="Fullscreen">
                 ⛶
               </button>
             </div>
           </div>
-          <div class="card-body" :class="{ 'chart-fullscreen': chartFullscreen }">
-            <div class="chart-container" ref="chartContainer">
-              <!-- Chart Summary Stats -->
-              <div class="chart-summary" v-if="salesTrend.length > 0">
-                <div class="summary-stat">
-                  <span class="summary-label">Peak</span>
-                  <span class="summary-value">{{ formatCurrency(getPeakRevenue()) }}</span>
-                  <span class="summary-day">{{ getPeakDay() }}</span>
-                </div>
-                <div class="summary-stat">
-                  <span class="summary-label">Average</span>
-                  <span class="summary-value">{{ formatCurrency(getAverageRevenue()) }}</span>
-                </div>
-                <div class="summary-stat">
-                  <span class="summary-label">Items</span>
-                  <span class="summary-value">{{ getTotalItems() }}</span>
-                </div>
-                <div class="summary-stat">
-                  <span class="summary-label">Trend</span>
-                  <span class="summary-value" :class="getTrendDirection()">
-                    {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
-                    {{ getTrendPercentage() }}%
-                  </span>
-                </div>
+
+          <div class="chart-body" :class="{ 'fullscreen': chartFullscreen }">
+            <!-- Chart Summary -->
+            <div class="chart-stats" v-if="salesTrend.length > 0">
+              <div class="chart-stat">
+                <span class="chart-stat-label">Peak</span>
+                <span class="chart-stat-value">{{ formatCurrency(getPeakRevenue()) }}</span>
+                <span class="chart-stat-sub">{{ getPeakDay() }}</span>
               </div>
+              <div class="chart-stat">
+                <span class="chart-stat-label">Average</span>
+                <span class="chart-stat-value">{{ formatCurrency(getAverageRevenue()) }}</span>
+              </div>
+              <div class="chart-stat">
+                <span class="chart-stat-label">Items</span>
+                <span class="chart-stat-value">{{ getTotalItems() }}</span>
+              </div>
+              <div class="chart-stat">
+                <span class="chart-stat-label">Trend</span>
+                <span class="chart-stat-value" :class="getTrendDirection()">
+                  {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
+                  {{ getTrendPercentage() }}%
+                </span>
+              </div>
+            </div>
 
-              <!-- Chart -->
-              <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
-                <!-- Trend Line (overlay for mixed view) -->
-                <div class="trend-line-container" v-if="chartView === 'mixed'">
-                  <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-                    <polyline
-                      :points="getTrendPoints()"
-                      fill="none"
-                      stroke="#F94908"
-                      stroke-width="2.5"
-                      stroke-linejoin="round"
-                      stroke-linecap="round"
-                    />
-                    <circle
-                      v-for="(point, index) in getTrendPointsArray()"
-                      :key="index"
-                      :cx="point.x"
-                      :cy="point.y"
-                      r="3"
-                      fill="#F94908"
-                      stroke="white"
-                      stroke-width="1.5"
-                      @mouseenter="showTooltip(index)"
-                      @mouseleave="hideTooltip"
-                    />
-                  </svg>
-                </div>
-                
-                <!-- Line Chart -->
-                <div v-if="chartView === 'line'" class="line-chart-container">
-                  <svg class="line-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
-                        <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
-                      </linearGradient>
-                    </defs>
-                    <polygon
-                      :points="getAreaPoints()"
-                      fill="url(#areaGradient)"
-                    />
-                    <polyline
-                      :points="getLinePoints()"
-                      fill="none"
-                      stroke="#F94908"
-                      stroke-width="2.5"
-                      stroke-linejoin="round"
-                      stroke-linecap="round"
-                    />
-                    <circle
-                      v-for="(point, index) in getLinePointsArray()"
-                      :key="index"
-                      :cx="point.x"
-                      :cy="point.y"
-                      r="3.5"
-                      fill="#F94908"
-                      stroke="white"
-                      stroke-width="1.5"
-                      @mouseenter="showTooltip(index)"
-                      @mouseleave="hideTooltip"
-                    />
-                  </svg>
-                </div>
-
-                <!-- Minimalist Bar Chart -->
-                <div v-if="chartView === 'bars' || chartView === 'mixed'" class="chart-bars">
+            <!-- The Chart -->
+            <div class="chart-wrapper" ref="chartWrapper" id="sales-chart">
+              <div v-if="salesTrend.length > 0" class="chart-container">
+                <!-- Bars -->
+                <div class="chart-bars-container">
                   <div 
-                    v-for="(day, index) in salesTrend" 
+                    v-for="(day, index) in chartVisibleData" 
                     :key="day.date"
-                    class="chart-bar-wrapper"
+                    class="chart-bar-group"
                     @mouseenter="showTooltip(index)"
                     @mouseleave="hideTooltip"
                   >
-                    <div class="chart-bar" :style="{ height: getBarHeight(day.revenue) + '%' }">
-                      <span class="bar-value">{{ formatCurrency(day.revenue) }}</span>
+                    <div class="chart-bar-track">
+                      <div 
+                        class="chart-bar-fill" 
+                        :style="{ 
+                          height: getBarHeight(day.revenue) + '%',
+                          '--bar-color': getBarColor(index)
+                        }"
+                      >
+                        <span class="chart-bar-value">{{ formatCurrency(day.revenue) }}</span>
+                      </div>
                     </div>
-                    <span class="bar-label">{{ formatDate(day.date) }}</span>
+                    <span class="chart-bar-label">{{ formatShortDate(day.date) }}</span>
                   </div>
                 </div>
 
+                <!-- Trend Line Overlay -->
+                <svg class="chart-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="trendArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.12" />
+                      <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    :points="getAreaPoints()"
+                    fill="url(#trendArea)"
+                    opacity="0.6"
+                  />
+                  <polyline
+                    :points="getLinePoints()"
+                    fill="none"
+                    stroke="#F94908"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    v-for="(point, index) in getLinePointsArray()"
+                    :key="index"
+                    :cx="point.x"
+                    :cy="point.y"
+                    r="3.5"
+                    fill="#F94908"
+                    stroke="white"
+                    stroke-width="1.5"
+                    @mouseenter="showTooltip(index)"
+                    @mouseleave="hideTooltip"
+                  />
+                </svg>
+
                 <!-- Tooltip -->
-                <div v-if="tooltipVisible && hoveredIndex !== null" 
-                     class="chart-tooltip" 
-                     :style="tooltipPosition">
-                  <div class="tooltip-date">{{ formatDate(salesTrend[hoveredIndex]?.date) }}</div>
+                <div v-if="tooltipVisible && hoveredIndex !== null" class="chart-tooltip-modern" :style="tooltipPosition">
+                  <div class="tooltip-date">{{ formatFullDate(salesTrend[hoveredIndex]?.date) }}</div>
                   <div class="tooltip-revenue">{{ formatCurrency(salesTrend[hoveredIndex]?.revenue || 0) }}</div>
-                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items</div>
+                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items sold</div>
                 </div>
               </div>
-              <div v-else class="empty-state">
-                <span class="empty-icon">📊</span>
-                <p>No sales data available for this period</p>
-              </div>
 
-              <!-- Chart Navigation -->
-              <div v-if="salesTrend.length > 0" class="chart-navigation">
-                <button @click="navigateChart('prev')" class="nav-btn" :disabled="chartOffset <= 0">
-                  ◀
-                </button>
-                <span class="nav-label">
-                  {{ getChartRangeLabel() }}
-                </span>
-                <button @click="navigateChart('next')" class="nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">
-                  ▶
-                </button>
-                <button @click="resetChartNavigation" class="nav-btn reset-btn" v-if="chartOffset > 0 || chartWindow < salesTrend.length">
-                  ↺
-                </button>
+              <!-- Empty State -->
+              <div v-else class="chart-empty">
+                <span class="chart-empty-icon">📊</span>
+                <p>No sales data available</p>
               </div>
+            </div>
+
+            <!-- Chart Navigation -->
+            <div v-if="salesTrend.length > chartWindow" class="chart-nav">
+              <button @click="navigateChart('prev')" class="chart-nav-btn" :disabled="chartOffset <= 0">
+                ←
+              </button>
+              <span class="chart-nav-label">
+                {{ chartOffset + 1 }}–{{ Math.min(chartOffset + chartWindow, salesTrend.length) }} of {{ salesTrend.length }}
+              </span>
+              <button @click="navigateChart('next')" class="chart-nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">
+                →
+              </button>
+              <button @click="resetChartNavigation" class="chart-nav-btn reset" v-if="chartOffset > 0 || chartWindow < salesTrend.length">
+                ↺
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Stall Performance Ranking -->
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>🏆 Stall Performance</h3>
-            <span class="period-label">{{ getPeriodLabel() }}</span>
+        <!-- Stall Performance -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏆 Stall Performance</h3>
+              <span class="card-subtitle">Ranked by revenue</span>
+            </div>
+            <span class="period-tag">{{ getPeriodLabel() }}</span>
           </div>
-          <div class="card-body table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Stall</th>
-                  <th>Revenue</th>
-                  <th>Items</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(stall, index) in stallPerformance" :key="stall.id">
-                  <td>
-                    <span class="rank-badge" :class="getRankClass(index)">
-                      {{ index + 1 }}
-                    </span>
-                  </td>
-                  <td><strong>{{ stall.name }}</strong></td>
-                  <td>{{ formatCurrency(stall.revenue || 0) }}</td>
-                  <td>{{ stall.items || 0 }}</td>
-                  <td>
-                    <span :class="['status-badge', getStallStatusClass(stall) ]">
-                      {{ getStallStatus(stall) }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-if="stallPerformance.length === 0" class="empty-state">
-              <span class="empty-icon">📊</span>
-              <p>No sales data available</p>
+          <div class="card-modern-body">
+            <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+              <span>📊</span>
+              <p>No data available</p>
+            </div>
+            <div v-for="(stall, index) in stallPerformance.slice(0, 5)" :key="stall.id" class="stall-rank-item">
+              <div class="stall-rank">
+                <span class="stall-rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+                <span class="stall-rank-name">{{ stall.name }}</span>
+              </div>
+              <div class="stall-rank-bar">
+                <div 
+                  class="stall-rank-fill" 
+                  :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+                  :class="getRankClass(index)"
+                ></div>
+              </div>
+              <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
             </div>
           </div>
         </div>
 
         <!-- Menu Performance -->
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>🍗 Menu Performance</h3>
-            <span class="period-label">{{ getPeriodLabel() }}</span>
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🍗 Menu Performance</h3>
+              <span class="card-subtitle">Top selling items</span>
+            </div>
           </div>
-          <div class="card-body table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Revenue</th>
-                  <th>%</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in menuPerformance" :key="item.name">
-                  <td>{{ index + 1 }}</td>
-                  <td><strong>{{ item.name }}</strong></td>
-                  <td>{{ item.quantity }}</td>
-                  <td>{{ formatCurrency(item.revenue || 0) }}</td>
-                  <td>
-                    <div class="performance-bar-container">
-                      <div class="performance-bar" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></div>
-                      <span class="performance-label">{{ getPerformancePercentage(item.quantity) }}%</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-if="menuPerformance.length === 0" class="empty-state">
-              <span class="empty-icon">🍗</span>
-              <p>No menu sales data available</p>
+          <div class="card-modern-body">
+            <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+              <span>🍗</span>
+              <p>No data available</p>
+            </div>
+            <div v-for="(item, index) in menuPerformance.slice(0, 5)" :key="item.name" class="menu-rank-item">
+              <div class="menu-rank-info">
+                <span class="menu-rank-number">{{ index + 1 }}</span>
+                <span class="menu-rank-name">{{ item.name }}</span>
+                <span class="menu-rank-qty">{{ item.quantity }} sold</span>
+              </div>
+              <div class="menu-rank-bar">
+                <div 
+                  class="menu-rank-fill" 
+                  :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
+                ></div>
+              </div>
+              <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
             </div>
           </div>
         </div>
@@ -376,101 +337,107 @@
 
       <!-- ===== INVENTORY TAB ===== -->
       <div v-if="activeTab === 'inventory'" class="tab-panel">
-        <div class="card full-width" id="inventory-section">
-          <div class="card-header">
-            <h3>📦 Inventory Management</h3>
-            <div class="header-actions">
-              <button @click="loadAllStallsInventory()" class="btn btn-outline btn-sm">🔄 Refresh</button>
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📦 Inventory Management</h3>
+              <span class="card-subtitle">{{ filteredInventoryStalls.length }} stalls</span>
             </div>
+            <button @click="loadAllStallsInventory()" class="btn-modern secondary small">
+              ⟳ Refresh
+            </button>
           </div>
-          <div class="card-body">
-            <div class="table-controls">
-              <div class="search-box">
+          <div class="card-modern-body">
+            <!-- Filters -->
+            <div class="filter-bar">
+              <div class="filter-search">
                 <input 
                   type="text" 
                   v-model="inventorySearch" 
-                  placeholder="🔍 Search..." 
-                  class="search-input"
+                  placeholder="Search stalls or materials..." 
+                  class="filter-input"
                 />
               </div>
-              <div class="filter-box">
-                <select v-model="inventoryFilter" class="filter-select">
-                  <option value="all">All Stalls</option>
-                  <option value="low">⚠️ Low Stock</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              <span class="filter-result">{{ filteredInventoryStalls.length }}</span>
+              <select v-model="inventoryFilter" class="filter-select">
+                <option value="all">All Stalls</option>
+                <option value="low">⚠️ Low Stock</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
 
-            <div v-if="stalls.length === 0" class="empty-state">
-              <span class="empty-icon">📦</span>
-              <p>No stalls found. Create a stall first.</p>
+            <div v-if="stalls.length === 0" class="empty-state-modern">
+              <span>📦</span>
+              <p>No stalls found. Create your first stall!</p>
             </div>
-            <div v-for="stall in filteredInventoryStalls" :key="stall.id" class="stall-inventory-item">
-              <div class="stall-inventory-header" @click="toggleInventoryStall(stall.id)">
-                <div class="stall-info">
-                  <span class="stall-name">{{ stall.name }}</span>
-                  <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+
+            <div v-for="stall in filteredInventoryStalls" :key="stall.id" class="inventory-stall">
+              <div class="inventory-stall-header" @click="toggleInventoryStall(stall.id)">
+                <div class="inventory-stall-info">
+                  <span class="inventory-stall-name">{{ stall.name }}</span>
+                  <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
                     {{ stall.is_active ? 'Active' : 'Inactive' }}
                   </span>
-                  <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️</span>
+                  <span v-if="hasLowStock(stall.id)" class="status-tag danger">⚠️ Low Stock</span>
                 </div>
-                <div class="stall-inventory-summary">
-                  <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-chip">
+                <div class="inventory-stall-summary">
+                  <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-tag">
                     {{ item.material_name }}: {{ item.current_level }}{{ getUnit(item.material_name) }}
-                    <span v-if="item.current_level <= item.alert_level" class="low-stock-dot">⚠️</span>
+                    <span v-if="item.current_level <= item.alert_level" class="inventory-tag-warning">⚠️</span>
                   </span>
-                  <span class="toggle-icon">{{ expandedInventoryStall === stall.id ? '▲' : '▼' }}</span>
+                  <span class="inventory-toggle">{{ expandedInventoryStall === stall.id ? '−' : '+' }}</span>
                 </div>
               </div>
-              <div v-if="expandedInventoryStall === stall.id" class="stall-inventory-details">
-                <div class="inventory-edit-grid">
+
+              <div v-if="expandedInventoryStall === stall.id" class="inventory-stall-details">
+                <div class="inventory-items-grid">
                   <div 
                     v-for="item in getFilteredInventoryItems(stall.id)" 
                     :key="item.material_name" 
-                    class="inventory-edit-item"
-                    :class="{ 'low-stock-item': item.current_level <= item.alert_level }"
+                    class="inventory-item-card"
+                    :class="{ 'low': item.current_level <= item.alert_level }"
                   >
-                    <div class="inventory-edit-info">
-                      <span class="material-name">{{ item.material_name }}</span>
-                      <span class="current-stock">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
-                      <span :class="['alert-badge', item.current_level <= item.alert_level ? 'low' : 'ok']">
-                        {{ item.current_level <= item.alert_level ? '⚠️' : '✅' }}
+                    <div class="inventory-item-header">
+                      <span class="inventory-item-name">{{ item.material_name }}</span>
+                      <span :class="['inventory-item-status', item.current_level <= item.alert_level ? 'low' : 'ok']">
+                        {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
                       </span>
                     </div>
-                    <div class="inventory-edit-controls">
-                      <input type="number" v-model.number="item.newLevel" :placeholder="item.current_level" step="0.5" class="inventory-input" />
-                      <button @click="updateInventoryStock(stall.id, item.material_name, item.newLevel)" class="btn btn-primary btn-sm">
-                        Update
-                      </button>
-                      <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn btn-outline btn-sm">+5</button>
-                      <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn btn-outline btn-sm">+1</button>
+                    <div class="inventory-item-level">
+                      <span class="inventory-item-current">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+                      <span class="inventory-item-alert">Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }}</span>
                     </div>
-                    <div class="progress-bar-container">
-                      <div class="progress-bar" :style="{ width: getInventoryPercentage(item) + '%' }" :class="item.current_level <= item.alert_level ? 'low' : ''"></div>
+                    <div class="inventory-item-progress">
+                      <div class="inventory-progress-track">
+                        <div 
+                          class="inventory-progress-fill" 
+                          :style="{ width: getInventoryPercentage(item) + '%' }"
+                          :class="{ low: item.current_level <= item.alert_level }"
+                        ></div>
+                      </div>
+                    </div>
+                    <div class="inventory-item-actions">
+                      <input type="number" v-model.number="item.newLevel" :placeholder="item.current_level" step="0.5" class="inventory-item-input" />
+                      <button @click="updateInventoryStock(stall.id, item.material_name, item.newLevel)" class="btn-modern primary small">Update</button>
+                      <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn-modern secondary small">+5</button>
+                      <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn-modern secondary small">+1</button>
                     </div>
                   </div>
                 </div>
-                <div class="inventory-actions-bottom">
-                  <button @click="bulkUpdateInventory(stall.id)" class="btn btn-primary btn-sm">📦 Bulk Update</button>
-                  <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert</button>
+                <div class="inventory-stall-actions">
+                  <button @click="bulkUpdateInventory(stall.id)" class="btn-modern primary small">📦 Bulk Update</button>
+                  <button @click="resetInventoryToAlert(stall.id)" class="btn-modern secondary small">Reset to Alert</button>
                 </div>
               </div>
             </div>
-            <div v-if="filteredInventoryStalls.length === 0" class="empty-state">
-              <span class="empty-icon">🔍</span>
-              <p>No stalls match your search</p>
-            </div>
 
-            <div v-if="lowStock.length > 0" class="low-stock-summary">
-              <h4>📋 Low Stock Alerts</h4>
-              <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-item compact">
-                <span class="alert-icon">⚠️</span>
-                <span class="alert-stall">{{ item.stall_name }}</span>
-                <span class="alert-material">{{ item.material_name }}</span>
-                <span class="alert-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+            <div v-if="lowStock.length > 0" class="alerts-section">
+              <h4 class="alerts-title">⚠️ Low Stock Alerts</h4>
+              <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-row">
+                <span class="alert-row-stall">{{ item.stall_name }}</span>
+                <span class="alert-row-material">{{ item.material_name }}</span>
+                <span class="alert-row-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+                <span class="alert-row-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
               </div>
             </div>
           </div>
@@ -479,66 +446,53 @@
 
       <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>🏪 Stall Management</h3>
-            <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New</button>
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏪 Stall Management</h3>
+              <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+            </div>
+            <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
           </div>
-          <div class="card-body">
-            <div class="table-controls">
-              <div class="search-box">
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
                 <input 
                   type="text" 
                   v-model="stallSearch" 
-                  placeholder="🔍 Search..." 
-                  class="search-input"
+                  placeholder="Search stalls..." 
+                  class="filter-input"
                 />
               </div>
-              <div class="filter-box">
-                <select v-model="stallStatusFilter" class="filter-select">
-                  <option value="all">All</option>
-                  <option value="active">🟢 Active</option>
-                  <option value="inactive">⚪ Inactive</option>
-                </select>
-              </div>
-              <span class="filter-result">{{ filteredStallsList.length }}</span>
+              <select v-model="stallStatusFilter" class="filter-select">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Code</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(s, index) in filteredStallsList" :key="s.id">
-                    <td>{{ index + 1 }}</td>
-                    <td><strong>{{ s.name }}</strong></td>
-                    <td><code>{{ s.code }}</code></td>
-                    <td>
-                      <span :class="['status-badge', s.is_active ? 'active' : 'inactive']">
-                        {{ s.is_active ? 'Active' : 'Inactive' }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="action-buttons">
-                        <button @click="openEditStallModal(s)" class="btn-icon-sm" title="Edit">✏️</button>
-                        <button @click="toggleStallStatus(s)" class="btn-icon-sm" :title="s.is_active ? 'Deactivate' : 'Activate'">
-                          {{ s.is_active ? '⏸️' : '▶️' }}
-                        </button>
-                        <button @click="deleteStall(s.id, s.name)" class="btn-icon-sm danger" title="Delete">🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-if="filteredStallsList.length === 0" class="empty-state">
-                <span class="empty-icon">🔍</span>
-                <p>No stalls found</p>
+
+            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+              <span>🏪</span>
+              <p>No stalls found</p>
+            </div>
+
+            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+              <div class="list-item-content">
+                <span class="list-item-index">{{ index + 1 }}</span>
+                <div class="list-item-info">
+                  <span class="list-item-name">{{ s.name }}</span>
+                  <span class="list-item-code">{{ s.code }}</span>
+                </div>
+                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
+                </span>
+                <div class="list-item-actions">
+                  <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
+                  </button>
+                  <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
               </div>
             </div>
           </div>
@@ -547,59 +501,49 @@
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
-        <div class="card full-width">
-          <div class="card-header">
-            <h3>👥 User Management</h3>
-            <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New</button>
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>👥 User Management</h3>
+              <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
+            </div>
+            <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
           </div>
-          <div class="card-body">
-            <div class="table-controls">
-              <div class="search-box">
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
                 <input 
                   type="text" 
                   v-model="userSearch" 
-                  placeholder="🔍 Search..." 
-                  class="search-input"
+                  placeholder="Search users..." 
+                  class="filter-input"
                 />
               </div>
-              <div class="filter-box">
-                <select v-model="userRoleFilter" class="filter-select">
-                  <option value="all">All Roles</option>
-                  <option value="stall_admin">👤 Admin</option>
-                  <option value="cashier">💰 Cashier</option>
-                </select>
-              </div>
-              <span class="filter-result">{{ filteredUsersList.length }}</span>
+              <select v-model="userRoleFilter" class="filter-select">
+                <option value="all">All Roles</option>
+                <option value="stall_admin">👤 Admin</option>
+                <option value="cashier">💰 Cashier</option>
+              </select>
             </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Stalls</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(u, index) in filteredUsersList" :key="u.id">
-                    <td>{{ index + 1 }}</td>
-                    <td><strong>{{ u.username }}</strong></td>
-                    <td><span class="role-badge">{{ u.role }}</span></td>
-                    <td>{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</td>
-                    <td>
-                      <div class="action-buttons">
-                        <button @click="openEditUserModal(u)" class="btn-icon-sm" title="Edit">✏️</button>
-                        <button @click="deleteUser(u.id, u.username)" class="btn-icon-sm danger" title="Delete">🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-if="filteredUsersList.length === 0" class="empty-state">
-                <span class="empty-icon">🔍</span>
-                <p>No users found</p>
+
+            <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
+              <span>👥</span>
+              <p>No users found</p>
+            </div>
+
+            <div v-for="(u, index) in filteredUsersList" :key="u.id" class="list-item">
+              <div class="list-item-content">
+                <span class="list-item-index">{{ index + 1 }}</span>
+                <div class="list-item-info">
+                  <span class="list-item-name">{{ u.username }}</span>
+                  <span class="list-item-sub">{{ u.full_name || '-' }}</span>
+                </div>
+                <span class="role-tag">{{ u.role }}</span>
+                <span class="list-item-stalls">{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                <div class="list-item-actions">
+                  <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
               </div>
             </div>
           </div>
@@ -610,29 +554,30 @@
     <!-- ============================================ -->
     <!-- MODALS                                       -->
     <!-- ============================================ -->
-
-    <!-- User Modal -->
     <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
-      <div class="modal modal-lg">
-        <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
+          <button @click="closeUserModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
               <label>Username</label>
               <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
             </div>
-            <div class="form-group">
+            <div class="modal-form-group">
               <label>Full Name</label>
               <input v-model="userForm.full_name" placeholder="Full Name" />
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
               <label>Password</label>
               <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
               <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
             </div>
-            <div class="form-group">
+            <div class="modal-form-group">
               <label>Role</label>
               <select v-model="userForm.role">
                 <option value="stall_admin">Stall Admin</option>
@@ -640,33 +585,44 @@
               </select>
             </div>
           </div>
-          <div class="form-group">
+          <div class="modal-form-group">
             <label>Assign Stalls:</label>
             <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
               <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
             </select>
-            <small class="hint-text">Hold Ctrl/Cmd to select multiple</small>
+            <small>Hold Ctrl/Cmd to select multiple</small>
           </div>
         </div>
-        <div class="modal-actions">
-          <button @click="closeUserModal" class="btn btn-ghost">Cancel</button>
-          <button @click="saveUser" class="btn btn-primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+        <div class="modal-modern-footer">
+          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
+          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
         </div>
       </div>
     </div>
 
-    <!-- Stall Modal -->
     <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
-      <div class="modal">
-        <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
-        <div class="modal-body">
-          <input v-model="stallForm.name" placeholder="Stall Name" />
-          <input v-model="stallForm.code" placeholder="Stall Code" />
-          <input v-model="stallForm.location" placeholder="Location" />
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
+          <button @click="stallModal=false" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-actions">
-          <button @click="stallModal=false" class="btn btn-ghost">Cancel</button>
-          <button @click="saveStall" class="btn btn-primary">{{ editingStall ? 'Update' : 'Create' }}</button>
+        <div class="modal-modern-body">
+          <div class="modal-form-group">
+            <label>Stall Name</label>
+            <input v-model="stallForm.name" placeholder="Stall Name" />
+          </div>
+          <div class="modal-form-group">
+            <label>Stall Code</label>
+            <input v-model="stallForm.code" placeholder="Stall Code" />
+          </div>
+          <div class="modal-form-group">
+            <label>Location</label>
+            <input v-model="stallForm.location" placeholder="Location" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
         </div>
       </div>
     </div>
@@ -689,6 +645,17 @@ export default {
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' }
       ],
+      
+      // Chart Views
+      chartViews: [
+        { id: 'bars', label: 'Bar Chart', icon: '▦' },
+        { id: 'line', label: 'Line Chart', icon: '∿' },
+        { id: 'mixed', label: 'Mixed', icon: '⊹' }
+      ],
+      chartView: 'mixed',
+      chartFullscreen: false,
+      chartOffset: 0,
+      chartWindow: 7,
       
       // Data
       stalls: [],
@@ -714,11 +681,7 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
-      // Chart settings
-      chartView: 'bars',
-      chartFullscreen: false,
-      chartOffset: 0,
-      chartWindow: 7,
+      // Tooltip
       tooltipVisible: false,
       hoveredIndex: null,
       tooltipPosition: { left: '50%', top: '10px' },
@@ -729,11 +692,11 @@ export default {
       inventorySearch: '',
       inventoryFilter: 'all',
       
-      // Stalls tab filters
+      // Stalls tab
       stallSearch: '',
       stallStatusFilter: 'all',
       
-      // Users tab filters
+      // Users tab
       userSearch: '',
       userRoleFilter: 'all',
       
@@ -752,8 +715,10 @@ export default {
     lowStockCount() {
       return this.lowStock.length
     },
+    chartVisibleData() {
+      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+    },
     
-    // ===== INVENTORY FILTERS =====
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
@@ -767,7 +732,6 @@ export default {
         return matchesSearch && matchesStatus
       })
     },
-    
     filteredLowStock() {
       if (this.inventorySearch) {
         return this.lowStock.filter(item => 
@@ -777,8 +741,6 @@ export default {
       }
       return this.lowStock
     },
-    
-    // ===== STALLS FILTERS =====
     filteredStallsList() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
@@ -789,8 +751,6 @@ export default {
         return matchesSearch && matchesStatus
       })
     },
-    
-    // ===== USERS FILTERS =====
     filteredUsersList() {
       return this.users.filter(user => {
         const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
@@ -805,33 +765,15 @@ export default {
   },
   methods: {
     // =============================================
-    // TAB MANAGEMENT
-    // =============================================
-    switchTab(tabId) {
-      this.activeTab = tabId
-      if (tabId === 'inventory') {
-        if (this.lowStock.length > 0) {
-          this.inventoryFilter = 'low'
-        }
-        this.$nextTick(() => {
-          const element = document.getElementById('inventory-section')
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        })
-      }
-    },
-
-    // =============================================
-    // FORMATTING HELPERS
+    // FORMATTING
     // =============================================
     formatCurrency(amount) {
       return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(amount)
     },
-    formatDate(dateStr) {
+    formatShortDate(dateStr) {
       return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
     },
-    formatDateFull(dateStr) {
+    formatFullDate(dateStr) {
       return new Date(dateStr).toLocaleDateString('en-MY', { 
         weekday: 'long', 
         day: 'numeric', 
@@ -845,9 +787,9 @@ export default {
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
     },
-
+    
     // =============================================
-    // CHART SUMMARY STATS
+    // CHART STATS
     // =============================================
     getPeakRevenue() {
       if (this.salesTrend.length === 0) return 0
@@ -857,7 +799,7 @@ export default {
       if (this.salesTrend.length === 0) return ''
       const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
       const day = this.salesTrend.find(d => d.revenue === max)
-      return day ? this.formatDate(day.date) : ''
+      return day ? this.formatShortDate(day.date) : ''
     },
     getAverageRevenue() {
       if (this.salesTrend.length === 0) return 0
@@ -883,28 +825,65 @@ export default {
       return ((last - first) / first * 100).toFixed(1)
     },
     getRevenueChange() {
-      if (this.salesTrend.length < 2) return null
+      if (this.salesTrend.length < 2) return 0
       const first = this.salesTrend[0]?.revenue || 0
       const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
-      if (first === 0) return null
+      if (first === 0) return 0
       return ((last - first) / first * 100)
     },
     getItemsChange() {
-      if (this.salesTrend.length < 2) return null
+      if (this.salesTrend.length < 2) return 0
       const first = this.salesTrend[0]?.items || 0
       const last = this.salesTrend[this.salesTrend.length - 1]?.items || 0
-      if (first === 0) return null
+      if (first === 0) return 0
       return ((last - first) / first * 100)
     },
-
+    
+    // =============================================
+    // CHART DRAWING
+    // =============================================
+    getBarHeight(revenue) {
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0), 1)
+      return Math.max((revenue / max) * 75, 3)
+    },
+    getBarColor(index) {
+      const colors = ['#F94908', '#fa6a2e', '#fb8b5a', '#fcaa86', '#fdc9b2']
+      return colors[index % colors.length]
+    },
+    getAreaPoints() {
+      const data = this.chartVisibleData
+      if (data.length === 0) return ''
+      const max = Math.max(...data.map(d => d.revenue || 0), 1)
+      const points = data.map((day, i) => {
+        const x = (i / (data.length - 1)) * 100
+        const y = 100 - ((day.revenue / max) * 85)
+        return `${x},${y}`
+      })
+      return `0,100,${points.join(',')},100,100`
+    },
+    getLinePoints() {
+      const data = this.chartVisibleData
+      if (data.length === 0) return ''
+      const max = Math.max(...data.map(d => d.revenue || 0), 1)
+      return data.map((day, i) => {
+        const x = (i / (data.length - 1)) * 100
+        const y = 100 - ((day.revenue / max) * 85)
+        return `${x},${y}`
+      }).join(' ')
+    },
+    getLinePointsArray() {
+      const data = this.chartVisibleData
+      if (data.length === 0) return []
+      const max = Math.max(...data.map(d => d.revenue || 0), 1)
+      return data.map((day, i) => ({
+        x: (i / (data.length - 1)) * 100,
+        y: 100 - ((day.revenue / max) * 85)
+      }))
+    },
+    
     // =============================================
     // CHART NAVIGATION
     // =============================================
-    getChartRangeLabel() {
-      const start = this.chartOffset + 1
-      const end = Math.min(this.chartOffset + this.chartWindow, this.salesTrend.length)
-      return `${start} - ${end} of ${this.salesTrend.length}`
-    },
     navigateChart(direction) {
       if (direction === 'prev' && this.chartOffset > 0) {
         this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
@@ -921,26 +900,21 @@ export default {
     },
     toggleChartFullscreen() {
       this.chartFullscreen = !this.chartFullscreen
-      if (this.chartFullscreen) {
-        document.body.style.overflow = 'hidden'
-      } else {
-        document.body.style.overflow = ''
-      }
+      document.body.style.overflow = this.chartFullscreen ? 'hidden' : ''
     },
-
+    
     // =============================================
-    // CHART TOOLTIP
+    // TOOLTIP
     // =============================================
     showTooltip(index) {
       this.hoveredIndex = index
       this.tooltipVisible = true
-      const container = this.$refs.chartContainer
-      if (container) {
-        const rect = container.getBoundingClientRect()
-        const x = (index / (this.salesTrend.length - 1)) * 100
+      const wrapper = this.$refs.chartWrapper
+      if (wrapper) {
+        const rect = wrapper.getBoundingClientRect()
         this.tooltipPosition = {
-          left: `calc(${x}% - 60px)`,
-          top: '10px'
+          left: `calc(${(index / (this.chartVisibleData.length - 1)) * 100}% - 60px)`,
+          top: '5px'
         }
       }
     },
@@ -948,99 +922,40 @@ export default {
       this.tooltipVisible = false
       this.hoveredIndex = null
     },
-
+    
     // =============================================
-    // STALL STATUS
+    // STALL RANKING
     // =============================================
-    getStallStatus(stall) {
-      if (!stall.revenue || stall.revenue === 0) return 'No Sales'
-      if (stall.revenue > 1000) return 'Excellent'
-      if (stall.revenue > 500) return 'Good'
-      if (stall.revenue > 100) return 'Average'
-      return 'Poor'
-    },
-    getStallStatusClass(stall) {
-      if (!stall.revenue || stall.revenue === 0) return 'no-sales'
-      if (stall.revenue > 1000) return 'excellent'
-      if (stall.revenue > 500) return 'good'
-      if (stall.revenue > 100) return 'average'
-      return 'poor'
-    },
     getRankClass(index) {
       if (index === 0) return 'gold'
       if (index === 1) return 'silver'
       if (index === 2) return 'bronze'
       return ''
     },
+    getStallBarWidth(revenue) {
+      const max = Math.max(...this.stallPerformance.map(s => s.revenue || 0), 1)
+      return Math.min((revenue / max) * 100, 100)
+    },
     getPerformancePercentage(quantity) {
-      var max = Math.max.apply(null, this.menuPerformance.map(p => p.quantity).concat([1]))
-      return Math.round((quantity / max) * 100)
-    },
-
-    // =============================================
-    // CHART DRAWING
-    // =============================================
-    getBarHeight(revenue) {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return 5
-      var max = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return Math.max((revenue / max) * 80, 5)
+      const max = Math.max(...this.menuPerformance.map(p => p.quantity), 1)
+      return Math.min((quantity / max) * 100, 100)
     },
     
-    getTrendPoints() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return ''
-      if (dailySales.length === 1) return '50,5'
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => {
-        var x = (index / (dailySales.length - 1)) * 100
-        var y = 40 - ((day.revenue / maxRevenue) * 35)
-        return x + ',' + y
-      }).join(' ')
-    },
-    getTrendPointsArray() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return []
-      if (dailySales.length === 1) return [{ x: 50, y: 5 }]
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => ({
-        x: (index / (dailySales.length - 1)) * 100,
-        y: 40 - ((day.revenue / maxRevenue) * 35)
-      }))
+    // =============================================
+    // TAB MANAGEMENT
+    // =============================================
+    switchTab(tabId) {
+      this.activeTab = tabId
+      if (tabId === 'inventory' && this.lowStock.length > 0) {
+        this.inventoryFilter = 'low'
+      }
+      if (tabId === 'inventory') {
+        this.$nextTick(() => {
+          document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+        })
+      }
     },
     
-    getAreaPoints() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return ''
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      var points = dailySales.map((day, index) => {
-        var x = (index / (dailySales.length - 1)) * 100
-        var y = 100 - ((day.revenue / maxRevenue) * 85)
-        return x + ',' + y
-      })
-      return '0,100,' + points.join(',') + ',100,100'
-    },
-    getLinePoints() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return ''
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => {
-        var x = (index / (dailySales.length - 1)) * 100
-        var y = 100 - ((day.revenue / maxRevenue) * 85)
-        return x + ',' + y
-      }).join(' ')
-    },
-    getLinePointsArray() {
-      var dailySales = this.salesTrend || []
-      if (dailySales.length === 0) return []
-      if (dailySales.length === 1) return [{ x: 50, y: 5 }]
-      var maxRevenue = Math.max.apply(null, dailySales.map(d => d.revenue || 0).concat([1]))
-      return dailySales.map((day, index) => ({
-        x: (index / (dailySales.length - 1)) * 100,
-        y: 100 - ((day.revenue / maxRevenue) * 85)
-      }))
-    },
-
     // =============================================
     // DATA LOADING
     // =============================================
@@ -1065,34 +980,33 @@ export default {
       }
     },
     async loadStalls() {
-      var res = await axios.get(API_BASE + '/companies/1/stalls', { 
-        headers: { Authorization: 'Bearer ' + this.token } 
+      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
       })
       this.stalls = res.data
     },
     async loadUsers() {
-      var res = await axios.get(API_BASE + '/companies/1/users', { 
-        headers: { Authorization: 'Bearer ' + this.token } 
+      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
       })
       this.users = res.data
     },
     async loadLowStock() {
-      var res = await axios.get(API_BASE + '/companies/1/low-stock', { 
-        headers: { Authorization: 'Bearer ' + this.token } 
+      const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
       })
       this.lowStock = res.data
     },
     async loadSalesAnalytics() {
-      var days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 : 365
-
+      const days = this.selectedPeriod === 'today' ? 1 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
       try {
-        var res = await axios.get(API_BASE + '/sales-analytics?days=' + days, {
-          headers: { Authorization: 'Bearer ' + this.token }
+        const res = await axios.get(`${API_BASE}/sales-analytics?days=${days}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
         })
-        var data = res.data || {}
+        const data = res.data || {}
         this.salesTrend = data.dailySales || []
         this.consolidatedSales.totalRevenue = data.totalRevenue || 0
         this.consolidatedSales.totalItems = data.totalItems || 0
@@ -1101,19 +1015,18 @@ export default {
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = data.topRevenue || 0
         this.productSales = data.productSales || {}
-        await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
       }
     },
     async loadStallPerformance() {
-      var days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 : 365
+      const days = this.selectedPeriod === 'today' ? 1 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
       try {
-        var res = await axios.get(API_BASE + '/stall-performance?days=' + days, {
-          headers: { Authorization: 'Bearer ' + this.token }
+        const res = await axios.get(`${API_BASE}/stall-performance?days=${days}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
         })
         this.stallPerformance = res.data || []
       } catch (err) {
@@ -1122,27 +1035,25 @@ export default {
     },
     async loadMenuPerformance() {
       try {
-        var productSales = this.productSales || {}
-        var menuPerformance = Object.keys(productSales).map(name => ({
+        const productSales = this.productSales || {}
+        this.menuPerformance = Object.keys(productSales).map(name => ({
           name: name,
           quantity: productSales[name].quantity || 0,
           revenue: productSales[name].revenue || 0
-        }))
-        menuPerformance.sort((a, b) => b.quantity - a.quantity)
-        this.menuPerformance = menuPerformance
+        })).sort((a, b) => b.quantity - a.quantity)
       } catch (err) {
         this.menuPerformance = []
       }
     },
-
+    
     // =============================================
-    // INVENTORY MANAGEMENT
+    // INVENTORY METHODS
     // =============================================
     async loadAllStallsInventory() {
-      for (var stall of this.stalls) {
+      for (const stall of this.stalls) {
         try {
-          var res = await axios.get(API_BASE + '/inventory?stallId=' + stall.id, {
-            headers: { Authorization: 'Bearer ' + this.token }
+          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
           })
           this.stallInventory[stall.id] = res.data.map(item => ({
             ...item,
@@ -1159,8 +1070,8 @@ export default {
     },
     async loadStallInventory(stallId) {
       try {
-        var res = await axios.get(API_BASE + '/inventory?stallId=' + stallId, {
-          headers: { Authorization: 'Bearer ' + this.token }
+        const res = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
         })
         this.stallInventory[stallId] = res.data.map(item => ({
           ...item,
@@ -1174,7 +1085,7 @@ export default {
       return this.stallInventory[stallId] || []
     },
     getStallInventorySummary(stallId) {
-      var inventory = this.getStallInventory(stallId)
+      const inventory = this.getStallInventory(stallId)
       if (inventory.length === 0) {
         return [
           { material_name: 'Chicken', current_level: '?', alert_level: 10 },
@@ -1197,11 +1108,10 @@ export default {
       return inventory
     },
     hasLowStock(stallId) {
-      const inventory = this.getStallInventory(stallId)
-      return inventory.some(item => item.current_level <= item.alert_level)
+      return this.getStallInventory(stallId).some(item => item.current_level <= item.alert_level)
     },
     getInventoryPercentage(item) {
-      var max = Math.max(item.current_level, item.alert_level * 2)
+      const max = Math.max(item.current_level, item.alert_level * 2)
       return Math.min((item.current_level / max) * 100, 100)
     },
     async updateInventoryStock(stallId, materialName, newLevel) {
@@ -1210,60 +1120,54 @@ export default {
         return
       }
       try {
-        await axios.post(API_BASE + '/inventory/update', {
-          stallId: stallId,
-          materialName: materialName,
-          newLevel: parseFloat(newLevel)
+        await axios.post(`${API_BASE}/inventory/update`, {
+          stallId, materialName, newLevel: parseFloat(newLevel)
         }, {
-          headers: { Authorization: 'Bearer ' + this.token }
+          headers: { Authorization: `Bearer ${this.token}` }
         })
         await this.loadStallInventory(stallId)
         await this.loadLowStock()
-        this.$emit('show-notification', materialName + ' updated to ' + newLevel + this.getUnit(materialName), 'success')
+        this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
       } catch (err) {
         this.$emit('show-notification', 'Failed to update stock', 'error')
       }
     },
     async quickAddStock(stallId, materialName, amount) {
-      var inventory = this.stallInventory[stallId] || []
-      var item = inventory.find(i => i.material_name === materialName)
+      const inventory = this.stallInventory[stallId] || []
+      const item = inventory.find(i => i.material_name === materialName)
       if (item) {
         await this.updateInventoryStock(stallId, materialName, item.current_level + amount)
       }
     },
     async bulkUpdateInventory(stallId) {
-      var inventory = this.stallInventory[stallId] || []
+      const inventory = this.stallInventory[stallId] || []
       if (inventory.length === 0) return
       try {
-        for (var item of inventory) {
+        for (const item of inventory) {
           if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
-            await axios.post(API_BASE + '/inventory/update', {
-              stallId: stallId,
-              materialName: item.material_name,
-              newLevel: item.newLevel
+            await axios.post(`${API_BASE}/inventory/update`, {
+              stallId, materialName: item.material_name, newLevel: item.newLevel
             }, {
-              headers: { Authorization: 'Bearer ' + this.token }
+              headers: { Authorization: `Bearer ${this.token}` }
             })
           }
         }
         await this.loadStallInventory(stallId)
         await this.loadLowStock()
-        this.$emit('show-notification', 'All stocks updated successfully', 'success')
+        this.$emit('show-notification', 'All stocks updated', 'success')
       } catch (err) {
         this.$emit('show-notification', 'Bulk update failed', 'error')
       }
     },
     async resetInventoryToAlert(stallId) {
       if (!confirm('Reset all stocks to alert levels for this stall?')) return
-      var inventory = this.stallInventory[stallId] || []
+      const inventory = this.stallInventory[stallId] || []
       try {
-        for (var item of inventory) {
-          await axios.post(API_BASE + '/inventory/update', {
-            stallId: stallId,
-            materialName: item.material_name,
-            newLevel: item.alert_level
+        for (const item of inventory) {
+          await axios.post(`${API_BASE}/inventory/update`, {
+            stallId, materialName: item.material_name, newLevel: item.alert_level
           }, {
-            headers: { Authorization: 'Bearer ' + this.token }
+            headers: { Authorization: `Bearer ${this.token}` }
           })
         }
         await this.loadStallInventory(stallId)
@@ -1273,7 +1177,7 @@ export default {
         this.$emit('show-notification', 'Reset failed', 'error')
       }
     },
-
+    
     // =============================================
     // USER CRUD
     // =============================================
@@ -1300,7 +1204,7 @@ export default {
     },
     async saveUser() {
       try {
-        var payload = {
+        const payload = {
           full_name: this.userForm.full_name,
           role: this.userForm.role,
           stall_ids: this.userForm.stall_ids
@@ -1309,10 +1213,10 @@ export default {
           payload.password = this.userForm.password
         }
         if (this.editingUser) {
-          await axios.put(API_BASE + '/users/' + this.userForm.id, payload, {
-            headers: { Authorization: 'Bearer ' + this.token }
+          await axios.put(`${API_BASE}/users/${this.userForm.id}`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
           })
-          this.$emit('show-notification', 'User updated successfully', 'success')
+          this.$emit('show-notification', 'User updated', 'success')
         } else {
           if (!this.userForm.password || this.userForm.password.trim() === '') {
             this.$emit('show-notification', 'Password is required', 'error')
@@ -1320,10 +1224,10 @@ export default {
           }
           payload.username = this.userForm.username
           payload.password = this.userForm.password
-          await axios.post(API_BASE + '/companies/1/users', payload, {
-            headers: { Authorization: 'Bearer ' + this.token }
+          await axios.post(`${API_BASE}/companies/1/users`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
           })
-          this.$emit('show-notification', 'User created successfully', 'success')
+          this.$emit('show-notification', 'User created', 'success')
         }
         this.closeUserModal()
         this.loadUsers()
@@ -1332,10 +1236,10 @@ export default {
       }
     },
     async deleteUser(userId, username) {
-      if (confirm('Delete user "' + username + '"?')) {
+      if (confirm(`Delete user "${username}"?`)) {
         try {
-          await axios.delete(API_BASE + '/users/' + userId, {
-            headers: { Authorization: 'Bearer ' + this.token }
+          await axios.delete(`${API_BASE}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
           })
           this.loadUsers()
           this.$emit('show-notification', 'User deleted', 'success')
@@ -1344,7 +1248,7 @@ export default {
         }
       }
     },
-
+    
     // =============================================
     // STALL CRUD
     // =============================================
@@ -1366,21 +1270,21 @@ export default {
     async saveStall() {
       try {
         if (this.editingStall) {
-          await axios.put(API_BASE + '/stalls/' + this.stallForm.id, {
+          await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
             name: this.stallForm.name,
             code: this.stallForm.code,
             location: this.stallForm.location
           }, {
-            headers: { Authorization: 'Bearer ' + this.token }
+            headers: { Authorization: `Bearer ${this.token}` }
           })
           this.$emit('show-notification', 'Stall updated', 'success')
         } else {
-          await axios.post(API_BASE + '/companies/1/stalls', {
+          await axios.post(`${API_BASE}/companies/1/stalls`, {
             name: this.stallForm.name,
             code: this.stallForm.code,
             location: this.stallForm.location
           }, {
-            headers: { Authorization: 'Bearer ' + this.token }
+            headers: { Authorization: `Bearer ${this.token}` }
           })
           this.$emit('show-notification', 'Stall created', 'success')
         }
@@ -1393,20 +1297,20 @@ export default {
     },
     async toggleStallStatus(stall) {
       try {
-        await axios.put(API_BASE + '/stalls/' + stall.id + '/toggle', {}, {
-          headers: { Authorization: 'Bearer ' + this.token }
+        await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+          headers: { Authorization: `Bearer ${this.token}` }
         })
         this.loadStalls()
-        this.$emit('show-notification', 'Stall ' + (stall.is_active ? 'deactivated' : 'activated'), 'success')
+        this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
       } catch (err) {
         this.$emit('show-notification', 'Failed to update stall', 'error')
       }
     },
     async deleteStall(stallId, stallName) {
-      if (confirm('Delete stall "' + stallName + '"?')) {
+      if (confirm(`Delete stall "${stallName}"?`)) {
         try {
-          await axios.delete(API_BASE + '/stalls/' + stallId, {
-            headers: { Authorization: 'Bearer ' + this.token }
+          await axios.delete(`${API_BASE}/stalls/${stallId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
           })
           this.loadStalls()
           this.$emit('show-notification', 'Stall deleted', 'success')
@@ -1415,115 +1319,77 @@ export default {
         }
       }
     },
-
+    
     // =============================================
     // EXPORT
     // =============================================
     async exportCurrentTab() {
       if (this.exporting) return
       this.exporting = true
-      
       try {
-        this.$emit('show-notification', 'Generating Excel file...', 'info')
-        
+        this.$emit('show-notification', 'Generating Excel...', 'info')
         const ExcelJS = await import('exceljs')
-        const saveAsModule = await import('file-saver')
-        const saveAs = saveAsModule.saveAs
-        const html2canvas = await import('html2canvas')
-        
+        const { saveAs } = await import('file-saver')
         const workbook = new ExcelJS.Workbook()
         workbook.creator = 'Chickory Hub'
-        workbook.created = new Date()
         
-        let sheet
-        let fileName
-        
+        let sheet, fileName
         if (this.activeTab === 'dashboard') {
           sheet = workbook.addWorksheet('Dashboard')
-          sheet.addRow(['📊 CHICKORY HUB DASHBOARD', '', ''])
-          sheet.addRow(['Period', this.getPeriodLabel(), ''])
-          sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0), ''])
-          sheet.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0, ''])
-          sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0), ''])
-          sheet.addRow(['Top Performing Stall', this.consolidatedSales.topStall || '-', ''])
-          sheet.addRow(['', '', ''])
-          sheet.addRow(['📈 DAILY SALES TREND', '', ''])
+          sheet.addRow(['📊 Chickory Hub Dashboard', ''])
+          sheet.addRow(['Period', this.getPeriodLabel()])
+          sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0)])
+          sheet.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0])
+          sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0)])
+          sheet.addRow(['Top Stall', this.consolidatedSales.topStall || '-'])
+          sheet.addRow([])
           sheet.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
-          for (var day of this.salesTrend) {
-            sheet.addRow([this.formatDate(day.date), day.revenue || 0, day.items || 0])
+          for (const day of this.salesTrend) {
+            sheet.addRow([this.formatShortDate(day.date), day.revenue || 0, day.items || 0])
           }
-          
-          const chartContainer = document.getElementById('sales-chart')
-          if (chartContainer && this.salesTrend.length > 0) {
-            try {
-              const canvas = await html2canvas.default(chartContainer, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-              })
-              const chartImageBase64 = canvas.toDataURL('image/png')
-              const imageId = workbook.addImage({ base64: chartImageBase64, extension: 'png' })
-              const imageRow = 10 + this.salesTrend.length + 2
-              sheet.addImage(imageId, { tl: { col: 0, row: imageRow }, ext: { width: 700, height: 350 } })
-            } catch (err) {}
-          }
-          
-          fileName = 'Chickory_Hub_Dashboard_' + this.getPeriodLabel() + '_' + new Date().toISOString().split('T')[0] + '.xlsx'
+          fileName = `Chickory_Dashboard_${this.getPeriodLabel()}_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'inventory') {
           sheet = workbook.addWorksheet('Inventory')
-          sheet.addRow(['📦 INVENTORY MANAGEMENT', '', '', ''])
-          sheet.addRow(['Stall Name', 'Material', 'Current Level', 'Alert Level', 'Status'])
-          for (var stall of this.filteredInventoryStalls) {
-            const inventory = this.getStallInventory(stall.id)
-            for (var item of inventory) {
+          sheet.addRow(['Stall', 'Material', 'Level', 'Alert', 'Status'])
+          for (const stall of this.filteredInventoryStalls) {
+            for (const item of this.getStallInventory(stall.id)) {
               sheet.addRow([
                 stall.name,
                 item.material_name,
-                item.current_level + this.getUnit(item.material_name),
-                item.alert_level + this.getUnit(item.material_name),
-                item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK'
+                `${item.current_level}${this.getUnit(item.material_name)}`,
+                `${item.alert_level}${this.getUnit(item.material_name)}`,
+                item.current_level <= item.alert_level ? 'LOW' : 'OK'
               ])
             }
           }
-          fileName = 'Chickory_Hub_Inventory_' + new Date().toISOString().split('T')[0] + '.xlsx'
+          fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'stalls') {
           sheet = workbook.addWorksheet('Stalls')
-          sheet.addRow(['🏪 STALL MANAGEMENT', '', '', ''])
           sheet.addRow(['Name', 'Code', 'Status'])
-          for (var stall of this.filteredStallsList) {
-            sheet.addRow([
-              stall.name,
-              stall.code,
-              stall.is_active ? 'Active' : 'Inactive'
-            ])
+          for (const stall of this.filteredStallsList) {
+            sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
           }
-          fileName = 'Chickory_Hub_Stalls_' + new Date().toISOString().split('T')[0] + '.xlsx'
-        } else if (this.activeTab === 'users') {
+          fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else {
           sheet = workbook.addWorksheet('Users')
-          sheet.addRow(['👥 USER MANAGEMENT', '', '', ''])
-          sheet.addRow(['Username', 'Role', 'Assigned Stalls'])
-          for (var user of this.filteredUsersList) {
+          sheet.addRow(['Username', 'Role', 'Stalls'])
+          for (const user of this.filteredUsersList) {
             sheet.addRow([
               user.username,
               user.role,
               (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
             ])
           }
-          fileName = 'Chickory_Hub_Users_' + new Date().toISOString().split('T')[0] + '.xlsx'
+          fileName = `Chickory_Users_${new Date().toISOString().split('T')[0]}.xlsx`
         }
         
-        sheet.columns.forEach(col => {
-          col.width = Math.max(col.width || 0, 20)
-        })
-        
+        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 20) })
         const buffer = await workbook.xlsx.writeBuffer()
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        saveAs(blob, fileName)
-        
-        this.$emit('show-notification', 'Excel file downloaded!', 'success')
-      } catch (error) {
-        console.error('Export error:', error)
-        this.$emit('show-notification', 'Failed to export: ' + error.message, 'error')
+        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
+        this.$emit('show-notification', 'Excel downloaded!', 'success')
+      } catch (err) {
+        console.error('Export error:', err)
+        this.$emit('show-notification', 'Export failed', 'error')
       } finally {
         this.exporting = false
       }
@@ -1534,36 +1400,110 @@ export default {
 
 <style scoped>
 /* ============================================ */
-/* ROOT & BASE                                  */
+/* CSS VARIABLES                                */
 /* ============================================ */
 .sa-dashboard {
-  padding: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --primary: #F94908;
+  --primary-light: #fa6a2e;
+  --primary-dark: #d63d07;
+  --bg: var(--background);
+  --surface: var(--surface);
+  --text: var(--text);
+  --text-secondary: var(--text-secondary);
+  --text-tertiary: var(--text-tertiary);
+  --border: var(--border);
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================ */
 /* HEADER                                       */
 /* ============================================ */
-.page-header {
+.dashboard-header {
+  margin-bottom: 1.5rem;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
   flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
 
-.header-left h2 {
-  font-size: 1.35rem;
+.header-badge {
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-left h1 {
+  font-size: 1.25rem;
   font-weight: 700;
+  margin: 0;
   color: var(--text);
+}
+
+.header-left p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
   margin: 0;
 }
 
-.header-left .subtitle {
+.header-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: var(--transition);
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin: 0.15rem 0 0 0;
+}
+
+.header-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.header-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+}
+
+.header-btn.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  color: white;
+}
+
+.refresh-icon {
+  display: inline-block;
+  transition: transform 0.6s;
+}
+
+.header-btn:hover .refresh-icon {
+  transform: rotate(180deg);
 }
 
 /* ============================================ */
@@ -1571,7 +1511,7 @@ export default {
 /* ============================================ */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.25rem;
 }
@@ -1579,17 +1519,30 @@ export default {
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  transition: all 0.2s;
+  gap: 1rem;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--stat-color, var(--primary));
+  opacity: 0.6;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow);
 }
 
 .stat-card.clickable {
@@ -1597,169 +1550,162 @@ export default {
 }
 
 .stat-card.clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.12);
-  border-color: #F94908;
+  border-color: var(--stat-color);
 }
 
-.stat-hint {
+.stat-card .stat-hover {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 1rem;
   font-size: 0.6rem;
-  color: #F94908;
-  font-weight: 500;
-  margin-top: 1px;
-  opacity: 0.6;
+  color: var(--stat-color);
+  opacity: 0;
+  transition: var(--transition);
 }
 
-.stat-card.clickable:hover .stat-hint {
+.stat-card.clickable:hover .stat-hover {
   opacity: 1;
 }
 
 .stat-icon {
+  font-size: 1.5rem;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
-.stat-icon.stalls { background: #dbeafe; color: #2563eb; }
-.stat-icon.users { background: #e0f2fe; color: #0284c7; }
-.stat-icon.alert { background: #fef3c7; color: #d97706; }
+.stat-content {
+  flex: 1;
+}
 
-.stat-info .stat-value {
-  font-size: 1.25rem;
+.stat-number {
+  display: block;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
 
-.stat-info .stat-label {
+.stat-label {
+  display: block;
   font-size: 0.7rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-.stat-change {
+.stat-trend {
   font-size: 0.65rem;
   font-weight: 600;
-  color: var(--success);
-  display: inline-block;
-  margin-top: 1px;
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  background: var(--background);
 }
 
-.stat-change:has(↓) {
-  color: var(--error);
-}
+.stat-trend.up { color: #10b981; }
+.stat-trend.down { color: #ef4444; }
 
 /* ============================================ */
-/* PERIOD SELECTOR                              */
+/* PERIOD SECTION                               */
 /* ============================================ */
-.period-selector-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
+.period-section {
   margin-bottom: 1.25rem;
 }
 
-.period-selector {
+.period-pills {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
-  flex: 1;
 }
 
-.period-btn {
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
+.period-pill {
+  padding: 0.3rem 1rem;
   border: 1px solid var(--border);
+  border-radius: 20px;
   background: var(--surface);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: var(--transition);
   color: var(--text-secondary);
 }
 
-.period-btn:hover {
-  border-color: #F94908;
+.period-pill:hover {
+  border-color: var(--primary);
   color: var(--text);
 }
 
-.period-btn.active {
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
+.period-pill.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  border-color: #F94908;
+  border-color: var(--primary);
 }
 
 /* ============================================ */
-/* TAB NAVIGATION - Mobile Friendly             */
+/* TAB NAVIGATION                               */
 /* ============================================ */
-.tab-navigation-wrapper {
+.tab-nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin-bottom: 1.25rem;
-  scrollbar-width: none;
 }
 
-.tab-navigation-wrapper::-webkit-scrollbar {
+.tab-nav::-webkit-scrollbar {
   display: none;
 }
 
-.tab-navigation {
-  display: flex;
-  gap: 0.35rem;
-  background: var(--surface);
-  padding: 0.4rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  min-width: max-content;
-}
-
-.tab-btn {
+.tab-pill {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition);
   white-space: nowrap;
   position: relative;
 }
 
-.tab-btn:hover {
+.tab-pill:hover {
   background: var(--background);
   color: var(--text);
 }
 
-.tab-btn.active {
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
+.tab-pill.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.25);
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
 }
 
-.tab-icon {
-  font-size: 1rem;
+.tab-pill-icon {
+  font-size: 0.9rem;
 }
 
-.tab-label {
+.tab-pill-label {
   font-size: 0.8rem;
 }
 
-.tab-badge {
+.tab-pill-badge {
   background: #ef4444;
   color: white;
   border-radius: 50%;
   padding: 0 5px;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 700;
   min-width: 16px;
   text-align: center;
@@ -1785,47 +1731,146 @@ export default {
 }
 
 /* ============================================ */
-/* CARDS                                        */
+/* KPI CARDS                                    */
 /* ============================================ */
-.card {
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.kpi-card.highlight {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(249, 73, 8, 0.05), rgba(250, 106, 46, 0.05));
+}
+
+.kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kpi-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.2rem 0;
+}
+
+.kpi-change {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.kpi-change.positive { color: #10b981; }
+.kpi-change.negative { color: #ef4444; }
+
+/* ============================================ */
+/* MODERN CHART CARD                           */
+/* ============================================ */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
-.card.full-width {
-  width: 100%;
-}
-
-.card-header {
-  padding: 0.75rem 1rem;
+.chart-card-header {
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--background);
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.card-header h3 {
-  font-size: 0.9rem;
+.chart-card-header h3 {
+  font-size: 0.95rem;
   font-weight: 600;
   margin: 0;
+  color: var(--text);
 }
 
-.chart-header-left {
+.chart-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.chart-actions {
   display: flex;
+  gap: 0.35rem;
   align-items: center;
-  gap: 0.5rem;
 }
 
-.card-body {
-  padding: 1rem;
+.chart-view-group {
+  display: flex;
+  gap: 2px;
+  background: var(--background);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
 }
 
-.card-body.chart-fullscreen {
+.chart-view-btn {
+  padding: 0.1rem 0.4rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: var(--transition);
+  color: var(--text-tertiary);
+}
+
+.chart-view-btn:hover {
+  color: var(--text);
+}
+
+.chart-view-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 6px rgba(249, 73, 8, 0.2);
+}
+
+.chart-fullscreen-btn {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: var(--transition);
+  color: var(--text-tertiary);
+}
+
+.chart-fullscreen-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.chart-body {
+  padding: 1.25rem;
+  position: relative;
+}
+
+.chart-body.fullscreen {
   position: fixed;
   top: 0;
   left: 0;
@@ -1833,221 +1878,159 @@ export default {
   bottom: 0;
   z-index: 9999;
   background: var(--surface);
-  padding: 1.5rem;
+  padding: 2rem;
   overflow: auto;
-  animation: fadeIn 0.25s ease;
 }
 
-/* ============================================ */
-/* CHART CONTROLS                               */
-/* ============================================ */
-.chart-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.chart-view-toggle {
-  display: flex;
-  gap: 2px;
-  background: var(--background);
-  padding: 2px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-}
-
-.view-btn {
-  padding: 0.15rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-  color: var(--text-tertiary);
-}
-
-.view-btn:hover {
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.view-btn.active {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 2px 6px rgba(249, 73, 8, 0.25);
-}
-
-/* ============================================ */
-/* CHART SUMMARY                                */
-/* ============================================ */
-.chart-summary {
+/* Chart Stats */
+.chart-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: 0.5rem;
   margin-bottom: 1rem;
-  padding: 0.6rem;
+  padding: 0.5rem;
   background: var(--background);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
-.summary-stat {
+.chart-stat {
   text-align: center;
 }
 
-.summary-label {
+.chart-stat-label {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
-.summary-value {
+.chart-stat-value {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text);
 }
 
-.summary-value.up { color: var(--success); }
-.summary-value.down { color: var(--error); }
+.chart-stat-value.up { color: #10b981; }
+.chart-stat-value.down { color: #ef4444; }
 
-.summary-day {
-  font-size: 0.55rem;
+.chart-stat-sub {
+  font-size: 0.5rem;
   color: var(--text-tertiary);
 }
 
-/* ============================================ */
-/* MINIMALIST CHART                            */
-/* ============================================ */
-.chart-container {
-  padding: 0.25rem 0;
-  position: relative;
-}
-
+/* Chart Wrapper */
 .chart-wrapper {
   position: relative;
+  height: 200px;
 }
 
-/* Trend Line Overlay */
-.trend-line-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 35px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.trend-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.trend-svg circle {
-  cursor: pointer;
-  pointer-events: all;
-  transition: r 0.2s;
-}
-
-.trend-svg circle:hover {
-  r: 5;
-}
-
-/* Line Chart */
-.line-chart-container {
-  width: 100%;
-  height: 160px;
+.chart-container {
   position: relative;
-}
-
-.line-chart-svg {
   width: 100%;
   height: 100%;
 }
 
-.line-chart-svg circle {
-  cursor: pointer;
-  pointer-events: all;
-  transition: r 0.2s;
-}
-
-.line-chart-svg circle:hover {
-  r: 5;
-}
-
-/* Minimalist Bar Chart */
-.chart-bars {
+/* Chart Bars */
+.chart-bars-container {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
-  height: 160px;
-  gap: 0.35rem;
-  padding-top: 35px;
-  position: relative;
-  z-index: 1;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 4px;
+  gap: 4px;
 }
 
-.chart-bar-wrapper {
+.chart-bar-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
   height: 100%;
   cursor: pointer;
-}
-
-.chart-bar {
-  width: 100%;
-  max-width: 40px;
-  background: linear-gradient(180deg, #F94908, #fa6a2e);
-  border-radius: 3px 3px 0 0;
-  min-height: 3px;
   position: relative;
-  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s;
+  z-index: 1;
+}
+
+.chart-bar-track {
+  flex: 1;
+  width: 100%;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: flex-end;
+  min-height: 10px;
 }
 
-.chart-bar-wrapper:hover .chart-bar {
-  transform: scaleY(1.03);
-  transform-origin: bottom;
-  box-shadow: 0 2px 10px rgba(249, 73, 8, 0.2);
+.chart-bar-fill {
+  width: 100%;
+  max-width: 36px;
+  min-height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--bar-color, var(--primary));
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  margin: 0 auto;
 }
 
-.bar-value {
-  font-size: 0.55rem;
+.chart-bar-fill:hover {
+  opacity: 0.85;
+}
+
+.chart-bar-value {
+  position: absolute;
+  top: -1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
   color: var(--text-tertiary);
-  margin-top: -0.9rem;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-.chart-bar-wrapper:hover .bar-value {
+.chart-bar-group:hover .chart-bar-value {
   opacity: 1;
 }
 
-.bar-label {
-  font-size: 0.55rem;
+.chart-bar-label {
+  font-size: 0.5rem;
   color: var(--text-tertiary);
-  margin-top: 0.2rem;
+  margin-top: 4px;
+  text-align: center;
 }
 
-/* Chart Tooltip */
-.chart-tooltip {
+/* Trend Line SVG */
+.chart-trend-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chart-trend-line circle {
+  pointer-events: all;
+  cursor: pointer;
+  transition: r 0.2s;
+}
+
+.chart-trend-line circle:hover {
+  r: 5;
+}
+
+/* Tooltip */
+.chart-tooltip-modern {
   position: absolute;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   z-index: 10;
-  min-width: 100px;
   pointer-events: none;
+  min-width: 100px;
   animation: fadeIn 0.15s ease;
 }
 
@@ -2058,7 +2041,7 @@ export default {
 }
 
 .tooltip-revenue {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--primary);
 }
@@ -2069,50 +2052,49 @@ export default {
 }
 
 /* Chart Navigation */
-.chart-navigation {
+.chart-nav {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem;
   background: var(--background);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
-.nav-btn {
-  padding: 0.2rem 0.6rem;
+.chart-nav-btn {
+  padding: 0.15rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--surface);
   cursor: pointer;
   font-size: 0.8rem;
-  transition: all 0.2s;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.chart-nav-btn:hover:not(:disabled) {
+  border-color: var(--primary);
   color: var(--text);
 }
 
-.nav-btn:hover:not(:disabled) {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-.nav-btn:disabled {
-  opacity: 0.25;
+.chart-nav-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.nav-btn.reset-btn {
+.chart-nav-btn.reset {
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.nav-btn.reset-btn:hover:not(:disabled) {
+.chart-nav-btn.reset:hover:not(:disabled) {
   background: var(--primary);
   color: white;
 }
 
-.nav-label {
+.chart-nav-label {
   font-size: 0.7rem;
   color: var(--text-secondary);
   font-weight: 500;
@@ -2120,399 +2102,374 @@ export default {
   text-align: center;
 }
 
-/* ============================================ */
-/* CONSOLIDATED STATS                           */
-/* ============================================ */
-.consolidated-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.75rem;
-}
-
-.consolidated-stat {
-  text-align: center;
-  padding: 0.35rem;
-}
-
-.consolidated-stat .stat-label {
-  display: block;
-  font-size: 0.7rem;
+/* Chart Empty */
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   color: var(--text-secondary);
-  margin-bottom: 0.15rem;
 }
 
-.consolidated-stat .stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
+.chart-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================ */
+/* MODERN CARDS                                 */
+/* ============================================ */
+.card-modern {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.card-modern-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.card-modern-header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
   color: var(--text);
 }
 
-.consolidated-stat .stat-value.highlight {
-  color: #F94908;
+.card-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
-.period-label {
-  font-size: 0.7rem;
+.period-tag {
+  font-size: 0.65rem;
   color: var(--text-secondary);
   background: var(--background);
   padding: 0.15rem 0.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
+}
+
+.card-modern-body {
+  padding: 1rem;
 }
 
 /* ============================================ */
-/* TABLE CONTROLS                               */
+/* STALL RANKING                                */
 /* ============================================ */
-.table-controls {
+.stall-rank-item {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
   align-items: center;
-}
-
-.search-box {
-  flex: 1;
-  min-width: 150px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  transition: all 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
-}
-
-.search-input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.filter-box {
-  min-width: 110px;
-}
-
-.filter-select {
-  width: 100%;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2364748b' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-  padding-right: 2rem;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
-}
-
-.filter-result {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  font-weight: 500;
-  padding: 0.2rem 0.6rem;
-  background: var(--background);
-  border-radius: 16px;
-  white-space: nowrap;
-  border: 1px solid var(--border-light);
-  min-width: 28px;
-  text-align: center;
-}
-
-/* ============================================ */
-/* TABLES                                       */
-/* ============================================ */
-.table-responsive {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 0.4rem 0.6rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  border-bottom: 1px solid var(--border);
-}
-
-.data-table td {
-  padding: 0.4rem 0.6rem;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-light);
-  color: var(--text);
 }
 
-.data-table tr:hover td {
-  background: var(--background);
+.stall-rank-item:last-child {
+  border-bottom: none;
 }
 
-.data-table code {
-  background: var(--background);
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.75rem;
+.stall-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
 }
 
-/* ============================================ */
-/* STATUS BADGES                                */
-/* ============================================ */
-.status-badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 16px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.active { background: #d1fae5; color: #059669; }
-.status-badge.inactive { background: #fee2e2; color: #dc2626; }
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
-.rank-badge {
-  display: inline-flex;
+.stall-rank-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
   font-weight: 700;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   background: var(--background);
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
-.rank-badge.gold {
-  background: #fbbf24;
-  color: #78350f;
-}
+.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
+.stall-rank-number.silver { background: #d1d5db; color: #374151; }
+.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
 
-.rank-badge.silver {
-  background: #d1d5db;
-  color: #374151;
-}
-
-.rank-badge.bronze {
-  background: #f59e0b;
-  color: #78350f;
-}
-
-.role-badge {
-  background: #e0e7ff;
-  color: #4338ca;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  text-transform: capitalize;
+.stall-rank-name {
   font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
-.badge-count {
-  background: #F94908;
-  color: white;
-  padding: 0.1rem 0.5rem;
-  border-radius: 16px;
-  font-size: 0.65rem;
-  font-weight: 600;
-}
-
-/* ============================================ */
-/* PERFORMANCE BARS                             */
-/* ============================================ */
-.performance-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.performance-bar {
+.stall-rank-bar {
+  flex: 1;
   height: 4px;
-  background: linear-gradient(90deg, #F94908, #fa6a2e);
+  background: var(--background);
   border-radius: 2px;
-  transition: width 0.3s ease;
-  min-width: 10px;
+  overflow: hidden;
 }
 
-.performance-label {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  min-width: 32px;
+.stall-rank-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+}
+
+.stall-rank-fill.gold { background: #fbbf24; }
+.stall-rank-fill.silver { background: #d1d5db; }
+.stall-rank-fill.bronze { background: #f59e0b; }
+
+.stall-rank-revenue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
   text-align: right;
 }
 
 /* ============================================ */
-/* INVENTORY MANAGEMENT                         */
+/* MENU RANKING                                 */
 /* ============================================ */
-.stall-inventory-item {
+.menu-rank-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.menu-rank-item:last-child {
+  border-bottom: none;
+}
+
+.menu-rank-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.menu-rank-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.65rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-rank-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.menu-rank-qty {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.menu-rank-bar {
+  height: 3px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.2rem;
+}
+
+.menu-rank-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-rank-revenue {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ============================================ */
+/* INVENTORY                                    */
+/* ============================================ */
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 140px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 0.4rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.filter-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 110px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.inventory-stall {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   margin-bottom: 0.5rem;
   overflow: hidden;
 }
 
-.stall-inventory-header {
+.inventory-stall-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: var(--transition);
   flex-wrap: wrap;
   gap: 0.35rem;
 }
 
-.stall-inventory-header:hover {
+.inventory-stall-header:hover {
   background: var(--background);
 }
 
-.stall-info {
+.inventory-stall-info {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   flex-wrap: wrap;
 }
 
-.stall-name {
+.inventory-stall-name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.low-stock-warning {
-  font-size: 0.65rem;
-  color: #dc2626;
-  background: #fee2e2;
+.inventory-stall-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.inventory-tag {
+  background: var(--background);
   padding: 0.05rem 0.4rem;
   border-radius: 10px;
-  font-weight: 600;
+  font-size: 0.65rem;
+  border: 1px solid var(--border-light);
 }
 
-.stall-inventory-summary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.inventory-chip {
-  background: var(--background);
-  padding: 0.1rem 0.4rem;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  border: 1px solid var(--border);
-}
-
-.low-stock-dot {
+.inventory-tag-warning {
   color: #dc2626;
-  font-size: 0.6rem;
 }
 
-.toggle-icon {
-  font-weight: 600;
-  color: var(--text-secondary);
+.inventory-toggle {
   font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
 }
 
-.stall-inventory-details {
+.inventory-stall-details {
   padding: 0.75rem;
   border-top: 1px solid var(--border-light);
   background: var(--background);
 }
 
-.inventory-edit-grid {
+.inventory-items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.5rem;
 }
 
-.inventory-edit-item {
+.inventory-item-card {
   background: var(--surface);
   padding: 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
 
-.inventory-edit-item.low-stock-item {
+.inventory-item-card.low {
   border-color: #dc2626;
   background: #fef2f2;
 }
 
-.inventory-edit-info {
+.inventory-item-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.35rem;
-  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
 }
 
-.inventory-edit-info .material-name {
+.inventory-item-name {
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
-.inventory-edit-info .current-stock {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.alert-badge {
+.inventory-item-status {
   font-size: 0.6rem;
   font-weight: 600;
   padding: 0.05rem 0.3rem;
   border-radius: 8px;
 }
 
-.alert-badge.low { background: #fee2e2; color: #dc2626; }
-.alert-badge.ok { background: #d1fae5; color: #059669; }
+.inventory-item-status.ok { background: #d1fae5; color: #059669; }
+.inventory-item-status.low { background: #fee2e2; color: #dc2626; }
 
-.inventory-edit-controls {
+.inventory-item-level {
   display: flex;
-  gap: 0.3rem;
-  align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
-.inventory-input {
-  width: 60px;
-  padding: 0.2rem 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.8rem;
+.inventory-item-current {
+  font-weight: 600;
+  color: var(--text);
 }
 
-.inventory-input:focus {
-  outline: none;
-  border-color: #F94908;
+.inventory-item-progress {
+  margin: 0.35rem 0;
 }
 
-.progress-bar-container {
-  margin-top: 0.35rem;
+.inventory-progress-track {
   width: 100%;
   height: 3px;
   background: var(--border);
@@ -2520,18 +2477,38 @@ export default {
   overflow: hidden;
 }
 
-.progress-bar-container .progress-bar {
+.inventory-progress-fill {
   height: 100%;
-  background: #10b981;
   border-radius: 2px;
+  background: #10b981;
   transition: width 0.3s ease;
 }
 
-.progress-bar-container .progress-bar.low {
+.inventory-progress-fill.low {
   background: #ef4444;
 }
 
-.inventory-actions-bottom {
+.inventory-item-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.inventory-item-input {
+  width: 50px;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.inventory-item-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.inventory-stall-actions {
   margin-top: 0.5rem;
   display: flex;
   gap: 0.35rem;
@@ -2539,158 +2516,210 @@ export default {
 }
 
 /* ============================================ */
-/* LOW STOCK SUMMARY                            */
+/* ALERTS                                       */
 /* ============================================ */
-.low-stock-summary {
+.alerts-section {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
 
-.low-stock-summary h4 {
+.alerts-title {
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: var(--text);
 }
 
-.alert-item {
+.alert-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.5rem;
+  gap: 0.5rem;
+  padding: 0.2rem 0.5rem;
   background: #fef3c7;
   border-radius: 4px;
-  margin-bottom: 0.2rem;
   font-size: 0.8rem;
+  margin-bottom: 0.2rem;
   flex-wrap: wrap;
 }
 
-.alert-item:last-child { margin-bottom: 0; }
-.alert-icon { font-size: 0.9rem; }
-.alert-stall { font-weight: 600; }
-.alert-material { color: var(--text-secondary); }
-.alert-level { font-weight: 600; color: #dc2626; }
+.alert-row-stall { font-weight: 600; }
+.alert-row-material { color: var(--text-secondary); }
+.alert-row-level { font-weight: 600; color: #dc2626; }
+.alert-row-threshold { font-size: 0.65rem; color: var(--text-tertiary); }
 
-.alert-item.compact {
-  padding: 0.2rem 0.4rem;
-  font-size: 0.75rem;
+/* ============================================ */
+/* LIST ITEMS (Stalls & Users)                  */
+/* ============================================ */
+.list-item {
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.25rem 0;
 }
 
-/* ============================================ */
-/* HEADER ACTIONS                               */
-/* ============================================ */
-.header-actions {
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-content {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-/* ============================================ */
-/* ACTION BUTTONS                               */
-/* ============================================ */
-.action-buttons {
+.list-item-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.6rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.list-item-info {
+  flex: 1;
+  min-width: 100px;
+}
+
+.list-item-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.list-item-sub {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.list-item-code {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.list-item-stalls {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.list-item-actions {
   display: flex;
   gap: 0.15rem;
 }
 
-.btn-icon-sm {
-  background: transparent;
+.list-item-btn {
+  padding: 0.1rem 0.3rem;
   border: none;
-  padding: 0.15rem 0.3rem;
+  background: transparent;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  transition: var(--transition);
+  color: var(--text-secondary);
 }
 
-.btn-icon-sm:hover { background: var(--background); }
-.btn-icon-sm.danger { color: #ef4444; }
-.btn-icon-sm.danger:hover { background: #fee2e2; }
+.list-item-btn:hover {
+  background: var(--background);
+  color: var(--text);
+}
+
+.list-item-btn.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ============================================ */
+/* STATUS TAGS                                  */
+/* ============================================ */
+.status-tag {
+  padding: 0.05rem 0.4rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-tag.active { background: #d1fae5; color: #059669; }
+.status-tag.inactive { background: #fee2e2; color: #dc2626; }
+.status-tag.danger { background: #fee2e2; color: #dc2626; }
+
+.role-tag {
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
 
 /* ============================================ */
 /* BUTTONS                                      */
 /* ============================================ */
-.btn {
+.btn-modern {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 0.8rem;
-  border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition);
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
+.btn-modern.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
 }
 
-.btn-primary:hover {
+.btn-modern.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(249, 73, 8, 0.25);
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  background: transparent;
+.btn-modern.secondary {
+  background: var(--background);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
+}
+
+.btn-modern.secondary:hover {
+  background: var(--surface-elevated);
   color: var(--text);
 }
 
-.btn-outline:hover {
-  background: var(--background);
-}
-
-.btn-sm {
-  padding: 0.2rem 0.6rem;
+.btn-modern.small {
+  padding: 0.15rem 0.5rem;
   font-size: 0.7rem;
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.btn-ghost:hover {
-  background: var(--background);
-}
-
-.btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 /* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
-.empty-state {
+.empty-state-modern {
   text-align: center;
-  padding: 1.5rem 0.5rem;
+  padding: 2rem 0.5rem;
   color: var(--text-secondary);
 }
 
-.empty-state .empty-icon {
-  font-size: 1.5rem;
+.empty-state-modern span {
+  font-size: 2rem;
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 
-.empty-state.small {
-  padding: 0.35rem;
-  font-size: 0.8rem;
-}
-
-.empty-state p {
+.empty-state-modern p {
   font-size: 0.85rem;
+  margin: 0;
 }
 
 /* ============================================ */
@@ -2710,82 +2739,102 @@ export default {
   backdrop-filter: blur(4px);
 }
 
-.modal {
+.modal-modern {
   background: var(--surface);
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: var(--radius);
   max-width: 480px;
   width: 92%;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
 }
 
-.modal-lg { max-width: 640px; }
-.modal h3 {
-  margin: 0 0 0.75rem 0;
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
   font-size: 1rem;
+  font-weight: 600;
 }
 
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
 }
 
-.modal-body input,
-.modal-body select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  background: var(--surface);
+.modal-close-btn:hover {
   color: var(--text);
-  width: 100%;
 }
 
-.modal-body input:focus,
-.modal-body select:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+.modal-modern-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  margin-top: 0.75rem;
-}
-
-.form-row {
+.modal-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.form-group {
+.modal-form-group {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
 
-.form-group label {
+.modal-form-group label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.hint-text {
+.modal-form-group input,
+.modal-form-group select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.modal-form-group small {
   font-size: 0.65rem;
   color: var(--text-tertiary);
-  font-style: italic;
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .stall-select-multiple {
   min-height: 60px;
   padding: 0.35rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
 }
@@ -2793,360 +2842,70 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
-
-/* Tablet */
 @media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .consolidated-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .inventory-edit-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Small Tablet / Large Phone */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .stat-card { padding: 0.75rem; }
+  .stat-number { font-size: 1.1rem; }
   
-  .header-left h2 {
-    font-size: 1.1rem;
-  }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 1.1rem; }
   
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
+  .chart-body { padding: 0.75rem; }
+  .chart-wrapper { height: 150px; }
+  .chart-bar-fill { max-width: 28px; }
   
-  .stat-card {
-    padding: 0.75rem;
-    flex-direction: column;
-    text-align: center;
-  }
+  .tab-pill { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+  .tab-pill-label { font-size: 0.7rem; }
   
-  .stat-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
-  }
+  .filter-bar { flex-direction: column; }
+  .filter-search { min-width: unset; }
+  .filter-select { min-width: unset; }
   
-  .stat-info .stat-value {
-    font-size: 1rem;
-  }
+  .inventory-items-grid { grid-template-columns: 1fr; }
+  .inventory-stall-header { flex-direction: column; align-items: flex-start; }
   
-  .stat-info .stat-label {
-    font-size: 0.6rem;
-  }
+  .modal-form-row { grid-template-columns: 1fr; }
+  .modal-modern { width: 95%; }
   
-  .tab-btn {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.75rem;
-  }
-  
-  .tab-label {
-    font-size: 0.7rem;
-  }
-  
-  .tab-icon {
-    font-size: 0.85rem;
-  }
-  
-  .tab-badge {
-    min-width: 14px;
-    line-height: 14px;
-    font-size: 0.5rem;
-  }
-  
-  .consolidated-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-  
-  .consolidated-stat .stat-value {
-    font-size: 1rem;
-  }
-  
-  .consolidated-stat .stat-label {
-    font-size: 0.6rem;
-  }
-  
-  .chart-summary {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.35rem;
-  }
-  
-  .chart-bars {
-    height: 120px;
-    gap: 0.25rem;
-    padding-top: 30px;
-  }
-  
-  .chart-bar {
-    max-width: 28px;
-  }
-  
-  .bar-value {
-    font-size: 0.5rem;
-    margin-top: -0.7rem;
-  }
-  
-  .bar-label {
-    font-size: 0.5rem;
-  }
-  
-  .line-chart-container {
-    height: 120px;
-  }
-  
-  .data-table {
-    font-size: 0.75rem;
-  }
-  
-  .data-table th,
-  .data-table td {
-    padding: 0.3rem 0.4rem;
-  }
-  
-  .table-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .search-box {
-    min-width: unset;
-  }
-  
-  .filter-box {
-    min-width: unset;
-  }
-  
-  .filter-result {
-    align-self: flex-start;
-  }
-  
-  .inventory-edit-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .stall-inventory-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .inventory-edit-controls {
-    flex-wrap: wrap;
-  }
-  
-  .inventory-actions-bottom {
-    flex-direction: column;
-  }
-  
-  .header-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .chart-controls {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .chart-navigation {
-    flex-wrap: wrap;
-  }
-  
-  .nav-label {
-    min-width: 60px;
-    font-size: 0.65rem;
-  }
-  
-  .card-body.chart-fullscreen {
-    padding: 0.75rem;
-  }
-  
-  .modal {
-    width: 95%;
-    padding: 1rem;
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .period-selector-wrapper {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .period-selector {
-    justify-content: center;
-  }
-  
-  .period-btn {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.6rem;
-  }
+  .stall-rank-item { flex-wrap: wrap; }
+  .stall-rank { min-width: unset; }
+  .stall-rank-revenue { min-width: unset; }
 }
 
-/* Phone */
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
+  .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
+  .stat-number { font-size: 0.95rem; }
   
-  .consolidated-stats {
-    grid-template-columns: 1fr 1fr;
-  }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-card { padding: 0.5rem; }
+  .kpi-value { font-size: 0.95rem; }
   
-  .chart-summary {
-    grid-template-columns: 1fr 1fr;
-  }
+  .chart-wrapper { height: 120px; }
+  .chart-bar-fill { max-width: 20px; }
+  .chart-bar-label { font-size: 0.4rem; }
+  .chart-nav-label { min-width: 60px; font-size: 0.6rem; }
   
-  .chart-bars {
-    height: 90px;
-    gap: 0.15rem;
-    padding-top: 25px;
-  }
+  .chart-stats { grid-template-columns: repeat(2, 1fr); }
+  .chart-stat-value { font-size: 0.75rem; }
   
-  .chart-bar {
-    max-width: 20px;
-    border-radius: 2px 2px 0 0;
-  }
+  .header-left h1 { font-size: 1rem; }
+  .header-badge { width: 36px; height: 36px; font-size: 1.2rem; }
   
-  .bar-value {
-    font-size: 0.4rem;
-    margin-top: -0.6rem;
-  }
+  .tab-pill { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
+  .tab-pill-icon { font-size: 0.7rem; }
+  .tab-pill-label { font-size: 0.6rem; }
   
-  .bar-label {
-    font-size: 0.45rem;
-  }
+  .list-item-content { gap: 0.35rem; }
+  .list-item-name { font-size: 0.75rem; }
+  .list-item-btn { font-size: 0.75rem; }
   
-  .line-chart-container {
-    height: 90px;
-  }
-  
-  .trend-line-container {
-    height: 25px;
-  }
-  
-  .data-table {
-    font-size: 0.65rem;
-  }
-  
-  .data-table th,
-  .data-table td {
-    padding: 0.2rem 0.3rem;
-  }
-  
-  .status-badge {
-    font-size: 0.55rem;
-    padding: 0.05rem 0.35rem;
-  }
-  
-  .rank-badge {
-    width: 16px;
-    height: 16px;
-    font-size: 0.5rem;
-  }
-  
-  .performance-bar {
-    height: 3px;
-  }
-  
-  .performance-label {
-    font-size: 0.55rem;
-    min-width: 24px;
-  }
-  
-  .tab-btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.65rem;
-  }
-  
-  .tab-label {
-    font-size: 0.6rem;
-  }
-  
-  .tab-icon {
-    font-size: 0.75rem;
-  }
-  
-  .btn {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-  }
-  
-  .btn-sm {
-    font-size: 0.6rem;
-    padding: 0.15rem 0.4rem;
-  }
-  
-  .search-input {
-    font-size: 0.75rem;
-    padding: 0.3rem 0.5rem;
-  }
-  
-  .filter-select {
-    font-size: 0.75rem;
-    padding: 0.3rem 0.5rem;
-  }
-  
-  .filter-result {
-    font-size: 0.65rem;
-    padding: 0.1rem 0.4rem;
-  }
-  
-  .card-header h3 {
-    font-size: 0.8rem;
-  }
-  
-  .period-btn {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.5rem;
-  }
-}
-
-/* Extra Small */
-@media (max-width: 360px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .consolidated-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .chart-summary {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .header-left h2 {
-    font-size: 0.95rem;
-  }
-  
-  .header-left .subtitle {
-    font-size: 0.7rem;
-  }
-  
-  .tab-btn {
-    padding: 0.2rem 0.35rem;
-    font-size: 0.6rem;
-  }
-  
-  .tab-label {
-    font-size: 0.55rem;
-  }
-  
-  .tab-icon {
-    font-size: 0.65rem;
-  }
+  .empty-state-modern span { font-size: 1.5rem; }
 }
 </style>
