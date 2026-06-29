@@ -24,7 +24,7 @@
     </header>
 
     <!-- ============================================ -->
-    <!-- STATS CARDS - Minimalist                     -->
+    <!-- STATS CARDS                                  -->
     <!-- ============================================ -->
     <div class="stats-grid">
       <div class="stat-card" style="--stat-color: #2563eb;">
@@ -73,7 +73,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- TAB NAVIGATION - Modern Pills                -->
+    <!-- TAB NAVIGATION                               -->
     <!-- ============================================ -->
     <div class="tab-nav">
       <button 
@@ -97,7 +97,7 @@
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
-        <!-- Modern KPI Cards -->
+        <!-- KPI Cards -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-label">Revenue</div>
@@ -108,7 +108,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Items Sold</div>
-            <div class="kpi-value">{{ consolidatedSales.totalItems || 0 }}</div>
+            <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
             <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
               {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
             </div>
@@ -126,8 +126,8 @@
           </div>
         </div>
 
-        <!-- Modern Chart Section -->
-        <div class="chart-card">
+        <!-- Modern Chart Section - FIXED -->
+        <div class="chart-card" :class="{ 'fullscreen-mode': chartFullscreen }">
           <div class="chart-card-header">
             <div>
               <h3>Sales Overview</h3>
@@ -145,13 +145,16 @@
                   {{ view.icon }}
                 </button>
               </div>
-              <button @click="toggleChartFullscreen" class="chart-fullscreen-btn" title="Fullscreen">
-                ⛶
+              <button @click="toggleChartFullscreen" class="chart-fullscreen-btn" :title="chartFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+                {{ chartFullscreen ? '✕' : '⛶' }}
+              </button>
+              <button v-if="chartFullscreen" @click="toggleChartFullscreen" class="chart-exit-btn" title="Exit Fullscreen">
+                ✕ Exit
               </button>
             </div>
           </div>
 
-          <div class="chart-body" :class="{ 'fullscreen': chartFullscreen }">
+          <div class="chart-body">
             <!-- Chart Summary -->
             <div class="chart-stats" v-if="salesTrend.length > 0">
               <div class="chart-stat">
@@ -165,7 +168,7 @@
               </div>
               <div class="chart-stat">
                 <span class="chart-stat-label">Items</span>
-                <span class="chart-stat-value">{{ getTotalItems() }}</span>
+                <span class="chart-stat-value">{{ formatNumber(getTotalItems()) }}</span>
               </div>
               <div class="chart-stat">
                 <span class="chart-stat-label">Trend</span>
@@ -176,7 +179,7 @@
               </div>
             </div>
 
-            <!-- The Chart -->
+            <!-- The Chart - FIXED -->
             <div class="chart-wrapper" ref="chartWrapper" id="sales-chart">
               <div v-if="salesTrend.length > 0" class="chart-container">
                 <!-- Bars -->
@@ -239,10 +242,12 @@
                 </svg>
 
                 <!-- Tooltip -->
-                <div v-if="tooltipVisible && hoveredIndex !== null" class="chart-tooltip-modern" :style="tooltipPosition">
-                  <div class="tooltip-date">{{ formatFullDate(salesTrend[hoveredIndex]?.date) }}</div>
-                  <div class="tooltip-revenue">{{ formatCurrency(salesTrend[hoveredIndex]?.revenue || 0) }}</div>
-                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items sold</div>
+                <div v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartVisibleData.length" 
+                     class="chart-tooltip-modern" 
+                     :style="tooltipPosition">
+                  <div class="tooltip-date">{{ formatFullDate(chartVisibleData[hoveredIndex]?.date) }}</div>
+                  <div class="tooltip-revenue">{{ formatCurrency(chartVisibleData[hoveredIndex]?.revenue || 0) }}</div>
+                  <div class="tooltip-items">{{ formatNumber(chartVisibleData[hoveredIndex]?.items || 0) }} items</div>
                 </div>
               </div>
 
@@ -348,7 +353,6 @@
             </button>
           </div>
           <div class="card-modern-body">
-            <!-- Filters -->
             <div class="filter-bar">
               <div class="filter-search">
                 <input 
@@ -770,10 +774,15 @@ export default {
     formatCurrency(amount) {
       return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(amount)
     },
+    formatNumber(value) {
+      return new Intl.NumberFormat('en-MY').format(value || 0)
+    },
     formatShortDate(dateStr) {
+      if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
     },
     formatFullDate(dateStr) {
+      if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('en-MY', { 
         weekday: 'long', 
         day: 'numeric', 
@@ -843,7 +852,9 @@ export default {
     // CHART DRAWING
     // =============================================
     getBarHeight(revenue) {
-      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0), 1)
+      const data = this.chartVisibleData
+      if (data.length === 0) return 5
+      const max = Math.max(...data.map(d => d.revenue || 0), 1)
       return Math.max((revenue / max) * 75, 3)
     },
     getBarColor(index) {
@@ -900,7 +911,15 @@ export default {
     },
     toggleChartFullscreen() {
       this.chartFullscreen = !this.chartFullscreen
-      document.body.style.overflow = this.chartFullscreen ? 'hidden' : ''
+      if (this.chartFullscreen) {
+        document.body.style.overflow = 'hidden'
+      } else {
+        document.body.style.overflow = ''
+        // Exit fullscreen mode in browser if it was triggered
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        }
+      }
     },
     
     // =============================================
@@ -912,9 +931,18 @@ export default {
       const wrapper = this.$refs.chartWrapper
       if (wrapper) {
         const rect = wrapper.getBoundingClientRect()
-        this.tooltipPosition = {
-          left: `calc(${(index / (this.chartVisibleData.length - 1)) * 100}% - 60px)`,
-          top: '5px'
+        const data = this.chartVisibleData
+        if (data.length > 1) {
+          const x = (index / (data.length - 1)) * 100
+          this.tooltipPosition = {
+            left: `calc(${x}% - 60px)`,
+            top: '5px'
+          }
+        } else {
+          this.tooltipPosition = {
+            left: 'calc(50% - 60px)',
+            top: '5px'
+          }
         }
       }
     },
@@ -1339,7 +1367,7 @@ export default {
           sheet.addRow(['📊 Chickory Hub Dashboard', ''])
           sheet.addRow(['Period', this.getPeriodLabel()])
           sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0)])
-          sheet.addRow(['Total Items Sold', this.consolidatedSales.totalItems || 0])
+          sheet.addRow(['Total Items Sold', this.formatNumber(this.consolidatedSales.totalItems || 0)])
           sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0)])
           sheet.addRow(['Top Stall', this.consolidatedSales.topStall || '-'])
           sheet.addRow([])
@@ -1782,13 +1810,37 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* MODERN CHART CARD                           */
+/* CHART CARD - FIXED                          */
 /* ============================================ */
 .chart-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  position: relative;
+}
+
+.chart-card.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: var(--surface);
+  border-radius: 0;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chart-card.fullscreen-mode .chart-body {
+  height: calc(100vh - 80px);
+  overflow: auto;
+}
+
+.chart-card.fullscreen-mode .chart-wrapper {
+  height: calc(100vh - 280px);
 }
 
 .chart-card-header {
@@ -1849,8 +1901,9 @@ export default {
   box-shadow: 0 2px 6px rgba(249, 73, 8, 0.2);
 }
 
-.chart-fullscreen-btn {
-  padding: 0.1rem 0.4rem;
+.chart-fullscreen-btn,
+.chart-exit-btn {
+  padding: 0.1rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--surface);
@@ -1860,26 +1913,25 @@ export default {
   color: var(--text-tertiary);
 }
 
-.chart-fullscreen-btn:hover {
+.chart-fullscreen-btn:hover,
+.chart-exit-btn:hover {
   border-color: var(--primary);
   color: var(--text);
 }
 
-.chart-body {
-  padding: 1.25rem;
-  position: relative;
+.chart-exit-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 
-.chart-body.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
-  background: var(--surface);
-  padding: 2rem;
-  overflow: auto;
+.chart-exit-btn:hover {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.chart-body {
+  padding: 1.25rem;
 }
 
 /* Chart Stats */
@@ -2549,7 +2601,7 @@ export default {
 .alert-row-threshold { font-size: 0.65rem; color: var(--text-tertiary); }
 
 /* ============================================ */
-/* LIST ITEMS (Stalls & Users)                  */
+/* LIST ITEMS                                   */
 /* ============================================ */
 .list-item {
   border-bottom: 1px solid var(--border-light);
@@ -2875,6 +2927,10 @@ export default {
   .stall-rank-item { flex-wrap: wrap; }
   .stall-rank { min-width: unset; }
   .stall-rank-revenue { min-width: unset; }
+  
+  .chart-card.fullscreen-mode .chart-wrapper {
+    height: calc(100vh - 200px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -2907,5 +2963,9 @@ export default {
   .list-item-btn { font-size: 0.75rem; }
   
   .empty-state-modern span { font-size: 1.5rem; }
+  
+  .chart-card.fullscreen-mode .chart-wrapper {
+    height: calc(100vh - 160px);
+  }
 }
 </style>
