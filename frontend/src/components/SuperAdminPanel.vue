@@ -55,21 +55,23 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- TAB NAVIGATION                               -->
+    <!-- TAB NAVIGATION - Mobile Friendly             -->
     <!-- ============================================ -->
-    <div class="tab-navigation">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id"
-        :class="['tab-btn', { active: activeTab === tab.id }]"
-        @click="switchTab(tab.id)"
-      >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        {{ tab.label }}
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge">
-          {{ lowStock.length }}
-        </span>
-      </button>
+    <div class="tab-navigation-wrapper">
+      <div class="tab-navigation">
+        <button 
+          v-for="tab in tabs" 
+          :key="tab.id"
+          :class="['tab-btn', { active: activeTab === tab.id }]"
+          @click="switchTab(tab.id)"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          <span class="tab-label">{{ tab.label }}</span>
+          <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge">
+            {{ lowStock.length }}
+          </span>
+        </button>
+      </div>
     </div>
 
     <!-- ============================================ -->
@@ -115,7 +117,7 @@
           </div>
         </div>
 
-        <!-- Enhanced Daily Sales Trend with Navigation -->
+        <!-- Minimalist Daily Sales Trend -->
         <div class="card full-width" id="chart-container">
           <div class="card-header">
             <div class="chart-header-left">
@@ -129,21 +131,21 @@
                   :class="['view-btn', { active: chartView === 'bars' }]"
                   title="Bar Chart"
                 >
-                  📊
+                  ▦
                 </button>
                 <button 
                   @click="chartView = 'line'" 
                   :class="['view-btn', { active: chartView === 'line' }]"
                   title="Line Chart"
                 >
-                  📈
+                  ∿
                 </button>
                 <button 
                   @click="chartView = 'mixed'" 
                   :class="['view-btn', { active: chartView === 'mixed' }]"
                   title="Mixed Chart"
                 >
-                  📉
+                  ⊹
                 </button>
               </div>
               <button @click="toggleChartFullscreen" class="btn btn-ghost btn-sm" title="Fullscreen">
@@ -156,22 +158,22 @@
               <!-- Chart Summary Stats -->
               <div class="chart-summary" v-if="salesTrend.length > 0">
                 <div class="summary-stat">
-                  <span class="summary-label">Peak Revenue</span>
+                  <span class="summary-label">Peak</span>
                   <span class="summary-value">{{ formatCurrency(getPeakRevenue()) }}</span>
                   <span class="summary-day">{{ getPeakDay() }}</span>
                 </div>
                 <div class="summary-stat">
-                  <span class="summary-label">Average Daily</span>
+                  <span class="summary-label">Average</span>
                   <span class="summary-value">{{ formatCurrency(getAverageRevenue()) }}</span>
                 </div>
                 <div class="summary-stat">
-                  <span class="summary-label">Total Items</span>
+                  <span class="summary-label">Items</span>
                   <span class="summary-value">{{ getTotalItems() }}</span>
                 </div>
                 <div class="summary-stat">
                   <span class="summary-label">Trend</span>
                   <span class="summary-value" :class="getTrendDirection()">
-                    {{ getTrendDirection() === 'up' ? '📈' : getTrendDirection() === 'down' ? '📉' : '➡️' }}
+                    {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
                     {{ getTrendPercentage() }}%
                   </span>
                 </div>
@@ -179,20 +181,14 @@
 
               <!-- Chart -->
               <div v-if="salesTrend.length > 0" class="chart-wrapper" id="sales-chart">
-                <!-- Trend Line (always shown overlay) -->
-                <div class="trend-line-container" v-if="chartView !== 'line'">
+                <!-- Trend Line (overlay for mixed view) -->
+                <div class="trend-line-container" v-if="chartView === 'mixed'">
                   <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.8" />
-                        <stop offset="100%" style="stop-color:#fa6a2e;stop-opacity:0.8" />
-                      </linearGradient>
-                    </defs>
                     <polyline
                       :points="getTrendPoints()"
                       fill="none"
-                      stroke="url(#trendGradient)"
-                      stroke-width="3"
+                      stroke="#F94908"
+                      stroke-width="2.5"
                       stroke-linejoin="round"
                       stroke-linecap="round"
                     />
@@ -201,23 +197,23 @@
                       :key="index"
                       :cx="point.x"
                       :cy="point.y"
-                      r="4"
+                      r="3"
                       fill="#F94908"
                       stroke="white"
-                      stroke-width="2"
+                      stroke-width="1.5"
                       @mouseenter="showTooltip(index)"
                       @mouseleave="hideTooltip"
                     />
                   </svg>
                 </div>
                 
-                <!-- Trend Line Only View -->
+                <!-- Line Chart -->
                 <div v-if="chartView === 'line'" class="line-chart-container">
                   <svg class="line-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.3" />
-                        <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.02" />
+                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
+                        <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
                       </linearGradient>
                     </defs>
                     <polygon
@@ -228,7 +224,7 @@
                       :points="getLinePoints()"
                       fill="none"
                       stroke="#F94908"
-                      stroke-width="3"
+                      stroke-width="2.5"
                       stroke-linejoin="round"
                       stroke-linecap="round"
                     />
@@ -237,18 +233,18 @@
                       :key="index"
                       :cx="point.x"
                       :cy="point.y"
-                      r="4"
+                      r="3.5"
                       fill="#F94908"
                       stroke="white"
-                      stroke-width="2"
+                      stroke-width="1.5"
                       @mouseenter="showTooltip(index)"
                       @mouseleave="hideTooltip"
                     />
                   </svg>
                 </div>
 
-                <!-- Bar Chart -->
-                <div v-if="chartView !== 'line'" class="chart-bars">
+                <!-- Minimalist Bar Chart -->
+                <div v-if="chartView === 'bars' || chartView === 'mixed'" class="chart-bars">
                   <div 
                     v-for="(day, index) in salesTrend" 
                     :key="day.date"
@@ -269,7 +265,7 @@
                      :style="tooltipPosition">
                   <div class="tooltip-date">{{ formatDate(salesTrend[hoveredIndex]?.date) }}</div>
                   <div class="tooltip-revenue">{{ formatCurrency(salesTrend[hoveredIndex]?.revenue || 0) }}</div>
-                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items sold</div>
+                  <div class="tooltip-items">{{ salesTrend[hoveredIndex]?.items || 0 }} items</div>
                 </div>
               </div>
               <div v-else class="empty-state">
@@ -283,13 +279,13 @@
                   ◀
                 </button>
                 <span class="nav-label">
-                  Showing {{ getChartRangeLabel() }}
+                  {{ getChartRangeLabel() }}
                 </span>
                 <button @click="navigateChart('next')" class="nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">
                   ▶
                 </button>
                 <button @click="resetChartNavigation" class="nav-btn reset-btn" v-if="chartOffset > 0 || chartWindow < salesTrend.length">
-                  🔄 Reset
+                  ↺
                 </button>
               </div>
             </div>
@@ -299,7 +295,7 @@
         <!-- Stall Performance Ranking -->
         <div class="card full-width">
           <div class="card-header">
-            <h3>🏆 Stall Performance Ranking</h3>
+            <h3>🏆 Stall Performance</h3>
             <span class="period-label">{{ getPeriodLabel() }}</span>
           </div>
           <div class="card-body table-responsive">
@@ -307,10 +303,9 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Stall Name</th>
+                  <th>Stall</th>
                   <th>Revenue</th>
-                  <th>Items Sold</th>
-                  <th>Avg Transaction</th>
+                  <th>Items</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -324,7 +319,6 @@
                   <td><strong>{{ stall.name }}</strong></td>
                   <td>{{ formatCurrency(stall.revenue || 0) }}</td>
                   <td>{{ stall.items || 0 }}</td>
-                  <td>{{ formatCurrency(stall.avgTransaction || 0) }}</td>
                   <td>
                     <span :class="['status-badge', getStallStatusClass(stall) ]">
                       {{ getStallStatus(stall) }}
@@ -335,7 +329,7 @@
             </table>
             <div v-if="stallPerformance.length === 0" class="empty-state">
               <span class="empty-icon">📊</span>
-              <p>No sales data available for this period</p>
+              <p>No sales data available</p>
             </div>
           </div>
         </div>
@@ -351,10 +345,10 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Menu Item</th>
-                  <th>Quantity Sold</th>
+                  <th>Item</th>
+                  <th>Qty</th>
                   <th>Revenue</th>
-                  <th>Percentage</th>
+                  <th>%</th>
                 </tr>
               </thead>
               <tbody>
@@ -374,7 +368,7 @@
             </table>
             <div v-if="menuPerformance.length === 0" class="empty-state">
               <span class="empty-icon">🍗</span>
-              <p>No menu sales data available for this period</p>
+              <p>No menu sales data available</p>
             </div>
           </div>
         </div>
@@ -395,19 +389,19 @@
                 <input 
                   type="text" 
                   v-model="inventorySearch" 
-                  placeholder="🔍 Search stalls or materials..." 
+                  placeholder="🔍 Search..." 
                   class="search-input"
                 />
               </div>
               <div class="filter-box">
                 <select v-model="inventoryFilter" class="filter-select">
                   <option value="all">All Stalls</option>
-                  <option value="low">⚠️ Low Stock Only</option>
-                  <option value="active">Active Stalls</option>
-                  <option value="inactive">Inactive Stalls</option>
+                  <option value="low">⚠️ Low Stock</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
-              <span class="filter-result">{{ filteredInventoryStalls.length }} stalls</span>
+              <span class="filter-result">{{ filteredInventoryStalls.length }}</span>
             </div>
 
             <div v-if="stalls.length === 0" class="empty-state">
@@ -421,7 +415,7 @@
                   <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
                     {{ stall.is_active ? 'Active' : 'Inactive' }}
                   </span>
-                  <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️ Low Stock</span>
+                  <span v-if="hasLowStock(stall.id)" class="low-stock-warning">⚠️</span>
                 </div>
                 <div class="stall-inventory-summary">
                   <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="inventory-chip">
@@ -441,9 +435,9 @@
                   >
                     <div class="inventory-edit-info">
                       <span class="material-name">{{ item.material_name }}</span>
-                      <span class="current-stock">Current: {{ item.current_level }}{{ getUnit(item.material_name) }}</span>
+                      <span class="current-stock">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
                       <span :class="['alert-badge', item.current_level <= item.alert_level ? 'low' : 'ok']">
-                        {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
+                        {{ item.current_level <= item.alert_level ? '⚠️' : '✅' }}
                       </span>
                     </div>
                     <div class="inventory-edit-controls">
@@ -460,24 +454,23 @@
                   </div>
                 </div>
                 <div class="inventory-actions-bottom">
-                  <button @click="bulkUpdateInventory(stall.id)" class="btn btn-primary btn-sm">📦 Bulk Update All</button>
-                  <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert Level</button>
+                  <button @click="bulkUpdateInventory(stall.id)" class="btn btn-primary btn-sm">📦 Bulk Update</button>
+                  <button @click="resetInventoryToAlert(stall.id)" class="btn btn-outline btn-sm">Reset to Alert</button>
                 </div>
               </div>
             </div>
             <div v-if="filteredInventoryStalls.length === 0" class="empty-state">
               <span class="empty-icon">🔍</span>
-              <p>No stalls match your search criteria</p>
+              <p>No stalls match your search</p>
             </div>
 
             <div v-if="lowStock.length > 0" class="low-stock-summary">
-              <h4>📋 Low Stock Alerts Summary</h4>
+              <h4>📋 Low Stock Alerts</h4>
               <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-item compact">
                 <span class="alert-icon">⚠️</span>
                 <span class="alert-stall">{{ item.stall_name }}</span>
                 <span class="alert-material">{{ item.material_name }}</span>
                 <span class="alert-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
-                <span class="alert-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
               </div>
             </div>
           </div>
@@ -489,7 +482,7 @@
         <div class="card full-width">
           <div class="card-header">
             <h3>🏪 Stall Management</h3>
-            <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New Stall</button>
+            <button @click="openStallModal()" class="btn btn-primary btn-sm">+ New</button>
           </div>
           <div class="card-body">
             <div class="table-controls">
@@ -497,18 +490,18 @@
                 <input 
                   type="text" 
                   v-model="stallSearch" 
-                  placeholder="🔍 Search stalls..." 
+                  placeholder="🔍 Search..." 
                   class="search-input"
                 />
               </div>
               <div class="filter-box">
                 <select v-model="stallStatusFilter" class="filter-select">
-                  <option value="all">All Status</option>
+                  <option value="all">All</option>
                   <option value="active">🟢 Active</option>
                   <option value="inactive">⚪ Inactive</option>
                 </select>
               </div>
-              <span class="filter-result">{{ filteredStallsList.length }} stalls</span>
+              <span class="filter-result">{{ filteredStallsList.length }}</span>
             </div>
             <div class="table-responsive">
               <table class="data-table">
@@ -517,7 +510,6 @@
                     <th>#</th>
                     <th>Name</th>
                     <th>Code</th>
-                    <th>Location</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -527,7 +519,6 @@
                     <td>{{ index + 1 }}</td>
                     <td><strong>{{ s.name }}</strong></td>
                     <td><code>{{ s.code }}</code></td>
-                    <td>{{ s.location || '-' }}</td>
                     <td>
                       <span :class="['status-badge', s.is_active ? 'active' : 'inactive']">
                         {{ s.is_active ? 'Active' : 'Inactive' }}
@@ -535,11 +526,11 @@
                     </td>
                     <td>
                       <div class="action-buttons">
-                        <button @click="openEditStallModal(s)" class="btn-icon-sm" title="Edit Stall">✏️</button>
+                        <button @click="openEditStallModal(s)" class="btn-icon-sm" title="Edit">✏️</button>
                         <button @click="toggleStallStatus(s)" class="btn-icon-sm" :title="s.is_active ? 'Deactivate' : 'Activate'">
                           {{ s.is_active ? '⏸️' : '▶️' }}
                         </button>
-                        <button @click="deleteStall(s.id, s.name)" class="btn-icon-sm danger" title="Delete Stall">🗑️</button>
+                        <button @click="deleteStall(s.id, s.name)" class="btn-icon-sm danger" title="Delete">🗑️</button>
                       </div>
                     </td>
                   </tr>
@@ -547,7 +538,7 @@
               </table>
               <div v-if="filteredStallsList.length === 0" class="empty-state">
                 <span class="empty-icon">🔍</span>
-                <p>No stalls found matching your criteria</p>
+                <p>No stalls found</p>
               </div>
             </div>
           </div>
@@ -559,7 +550,7 @@
         <div class="card full-width">
           <div class="card-header">
             <h3>👥 User Management</h3>
-            <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New User</button>
+            <button @click="openUserModal()" class="btn btn-primary btn-sm">+ New</button>
           </div>
           <div class="card-body">
             <div class="table-controls">
@@ -567,18 +558,18 @@
                 <input 
                   type="text" 
                   v-model="userSearch" 
-                  placeholder="🔍 Search users..." 
+                  placeholder="🔍 Search..." 
                   class="search-input"
                 />
               </div>
               <div class="filter-box">
                 <select v-model="userRoleFilter" class="filter-select">
                   <option value="all">All Roles</option>
-                  <option value="stall_admin">👤 Stall Admin</option>
+                  <option value="stall_admin">👤 Admin</option>
                   <option value="cashier">💰 Cashier</option>
                 </select>
               </div>
-              <span class="filter-result">{{ filteredUsersList.length }} users</span>
+              <span class="filter-result">{{ filteredUsersList.length }}</span>
             </div>
             <div class="table-responsive">
               <table class="data-table">
@@ -586,9 +577,8 @@
                   <tr>
                     <th>#</th>
                     <th>Username</th>
-                    <th>Full Name</th>
                     <th>Role</th>
-                    <th>Assigned Stalls</th>
+                    <th>Stalls</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -596,13 +586,12 @@
                   <tr v-for="(u, index) in filteredUsersList" :key="u.id">
                     <td>{{ index + 1 }}</td>
                     <td><strong>{{ u.username }}</strong></td>
-                    <td>{{ u.full_name || '-' }}</td>
                     <td><span class="role-badge">{{ u.role }}</span></td>
                     <td>{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</td>
                     <td>
                       <div class="action-buttons">
-                        <button @click="openEditUserModal(u)" class="btn-icon-sm" title="Edit User">✏️</button>
-                        <button @click="deleteUser(u.id, u.username)" class="btn-icon-sm danger" title="Delete User">🗑️</button>
+                        <button @click="openEditUserModal(u)" class="btn-icon-sm" title="Edit">✏️</button>
+                        <button @click="deleteUser(u.id, u.username)" class="btn-icon-sm danger" title="Delete">🗑️</button>
                       </div>
                     </td>
                   </tr>
@@ -610,7 +599,7 @@
               </table>
               <div v-if="filteredUsersList.length === 0" class="empty-state">
                 <span class="empty-icon">🔍</span>
-                <p>No users found matching your criteria</p>
+                <p>No users found</p>
               </div>
             </div>
           </div>
@@ -639,9 +628,9 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Password (leave blank to keep current)</label>
+              <label>Password</label>
               <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
-              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep current" />
+              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
             </div>
             <div class="form-group">
               <label>Role</label>
@@ -652,11 +641,11 @@
             </div>
           </div>
           <div class="form-group">
-            <label>Assign Stalls (for stall_admin and cashier):</label>
+            <label>Assign Stalls:</label>
             <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
               <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
             </select>
-            <small class="hint-text">Hold Ctrl/Cmd to select multiple stalls</small>
+            <small class="hint-text">Hold Ctrl/Cmd to select multiple</small>
           </div>
         </div>
         <div class="modal-actions">
@@ -726,13 +715,13 @@ export default {
       ],
       
       // Chart settings
-      chartView: 'mixed',
+      chartView: 'bars',
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
       tooltipVisible: false,
       hoveredIndex: null,
-      tooltipPosition: { left: '50%', top: '50%' },
+      tooltipPosition: { left: '50%', top: '10px' },
       
       // Inventory
       expandedInventoryStall: null,
@@ -762,13 +751,6 @@ export default {
   computed: {
     lowStockCount() {
       return this.lowStock.length
-    },
-    
-    // ===== CHART NAVIGATION =====
-    visibleTrendData() {
-      const start = this.chartOffset
-      const end = Math.min(this.chartOffset + this.chartWindow, this.salesTrend.length)
-      return this.salesTrend.slice(start, end)
     },
     
     // ===== INVENTORY FILTERS =====
@@ -921,7 +903,7 @@ export default {
     getChartRangeLabel() {
       const start = this.chartOffset + 1
       const end = Math.min(this.chartOffset + this.chartWindow, this.salesTrend.length)
-      return `${start} - ${end} of ${this.salesTrend.length} days`
+      return `${start} - ${end} of ${this.salesTrend.length}`
     },
     navigateChart(direction) {
       if (direction === 'prev' && this.chartOffset > 0) {
@@ -952,7 +934,6 @@ export default {
     showTooltip(index) {
       this.hoveredIndex = index
       this.tooltipVisible = true
-      // Position tooltip near the hovered element
       const container = this.$refs.chartContainer
       if (container) {
         const rect = container.getBoundingClientRect()
@@ -1006,7 +987,6 @@ export default {
       return Math.max((revenue / max) * 80, 5)
     },
     
-    // For mixed/bar charts - trend line overlay
     getTrendPoints() {
       var dailySales = this.salesTrend || []
       if (dailySales.length === 0) return ''
@@ -1029,7 +1009,6 @@ export default {
       }))
     },
     
-    // For line chart - area fill
     getAreaPoints() {
       var dailySales = this.salesTrend || []
       if (dailySales.length === 0) return ''
@@ -1336,7 +1315,7 @@ export default {
           this.$emit('show-notification', 'User updated successfully', 'success')
         } else {
           if (!this.userForm.password || this.userForm.password.trim() === '') {
-            this.$emit('show-notification', 'Password is required for new user', 'error')
+            this.$emit('show-notification', 'Password is required', 'error')
             return
           }
           payload.username = this.userForm.username
@@ -1353,13 +1332,13 @@ export default {
       }
     },
     async deleteUser(userId, username) {
-      if (confirm('Are you sure you want to delete user "' + username + '"? This action cannot be undone.')) {
+      if (confirm('Delete user "' + username + '"?')) {
         try {
           await axios.delete(API_BASE + '/users/' + userId, {
             headers: { Authorization: 'Bearer ' + this.token }
           })
           this.loadUsers()
-          this.$emit('show-notification', 'User "' + username + '" deleted', 'success')
+          this.$emit('show-notification', 'User deleted', 'success')
         } catch (err) {
           this.$emit('show-notification', 'Failed to delete user', 'error')
         }
@@ -1394,7 +1373,7 @@ export default {
           }, {
             headers: { Authorization: 'Bearer ' + this.token }
           })
-          this.$emit('show-notification', 'Stall updated successfully', 'success')
+          this.$emit('show-notification', 'Stall updated', 'success')
         } else {
           await axios.post(API_BASE + '/companies/1/stalls', {
             name: this.stallForm.name,
@@ -1403,7 +1382,7 @@ export default {
           }, {
             headers: { Authorization: 'Bearer ' + this.token }
           })
-          this.$emit('show-notification', 'Stall created successfully', 'success')
+          this.$emit('show-notification', 'Stall created', 'success')
         }
         this.stallModal = false
         this.loadStalls()
@@ -1420,17 +1399,17 @@ export default {
         this.loadStalls()
         this.$emit('show-notification', 'Stall ' + (stall.is_active ? 'deactivated' : 'activated'), 'success')
       } catch (err) {
-        this.$emit('show-notification', 'Failed to update stall status', 'error')
+        this.$emit('show-notification', 'Failed to update stall', 'error')
       }
     },
     async deleteStall(stallId, stallName) {
-      if (confirm('Are you sure you want to delete stall "' + stallName + '"? This will remove all associated inventory and sales data.')) {
+      if (confirm('Delete stall "' + stallName + '"?')) {
         try {
           await axios.delete(API_BASE + '/stalls/' + stallId, {
             headers: { Authorization: 'Bearer ' + this.token }
           })
           this.loadStalls()
-          this.$emit('show-notification', 'Stall "' + stallName + '" deleted', 'success')
+          this.$emit('show-notification', 'Stall deleted', 'success')
         } catch (err) {
           this.$emit('show-notification', 'Failed to delete stall', 'error')
         }
@@ -1510,12 +1489,11 @@ export default {
         } else if (this.activeTab === 'stalls') {
           sheet = workbook.addWorksheet('Stalls')
           sheet.addRow(['🏪 STALL MANAGEMENT', '', '', ''])
-          sheet.addRow(['Name', 'Code', 'Location', 'Status'])
+          sheet.addRow(['Name', 'Code', 'Status'])
           for (var stall of this.filteredStallsList) {
             sheet.addRow([
               stall.name,
               stall.code,
-              stall.location || '-',
               stall.is_active ? 'Active' : 'Inactive'
             ])
           }
@@ -1523,11 +1501,10 @@ export default {
         } else if (this.activeTab === 'users') {
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['👥 USER MANAGEMENT', '', '', ''])
-          sheet.addRow(['Username', 'Full Name', 'Role', 'Assigned Stalls'])
+          sheet.addRow(['Username', 'Role', 'Assigned Stalls'])
           for (var user of this.filteredUsersList) {
             sheet.addRow([
               user.username,
-              user.full_name || '-',
               user.role,
               (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
             ])
@@ -1543,10 +1520,10 @@ export default {
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
         saveAs(blob, fileName)
         
-        this.$emit('show-notification', 'Excel file downloaded successfully!', 'success')
+        this.$emit('show-notification', 'Excel file downloaded!', 'success')
       } catch (error) {
         console.error('Export error:', error)
-        this.$emit('show-notification', 'Failed to export Excel file: ' + error.message, 'error')
+        this.$emit('show-notification', 'Failed to export: ' + error.message, 'error')
       } finally {
         this.exporting = false
       }
@@ -1556,6 +1533,9 @@ export default {
 </script>
 
 <style scoped>
+/* ============================================ */
+/* ROOT & BASE                                  */
+/* ============================================ */
 .sa-dashboard {
   padding: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -1568,13 +1548,13 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .header-left h2 {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
@@ -1582,8 +1562,8 @@ export default {
 
 .header-left .subtitle {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0 0;
 }
 
 /* ============================================ */
@@ -1591,25 +1571,25 @@ export default {
 /* ============================================ */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   transition: all 0.2s;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 
 .stat-card.clickable {
@@ -1618,20 +1598,16 @@ export default {
 
 .stat-card.clickable:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.15);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.12);
   border-color: #F94908;
 }
 
-.stat-card.clickable:active {
-  transform: scale(0.98);
-}
-
 .stat-hint {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: #F94908;
   font-weight: 500;
-  margin-top: 2px;
-  opacity: 0.7;
+  margin-top: 1px;
+  opacity: 0.6;
 }
 
 .stat-card.clickable:hover .stat-hint {
@@ -1639,13 +1615,13 @@ export default {
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -1654,23 +1630,23 @@ export default {
 .stat-icon.alert { background: #fef3c7; color: #d97706; }
 
 .stat-info .stat-value {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
 
 .stat-info .stat-label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
 }
 
 .stat-change {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: var(--success);
   display: inline-block;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .stat-change:has(↓) {
@@ -1684,24 +1660,24 @@ export default {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .period-selector {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
   flex: 1;
 }
 
 .period-btn {
-  padding: 0.4rem 1rem;
-  border-radius: 8px;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   transition: all 0.2s;
   color: var(--text-secondary);
@@ -1719,32 +1695,43 @@ export default {
 }
 
 /* ============================================ */
-/* TAB NAVIGATION                               */
+/* TAB NAVIGATION - Mobile Friendly             */
 /* ============================================ */
+.tab-navigation-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.25rem;
+  scrollbar-width: none;
+}
+
+.tab-navigation-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
 .tab-navigation {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.35rem;
   background: var(--surface);
-  padding: 0.5rem;
-  border-radius: 12px;
+  padding: 0.4rem;
+  border-radius: 10px;
   border: 1px solid var(--border);
-  flex-wrap: wrap;
+  min-width: max-content;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
   position: relative;
 }
 
@@ -1756,41 +1743,45 @@ export default {
 .tab-btn.active {
   background: linear-gradient(135deg, #F94908, #fa6a2e);
   color: white;
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.25);
 }
 
 .tab-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
+}
+
+.tab-label {
+  font-size: 0.8rem;
 }
 
 .tab-badge {
   background: #ef4444;
   color: white;
   border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.7rem;
+  padding: 0 5px;
+  font-size: 0.6rem;
   font-weight: 700;
-  min-width: 18px;
+  min-width: 16px;
   text-align: center;
-  line-height: 18px;
+  line-height: 16px;
 }
 
 /* ============================================ */
 /* TAB CONTENT                                  */
 /* ============================================ */
 .tab-content {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .tab-panel {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 /* ============================================ */
@@ -1799,7 +1790,7 @@ export default {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -1808,7 +1799,7 @@ export default {
 }
 
 .card-header {
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -1819,7 +1810,7 @@ export default {
 }
 
 .card-header h3 {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
 }
@@ -1827,11 +1818,11 @@ export default {
 .chart-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-body {
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .card-body.chart-fullscreen {
@@ -1842,9 +1833,9 @@ export default {
   bottom: 0;
   z-index: 9999;
   background: var(--surface);
-  padding: 2rem;
+  padding: 1.5rem;
   overflow: auto;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
 }
 
 /* ============================================ */
@@ -1853,37 +1844,38 @@ export default {
 .chart-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .chart-view-toggle {
   display: flex;
-  gap: 0.25rem;
+  gap: 2px;
   background: var(--background);
-  padding: 0.2rem;
-  border-radius: 8px;
+  padding: 2px;
+  border-radius: 6px;
   border: 1px solid var(--border);
 }
 
 .view-btn {
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 
 .view-btn:hover {
   background: var(--surface-elevated);
+  color: var(--text);
 }
 
 .view-btn.active {
   background: var(--primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 2px 6px rgba(249, 73, 8, 0.25);
 }
 
 /* ============================================ */
@@ -1891,12 +1883,12 @@ export default {
 /* ============================================ */
 .chart-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  padding: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem;
   background: var(--background);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .summary-stat {
@@ -1905,37 +1897,32 @@ export default {
 
 .summary-label {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .summary-value {
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
 }
 
-.summary-value.up {
-  color: var(--success);
-}
-
-.summary-value.down {
-  color: var(--error);
-}
+.summary-value.up { color: var(--success); }
+.summary-value.down { color: var(--error); }
 
 .summary-day {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: var(--text-tertiary);
 }
 
 /* ============================================ */
-/* CHART                                        */
+/* MINIMALIST CHART                            */
 /* ============================================ */
 .chart-container {
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
   position: relative;
 }
 
@@ -1943,12 +1930,13 @@ export default {
   position: relative;
 }
 
+/* Trend Line Overlay */
 .trend-line-container {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 35px;
   z-index: 2;
   pointer-events: none;
 }
@@ -1965,15 +1953,13 @@ export default {
 }
 
 .trend-svg circle:hover {
-  r: 6;
+  r: 5;
 }
 
-/* ============================================ */
-/* LINE CHART                                   */
-/* ============================================ */
+/* Line Chart */
 .line-chart-container {
   width: 100%;
-  height: 180px;
+  height: 160px;
   position: relative;
 }
 
@@ -1989,19 +1975,17 @@ export default {
 }
 
 .line-chart-svg circle:hover {
-  r: 6;
+  r: 5;
 }
 
-/* ============================================ */
-/* BAR CHART                                    */
-/* ============================================ */
+/* Minimalist Bar Chart */
 .chart-bars {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  height: 180px;
-  gap: 0.5rem;
-  padding-top: 40px;
+  height: 160px;
+  gap: 0.35rem;
+  padding-top: 35px;
   position: relative;
   z-index: 1;
 }
@@ -2017,27 +2001,27 @@ export default {
 
 .chart-bar {
   width: 100%;
-  max-width: 50px;
+  max-width: 40px;
   background: linear-gradient(180deg, #F94908, #fa6a2e);
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
   position: relative;
-  transition: height 0.3s ease, transform 0.2s;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s;
   display: flex;
   align-items: flex-start;
   justify-content: center;
 }
 
 .chart-bar-wrapper:hover .chart-bar {
-  transform: scaleY(1.02);
+  transform: scaleY(1.03);
   transform-origin: bottom;
-  box-shadow: 0 2px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 2px 10px rgba(249, 73, 8, 0.2);
 }
 
 .bar-value {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: -1rem;
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  margin-top: -0.9rem;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s;
@@ -2048,65 +2032,61 @@ export default {
 }
 
 .bar-label {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: 0.3rem;
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  margin-top: 0.2rem;
 }
 
-/* ============================================ */
-/* CHART TOOLTIP                                */
-/* ============================================ */
+/* Chart Tooltip */
 .chart-tooltip {
   position: absolute;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
   box-shadow: var(--shadow-lg);
   z-index: 10;
-  min-width: 120px;
+  min-width: 100px;
   pointer-events: none;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.15s ease;
 }
 
 .tooltip-date {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
   font-weight: 600;
 }
 
 .tooltip-revenue {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--primary);
 }
 
 .tooltip-items {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--text-tertiary);
 }
 
-/* ============================================ */
-/* CHART NAVIGATION                             */
-/* ============================================ */
+/* Chart Navigation */
 .chart-navigation {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding: 0.5rem;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem 0.5rem;
   background: var(--background);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .nav-btn {
-  padding: 0.3rem 0.8rem;
+  padding: 0.2rem 0.6rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   transition: all 0.2s;
   color: var(--text);
 }
@@ -2118,7 +2098,7 @@ export default {
 }
 
 .nav-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
@@ -2133,10 +2113,10 @@ export default {
 }
 
 .nav-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   font-weight: 500;
-  min-width: 120px;
+  min-width: 80px;
   text-align: center;
 }
 
@@ -2145,24 +2125,24 @@ export default {
 /* ============================================ */
 .consolidated-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
 }
 
 .consolidated-stat {
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.35rem;
 }
 
 .consolidated-stat .stat-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
 }
 
 .consolidated-stat .stat-value {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text);
 }
@@ -2172,11 +2152,11 @@ export default {
 }
 
 .period-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   background: var(--background);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
 }
 
 /* ============================================ */
@@ -2184,23 +2164,23 @@ export default {
 /* ============================================ */
 .table-controls {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .search-box {
   flex: 1;
-  min-width: 200px;
+  min-width: 150px;
 }
 
 .search-input {
   width: 100%;
-  padding: 0.6rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   background: var(--surface);
   color: var(--text);
   transition: all 0.2s;
@@ -2209,7 +2189,7 @@ export default {
 .search-input:focus {
   outline: none;
   border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
 }
 
 .search-input::placeholder {
@@ -2217,41 +2197,43 @@ export default {
 }
 
 .filter-box {
-  min-width: 140px;
+  min-width: 110px;
 }
 
 .filter-select {
   width: 100%;
-  padding: 0.6rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
   transition: all 0.2s;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2364748b' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 1rem center;
-  padding-right: 2.5rem;
+  background-position: right 0.6rem center;
+  padding-right: 2rem;
 }
 
 .filter-select:focus {
   outline: none;
   border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
 }
 
 .filter-result {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   font-weight: 500;
-  padding: 0.3rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   background: var(--background);
-  border-radius: 20px;
+  border-radius: 16px;
   white-space: nowrap;
   border: 1px solid var(--border-light);
+  min-width: 28px;
+  text-align: center;
 }
 
 /* ============================================ */
@@ -2264,22 +2246,22 @@ export default {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .data-table th {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   font-weight: 600;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   border-bottom: 1px solid var(--border);
 }
 
 .data-table td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   border-bottom: 1px solid var(--border-light);
   color: var(--text);
 }
@@ -2290,18 +2272,18 @@ export default {
 
 .data-table code {
   background: var(--background);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
 }
 
 /* ============================================ */
 /* STATUS BADGES                                */
 /* ============================================ */
 .status-badge {
-  padding: 0.15rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 16px;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -2318,11 +2300,11 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   background: var(--background);
   color: var(--text-secondary);
 }
@@ -2345,9 +2327,9 @@ export default {
 .role-badge {
   background: #e0e7ff;
   color: #4338ca;
-  padding: 0.1rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
   text-transform: capitalize;
   font-weight: 500;
 }
@@ -2355,9 +2337,9 @@ export default {
 .badge-count {
   background: #F94908;
   color: white;
-  padding: 0.1rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 16px;
+  font-size: 0.65rem;
   font-weight: 600;
 }
 
@@ -2367,20 +2349,22 @@ export default {
 .performance-bar-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .performance-bar {
-  height: 6px;
+  height: 4px;
   background: linear-gradient(90deg, #F94908, #fa6a2e);
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.3s ease;
+  min-width: 10px;
 }
 
 .performance-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
-  min-width: 40px;
+  min-width: 32px;
+  text-align: right;
 }
 
 /* ============================================ */
@@ -2388,8 +2372,8 @@ export default {
 /* ============================================ */
 .stall-inventory-item {
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
   overflow: hidden;
 }
 
@@ -2397,11 +2381,11 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
   transition: background 0.2s;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .stall-inventory-header:hover {
@@ -2411,65 +2395,66 @@ export default {
 .stall-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
 .stall-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .low-stock-warning {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #dc2626;
   background: #fee2e2;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
   font-weight: 600;
 }
 
 .stall-inventory-summary {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .inventory-chip {
   background: var(--background);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
   border: 1px solid var(--border);
 }
 
 .low-stock-dot {
   color: #dc2626;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
 }
 
 .toggle-icon {
   font-weight: 600;
   color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 
 .stall-inventory-details {
-  padding: 1rem;
+  padding: 0.75rem;
   border-top: 1px solid var(--border-light);
   background: var(--background);
 }
 
 .inventory-edit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
 }
 
 .inventory-edit-item {
   background: var(--surface);
-  padding: 0.75rem;
-  border-radius: 8px;
+  padding: 0.5rem;
+  border-radius: 6px;
   border: 1px solid var(--border);
 }
 
@@ -2481,26 +2466,26 @@ export default {
 .inventory-edit-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
   flex-wrap: wrap;
 }
 
 .inventory-edit-info .material-name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .inventory-edit-info .current-stock {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
 .alert-badge {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 10px;
+  padding: 0.05rem 0.3rem;
+  border-radius: 8px;
 }
 
 .alert-badge.low { background: #fee2e2; color: #dc2626; }
@@ -2508,17 +2493,17 @@ export default {
 
 .inventory-edit-controls {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .inventory-input {
-  width: 80px;
-  padding: 0.3rem 0.5rem;
+  width: 60px;
+  padding: 0.2rem 0.35rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
 }
 
 .inventory-input:focus {
@@ -2527,9 +2512,9 @@ export default {
 }
 
 .progress-bar-container {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: var(--border);
   border-radius: 2px;
   overflow: hidden;
@@ -2547,9 +2532,9 @@ export default {
 }
 
 .inventory-actions-bottom {
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
@@ -2557,42 +2542,40 @@ export default {
 /* LOW STOCK SUMMARY                            */
 /* ============================================ */
 .low-stock-summary {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
 
 .low-stock-summary h4 {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--text);
-}
-
-.alert-item.compact {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
-  margin-bottom: 0.2rem;
 }
 
 .alert-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
   background: #fef3c7;
-  border-radius: 6px;
-  margin-bottom: 0.3rem;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  margin-bottom: 0.2rem;
+  font-size: 0.8rem;
   flex-wrap: wrap;
 }
 
 .alert-item:last-child { margin-bottom: 0; }
-.alert-icon { font-size: 1rem; }
+.alert-icon { font-size: 0.9rem; }
 .alert-stall { font-weight: 600; }
 .alert-material { color: var(--text-secondary); }
 .alert-level { font-weight: 600; color: #dc2626; }
-.alert-threshold { font-size: 0.75rem; color: var(--text-tertiary); }
+
+.alert-item.compact {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+}
 
 /* ============================================ */
 /* HEADER ACTIONS                               */
@@ -2600,7 +2583,7 @@ export default {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
@@ -2609,16 +2592,16 @@ export default {
 /* ============================================ */
 .action-buttons {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.15rem;
 }
 
 .btn-icon-sm {
   background: transparent;
   border: none;
-  padding: 0.2rem 0.4rem;
+  padding: 0.15rem 0.3rem;
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 3px;
+  font-size: 0.9rem;
   transition: all 0.2s;
 }
 
@@ -2632,11 +2615,11 @@ export default {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -2649,11 +2632,11 @@ export default {
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 3px 10px rgba(249, 73, 8, 0.25);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -2668,8 +2651,8 @@ export default {
 }
 
 .btn-sm {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
 }
 
 .btn-ghost {
@@ -2682,7 +2665,7 @@ export default {
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -2691,18 +2674,22 @@ export default {
 /* ============================================ */
 .empty-state {
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 1.5rem 0.5rem;
   color: var(--text-secondary);
 }
 
 .empty-state .empty-icon {
-  font-size: 2rem;
+  font-size: 1.5rem;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .empty-state.small {
-  padding: 0.5rem;
+  padding: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.empty-state p {
   font-size: 0.85rem;
 }
 
@@ -2715,41 +2702,42 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modal {
   background: var(--surface);
-  border-radius: 16px;
-  padding: 1.5rem;
-  max-width: 500px;
-  width: 90%;
+  border-radius: 12px;
+  padding: 1.25rem;
+  max-width: 480px;
+  width: 92%;
   max-height: 90vh;
   overflow-y: auto;
 }
 
-.modal-lg { max-width: 700px; }
+.modal-lg { max-width: 640px; }
 .modal h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
 }
 
 .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .modal-body input,
 .modal-body select {
-  padding: 0.6rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   background: var(--surface);
   color: var(--text);
   width: 100%;
@@ -2759,45 +2747,45 @@ export default {
 .modal-body select:focus {
   outline: none;
   border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.2rem;
 }
 
 .form-group label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .hint-text {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-tertiary);
   font-style: italic;
 }
 
 .stall-select-multiple {
-  min-height: 80px;
-  padding: 0.5rem;
+  min-height: 60px;
+  padding: 0.35rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--surface);
   color: var(--text);
 }
@@ -2805,39 +2793,164 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .consolidated-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .inventory-edit-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Small Tablet / Large Phone */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
   }
   
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .consolidated-stats { grid-template-columns: 1fr 1fr; }
+  .header-left h2 {
+    font-size: 1.1rem;
+  }
   
-  .tab-navigation {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
     flex-direction: column;
+    text-align: center;
+  }
+  
+  .stat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  
+  .stat-info .stat-value {
+    font-size: 1rem;
+  }
+  
+  .stat-info .stat-label {
+    font-size: 0.6rem;
   }
   
   .tab-btn {
-    justify-content: center;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
   }
   
-  .data-table { font-size: 0.8rem; }
-  .data-table th, .data-table td { padding: 0.4rem 0.5rem; }
+  .tab-label {
+    font-size: 0.7rem;
+  }
   
-  .modal { width: 95%; padding: 1rem; }
-  .chart-bars { height: 120px; }
-  .form-row { grid-template-columns: 1fr; }
-  .inventory-edit-grid { grid-template-columns: 1fr; }
-  .stall-inventory-header { flex-direction: column; align-items: flex-start; }
-  .inventory-edit-controls { flex-wrap: wrap; }
-  .inventory-actions-bottom { flex-direction: column; }
-  .header-actions { flex-direction: column; align-items: stretch; }
-  .table-controls { flex-direction: column; }
-  .filter-result { align-self: flex-start; }
+  .tab-icon {
+    font-size: 0.85rem;
+  }
+  
+  .tab-badge {
+    min-width: 14px;
+    line-height: 14px;
+    font-size: 0.5rem;
+  }
+  
+  .consolidated-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .consolidated-stat .stat-value {
+    font-size: 1rem;
+  }
+  
+  .consolidated-stat .stat-label {
+    font-size: 0.6rem;
+  }
   
   .chart-summary {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+  }
+  
+  .chart-bars {
+    height: 120px;
+    gap: 0.25rem;
+    padding-top: 30px;
+  }
+  
+  .chart-bar {
+    max-width: 28px;
+  }
+  
+  .bar-value {
+    font-size: 0.5rem;
+    margin-top: -0.7rem;
+  }
+  
+  .bar-label {
+    font-size: 0.5rem;
+  }
+  
+  .line-chart-container {
+    height: 120px;
+  }
+  
+  .data-table {
+    font-size: 0.75rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.3rem 0.4rem;
+  }
+  
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-box {
+    min-width: unset;
+  }
+  
+  .filter-box {
+    min-width: unset;
+  }
+  
+  .filter-result {
+    align-self: flex-start;
+  }
+  
+  .inventory-edit-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stall-inventory-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .inventory-edit-controls {
+    flex-wrap: wrap;
+  }
+  
+  .inventory-actions-bottom {
+    flex-direction: column;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
   
   .chart-controls {
@@ -2850,41 +2963,190 @@ export default {
   }
   
   .nav-label {
-    min-width: 80px;
-    font-size: 0.7rem;
+    min-width: 60px;
+    font-size: 0.65rem;
   }
   
   .card-body.chart-fullscreen {
+    padding: 0.75rem;
+  }
+  
+  .modal {
+    width: 95%;
     padding: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .period-selector-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .period-selector {
+    justify-content: center;
+  }
+  
+  .period-btn {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
   }
 }
 
+/* Phone */
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .consolidated-stats { grid-template-columns: 1fr; }
-  .period-selector-wrapper { flex-direction: column; align-items: stretch; }
-  .period-selector { justify-content: center; }
-  .period-btn { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
-  .search-box { min-width: 100%; }
-  .filter-box { min-width: 100%; }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .consolidated-stats {
+    grid-template-columns: 1fr 1fr;
+  }
   
   .chart-summary {
     grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
   }
   
   .chart-bars {
-    height: 100px;
-    gap: 0.25rem;
+    height: 90px;
+    gap: 0.15rem;
+    padding-top: 25px;
+  }
+  
+  .chart-bar {
+    max-width: 20px;
+    border-radius: 2px 2px 0 0;
   }
   
   .bar-value {
-    font-size: 0.5rem;
-    margin-top: -0.8rem;
+    font-size: 0.4rem;
+    margin-top: -0.6rem;
   }
   
   .bar-label {
+    font-size: 0.45rem;
+  }
+  
+  .line-chart-container {
+    height: 90px;
+  }
+  
+  .trend-line-container {
+    height: 25px;
+  }
+  
+  .data-table {
+    font-size: 0.65rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.2rem 0.3rem;
+  }
+  
+  .status-badge {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.35rem;
+  }
+  
+  .rank-badge {
+    width: 16px;
+    height: 16px;
     font-size: 0.5rem;
+  }
+  
+  .performance-bar {
+    height: 3px;
+  }
+  
+  .performance-label {
+    font-size: 0.55rem;
+    min-width: 24px;
+  }
+  
+  .tab-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+  
+  .tab-label {
+    font-size: 0.6rem;
+  }
+  
+  .tab-icon {
+    font-size: 0.75rem;
+  }
+  
+  .btn {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .btn-sm {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+  }
+  
+  .search-input {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .filter-select {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .filter-result {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .card-header h3 {
+    font-size: 0.8rem;
+  }
+  
+  .period-btn {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* Extra Small */
+@media (max-width: 360px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .consolidated-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .header-left h2 {
+    font-size: 0.95rem;
+  }
+  
+  .header-left .subtitle {
+    font-size: 0.7rem;
+  }
+  
+  .tab-btn {
+    padding: 0.2rem 0.35rem;
+    font-size: 0.6rem;
+  }
+  
+  .tab-label {
+    font-size: 0.55rem;
+  }
+  
+  .tab-icon {
+    font-size: 0.65rem;
   }
 }
 </style>
