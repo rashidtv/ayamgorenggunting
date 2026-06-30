@@ -3,17 +3,44 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 10000;
 
+// ============ INCREASE PAYLOAD SIZE LIMITS ============
+app.use(express.json({ 
+  limit: '50mb',  // Allow up to 50MB for JSON payloads
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString()
+  }
+}));
+app.use(express.urlencoded({ 
+  limit: '50mb', 
+  extended: true 
+}));
+
+// ============ CORS ============
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://agg-frontend.onrender.com', 'https://your-custom-domain.com']
+  : ['http://localhost:5173', 'http://localhost:10000', 'https://*.preview.app.github.dev'];
+
+app.use(cors({ 
+  origin: allowedOrigins, 
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+// ============ DATABASE ============
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-  max: 3,
-  idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 3000,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
   keepAlive: true,
 });
 
@@ -22,13 +49,42 @@ pool.on('error', (err) => {
   console.error('Unexpected database error:', err.message);
 });
 
-// CORS – allow all origins in development, restrict in production
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://agg-frontend.onrender.com', 'https://your-custom-domain.com']
-  : ['http://localhost:5173', 'http://localhost:10000', 'https://*.preview.app.github.dev'];
+// ============ FILE UPLOAD CONFIGURATION ============
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.use(express.json());
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `menu-${unique}${ext}`);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed (JPEG, PNG, WebP, GIF)'));
+    }
+  }
+});
+
+// Serve uploaded files
+app.use('/uploads', express.static(uploadDir));
 
 // ==================== PERMISSION HELPERS ====================
 
@@ -145,6 +201,30 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// ==================== IMAGE UPLOAD ROUTE ====================
+
+app.post('/api/upload/menu-image', authenticateToken, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image uploaded' });
+    }
+    
+    // Get the base URL
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    
+    res.json({ 
+      success: true, 
+      imageUrl,
+      filename: req.file.filename,
+      size: req.file.size
+    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Failed to upload image: ' + err.message });
   }
 });
 
@@ -753,7 +833,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/menu', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT m.item_name, m.price, m.description, m.category,
+      SELECT m.item_name, m.price, m.description, m.category, m.image,
         COALESCE(
           (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
            FROM recipes r
@@ -761,7 +841,7 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
           '[]'
         ) as recipe
       FROM menu_items m
-      GROUP BY m.item_name, m.price, m.description, m.category
+      GROUP BY m.item_name, m.price, m.description, m.category, m.image
       ORDER BY m.item_name
     `);
     res.json(result.rows);
@@ -775,10 +855,15 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
 app.post('/api/menu', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
-  const { item_name, price, description, category, recipe } = req.body;
+  const { item_name, price, description, category, recipe, image } = req.body;
   
   if (!item_name || !price) {
     return res.status(400).json({ error: 'Item name and price are required' });
+  }
+
+  // Validate image size if provided
+  if (image && image.length > 5 * 1024 * 1024) { // 5MB limit
+    return res.status(413).json({ error: 'Image too large. Maximum size is 5MB.' });
   }
 
   const client = await pool.connect();
@@ -786,8 +871,12 @@ app.post('/api/menu', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
     
     await client.query(
-      'INSERT INTO menu_items (item_name, price, description, category) VALUES ($1, $2, $3, $4) ON CONFLICT (item_name) DO UPDATE SET price = EXCLUDED.price, description = EXCLUDED.description, category = EXCLUDED.category',
-      [item_name, price, description || '', category || 'Main']
+      `INSERT INTO menu_items (item_name, price, description, category, image) 
+       VALUES ($1, $2, $3, $4, $5) 
+       ON CONFLICT (item_name) DO UPDATE 
+       SET price = EXCLUDED.price, description = EXCLUDED.description, 
+           category = EXCLUDED.category, image = COALESCE(EXCLUDED.image, menu_items.image)`,
+      [item_name, price, description || '', category || 'Main', image || null]
     );
     
     await client.query('DELETE FROM recipes WHERE item_name = $1', [item_name]);
@@ -819,15 +908,22 @@ app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
   const { itemName } = req.params;
-  const { price, description, category, recipe } = req.body;
+  const { price, description, category, recipe, image } = req.body;
   
+  // Validate image size if provided
+  if (image && image.length > 5 * 1024 * 1024) { // 5MB limit
+    return res.status(413).json({ error: 'Image too large. Maximum size is 5MB.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     
     await client.query(
-      'UPDATE menu_items SET price = $1, description = $2, category = $3 WHERE item_name = $4',
-      [price, description || '', category || 'Main', itemName]
+      `UPDATE menu_items 
+       SET price = $1, description = $2, category = $3, image = COALESCE($4, image)
+       WHERE item_name = $5`,
+      [price, description || '', category || 'Main', image || null, itemName]
     );
     
     await client.query('DELETE FROM recipes WHERE item_name = $1', [itemName]);
@@ -897,26 +993,6 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== GRACEFUL SHUTDOWN ====================
-
-const gracefulShutdown = async () => {
-  console.log('🛑 Shutting down gracefully...');
-  try {
-    await pool.end();
-    console.log('✅ Database connections closed');
-  } catch (err) {
-    console.error('❌ Error closing database connections:', err.message);
-  }
-  process.exit(0);
-};
-
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  gracefulShutdown();
-});
-
 // ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
@@ -984,10 +1060,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
         ORDER BY revenue DESC
       `, [companyId, startDate]);
 
-      // Calculate growth (compare with previous period)
-      const previousStartDate = new Date(startDate);
-      previousStartDate.setDate(previousStartDate.getDate() - dayRange);
-      
       const performance = result.rows.map(row => {
         return {
           id: row.id,
@@ -996,7 +1068,7 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
           revenue: parseFloat(row.revenue),
           items: parseInt(row.items_sold),
           avgTransaction: parseFloat(row.avg_transaction),
-          growth: 0 // Can calculate if needed
+          growth: 0
         };
       });
 
@@ -1010,11 +1082,32 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== GRACEFUL SHUTDOWN ====================
+
+const gracefulShutdown = async () => {
+  console.log('🛑 Shutting down gracefully...');
+  try {
+    await pool.end();
+    console.log('✅ Database connections closed');
+  } catch (err) {
+    console.error('❌ Error closing database connections:', err.message);
+  }
+  process.exit(0);
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  gracefulShutdown();
+});
+
 // ==================== START SERVER ====================
 if (require.main === module) {
   app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${port}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📁 Upload directory: ${uploadDir}`);
   });
 }
 
