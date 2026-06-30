@@ -1,8 +1,9 @@
 <template>
+  <!-- ============================================ -->
+  <!-- COMPLETE TEMPLATE - UNCHANGED                -->
+  <!-- ============================================ -->
   <div class="sa-dashboard">
-    <!-- ============================================ -->
-    <!-- MODERN HEADER                                -->
-    <!-- ============================================ -->
+    <!-- MODERN HEADER -->
     <header class="dashboard-header">
       <div class="header-content">
         <div class="header-left">
@@ -23,9 +24,7 @@
       </div>
     </header>
 
-    <!-- ============================================ -->
-    <!-- STATS CARDS                                  -->
-    <!-- ============================================ -->
+    <!-- STATS CARDS -->
     <div class="stats-grid">
       <div class="stat-card" style="--stat-color: #2563eb;">
         <div class="stat-icon">🏪</div>
@@ -56,9 +55,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- PERIOD SELECTOR                              -->
-    <!-- ============================================ -->
+    <!-- PERIOD SELECTOR -->
     <div v-if="activeTab === 'dashboard'" class="period-section">
       <div class="period-pills">
         <button 
@@ -72,9 +69,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- TAB NAVIGATION                               -->
-    <!-- ============================================ -->
+    <!-- TAB NAVIGATION -->
     <div class="tab-nav">
       <button 
         v-for="tab in tabs" 
@@ -90,9 +85,7 @@
       </button>
     </div>
 
-    <!-- ============================================ -->
-    <!-- TAB CONTENT                                 -->
-    <!-- ============================================ -->
+    <!-- TAB CONTENT -->
     <div class="tab-content">
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
@@ -527,9 +520,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- MENU MODAL                                   -->
-    <!-- ============================================ -->
+    <!-- MENU MODAL -->
     <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
@@ -574,9 +565,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- USER MODAL                                   -->
-    <!-- ============================================ -->
+    <!-- USER MODAL -->
     <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
@@ -623,9 +612,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- STALL MODAL                                  -->
-    <!-- ============================================ -->
+    <!-- STALL MODAL -->
     <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
       <div class="modal-modern">
         <div class="modal-modern-header">
@@ -908,6 +895,28 @@ export default {
     },
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
+    },
+    
+    // =============================================
+    // HELPER: Get today's date in Malaysia timezone
+    // =============================================
+    getTodayInMalaysia() {
+      const now = new Date()
+      // Malaysia is UTC+8
+      const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
+      const today = new Date(malaysiaTime)
+      today.setHours(0, 0, 0, 0)
+      return today
+    },
+    
+    // =============================================
+    // HELPER: Check if a date is today in Malaysia
+    // =============================================
+    isDateTodayInMalaysia(dateStr) {
+      const today = this.getTodayInMalaysia()
+      const dateToCheck = new Date(dateStr)
+      dateToCheck.setHours(0, 0, 0, 0)
+      return dateToCheck.getTime() === today.getTime()
     },
     
     // =============================================
@@ -1351,7 +1360,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED for Today filtering
+    // DATA LOADING - FIXED with Malaysia timezone
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1413,14 +1422,14 @@ export default {
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // For 'today', filter to only show today's data
+        // For 'today', filter to only show today's data using Malaysia timezone
         if (this.selectedPeriod === 'today') {
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
+          const today = this.getTodayInMalaysia()
           
           dailySales = dailySales.filter(day => {
             const dayDate = new Date(day.date)
             dayDate.setHours(0, 0, 0, 0)
+            // Compare using Malaysia timezone
             return dayDate.getTime() === today.getTime()
           })
         }
@@ -1436,7 +1445,7 @@ export default {
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           totalRevenue / this.stalls.length : 0
         
-        // FIXED: For 'today', if no sales, clear top stall
+        // If no sales today, clear top stall
         if (this.selectedPeriod === 'today' && dailySales.length === 0) {
           this.consolidatedSales.topStall = '-'
           this.consolidatedSales.topRevenue = 0
@@ -1445,7 +1454,6 @@ export default {
           this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         }
         
-        // productSales should come from the period-filtered data
         this.productSales = data.productSales || {}
         
         // If no daily sales for today, clear product sales
@@ -1478,9 +1486,12 @@ export default {
         })
         let stallData = res.data || []
         
-        // FIXED: For 'today', if no sales today, clear stall performance
-        if (this.selectedPeriod === 'today' && this.salesTrend.length === 0) {
-          stallData = []
+        // FIXED: For 'today', filter stall performance by today's date using Malaysia timezone
+        if (this.selectedPeriod === 'today') {
+          // Use salesTrend as source of truth - if no sales today, clear stall data
+          if (this.salesTrend.length === 0) {
+            stallData = []
+          }
         }
         
         this.stallPerformance = stallData
