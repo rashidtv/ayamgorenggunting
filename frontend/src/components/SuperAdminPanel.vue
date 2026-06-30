@@ -172,7 +172,7 @@
               </div>
               <div v-else class="chart-modern-empty">
                 <span>📊</span>
-                <p>No sales data available</p>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
               </div>
             </div>
 
@@ -188,7 +188,7 @@
           </div>
         </div>
 
-        <!-- Stall Performance - Period-based -->
+        <!-- Stall Performance - Period-based FIXED -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -200,7 +200,7 @@
           <div class="card-modern-body">
             <div v-if="stallPerformance.length === 0" class="empty-state-modern">
               <span>📊</span>
-              <p>No data available for {{ getPeriodLabel() }}</p>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
             </div>
             <div v-for="(stall, index) in stallPerformance.slice(0, 5)" :key="stall.id" class="stall-rank-item">
               <div class="stall-rank">
@@ -221,7 +221,7 @@
           </div>
         </div>
 
-        <!-- Menu Performance - Period-based -->
+        <!-- Menu Performance - Period-based FIXED -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -232,7 +232,7 @@
           <div class="card-modern-body">
             <div v-if="menuPerformance.length === 0" class="empty-state-modern">
               <span>🍗</span>
-              <p>No data available for {{ getPeriodLabel() }}</p>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
             </div>
             <div v-for="(item, index) in menuPerformance.slice(0, 5)" :key="item.name" class="menu-rank-item">
               <div class="menu-rank-info">
@@ -946,7 +946,7 @@ export default {
       if (data.length === 0) {
         const option = {
           title: {
-            text: 'No data available',
+            text: `No sales data for ${this.getPeriodLabel()}`,
             left: 'center',
             top: 'center',
             textStyle: {
@@ -963,17 +963,9 @@ export default {
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
-      // Responsive adjustments - FIXED to show all dates
+      // Responsive adjustments
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
-      const showLabels = true // Always show labels
-      let labelInterval = 0 // Show all labels by default
-      
-      // Only hide labels on very small screens with many data points
-      if (chartWidth < 400 && dates.length > 7) {
-        labelInterval = Math.floor(dates.length / 6)
-      } else if (chartWidth < 500 && dates.length > 10) {
-        labelInterval = Math.floor(dates.length / 8)
-      }
+      const labelInterval = chartWidth < 400 ? Math.floor(dates.length / 6) : 0
       
       const option = {
         tooltip: {
@@ -1359,7 +1351,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED for period-based data
+    // DATA LOADING - FIXED for empty data handling
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1401,13 +1393,11 @@ export default {
       this.lowStock = res.data
     },
     async loadSalesAnalytics() {
-      // Calculate days based on selected period
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
                    this.selectedPeriod === 'quarter' ? 90 : 365
       
-      // For 'today', we need to fetch 1 day of data and filter
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
       try {
@@ -1437,11 +1427,10 @@ export default {
         
         this.salesTrend = dailySales
         
-        // Calculate totals from filtered data for the selected period
+        // Calculate totals from filtered data
         const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
         const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
         
-        // Update consolidated sales for the selected period
         this.consolidatedSales.totalItems = totalItems
         this.consolidatedSales.totalRevenue = totalRevenue
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
@@ -1449,11 +1438,15 @@ export default {
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         
-        // Update product sales for menu performance - FIXED to use selected period
-        // The API returns product sales for the selected period
+        // FIXED: productSales should come from the period-filtered data
+        // If no sales for the period, productSales should be empty
         this.productSales = data.productSales || {}
         
-        // Load menu performance with the filtered data
+        // If no daily sales, clear product sales
+        if (dailySales.length === 0) {
+          this.productSales = {}
+        }
+        
         await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
@@ -1464,7 +1457,6 @@ export default {
       }
     },
     async loadStallPerformance() {
-      // Calculate days based on selected period
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
