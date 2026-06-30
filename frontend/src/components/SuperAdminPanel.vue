@@ -910,16 +910,6 @@ export default {
     },
     
     // =============================================
-    // HELPER: Check if a date is today in Malaysia
-    // =============================================
-    isDateTodayInMalaysia(dateStr) {
-      const today = this.getTodayInMalaysia()
-      const dateToCheck = new Date(dateStr)
-      dateToCheck.setHours(0, 0, 0, 0)
-      return dateToCheck.getTime() === today.getTime()
-    },
-    
-    // =============================================
     // ECHARTS - Professional Chart
     // =============================================
     initChart() {
@@ -1429,7 +1419,6 @@ export default {
           dailySales = dailySales.filter(day => {
             const dayDate = new Date(day.date)
             dayDate.setHours(0, 0, 0, 0)
-            // Compare using Malaysia timezone
             return dayDate.getTime() === today.getTime()
           })
         }
@@ -1486,7 +1475,8 @@ export default {
         })
         let stallData = res.data || []
         
-        // FIXED: For 'today', filter stall performance by today's date using Malaysia timezone
+        // FIXED: For 'today', check if there are any sales today using salesTrend
+        // If salesTrend is empty, there are no sales today, so clear stall data
         if (this.selectedPeriod === 'today') {
           // Use salesTrend as source of truth - if no sales today, clear stall data
           if (this.salesTrend.length === 0) {
