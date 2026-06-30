@@ -1,30 +1,53 @@
 <template>
-  <!-- ============================================ -->
-  <!-- COMPLETE TEMPLATE - UNCHANGED                -->
-  <!-- ============================================ -->
   <div class="sa-dashboard">
-    <!-- MODERN HEADER -->
-    <header class="dashboard-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="header-badge">🏢</div>
-          <div>
-            <h1>Company Management</h1>
-            <p>Real-time insights & control</p>
+    <!-- ============================================ -->
+    <!-- TOP HEADER WITH LOGO                        -->
+    <!-- ============================================ -->
+    <div class="top-header">
+      <div class="top-header-content">
+        <div class="logo-section">
+          <div class="logo-placeholder" @click="openLogoUpload">
+            <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
+            <span v-else class="logo-text">🍗</span>
+            <div class="logo-upload-hint">Click to upload logo</div>
+          </div>
+          <div class="brand-section">
+            <h1 class="brand-name">Chickory Hub</h1>
+            <span class="brand-tagline">Ayam Goreng Gunting</span>
           </div>
         </div>
-        <div class="header-right">
-          <button @click="refreshAllData" class="header-btn" title="Refresh Data">
-            <span class="refresh-icon">⟳</span>
+        <div class="header-actions">
+          <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
+            <span class="action-icon">⟳</span>
           </button>
-          <button @click="exportCurrentTab" class="header-btn primary" :disabled="exporting">
-            <span>{{ exporting ? '...' : '⬇' }}</span>
+          <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
+            <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
+            <span class="action-label">Export</span>
           </button>
         </div>
       </div>
-    </header>
+    </div>
 
-    <!-- STATS CARDS -->
+    <!-- ============================================ -->
+    <!-- PERIOD SELECTOR - MOVED ABOVE STATS         -->
+    <!-- ============================================ -->
+    <div v-if="activeTab === 'dashboard'" class="period-section">
+      <div class="period-label">📅 Select Period</div>
+      <div class="period-pills">
+        <button 
+          v-for="p in periods" 
+          :key="p.value"
+          :class="['period-pill', { active: selectedPeriod === p.value }]"
+          @click="selectedPeriod = p.value; refreshAllData()"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STATS CARDS                                  -->
+    <!-- ============================================ -->
     <div class="stats-grid">
       <div class="stat-card" style="--stat-color: #2563eb;">
         <div class="stat-icon">🏪</div>
@@ -55,37 +78,27 @@
       </div>
     </div>
 
-    <!-- PERIOD SELECTOR -->
-    <div v-if="activeTab === 'dashboard'" class="period-section">
-      <div class="period-pills">
-        <button 
-          v-for="p in periods" 
-          :key="p.value"
-          :class="['period-pill', { active: selectedPeriod === p.value }]"
-          @click="selectedPeriod = p.value; refreshAllData()"
-        >
-          {{ p.label }}
-        </button>
-      </div>
-    </div>
-
-    <!-- TAB NAVIGATION -->
-    <div class="tab-nav">
+    <!-- ============================================ -->
+    <!-- PROFESSIONAL TAB NAVIGATION                  -->
+    <!-- ============================================ -->
+    <div class="tab-navigation-modern">
       <button 
         v-for="tab in tabs" 
         :key="tab.id"
-        :class="['tab-pill', { active: activeTab === tab.id }]"
+        :class="['tab-btn-modern', { active: activeTab === tab.id }]"
         @click="switchTab(tab.id)"
       >
-        <span class="tab-pill-icon">{{ tab.icon }}</span>
-        <span class="tab-pill-label">{{ tab.label }}</span>
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-pill-badge">
+        <span class="tab-icon-modern">{{ tab.icon }}</span>
+        <span class="tab-label-modern">{{ tab.label }}</span>
+        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge-modern">
           {{ lowStock.length }}
         </span>
       </button>
     </div>
 
-    <!-- TAB CONTENT -->
+    <!-- ============================================ -->
+    <!-- TAB CONTENT                                 -->
+    <!-- ============================================ -->
     <div class="tab-content">
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
@@ -181,7 +194,7 @@
           </div>
         </div>
 
-        <!-- Stall Performance -->
+        <!-- Stall Performance - Clickable -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -195,7 +208,12 @@
               <span>📊</span>
               <p>No sales data available for {{ getPeriodLabel() }}</p>
             </div>
-            <div v-for="(stall, index) in stallPerformance.slice(0, 5)" :key="stall.id" class="stall-rank-item">
+            <div 
+              v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+              :key="stall.id" 
+              class="stall-rank-item clickable-item"
+              @click="viewStallDetails(stall)"
+            >
               <div class="stall-rank">
                 <span class="stall-rank-number" :class="getRankClass(index)">
                   {{ index + 1 }}
@@ -210,11 +228,12 @@
                 ></div>
               </div>
               <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+              <span class="stall-rank-click">👆 Click for details</span>
             </div>
           </div>
         </div>
 
-        <!-- Menu Performance -->
+        <!-- Menu Performance - Clickable -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -227,7 +246,12 @@
               <span>🍗</span>
               <p>No sales data available for {{ getPeriodLabel() }}</p>
             </div>
-            <div v-for="(item, index) in menuPerformance.slice(0, 5)" :key="item.name" class="menu-rank-item">
+            <div 
+              v-for="(item, index) in menuPerformance.slice(0, 5)" 
+              :key="item.name" 
+              class="menu-rank-item clickable-item"
+              @click="viewMenuItemDetails(item)"
+            >
               <div class="menu-rank-info">
                 <span class="menu-rank-number">{{ index + 1 }}</span>
                 <span class="menu-rank-name">{{ item.name }}</span>
@@ -240,6 +264,7 @@
                 ></div>
               </div>
               <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              <span class="menu-rank-click">👆 Click for details</span>
             </div>
           </div>
         </div>
@@ -520,6 +545,111 @@
       </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- STALL DETAILS MODAL                         -->
+    <!-- ============================================ -->
+    <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🏪 {{ selectedStall?.name || 'Stall Details' }}</h3>
+          <button @click="closeStallDetailModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Items Sold</span>
+              <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Avg Transaction</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">
+                <span :class="['status-badge', getStallStatusClass(selectedStall)]">
+                  {{ getStallStatus(selectedStall) }}
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="detail-chart-container">
+            <h4>Sales Trend</h4>
+            <div ref="stallDetailChartRef" class="detail-chart"></div>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MENU ITEM DETAILS MODAL                     -->
+    <!-- ============================================ -->
+    <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
+          <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Total Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Quantity Sold</span>
+              <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Average Price</span>
+              <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- LOGO UPLOAD MODAL                           -->
+    <!-- ============================================ -->
+    <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>Upload Company Logo</h3>
+          <button @click="logoUploadModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="logo-upload-area" @dragover.prevent @drop.prevent="handleLogoDrop">
+            <input type="file" ref="logoInput" accept="image/*" @change="handleLogoUpload" style="display:none" />
+            <button @click="$refs.logoInput.click()" class="btn-modern primary">
+              📁 Choose Image
+            </button>
+            <p class="upload-hint">Drag & drop or click to upload (PNG, JPG, SVG)</p>
+          </div>
+          <div v-if="tempLogoPreview" class="logo-preview">
+            <img :src="tempLogoPreview" alt="Logo preview" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="logoUploadModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="saveLogo" class="btn-modern primary">Save Logo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- EXISTING MODALS (Menu, User, Stall)         -->
+    <!-- ============================================ -->
     <!-- MENU MODAL -->
     <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
       <div class="modal-modern modal-lg">
@@ -718,6 +848,19 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
+      // Logo
+      companyLogo: localStorage.getItem('companyLogo') || null,
+      logoUploadModal: false,
+      tempLogoPreview: null,
+      tempLogoFile: null,
+      
+      // Detail Modals
+      stallDetailModal: false,
+      selectedStall: null,
+      menuDetailModal: false,
+      selectedMenuItem: null,
+      stallDetailChartInstance: null,
+      
       // Menu filters
       menuSearch: '',
       menuCategoryFilter: 'all',
@@ -852,6 +995,10 @@ export default {
       this.chartInstance.dispose()
       this.chartInstance = null
     }
+    if (this.stallDetailChartInstance) {
+      this.stallDetailChartInstance.dispose()
+      this.stallDetailChartInstance = null
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
     }
@@ -898,11 +1045,139 @@ export default {
     },
     
     // =============================================
+    // LOGO MANAGEMENT
+    // =============================================
+    openLogoUpload() {
+      this.logoUploadModal = true
+    },
+    handleLogoUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        this.tempLogoFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.tempLogoPreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    handleLogoDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        this.tempLogoFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.tempLogoPreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    saveLogo() {
+      if (this.tempLogoPreview) {
+        this.companyLogo = this.tempLogoPreview
+        localStorage.setItem('companyLogo', this.tempLogoPreview)
+        this.logoUploadModal = false
+        this.$emit('show-notification', 'Logo updated successfully!', 'success')
+      }
+    },
+    
+    // =============================================
+    // STALL DETAILS
+    // =============================================
+    viewStallDetails(stall) {
+      this.selectedStall = stall
+      this.stallDetailModal = true
+      this.$nextTick(() => {
+        this.initStallDetailChart()
+      })
+    },
+    closeStallDetailModal() {
+      this.stallDetailModal = false
+      this.selectedStall = null
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+    },
+    initStallDetailChart() {
+      if (!this.$refs.stallDetailChartRef) return
+      
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+      
+      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+      
+      // Mock data for demonstration - in production, fetch actual stall sales data
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      const revenues = Array.from({length: 7}, () => Math.floor(Math.random() * 500) + 50)
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis'
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          top: '8%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: days,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: { color: '#94a3b8', fontSize: 11 }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: { 
+            color: '#94a3b8', 
+            fontSize: 11,
+            formatter: (value) => 'RM' + value
+          }
+        },
+        series: [{
+          type: 'bar',
+          data: revenues,
+          barWidth: '40%',
+          itemStyle: {
+            borderRadius: [4, 4, 0, 0],
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#F94908' },
+                { offset: 1, color: '#fa6a2e' }
+              ]
+            }
+          }
+        }]
+      }
+      
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+    },
+    
+    // =============================================
+    // MENU ITEM DETAILS
+    // =============================================
+    viewMenuItemDetails(item) {
+      this.selectedMenuItem = item
+      this.menuDetailModal = true
+    },
+    closeMenuDetailModal() {
+      this.menuDetailModal = false
+      this.selectedMenuItem = null
+    },
+    
+    // =============================================
     // HELPER: Get today's date in Malaysia timezone
     // =============================================
     getTodayInMalaysia() {
       const now = new Date()
-      // Malaysia is UTC+8
       const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
       const today = new Date(malaysiaTime)
       today.setHours(0, 0, 0, 0)
@@ -962,7 +1237,6 @@ export default {
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
-      // Responsive adjustments - show all dates
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
       const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
       
@@ -973,10 +1247,7 @@ export default {
           borderColor: '#e2e8f0',
           borderWidth: 1,
           padding: [12, 16],
-          textStyle: {
-            color: '#1e293b',
-            fontSize: 13
-          },
+          textStyle: { color: '#1e293b', fontSize: 13 },
           formatter: function(params) {
             const index = params[0]?.dataIndex || 0
             const revenue = data[index]?.revenue || 0
@@ -998,9 +1269,7 @@ export default {
         xAxis: {
           type: 'category',
           data: dates,
-          axisLine: {
-            lineStyle: { color: '#e2e8f0' }
-          },
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
           axisLabel: {
             color: '#94a3b8',
             fontSize: chartWidth < 400 ? 9 : 11,
@@ -1011,36 +1280,22 @@ export default {
             showMaxLabel: true,
             showMinLabel: true
           },
-          axisTick: {
-            show: false
-          },
-          splitLine: {
-            show: false
-          }
+          axisTick: { show: false },
+          splitLine: { show: false }
         },
         yAxis: {
           type: 'value',
-          splitLine: {
-            lineStyle: {
-              color: '#f1f5f9',
-              type: 'dashed'
-            }
-          },
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
           axisLabel: {
             color: '#94a3b8',
             fontSize: chartWidth < 400 ? 9 : 11,
             formatter: function(value) {
-              if (value >= 1000) {
-                return 'RM' + (value / 1000).toFixed(1) + 'k'
-              }
+              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
               return 'RM' + value
             }
           },
           name: chartWidth > 500 ? 'Revenue (RM)' : '',
-          nameTextStyle: {
-            color: '#94a3b8',
-            fontSize: chartWidth < 400 ? 9 : 11
-          }
+          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
         },
         series: [
           {
@@ -1052,46 +1307,28 @@ export default {
               borderRadius: [4, 4, 0, 0],
               color: {
                 type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
+                x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
                   { offset: 0, color: '#F94908' },
                   { offset: 1, color: '#fa6a2e' }
                 ]
               }
             },
-            emphasis: {
-              itemStyle: {
-                color: '#d63d07'
-              }
-            }
+            emphasis: { itemStyle: { color: '#d63d07' } }
           },
           {
             name: 'Trend Line',
             type: 'line',
             data: revenues,
             smooth: true,
-            lineStyle: {
-              color: '#F94908',
-              width: 2,
-              type: 'solid'
-            },
+            lineStyle: { color: '#F94908', width: 2, type: 'solid' },
             symbol: 'circle',
             symbolSize: chartWidth < 400 ? 4 : 6,
-            itemStyle: {
-              color: '#F94908',
-              borderColor: '#ffffff',
-              borderWidth: 2
-            },
+            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
             areaStyle: {
               color: {
                 type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
+                x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
                   { offset: 0, color: 'rgba(249, 73, 8, 0.15)' },
                   { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
@@ -1110,6 +1347,9 @@ export default {
       if (this.chartInstance) {
         this.chartInstance.resize()
         this.updateChart()
+      }
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.resize()
       }
     },
     
@@ -1318,6 +1558,20 @@ export default {
       if (index === 2) return 'bronze'
       return ''
     },
+    getStallStatus(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'No Sales'
+      if (stall.revenue > 1000) return 'Excellent'
+      if (stall.revenue > 500) return 'Good'
+      if (stall.revenue > 100) return 'Average'
+      return 'Poor'
+    },
+    getStallStatusClass(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'no-sales'
+      if (stall.revenue > 1000) return 'excellent'
+      if (stall.revenue > 500) return 'good'
+      if (stall.revenue > 100) return 'average'
+      return 'poor'
+    },
     getStallBarWidth(revenue) {
       const max = Math.max(...this.stallPerformance.map(s => s.revenue || 0), 1)
       return Math.min((revenue / max) * 100, 100)
@@ -1350,7 +1604,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED for Today filtering
+    // DATA LOADING
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1405,14 +1659,12 @@ export default {
         })
         const data = res.data || {}
         
-        // Parse daily sales
         let dailySales = (data.dailySales || []).map(day => ({
           ...day,
           items: parseInt(day.items) || 0,
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // For 'today', filter to only show today's data using Malaysia timezone
         if (this.selectedPeriod === 'today') {
           const today = this.getTodayInMalaysia()
           
@@ -1425,7 +1677,6 @@ export default {
         
         this.salesTrend = dailySales
         
-        // Calculate totals from filtered data
         const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
         const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
         
@@ -1434,7 +1685,6 @@ export default {
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           totalRevenue / this.stalls.length : 0
         
-        // If no sales today, clear top stall
         if (this.selectedPeriod === 'today' && dailySales.length === 0) {
           this.consolidatedSales.topStall = '-'
           this.consolidatedSales.topRevenue = 0
@@ -1445,7 +1695,6 @@ export default {
         
         this.productSales = data.productSales || {}
         
-        // If no daily sales for today, clear product sales
         if (this.selectedPeriod === 'today' && dailySales.length === 0) {
           this.productSales = {}
         }
@@ -1475,11 +1724,7 @@ export default {
         })
         let stallData = res.data || []
         
-        // FIXED: For 'today', ALWAYS check if there are sales today using salesTrend
-        // This is the source of truth - if salesTrend is empty, there are NO sales today
         if (this.selectedPeriod === 'today') {
-          // Check if salesTrend has any data for today
-          // If salesTrend is empty OR if the data in salesTrend doesn't match today
           const today = this.getTodayInMalaysia()
           const hasTodaySales = this.salesTrend.some(day => {
             const dayDate = new Date(day.date)
@@ -1487,7 +1732,6 @@ export default {
             return dayDate.getTime() === today.getTime()
           })
           
-          // If there are no sales today, clear stall data
           if (!hasTodaySales) {
             stallData = []
           }
@@ -1893,91 +2137,183 @@ export default {
 }
 
 /* ============================================ */
-/* HEADER                                       */
+/* TOP HEADER WITH LOGO                        */
 /* ============================================ */
-.dashboard-header {
-  margin-bottom: 1.5rem;
+.top-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
-.header-content {
+.top-header-content {
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-badge {
-  font-size: 1.5rem;
+.logo-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  flex-shrink: 0;
 }
 
-.header-left h1 {
+.logo-placeholder:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.logo-placeholder .logo-text {
+  font-size: 1.8rem;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-upload-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  font-size: 0.5rem;
+  text-align: center;
+  padding: 2px 0;
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.logo-placeholder:hover .logo-upload-hint {
+  opacity: 1;
+}
+
+.brand-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
   font-size: 1.25rem;
   font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
   margin: 0;
-  color: var(--text);
 }
 
-.header-left p {
-  font-size: 0.8rem;
+.brand-tagline {
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  margin: 0;
 }
 
-.header-right {
+.header-actions {
   display: flex;
   gap: 0.5rem;
 }
 
-.header-btn {
-  padding: 0.4rem 0.8rem;
+.header-action-btn {
+  padding: 0.35rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   transition: var(--transition);
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.header-btn:hover {
+.header-action-btn:hover {
   border-color: var(--primary);
-  color: var(--primary);
+  color: var(--text);
   transform: translateY(-1px);
 }
 
-.header-btn.primary {
+.header-action-btn.primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   border: none;
 }
 
-.header-btn.primary:hover {
+.header-action-btn.primary:hover {
   box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
   color: white;
 }
 
-.refresh-icon {
-  display: inline-block;
-  transition: transform 0.6s;
+.action-icon {
+  font-size: 1rem;
 }
 
-.header-btn:hover .refresh-icon {
-  transform: rotate(180deg);
+.action-label {
+  font-size: 0.75rem;
+}
+
+/* ============================================ */
+/* PERIOD SECTION                               */
+/* ============================================ */
+.period-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.period-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.period-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.period-pill {
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.period-pill:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.period-pill.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border-color: var(--primary);
 }
 
 /* ============================================ */
@@ -2090,45 +2426,9 @@ export default {
 .stat-trend.down { color: #ef4444; }
 
 /* ============================================ */
-/* PERIOD SECTION                               */
+/* PROFESSIONAL TAB NAVIGATION                  */
 /* ============================================ */
-.period-section {
-  margin-bottom: 1.25rem;
-}
-
-.period-pills {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.period-pill {
-  padding: 0.3rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: var(--transition);
-  color: var(--text-secondary);
-}
-
-.period-pill:hover {
-  border-color: var(--primary);
-  color: var(--text);
-}
-
-.period-pill.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  border-color: var(--primary);
-}
-
-/* ============================================ */
-/* TAB NAVIGATION                               */
-/* ============================================ */
-.tab-nav {
+.tab-navigation-modern {
   display: flex;
   gap: 0.25rem;
   margin-bottom: 1.25rem;
@@ -2140,15 +2440,15 @@ export default {
   -webkit-overflow-scrolling: touch;
 }
 
-.tab-nav::-webkit-scrollbar {
+.tab-navigation-modern::-webkit-scrollbar {
   display: none;
 }
 
-.tab-pill {
+.tab-btn-modern {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -2161,35 +2461,35 @@ export default {
   position: relative;
 }
 
-.tab-pill:hover {
+.tab-btn-modern:hover {
   background: var(--background);
   color: var(--text);
 }
 
-.tab-pill.active {
+.tab-btn-modern.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
 }
 
-.tab-pill-icon {
-  font-size: 0.9rem;
+.tab-icon-modern {
+  font-size: 1rem;
 }
 
-.tab-pill-label {
+.tab-label-modern {
   font-size: 0.8rem;
 }
 
-.tab-pill-badge {
+.tab-badge-modern {
   background: #ef4444;
   color: white;
   border-radius: 50%;
-  padding: 0 5px;
-  font-size: 0.55rem;
+  padding: 0 6px;
+  font-size: 0.6rem;
   font-weight: 700;
-  min-width: 16px;
+  min-width: 18px;
   text-align: center;
-  line-height: 16px;
+  line-height: 18px;
 }
 
 /* ============================================ */
@@ -2271,21 +2571,6 @@ export default {
 
 .chart-modern.fullscreen .echarts-container {
   height: calc(100vh - 250px);
-}
-
-/* ============================================ */
-/* CHART WRAPPER                                */
-/* ============================================ */
-.chart-wrapper {
-  position: relative;
-  width: 100%;
-  min-height: 300px;
-}
-
-.chart-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
 }
 
 /* ============================================ */
@@ -2471,6 +2756,112 @@ export default {
 }
 
 /* ============================================ */
+/* CLICKABLE ITEMS                              */
+/* ============================================ */
+.clickable-item {
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.clickable-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+.stall-rank-click,
+.menu-rank-click {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition: var(--transition);
+  margin-left: 0.5rem;
+}
+
+.clickable-item:hover .stall-rank-click,
+.clickable-item:hover .menu-rank-click {
+  opacity: 1;
+}
+
+/* ============================================ */
+/* DETAIL MODALS                                */
+/* ============================================ */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.detail-item {
+  background: var(--background);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detail-chart-container {
+  margin-top: 1rem;
+}
+
+.detail-chart-container h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.detail-chart {
+  width: 100%;
+  height: 200px;
+}
+
+/* ============================================ */
+/* LOGO UPLOAD                                  */
+/* ============================================ */
+.logo-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.logo-upload-area .btn-modern {
+  margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.logo-preview {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.logo-preview img {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+/* ============================================ */
 /* MODERN CARDS                                 */
 /* ============================================ */
 .card-modern {
@@ -2512,120 +2903,6 @@ export default {
 
 .card-modern-body {
   padding: 1rem;
-}
-
-/* ============================================ */
-/* MENU MANAGEMENT                              */
-/* ============================================ */
-.menu-item-row {
-  border-bottom: 1px solid var(--border-light);
-  padding: 0.5rem 0;
-}
-
-.menu-item-row:last-child {
-  border-bottom: none;
-}
-
-.menu-item-row-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.menu-item-index {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.6rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.menu-item-info {
-  flex: 1;
-  min-width: 120px;
-}
-
-.menu-item-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.menu-item-price {
-  font-size: 0.8rem;
-  color: var(--primary);
-  font-weight: 600;
-  margin-left: 0.5rem;
-}
-
-.menu-item-category {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  margin-left: 0.5rem;
-}
-
-.menu-item-recipe {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  flex: 1;
-  min-width: 150px;
-}
-
-.recipe-label {
-  font-weight: 500;
-}
-
-.recipe-items {
-  color: var(--text);
-}
-
-.recipe-empty {
-  color: var(--text-tertiary);
-  font-style: italic;
-}
-
-.menu-item-actions {
-  display: flex;
-  gap: 0.15rem;
-}
-
-/* Recipe row in modal */
-.recipe-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-bottom: 0.3rem;
-}
-
-.recipe-input {
-  flex: 1;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.recipe-input-small {
-  width: 60px;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-/* Modal large */
-.modal-lg {
-  max-width: 600px;
 }
 
 /* ============================================ */
@@ -2768,7 +3045,7 @@ export default {
 }
 
 /* ============================================ */
-/* INVENTORY                                    */
+/* FILTER BAR                                   */
 /* ============================================ */
 .filter-bar {
   display: flex;
@@ -2815,6 +3092,19 @@ export default {
   border-color: var(--primary);
 }
 
+.filter-result {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  background: var(--background);
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+}
+
+/* ============================================ */
+/* INVENTORY                                    */
+/* ============================================ */
 .inventory-stall {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -3127,6 +3417,107 @@ export default {
   text-transform: capitalize;
 }
 
+.status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active { background: #d1fae5; color: #059669; }
+.status-badge.inactive { background: #fee2e2; color: #dc2626; }
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ============================================ */
+/* MENU MANAGEMENT                              */
+/* ============================================ */
+.menu-item-row {
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.5rem 0;
+}
+
+.menu-item-row:last-child {
+  border-bottom: none;
+}
+
+.menu-item-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.menu-item-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.6rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-item-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.menu-item-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.menu-item-price {
+  font-size: 0.8rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.menu-item-category {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+}
+
+.menu-item-recipe {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 150px;
+}
+
+.recipe-label {
+  font-weight: 500;
+}
+
+.recipe-items {
+  color: var(--text);
+}
+
+.recipe-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.menu-item-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
 /* ============================================ */
 /* BUTTONS                                      */
 /* ============================================ */
@@ -3169,25 +3560,19 @@ export default {
   font-size: 0.7rem;
 }
 
-/* ============================================ */
-/* EMPTY STATE                                  */
-/* ============================================ */
-.empty-state-modern {
-  text-align: center;
-  padding: 2rem 0.5rem;
-  color: var(--text-secondary);
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: var(--transition);
 }
 
-.empty-state-modern span {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.empty-state-modern p {
-  font-size: 0.85rem;
-  margin: 0;
-}
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
 
 /* ============================================ */
 /* MODALS                                       */
@@ -3214,6 +3599,10 @@ export default {
   max-height: 90vh;
   overflow: hidden;
   animation: fadeIn 0.2s ease;
+}
+
+.modal-lg {
+  max-width: 600px;
 }
 
 .modal-modern-header {
@@ -3307,6 +3696,52 @@ export default {
 }
 
 /* ============================================ */
+/* RECIPE ROWS                                  */
+/* ============================================ */
+.recipe-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.recipe-input {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.recipe-input-small {
+  width: 60px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* ============================================ */
+/* EMPTY STATE                                  */
+/* ============================================ */
+.empty-state-modern {
+  text-align: center;
+  padding: 2rem 0.5rem;
+  color: var(--text-secondary);
+}
+
+.empty-state-modern span {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-modern p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 1024px) {
@@ -3315,6 +3750,35 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .top-header-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .logo-section {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .period-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .period-label {
+    text-align: center;
+  }
+  
+  .period-pills {
+    justify-content: center;
+  }
+  
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
   .stat-card { padding: 0.75rem; }
   .stat-number { font-size: 1.1rem; }
@@ -3334,8 +3798,8 @@ export default {
   
   .chart-modern-stat-value { font-size: 0.8rem; }
   
-  .tab-pill { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
-  .tab-pill-label { font-size: 0.7rem; }
+  .tab-btn-modern { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+  .tab-label-modern { font-size: 0.7rem; }
   
   .filter-bar { flex-direction: column; }
   .filter-search { min-width: unset; }
@@ -3368,13 +3832,12 @@ export default {
     align-self: flex-end;
   }
   
-  .recipe-row {
-    flex-wrap: wrap;
-  }
-  
-  .modal-lg {
-    max-width: 95%;
-  }
+  .recipe-row { flex-wrap: wrap; }
+  .modal-lg { max-width: 95%; }
+  .detail-grid { grid-template-columns: 1fr 1fr; }
+  .detail-chart { height: 150px; }
+  .logo-placeholder { width: 40px; height: 40px; }
+  .brand-name { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
@@ -3402,12 +3865,9 @@ export default {
   
   .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
   
-  .header-left h1 { font-size: 1rem; }
-  .header-badge { width: 36px; height: 36px; font-size: 1.2rem; }
-  
-  .tab-pill { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
-  .tab-pill-icon { font-size: 0.7rem; }
-  .tab-pill-label { font-size: 0.6rem; }
+  .tab-btn-modern { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
+  .tab-icon-modern { font-size: 0.7rem; }
+  .tab-label-modern { font-size: 0.6rem; }
   
   .list-item-content { gap: 0.35rem; }
   .list-item-name { font-size: 0.75rem; }
@@ -3415,13 +3875,14 @@ export default {
   
   .empty-state-modern span { font-size: 1.5rem; }
   
-  .menu-item-info {
-    min-width: unset;
-    width: 100%;
-  }
-  
-  .menu-item-price {
-    display: inline-block;
-  }
+  .menu-item-info { min-width: unset; width: 100%; }
+  .menu-item-price { display: inline-block; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-chart { height: 120px; }
+  .logo-placeholder { width: 36px; height: 36px; }
+  .logo-placeholder .logo-text { font-size: 1.4rem; }
+  .brand-name { font-size: 0.9rem; }
+  .brand-tagline { font-size: 0.6rem; }
+  .period-pill { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
 }
 </style>
