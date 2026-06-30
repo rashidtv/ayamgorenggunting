@@ -26,12 +26,15 @@
     </div>
 
     <div v-else class="app-layout">
-      <!-- Modern Header -->
+      <!-- Modern Header with Logo -->
       <header class="app-header">
         <div class="header-content">
           <div class="brand">
             <div class="logo">
-              <span class="logo-icon">🍗</span>
+              <div class="logo-placeholder" @click="openLogoUpload">
+                <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
+                <span v-else class="logo-icon">🍗</span>
+              </div>
               <div class="logo-text">
                 <h1>Chickory Hub</h1>
                 <span class="tagline">Ayam Goreng Gunting</span>
@@ -65,6 +68,32 @@
           </div>
         </div>
       </header>
+
+      <!-- Logo Upload Modal -->
+      <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
+        <div class="modal-modern">
+          <div class="modal-modern-header">
+            <h3>Upload Company Logo</h3>
+            <button @click="logoUploadModal=false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="logo-upload-area" @dragover.prevent @drop.prevent="handleLogoDrop">
+              <input type="file" ref="logoInput" accept="image/*" @change="handleLogoUpload" style="display:none" />
+              <button @click="$refs.logoInput.click()" class="btn-modern primary">
+                📁 Choose Image
+              </button>
+              <p class="upload-hint">Drag & drop or click to upload (PNG, JPG, SVG)</p>
+            </div>
+            <div v-if="tempLogoPreview" class="logo-preview">
+              <img :src="tempLogoPreview" alt="Logo preview" />
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="logoUploadModal=false" class="btn-modern secondary">Cancel</button>
+            <button @click="saveLogo" class="btn-modern primary">Save Logo</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Main Content -->
       <main class="main-content">
@@ -172,7 +201,12 @@ export default {
       deferredPrompt: null,
       isOnline: true,
       activeStallId: null,
-      notificationsEnabled: true, // Added: notification toggle state
+      notificationsEnabled: true,
+      // Logo
+      companyLogo: localStorage.getItem('companyLogo') || null,
+      logoUploadModal: false,
+      tempLogoPreview: null,
+      tempLogoFile: null,
     };
   },
   computed: {
@@ -214,11 +248,49 @@ export default {
     },
   },
   methods: {
-    // RECEIVE ENTIRE RESPONSE DATA
+    // =============================================
+    // LOGO MANAGEMENT
+    // =============================================
+    openLogoUpload() {
+      this.logoUploadModal = true
+    },
+    handleLogoUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        this.tempLogoFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.tempLogoPreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    handleLogoDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        this.tempLogoFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.tempLogoPreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    saveLogo() {
+      if (this.tempLogoPreview) {
+        this.companyLogo = this.tempLogoPreview
+        localStorage.setItem('companyLogo', this.tempLogoPreview)
+        this.logoUploadModal = false
+        this.showNotification('Logo updated successfully!', 'success')
+      }
+    },
+
+    // =============================================
+    // AUTHENTICATION
+    // =============================================
     handleLoginSuccess(responseData) {
       console.log('🔵 handleLoginSuccess called with:', responseData);
       
-      // Extract user and token from the response
       const userData = responseData?.user;
       const authToken = responseData?.token;
       
@@ -273,15 +345,15 @@ export default {
       }, 600);
     },
 
+    // =============================================
+    // NOTIFICATIONS
+    // =============================================
     showNotification(message, type = 'info') {
-      // Check if notifications are enabled
       if (!this.notificationsEnabled) {
-        // Still log to console for debugging
         console.log(`[🔕 Notification disabled] ${type}: ${message}`);
         return;
       }
       
-      // Original notification code
       const notification = {
         message,
         type,
@@ -306,20 +378,15 @@ export default {
       }, 5000);
     },
 
-    // Toggle notifications on/off
     toggleNotifications() {
       this.notificationsEnabled = !this.notificationsEnabled;
       localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
       
-      // Show a brief notification about the change (only if enabling)
       if (this.notificationsEnabled) {
         this.showNotification('🔔 Notifications enabled', 'success');
       } else {
-        // When disabling, we need to temporarily enable to show the message
-        // But we want to show it as a flash message, not in the queue
         const tempEnabled = this.notificationsEnabled;
         this.notificationsEnabled = true;
-        // Use a different method to show the message
         const notification = {
           message: '🔕 Notifications disabled',
           type: 'info',
@@ -335,7 +402,6 @@ export default {
           }
         }, 3000);
         
-        // Revert to disabled
         this.notificationsEnabled = tempEnabled;
       }
     },
@@ -354,6 +420,9 @@ export default {
       return titles[type] || 'Notification';
     },
 
+    // =============================================
+    // THEME
+    // =============================================
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
       localStorage.setItem('darkMode', this.darkMode);
@@ -380,6 +449,9 @@ export default {
       });
     },
 
+    // =============================================
+    // PWA
+    // =============================================
     initializePWA() {
       this.isPWA =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -417,6 +489,9 @@ export default {
       localStorage.setItem('installPromptDismissed', Date.now().toString());
     },
 
+    // =============================================
+    // NETWORK
+    // =============================================
     checkNetworkStatus() {
       this.isOnline = navigator.onLine;
 
@@ -431,6 +506,9 @@ export default {
       });
     },
 
+    // =============================================
+    // INIT
+    // =============================================
     initializeApp() {
       const storedDarkMode = localStorage.getItem('darkMode');
       if (storedDarkMode === 'true') {
@@ -438,10 +516,15 @@ export default {
       }
       this.applyTheme();
 
-      // Load notification preference from localStorage
       const savedNotifications = localStorage.getItem('notificationsEnabled');
       if (savedNotifications !== null) {
         this.notificationsEnabled = JSON.parse(savedNotifications);
+      }
+
+      // Load logo from localStorage
+      const savedLogo = localStorage.getItem('companyLogo');
+      if (savedLogo) {
+        this.companyLogo = savedLogo;
       }
 
       setInterval(() => {
@@ -618,16 +701,33 @@ body {
   gap: var(--space);
 }
 
-.logo-icon {
-  font-size: 2rem;
-  background: var(--primary-gradient);
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+.logo-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.logo-placeholder:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .logo-text h1 {
@@ -757,6 +857,135 @@ body {
 .logout-btn:hover {
   background: var(--error);
   color: white;
+}
+
+/* ===== LOGO UPLOAD MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-modern {
+  background: var(--surface);
+  border-radius: var(--radius);
+  max-width: 480px;
+  width: 92%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.modal-modern-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.logo-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.logo-upload-area .btn-modern {
+  margin-bottom: 0.5rem;
+}
+
+.btn-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-modern.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.btn-modern.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-modern.secondary {
+  background: var(--background);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-modern.secondary:hover {
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.logo-preview {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.logo-preview img {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 /* ===== MAIN CONTENT ===== */
@@ -1094,10 +1323,13 @@ body {
     padding: var(--space-sm);
   }
 
-  .logo-icon {
+  .logo-placeholder {
     width: 36px;
     height: 36px;
-    font-size: 1.5rem;
+  }
+  
+  .logo-icon {
+    font-size: 1.4rem;
   }
 }
 

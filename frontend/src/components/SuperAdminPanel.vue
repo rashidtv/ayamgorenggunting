@@ -1,35 +1,25 @@
 <template>
   <div class="sa-dashboard">
     <!-- ============================================ -->
-    <!-- TOP HEADER WITH LOGO                        -->
+    <!-- PROFESSIONAL TAB NAVIGATION - TOP            -->
     <!-- ============================================ -->
-    <div class="top-header">
-      <div class="top-header-content">
-        <div class="logo-section">
-          <div class="logo-placeholder" @click="openLogoUpload">
-            <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
-            <span v-else class="logo-text">🍗</span>
-            <div class="logo-upload-hint">Click to upload logo</div>
-          </div>
-          <div class="brand-section">
-            <h1 class="brand-name">Chickory Hub</h1>
-            <span class="brand-tagline">Ayam Goreng Gunting</span>
-          </div>
-        </div>
-        <div class="header-actions">
-          <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
-            <span class="action-icon">⟳</span>
-          </button>
-          <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
-            <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
-            <span class="action-label">Export</span>
-          </button>
-        </div>
-      </div>
+    <div class="tab-navigation-modern">
+      <button 
+        v-for="tab in tabs" 
+        :key="tab.id"
+        :class="['tab-btn-modern', { active: activeTab === tab.id }]"
+        @click="switchTab(tab.id)"
+      >
+        <span class="tab-icon-modern">{{ tab.icon }}</span>
+        <span class="tab-label-modern">{{ tab.label }}</span>
+        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge-modern">
+          {{ lowStock.length }}
+        </span>
+      </button>
     </div>
 
     <!-- ============================================ -->
-    <!-- PERIOD SELECTOR - MOVED ABOVE STATS         -->
+    <!-- PERIOD SELECTOR + REFRESH & EXPORT           -->
     <!-- ============================================ -->
     <div v-if="activeTab === 'dashboard'" class="period-section">
       <div class="period-label">📅 Select Period</div>
@@ -41,6 +31,16 @@
           @click="selectedPeriod = p.value; refreshAllData()"
         >
           {{ p.label }}
+        </button>
+      </div>
+      <div class="period-actions">
+        <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
+          <span class="action-icon">⟳</span>
+          <span class="action-label">Refresh</span>
+        </button>
+        <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
+          <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
+          <span class="action-label">Export</span>
         </button>
       </div>
     </div>
@@ -76,24 +76,6 @@
         </div>
         <div class="stat-hover">Click to view →</div>
       </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- PROFESSIONAL TAB NAVIGATION                  -->
-    <!-- ============================================ -->
-    <div class="tab-navigation-modern">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id"
-        :class="['tab-btn-modern', { active: activeTab === tab.id }]"
-        @click="switchTab(tab.id)"
-      >
-        <span class="tab-icon-modern">{{ tab.icon }}</span>
-        <span class="tab-label-modern">{{ tab.label }}</span>
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge-modern">
-          {{ lowStock.length }}
-        </span>
-      </button>
     </div>
 
     <!-- ============================================ -->
@@ -620,34 +602,6 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- LOGO UPLOAD MODAL                           -->
-    <!-- ============================================ -->
-    <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
-      <div class="modal-modern">
-        <div class="modal-modern-header">
-          <h3>Upload Company Logo</h3>
-          <button @click="logoUploadModal=false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="logo-upload-area" @dragover.prevent @drop.prevent="handleLogoDrop">
-            <input type="file" ref="logoInput" accept="image/*" @change="handleLogoUpload" style="display:none" />
-            <button @click="$refs.logoInput.click()" class="btn-modern primary">
-              📁 Choose Image
-            </button>
-            <p class="upload-hint">Drag & drop or click to upload (PNG, JPG, SVG)</p>
-          </div>
-          <div v-if="tempLogoPreview" class="logo-preview">
-            <img :src="tempLogoPreview" alt="Logo preview" />
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="logoUploadModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="saveLogo" class="btn-modern primary">Save Logo</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
     <!-- EXISTING MODALS (Menu, User, Stall)         -->
     <!-- ============================================ -->
     <!-- MENU MODAL -->
@@ -848,12 +802,6 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
-      // Logo
-      companyLogo: localStorage.getItem('companyLogo') || null,
-      logoUploadModal: false,
-      tempLogoPreview: null,
-      tempLogoFile: null,
-      
       // Detail Modals
       stallDetailModal: false,
       selectedStall: null,
@@ -1045,43 +993,6 @@ export default {
     },
     
     // =============================================
-    // LOGO MANAGEMENT
-    // =============================================
-    openLogoUpload() {
-      this.logoUploadModal = true
-    },
-    handleLogoUpload(event) {
-      const file = event.target.files[0]
-      if (file) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    },
-    handleLogoDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    },
-    saveLogo() {
-      if (this.tempLogoPreview) {
-        this.companyLogo = this.tempLogoPreview
-        localStorage.setItem('companyLogo', this.tempLogoPreview)
-        this.logoUploadModal = false
-        this.$emit('show-notification', 'Logo updated successfully!', 'success')
-      }
-    },
-    
-    // =============================================
     // STALL DETAILS
     // =============================================
     viewStallDetails(stall) {
@@ -1109,14 +1020,11 @@ export default {
       
       this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
       
-      // Mock data for demonstration - in production, fetch actual stall sales data
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
       const revenues = Array.from({length: 7}, () => Math.floor(Math.random() * 500) + 50)
       
       const option = {
-        tooltip: {
-          trigger: 'axis'
-        },
+        tooltip: { trigger: 'axis' },
         grid: {
           left: '3%',
           right: '4%',
@@ -2137,141 +2045,74 @@ export default {
 }
 
 /* ============================================ */
-/* TOP HEADER WITH LOGO                        */
+/* TAB NAVIGATION - MOVED TO TOP               */
 /* ============================================ */
-.top-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1.25rem;
+.tab-navigation-modern {
+  display: flex;
+  gap: 0.25rem;
   margin-bottom: 1.25rem;
-}
-
-.top-header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo-placeholder {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--transition);
-  flex-shrink: 0;
-}
-
-.logo-placeholder:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-}
-
-.logo-placeholder .logo-text {
-  font-size: 1.8rem;
-}
-
-.logo-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.logo-upload-hint {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0,0,0,0.7);
-  color: white;
-  font-size: 0.5rem;
-  text-align: center;
-  padding: 2px 0;
-  opacity: 0;
-  transition: var(--transition);
-}
-
-.logo-placeholder:hover .logo-upload-hint {
-  opacity: 1;
-}
-
-.brand-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary);
-  line-height: 1.2;
-  margin: 0;
-}
-
-.brand-tagline {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.header-action-btn {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
   background: var(--surface);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition);
-  color: var(--text-secondary);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-navigation-modern::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn-modern {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  position: relative;
 }
 
-.header-action-btn:hover {
-  border-color: var(--primary);
+.tab-btn-modern:hover {
+  background: var(--background);
   color: var(--text);
-  transform: translateY(-1px);
 }
 
-.header-action-btn.primary {
+.tab-btn-modern.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  border: none;
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
 }
 
-.header-action-btn.primary:hover {
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-  color: white;
-}
-
-.action-icon {
+.tab-icon-modern {
   font-size: 1rem;
 }
 
-.action-label {
-  font-size: 0.75rem;
+.tab-label-modern {
+  font-size: 0.8rem;
+}
+
+.tab-badge-modern {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  line-height: 18px;
 }
 
 /* ============================================ */
-/* PERIOD SECTION                               */
+/* PERIOD SECTION WITH ACTIONS                  */
 /* ============================================ */
 .period-section {
   display: flex;
@@ -2314,6 +2155,56 @@ export default {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   border-color: var(--primary);
+}
+
+.period-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.header-action-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-action-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.header-action-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+}
+
+.header-action-btn.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  color: white;
+}
+
+.header-action-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  font-size: 1rem;
+}
+
+.action-label {
+  font-size: 0.75rem;
 }
 
 /* ============================================ */
@@ -2424,91 +2315,6 @@ export default {
 
 .stat-trend.up { color: #10b981; }
 .stat-trend.down { color: #ef4444; }
-
-/* ============================================ */
-/* PROFESSIONAL TAB NAVIGATION                  */
-/* ============================================ */
-.tab-navigation-modern {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  background: var(--surface);
-  padding: 0.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-navigation-modern::-webkit-scrollbar {
-  display: none;
-}
-
-.tab-btn-modern {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: var(--transition);
-  white-space: nowrap;
-  position: relative;
-}
-
-.tab-btn-modern:hover {
-  background: var(--background);
-  color: var(--text);
-}
-
-.tab-btn-modern.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
-}
-
-.tab-icon-modern {
-  font-size: 1rem;
-}
-
-.tab-label-modern {
-  font-size: 0.8rem;
-}
-
-.tab-badge-modern {
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-  line-height: 18px;
-}
-
-/* ============================================ */
-/* TAB CONTENT                                  */
-/* ============================================ */
-.tab-content {
-  animation: fadeIn 0.25s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.tab-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
 
 /* ============================================ */
 /* KPI CARDS                                    */
@@ -2827,38 +2633,6 @@ export default {
 .detail-chart {
   width: 100%;
   height: 200px;
-}
-
-/* ============================================ */
-/* LOGO UPLOAD                                  */
-/* ============================================ */
-.logo-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.logo-upload-area .btn-modern {
-  margin-bottom: 0.5rem;
-}
-
-.upload-hint {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-}
-
-.logo-preview {
-  text-align: center;
-  margin-top: 0.5rem;
-}
-
-.logo-preview img {
-  max-width: 120px;
-  max-height: 120px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
 }
 
 /* ============================================ */
@@ -3750,21 +3524,6 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .top-header-content {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .logo-section {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .header-actions {
-    width: 100%;
-    justify-content: center;
-  }
-  
   .period-section {
     flex-direction: column;
     align-items: stretch;
@@ -3776,6 +3535,11 @@ export default {
   }
   
   .period-pills {
+    justify-content: center;
+  }
+  
+  .period-actions {
+    margin-left: 0;
     justify-content: center;
   }
   
@@ -3836,8 +3600,6 @@ export default {
   .modal-lg { max-width: 95%; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .detail-chart { height: 150px; }
-  .logo-placeholder { width: 40px; height: 40px; }
-  .brand-name { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
@@ -3879,10 +3641,6 @@ export default {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
-  .logo-placeholder { width: 36px; height: 36px; }
-  .logo-placeholder .logo-text { font-size: 1.4rem; }
-  .brand-name { font-size: 0.9rem; }
-  .brand-tagline { font-size: 0.6rem; }
-  .period-pill { font-size: 0.7rem; padding: 0.2rem 0.6rem; }
+  .header-action-btn .action-label { display: none; }
 }
 </style>
