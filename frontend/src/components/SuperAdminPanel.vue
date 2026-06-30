@@ -704,6 +704,7 @@ export default {
       chartOffset: 0,
       chartWindow: 7,
       chartInstance: null,
+      isChartInitialized: false,
       
       // Data
       stalls: [],
@@ -768,6 +769,7 @@ export default {
       stallForm: { id: null, name: '', code: '', location: '' },
       
       exporting: false,
+      resizeObserver: null,
     }
   },
   computed: {
@@ -844,11 +846,31 @@ export default {
       },
       deep: true
     },
-    chartFullscreen() {
+    chartFullscreen(val) {
       this.$nextTick(() => {
-        this.initChart()
+        if (val) {
+          // When entering fullscreen, reinitialize chart after a delay
+          setTimeout(() => {
+            this.initChart()
+          }, 100)
+        } else {
+          // When exiting fullscreen, reinitialize chart
+          setTimeout(() => {
+            this.initChart()
+          }, 150)
+        }
       })
     }
+  },
+  beforeUnmount() {
+    if (this.chartInstance) {
+      this.chartInstance.dispose()
+      this.chartInstance = null
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+    }
+    window.removeEventListener('resize', this.handleChartResize)
   },
   methods: {
     // =============================================
@@ -902,13 +924,26 @@ export default {
         this.chartInstance = null
       }
       
-      // Create new chart
+      // Create new chart with proper size
       this.chartInstance = echarts.init(this.$refs.chartRef)
+      this.isChartInitialized = true
       
       // Set chart options
       this.updateChart()
       
-      // Handle resize
+      // Handle resize with debounce
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect()
+      }
+      
+      // Use ResizeObserver for more reliable resize handling
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleChartResize()
+      })
+      this.resizeObserver.observe(this.$refs.chartRef)
+      
+      // Also keep window resize as fallback
+      window.removeEventListener('resize', this.handleChartResize)
       window.addEventListener('resize', this.handleChartResize)
     },
     
@@ -916,10 +951,30 @@ export default {
       if (!this.chartInstance) return
       
       const data = this.chartVisibleData
-      if (data.length === 0) return
+      if (data.length === 0) {
+        // Show empty state
+        const option = {
+          title: {
+            text: 'No data available',
+            left: 'center',
+            top: 'center',
+            textStyle: {
+              color: '#94a3b8',
+              fontSize: 14,
+              fontWeight: 400
+            }
+          }
+        }
+        this.chartInstance.setOption(option, true)
+        return
+      }
       
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
+      
+      // Check if bar labels need to be hidden on small screens
+      const chartWidth = this.$refs.chartRef?.clientWidth || 0
+      const showLabels = chartWidth > 500
       
       const option = {
         tooltip: {
@@ -946,7 +1001,7 @@ export default {
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '8%',
+          bottom: showLabels ? '8%' : '4%',
           top: '8%',
           containLabel: true
         },
@@ -958,8 +1013,9 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: 11,
-            fontWeight: 500
+            fontSize: showLabels ? 11 : 9,
+            fontWeight: 500,
+            interval: showLabels ? 0 : Math.max(1, Math.floor(dates.length / 6))
           },
           axisTick: {
             show: false
@@ -975,15 +1031,18 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: 11,
+            fontSize: showLabels ? 11 : 9,
             formatter: function(value) {
-              return 'RM' + value.toLocaleString()
+              if (value >= 1000) {
+                return 'RM' + (value / 1000).toFixed(1) + 'k'
+              }
+              return 'RM' + value
             }
           },
           name: 'Revenue (RM)',
           nameTextStyle: {
             color: '#94a3b8',
-            fontSize: 11
+            fontSize: showLabels ? 11 : 9
           }
         },
         series: [
@@ -991,7 +1050,7 @@ export default {
             name: 'Revenue',
             type: 'bar',
             data: revenues,
-            barWidth: '55%',
+            barWidth: showLabels ? '55%' : '45%',
             itemStyle: {
               borderRadius: [4, 4, 0, 0],
               color: {
@@ -1023,7 +1082,7 @@ export default {
               type: 'solid'
             },
             symbol: 'circle',
-            symbolSize: 6,
+            symbolSize: showLabels ? 6 : 4,
             itemStyle: {
               color: '#F94908',
               borderColor: '#ffffff',
@@ -1053,6 +1112,8 @@ export default {
     handleChartResize() {
       if (this.chartInstance) {
         this.chartInstance.resize()
+        // Update chart after resize to adjust labels
+        this.updateChart()
       }
     },
     
@@ -1131,6 +1192,7 @@ export default {
     },
     toggleChartFullscreen() {
       this.chartFullscreen = !this.chartFullscreen
+      
       if (this.chartFullscreen) {
         document.body.style.overflow = 'hidden'
         const backdrop = document.createElement('div')
@@ -1142,9 +1204,10 @@ export default {
           z-index: 9998;
         `
         document.body.appendChild(backdrop)
-        this.$nextTick(() => {
+        // Force chart to re-render after entering fullscreen
+        setTimeout(() => {
           this.initChart()
-        })
+        }, 100)
       } else {
         document.body.style.overflow = ''
         const backdrop = document.getElementById('fullscreen-backdrop')
@@ -1152,9 +1215,10 @@ export default {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
-        this.$nextTick(() => {
+        // Force chart to re-render after exiting fullscreen
+        setTimeout(() => {
           this.initChart()
-        })
+        }, 150)
       }
     },
     
@@ -1284,13 +1348,15 @@ export default {
       }
       if (tabId === 'dashboard') {
         this.$nextTick(() => {
-          this.initChart()
+          setTimeout(() => {
+            this.initChart()
+          }, 100)
         })
       }
     },
     
     // =============================================
-    // DATA LOADING
+    // DATA LOADING - FIXED date handling
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1332,21 +1398,41 @@ export default {
       this.lowStock = res.data
     },
     async loadSalesAnalytics() {
-      const days = this.selectedPeriod === 'today' ? 1 :
+      // FIXED: Use correct date calculation for today
+      const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
                    this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      // For 'today', we want data from today only
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
       try {
-        const res = await axios.get(`${API_BASE}/sales-analytics?days=${days}`, {
+        const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         const data = res.data || {}
         
-        this.salesTrend = (data.dailySales || []).map(day => ({
+        // Parse dates correctly - filter for today if needed
+        let dailySales = (data.dailySales || []).map(day => ({
           ...day,
           items: parseInt(day.items) || 0,
           revenue: parseFloat(day.revenue) || 0
         }))
+        
+        // For 'today', filter to only show today's data
+        if (this.selectedPeriod === 'today') {
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          
+          dailySales = dailySales.filter(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+        }
+        
+        this.salesTrend = dailySales
         
         this.consolidatedSales.totalItems = parseInt(data.totalItems) || 0
         this.consolidatedSales.totalRevenue = parseFloat(data.totalRevenue) || 0
@@ -1364,12 +1450,15 @@ export default {
       }
     },
     async loadStallPerformance() {
-      const days = this.selectedPeriod === 'today' ? 1 :
+      const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
                    this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
       try {
-        const res = await axios.get(`${API_BASE}/stall-performance?days=${days}`, {
+        const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         this.stallPerformance = res.data || []
