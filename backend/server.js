@@ -832,18 +832,45 @@ app.get('/api/health', (req, res) => {
 // Get all menu items (with recipes) – Allow any authenticated user
 app.get('/api/menu', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT m.item_name, m.price, m.description, m.category, m.image,
-        COALESCE(
-          (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
-           FROM recipes r
-           WHERE r.item_name = m.item_name),
-          '[]'
-        ) as recipe
-      FROM menu_items m
-      GROUP BY m.item_name, m.price, m.description, m.category, m.image
-      ORDER BY m.item_name
+    // First check if image column exists (for backward compatibility)
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'menu_items' AND column_name = 'image'
     `);
+    
+    let query;
+    if (columnCheck.rows.length > 0) {
+      // Image column exists - use full query
+      query = `
+        SELECT m.item_name, m.price, m.description, m.category, m.image,
+          COALESCE(
+            (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
+             FROM recipes r
+             WHERE r.item_name = m.item_name),
+            '[]'
+          ) as recipe
+        FROM menu_items m
+        GROUP BY m.item_name, m.price, m.description, m.category, m.image
+        ORDER BY m.item_name
+      `;
+    } else {
+      // Image column doesn't exist - use query without image
+      query = `
+        SELECT m.item_name, m.price, m.description, m.category,
+          COALESCE(
+            (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
+             FROM recipes r
+             WHERE r.item_name = m.item_name),
+            '[]'
+          ) as recipe
+        FROM menu_items m
+        GROUP BY m.item_name, m.price, m.description, m.category
+        ORDER BY m.item_name
+      `;
+    }
+    
+    const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
     console.error('Error in /api/menu:', err);

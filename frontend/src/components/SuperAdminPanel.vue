@@ -636,9 +636,9 @@
             <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
               <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
               <div v-if="menuForm.imagePreview" class="image-preview">
-                <img :src="menuForm.imagePreview" alt="Menu item" />
-                <button @click="menuForm.imagePreview = null; menuForm.imageFile = null" class="remove-image">✕</button>
-              </div>
+  <img :src="menuForm.imagePreview" alt="Menu item" />
+  <button @click="removeMenuImage" class="remove-image">✕</button>
+</div>
               <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
                 <span>📷</span>
                 <p>Click to upload image</p>
@@ -1008,35 +1008,106 @@ export default {
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
-      return materialName === 'Oil' ? 'L' : 'kg'
-    },
+  return materialName === 'Oil' ? 'L' : 'kg'
+},
+
+// =============================================
+// IMAGE COMPRESSION HELPER
+// =============================================
+compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image()
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height
+          height = maxHeight
+        }
+        
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(width)
+        canvas.height = Math.round(height)
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        const compressed = canvas.toDataURL('image/jpeg', quality)
+        resolve(compressed)
+      }
+      img.onerror = () => {
+        resolve(null)
+      }
+      img.src = base64Data
+    } catch (err) {
+      console.error('Compression error:', err)
+      resolve(null)
+    }
+  })
+},
     
     // =============================================
     // MENU IMAGE MANAGEMENT
     // =============================================
     handleMenuImageUpload(event) {
-      const file = event.target.files[0]
-      if (file) {
-        this.menuForm.imageFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.menuForm.imagePreview = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    },
-    handleMenuImageDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        this.menuForm.imageFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.menuForm.imagePreview = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    },
+  const file = event.target.files[0]
+  if (!file) return
+  
+  // Check file size (2MB limit)
+  if (file.size > 2 * 1024 * 1024) {
+    this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+    event.target.value = ''
+    return
+  }
+  
+  this.menuForm.imageFile = file
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+      this.menuForm.imagePreview = compressed || e.target.result
+    } catch (err) {
+      console.warn('Compression failed, using original:', err)
+      this.menuForm.imagePreview = e.target.result
+    }
+  }
+  reader.readAsDataURL(file)
+},
+   handleMenuImageDrop(event) {
+  const file = event.dataTransfer.files[0]
+  if (file && file.type.startsWith('image/')) {
+    if (file.size > 2 * 1024 * 1024) {
+      this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+      return
+    }
     
+    this.menuForm.imageFile = file
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+        this.menuForm.imagePreview = compressed || e.target.result
+      } catch (err) {
+        this.menuForm.imagePreview = e.target.result
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+},
+    
+    removeMenuImage() {
+  this.menuForm.imagePreview = null
+  this.menuForm.imageFile = null
+  if (this.$refs.menuImageInput) {
+    this.$refs.menuImageInput.value = ''
+  }
+},
+
     // =============================================
     // STALL DETAILS
     // =============================================
@@ -1455,39 +1526,88 @@ export default {
       this.menuForm.recipe.splice(index, 1)
     },
     async saveMenuItem() {
-      try {
-        if (!this.menuForm.item_name || !this.menuForm.price) {
-          this.$emit('show-notification', 'Item name and price are required', 'error')
-          return
+  try {
+    if (!this.menuForm.item_name || !this.menuForm.price) {
+      this.$emit('show-notification', 'Item name and price are required', 'error')
+      return
+    }
+    
+    const payload = {
+      item_name: this.menuForm.item_name,
+      price: parseFloat(this.menuForm.price),
+      description: this.menuForm.description || '',
+      category: this.menuForm.category || 'Main',
+      recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0)
+    }
+    
+    // Handle image - compress if needed to avoid 413 error
+    if (this.menuForm.imagePreview) {
+      let imageData = this.menuForm.imagePreview
+      
+      // If it's a base64 string and too large (over 500KB), compress it
+      if (imageData && imageData.length > 500000) {
+        try {
+          const compressed = await this.compressImage(imageData, 200, 200, 0.6)
+          if (compressed && compressed.length < imageData.length) {
+            imageData = compressed
+            console.log('✅ Image compressed from', Math.round(imageData.length/1024), 'KB to', Math.round(compressed.length/1024), 'KB')
+          }
+        } catch (e) {
+          console.warn('Image compression failed, using original', e)
         }
-        
-        const payload = {
-          item_name: this.menuForm.item_name,
-          price: parseFloat(this.menuForm.price),
-          description: this.menuForm.description,
-          category: this.menuForm.category || 'Main',
-          recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0),
-          image: this.menuForm.imagePreview
-        }
-        
-        if (this.editingMenu) {
-          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Menu item updated', 'success')
-        } else {
-          await axios.post(`${API_BASE}/menu`, payload, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Menu item created', 'success')
-        }
-        
-        this.closeMenuModal()
-        await this.loadMenuItems()
-      } catch (err) {
-        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
-    },
+      
+      // Only include if under 1MB after compression
+      if (imageData && imageData.length < 1 * 1024 * 1024) {
+        payload.image = imageData
+      } else {
+        // If still too large, compress more aggressively
+        try {
+          const compressed = await this.compressImage(imageData, 100, 100, 0.5)
+          if (compressed && compressed.length < 1 * 1024 * 1024) {
+            payload.image = compressed
+            console.log('✅ Image aggressively compressed to', Math.round(compressed.length/1024), 'KB')
+          } else {
+            this.$emit('show-notification', 'Image is too large. Please use a smaller image.', 'warning')
+          }
+        } catch (e) {
+          this.$emit('show-notification', 'Could not compress image. Proceeding without image.', 'warning')
+        }
+      }
+    }
+    
+    console.log('📤 Sending menu payload with image size:', payload.image ? Math.round(payload.image.length/1024) + 'KB' : 'No image')
+    
+    if (this.editingMenu) {
+      await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
+        headers: { 
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      this.$emit('show-notification', 'Menu item updated successfully!', 'success')
+    } else {
+      await axios.post(`${API_BASE}/menu`, payload, {
+        headers: { 
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      this.$emit('show-notification', 'Menu item created successfully!', 'success')
+    }
+    
+    this.closeMenuModal()
+    await this.loadMenuItems()
+  } catch (err) {
+    console.error('Save menu error:', err)
+    if (err.response?.status === 413) {
+      this.$emit('show-notification', 'Image too large. Please use a smaller image (under 1MB).', 'error')
+    } else {
+      const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
+      this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
+    }
+  }
+},
     async deleteMenuItem(itemName) {
       if (confirm(`Delete menu item "${itemName}"?`)) {
         try {
