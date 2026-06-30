@@ -188,7 +188,7 @@
           </div>
         </div>
 
-        <!-- Stall Performance - Period-based FIXED -->
+        <!-- Stall Performance -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -221,7 +221,7 @@
           </div>
         </div>
 
-        <!-- Menu Performance - Period-based FIXED -->
+        <!-- Menu Performance -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
@@ -963,9 +963,9 @@ export default {
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
-      // Responsive adjustments
+      // Responsive adjustments - show all dates
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
-      const labelInterval = chartWidth < 400 ? Math.floor(dates.length / 6) : 0
+      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
       
       const option = {
         tooltip: {
@@ -1351,7 +1351,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED for empty data handling
+    // DATA LOADING - FIXED for Today filtering
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1413,7 +1413,7 @@ export default {
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // For 'today', filter to only show today's data
+        // FIXED: For 'today', filter to only show today's data
         if (this.selectedPeriod === 'today') {
           const today = new Date()
           today.setHours(0, 0, 0, 0)
@@ -1442,8 +1442,8 @@ export default {
         // If no sales for the period, productSales should be empty
         this.productSales = data.productSales || {}
         
-        // If no daily sales, clear product sales
-        if (dailySales.length === 0) {
+        // If no daily sales for today, clear product sales
+        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
           this.productSales = {}
         }
         
@@ -1468,7 +1468,17 @@ export default {
         const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        this.stallPerformance = res.data || []
+        // FIXED: For 'today', filter stall performance to only show today's data
+        let stallData = res.data || []
+        
+        if (this.selectedPeriod === 'today') {
+          // If no sales today, return empty array
+          if (this.salesTrend.length === 0) {
+            stallData = []
+          }
+        }
+        
+        this.stallPerformance = stallData
       } catch (err) {
         this.stallPerformance = []
       }
