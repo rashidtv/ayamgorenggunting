@@ -1350,7 +1350,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED with Malaysia timezone
+    // DATA LOADING - FIXED for Today filtering
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1475,11 +1475,20 @@ export default {
         })
         let stallData = res.data || []
         
-        // FIXED: For 'today', check if there are any sales today using salesTrend
-        // If salesTrend is empty, there are no sales today, so clear stall data
+        // FIXED: For 'today', ALWAYS check if there are sales today using salesTrend
+        // This is the source of truth - if salesTrend is empty, there are NO sales today
         if (this.selectedPeriod === 'today') {
-          // Use salesTrend as source of truth - if no sales today, clear stall data
-          if (this.salesTrend.length === 0) {
+          // Check if salesTrend has any data for today
+          // If salesTrend is empty OR if the data in salesTrend doesn't match today
+          const today = this.getTodayInMalaysia()
+          const hasTodaySales = this.salesTrend.some(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+          
+          // If there are no sales today, clear stall data
+          if (!hasTodaySales) {
             stallData = []
           }
         }
