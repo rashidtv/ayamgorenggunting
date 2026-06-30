@@ -71,12 +71,21 @@
           :key="item.item_name"
           class="menu-item-wrapper"
         >
-          <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
-            <div class="item-icon">{{ getIcon(item.item_name) }}</div>
-            <div class="item-info">
-              <div class="item-name">{{ item.item_name }}</div>
-              <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
-            </div>
+          <div class="menu-item-wrapper">
+  <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
+    <div class="item-image-wrapper">
+      <img 
+        v-if="item.image && item.image.startsWith('data:image')" 
+        :src="item.image" 
+        :alt="item.item_name"
+        class="item-image"
+      />
+      <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
+    </div>
+    <div class="item-info">
+      <div class="item-name">{{ item.item_name }}</div>
+      <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
+    </div>
             <div class="item-action">
               <div class="item-price">{{ formatCurrency(item.price) }}</div>
               <div class="quantity-controls">
@@ -1652,5 +1661,31 @@ export default {
   .trend-line-container {
     height: 25px;
   }
+
+.item-image-wrapper {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .item-image-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+}
+
 }
 </style>
