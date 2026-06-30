@@ -714,11 +714,11 @@
     <!-- ============================================ -->
     <!-- STALL MODAL                                  -->
     <!-- ============================================ -->
-    <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
+    <div v-if="stallModal" class="modal-overlay" @click.self="closeStallModal">
       <div class="modal-modern">
         <div class="modal-modern-header">
           <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
-          <button @click="stallModal=false" class="modal-close-btn">✕</button>
+          <button @click="closeStallModal" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
           <div class="modal-form-group">
@@ -735,7 +735,7 @@
           </div>
         </div>
         <div class="modal-modern-footer">
-          <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="closeStallModal" class="btn-modern secondary">Cancel</button>
           <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
         </div>
       </div>
@@ -972,6 +972,33 @@ export default {
     window.removeEventListener('resize', this.handleChartResize)
   },
   methods: {
+    // =============================================
+    // MODAL CLOSE METHODS
+    // =============================================
+    closeStallModal() {
+      this.stallModal = false
+      this.editingStall = false
+      this.stallForm = { id: null, name: '', code: '', location: '' }
+    },
+    closeUserModal() {
+      this.userModal = false
+      this.editingUser = false
+      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+    },
+    closeMenuModal() {
+      this.menuModal = false
+      this.editingMenu = false
+      this.menuForm = {
+        item_name: '',
+        price: 0,
+        description: '',
+        category: '',
+        recipe: [],
+        imagePreview: null,
+        imageFile: null
+      }
+    },
+    
     // =============================================
     // FORMATTING
     // =============================================
@@ -1444,10 +1471,6 @@ export default {
       }
       this.menuModal = true
     },
-    closeMenuModal() {
-      this.menuModal = false
-      this.editingMenu = false
-    },
     addRecipeIngredient() {
       this.menuForm.recipe.push({ material_name: '', quantity_used: 0 })
     },
@@ -1485,6 +1508,7 @@ export default {
         this.closeMenuModal()
         await this.loadMenuItems()
       } catch (err) {
+        console.error('Save menu error:', err)
         this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
     },
@@ -1497,6 +1521,7 @@ export default {
           this.$emit('show-notification', 'Menu item deleted', 'success')
           await this.loadMenuItems()
         } catch (err) {
+          console.error('Delete menu error:', err)
           this.$emit('show-notification', 'Failed to delete menu item', 'error')
         }
       }
@@ -1588,26 +1613,42 @@ export default {
         this.resetChartNavigation()
         this.$emit('show-notification', 'Data refreshed', 'success')
       } catch (err) {
-        this.$emit('show-notification', err.message, 'error')
+        console.error('Load data error:', err)
+        this.$emit('show-notification', err.message || 'Failed to load data', 'error')
       }
     },
     async loadStalls() {
-      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.stalls = res.data
+      try {
+        const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.stalls = res.data
+      } catch (err) {
+        console.error('Load stalls error:', err)
+        this.stalls = []
+      }
     },
     async loadUsers() {
-      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.users = res.data
+      try {
+        const res = await axios.get(`${API_BASE}/companies/1/users`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.users = res.data
+      } catch (err) {
+        console.error('Load users error:', err)
+        this.users = []
+      }
     },
     async loadLowStock() {
-      const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.lowStock = res.data
+      try {
+        const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.lowStock = res.data
+      } catch (err) {
+        console.error('Load low stock error:', err)
+        this.lowStock = []
+      }
     },
     async loadSalesAnalytics() {
       const days = this.selectedPeriod === 'today' ? 0 :
@@ -1703,6 +1744,7 @@ export default {
         
         this.stallPerformance = stallData
       } catch (err) {
+        console.error('Load stall performance error:', err)
         this.stallPerformance = []
       }
     },
@@ -1715,6 +1757,7 @@ export default {
           revenue: parseFloat(productSales[name].revenue) || 0
         })).sort((a, b) => b.quantity - a.quantity)
       } catch (err) {
+        console.error('Load menu performance error:', err)
         this.menuPerformance = []
       }
     },
@@ -1732,7 +1775,9 @@ export default {
             ...item,
             newLevel: item.current_level
           }))
-        } catch (err) {}
+        } catch (err) {
+          console.error(`Load inventory for stall ${stall.id} error:`, err)
+        }
       }
     },
     toggleInventoryStall(stallId) {
@@ -1751,6 +1796,7 @@ export default {
           newLevel: item.current_level
         }))
       } catch (err) {
+        console.error('Load stall inventory error:', err)
         this.$emit('show-notification', 'Failed to load inventory', 'error')
       }
     },
@@ -1802,6 +1848,7 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
       } catch (err) {
+        console.error('Update inventory error:', err)
         this.$emit('show-notification', 'Failed to update stock', 'error')
       }
     },
@@ -1829,6 +1876,7 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', 'All stocks updated', 'success')
       } catch (err) {
+        console.error('Bulk update error:', err)
         this.$emit('show-notification', 'Bulk update failed', 'error')
       }
     },
@@ -1847,6 +1895,7 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
       } catch (err) {
+        console.error('Reset inventory error:', err)
         this.$emit('show-notification', 'Reset failed', 'error')
       }
     },
@@ -1870,10 +1919,6 @@ export default {
         stall_ids: (user.assigned_stalls || []).map(s => s.id)
       }
       this.userModal = true
-    },
-    closeUserModal() {
-      this.userModal = false
-      this.editingUser = false
     },
     async saveUser() {
       try {
@@ -1905,6 +1950,7 @@ export default {
         this.closeUserModal()
         this.loadUsers()
       } catch (err) {
+        console.error('Save user error:', err)
         this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
     },
@@ -1917,6 +1963,7 @@ export default {
           this.loadUsers()
           this.$emit('show-notification', 'User deleted', 'success')
         } catch (err) {
+          console.error('Delete user error:', err)
           this.$emit('show-notification', 'Failed to delete user', 'error')
         }
       }
@@ -1961,10 +2008,11 @@ export default {
           })
           this.$emit('show-notification', 'Stall created', 'success')
         }
-        this.stallModal = false
+        this.closeStallModal()
         this.loadStalls()
         await this.loadAllStallsInventory()
       } catch (err) {
+        console.error('Save stall error:', err)
         this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
     },
@@ -1976,6 +2024,7 @@ export default {
         this.loadStalls()
         this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
       } catch (err) {
+        console.error('Toggle stall error:', err)
         this.$emit('show-notification', 'Failed to update stall', 'error')
       }
     },
@@ -1988,6 +2037,7 @@ export default {
           this.loadStalls()
           this.$emit('show-notification', 'Stall deleted', 'success')
         } catch (err) {
+          console.error('Delete stall error:', err)
           this.$emit('show-notification', 'Failed to delete stall', 'error')
         }
       }
@@ -2378,6 +2428,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .kpi-card {
@@ -2443,6 +2494,7 @@ export default {
   border-radius: var(--radius);
   overflow: hidden;
   transition: var(--transition);
+  margin-bottom: 1.25rem;
 }
 
 .chart-modern.fullscreen {
@@ -2765,6 +2817,7 @@ export default {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  margin-bottom: 1.25rem;
 }
 
 .card-modern-header {
@@ -3497,7 +3550,7 @@ export default {
 }
 
 /* ============================================ */
-/* MODALS                                       */
+/* MODALS - FIXED WITH WHITE BACKGROUND        */
 /* ============================================ */
 .modal-overlay {
   position: fixed;
@@ -3505,59 +3558,88 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   backdrop-filter: blur(4px);
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-modern {
-  background: var(--surface);
+  background: #ffffff;
   border-radius: var(--radius);
-  max-width: 480px;
+  max-width: 520px;
   width: 92%;
   max-height: 90vh;
   overflow: hidden;
-  animation: fadeIn 0.2s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-lg {
-  max-width: 600px;
+  max-width: 640px;
 }
 
 .modal-modern-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #fafafa;
 }
 
 .modal-modern-header h3 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .modal-close-btn {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #94a3b8;
   padding: 0 0.25rem;
+  border-radius: 4px;
+  transition: var(--transition);
+  line-height: 1;
 }
 
 .modal-close-btn:hover {
-  color: var(--text);
+  color: #ef4444;
+  background: #fef2f2;
 }
 
 .modal-modern-body {
   padding: 1.25rem;
   overflow-y: auto;
   max-height: 60vh;
+  background: #ffffff;
 }
 
 .modal-form-row {
@@ -3569,53 +3651,69 @@ export default {
 .modal-form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .modal-form-group label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #475569;
 }
 
 .modal-form-group input,
 .modal-form-group select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid #e2e8f0;
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #1e293b;
   width: 100%;
+  transition: var(--transition);
 }
 
 .modal-form-group input:focus,
 .modal-form-group select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.modal-form-group input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .modal-form-group small {
   font-size: 0.65rem;
-  color: var(--text-tertiary);
+  color: #94a3b8;
 }
 
 .modal-modern-footer {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+  background: #fafafa;
 }
 
 .stall-select-multiple {
-  min-height: 60px;
+  min-height: 80px;
   padding: 0.35rem;
-  border: 1px solid var(--border);
+  border: 1.5px solid #e2e8f0;
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
+  background: #ffffff;
+  color: #1e293b;
+  width: 100%;
+}
+
+.stall-select-multiple:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
 }
 
 /* ============================================ */
@@ -3695,7 +3793,8 @@ export default {
   .inventory-stall-header { flex-direction: column; align-items: flex-start; }
   
   .modal-form-row { grid-template-columns: 1fr; }
-  .modal-modern { width: 95%; }
+  .modal-modern { width: 95%; max-width: 95%; }
+  .modal-lg { max-width: 95%; }
   
   .stall-rank-item { flex-wrap: wrap; }
   .stall-rank { min-width: unset; }
@@ -3719,7 +3818,6 @@ export default {
   }
   
   .recipe-row { flex-wrap: wrap; }
-  .modal-lg { max-width: 95%; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .detail-chart { height: 150px; }
 }
@@ -3763,5 +3861,11 @@ export default {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
+  
+  .modal-modern {
+    width: 98%;
+    max-width: 98%;
+    border-radius: 10px;
+  }
 }
 </style>
