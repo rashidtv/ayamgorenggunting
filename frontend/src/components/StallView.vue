@@ -71,21 +71,20 @@
           :key="item.item_name"
           class="menu-item-wrapper"
         >
-          <div class="menu-item-wrapper">
-  <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
-    <div class="item-image-wrapper">
-      <img 
-        v-if="item.image && item.image.startsWith('data:image')" 
-        :src="item.image" 
-        :alt="item.item_name"
-        class="item-image"
-      />
-      <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
-    </div>
-    <div class="item-info">
-      <div class="item-name">{{ item.item_name }}</div>
-      <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
-    </div>
+          <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
+            <div class="item-image-wrapper">
+              <img 
+                v-if="item.image && item.image.startsWith('data:image')" 
+                :src="item.image" 
+                :alt="item.item_name"
+                class="item-image"
+              />
+              <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
+            </div>
+            <div class="item-info">
+              <div class="item-name">{{ item.item_name }}</div>
+              <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
+            </div>
             <div class="item-action">
               <div class="item-price">{{ formatCurrency(item.price) }}</div>
               <div class="quantity-controls">
@@ -805,7 +804,14 @@ export default {
   padding: var(--space-sm);
 }
 
-/* Menu Item Wrapper */
+/* Menu Grid */
+.menu-grid {
+  padding: var(--space-lg);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space);
+}
+
 .menu-item-wrapper {
   display: flex;
   flex-direction: column;
@@ -855,6 +861,25 @@ export default {
 
 .menu-item:hover .item-glow {
   left: 100%;
+}
+
+/* Image Styles - NEW */
+.item-image-wrapper {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .item-icon {
@@ -1538,7 +1563,6 @@ export default {
   }
   
   .menu-grid {
-    grid-template-columns: 1fr;
     padding: var(--space);
   }
   
@@ -1582,10 +1606,6 @@ export default {
     min-height: 15px;
   }
   
-  .bar-value {
-    font-size: 0.5rem;
-  }
-  
   .bar-label {
     font-size: 0.6rem;
   }
@@ -1619,6 +1639,11 @@ export default {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-sm);
+  }
+
+  .item-image-wrapper {
+    width: 48px;
+    height: 48px;
   }
 }
 
@@ -1662,30 +1687,9 @@ export default {
     height: 25px;
   }
 
-.item-image-wrapper {
-  width: 60px;
-  height: 60px;
-  flex-shrink: 0;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.item-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-@media (max-width: 768px) {
   .item-image-wrapper {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
-}
-
 }
 </style>
