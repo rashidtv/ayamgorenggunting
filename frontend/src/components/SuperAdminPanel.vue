@@ -1413,7 +1413,7 @@ export default {
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // FIXED: For 'today', filter to only show today's data
+        // For 'today', filter to only show today's data
         if (this.selectedPeriod === 'today') {
           const today = new Date()
           today.setHours(0, 0, 0, 0)
@@ -1435,11 +1435,17 @@ export default {
         this.consolidatedSales.totalRevenue = totalRevenue
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           totalRevenue / this.stalls.length : 0
-        this.consolidatedSales.topStall = data.topStall || '-'
-        this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         
-        // FIXED: productSales should come from the period-filtered data
-        // If no sales for the period, productSales should be empty
+        // FIXED: For 'today', if no sales, clear top stall
+        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
+          this.consolidatedSales.topStall = '-'
+          this.consolidatedSales.topRevenue = 0
+        } else {
+          this.consolidatedSales.topStall = data.topStall || '-'
+          this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+        }
+        
+        // productSales should come from the period-filtered data
         this.productSales = data.productSales || {}
         
         // If no daily sales for today, clear product sales
@@ -1453,6 +1459,8 @@ export default {
         this.salesTrend = []
         this.consolidatedSales.totalItems = 0
         this.consolidatedSales.totalRevenue = 0
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
         this.productSales = {}
       }
     },
@@ -1468,14 +1476,11 @@ export default {
         const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        // FIXED: For 'today', filter stall performance to only show today's data
         let stallData = res.data || []
         
-        if (this.selectedPeriod === 'today') {
-          // If no sales today, return empty array
-          if (this.salesTrend.length === 0) {
-            stallData = []
-          }
+        // FIXED: For 'today', if no sales today, clear stall performance
+        if (this.selectedPeriod === 'today' && this.salesTrend.length === 0) {
+          stallData = []
         }
         
         this.stallPerformance = stallData
