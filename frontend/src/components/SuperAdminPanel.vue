@@ -849,12 +849,10 @@ export default {
     chartFullscreen(val) {
       this.$nextTick(() => {
         if (val) {
-          // When entering fullscreen, reinitialize chart after a delay
           setTimeout(() => {
             this.initChart()
           }, 100)
         } else {
-          // When exiting fullscreen, reinitialize chart
           setTimeout(() => {
             this.initChart()
           }, 150)
@@ -918,31 +916,25 @@ export default {
     initChart() {
       if (!this.$refs.chartRef) return
       
-      // Dispose existing chart
       if (this.chartInstance) {
         this.chartInstance.dispose()
         this.chartInstance = null
       }
       
-      // Create new chart with proper size
       this.chartInstance = echarts.init(this.$refs.chartRef)
       this.isChartInitialized = true
       
-      // Set chart options
       this.updateChart()
       
-      // Handle resize with debounce
       if (this.resizeObserver) {
         this.resizeObserver.disconnect()
       }
       
-      // Use ResizeObserver for more reliable resize handling
       this.resizeObserver = new ResizeObserver(() => {
         this.handleChartResize()
       })
       this.resizeObserver.observe(this.$refs.chartRef)
       
-      // Also keep window resize as fallback
       window.removeEventListener('resize', this.handleChartResize)
       window.addEventListener('resize', this.handleChartResize)
     },
@@ -952,7 +944,6 @@ export default {
       
       const data = this.chartVisibleData
       if (data.length === 0) {
-        // Show empty state
         const option = {
           title: {
             text: 'No data available',
@@ -972,9 +963,11 @@ export default {
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
-      // Check if bar labels need to be hidden on small screens
+      // Responsive adjustments
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
       const showLabels = chartWidth > 500
+      const labelInterval = chartWidth < 400 ? Math.max(1, Math.floor(dates.length / 4)) : 
+                           chartWidth < 600 ? Math.max(1, Math.floor(dates.length / 6)) : 0
       
       const option = {
         tooltip: {
@@ -999,9 +992,9 @@ export default {
           }
         },
         grid: {
-          left: '3%',
-          right: '4%',
-          bottom: showLabels ? '8%' : '4%',
+          left: chartWidth < 400 ? '5%' : '3%',
+          right: chartWidth < 400 ? '5%' : '4%',
+          bottom: showLabels ? '10%' : '5%',
           top: '8%',
           containLabel: true
         },
@@ -1013,11 +1006,16 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 9,
+            fontSize: showLabels ? 11 : 8,
             fontWeight: 500,
-            interval: showLabels ? 0 : Math.max(1, Math.floor(dates.length / 6))
+            interval: labelInterval,
+            rotate: chartWidth < 400 ? 45 : 0,
+            margin: 8
           },
           axisTick: {
+            show: false
+          },
+          splitLine: {
             show: false
           }
         },
@@ -1031,7 +1029,7 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 9,
+            fontSize: showLabels ? 11 : 8,
             formatter: function(value) {
               if (value >= 1000) {
                 return 'RM' + (value / 1000).toFixed(1) + 'k'
@@ -1039,10 +1037,10 @@ export default {
               return 'RM' + value
             }
           },
-          name: 'Revenue (RM)',
+          name: chartWidth > 500 ? 'Revenue (RM)' : '',
           nameTextStyle: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 9
+            fontSize: showLabels ? 11 : 8
           }
         },
         series: [
@@ -1050,7 +1048,7 @@ export default {
             name: 'Revenue',
             type: 'bar',
             data: revenues,
-            barWidth: showLabels ? '55%' : '45%',
+            barWidth: showLabels ? '55%' : '40%',
             itemStyle: {
               borderRadius: [4, 4, 0, 0],
               color: {
@@ -1082,7 +1080,7 @@ export default {
               type: 'solid'
             },
             symbol: 'circle',
-            symbolSize: showLabels ? 6 : 4,
+            symbolSize: showLabels ? 6 : 3,
             itemStyle: {
               color: '#F94908',
               borderColor: '#ffffff',
@@ -1112,7 +1110,6 @@ export default {
     handleChartResize() {
       if (this.chartInstance) {
         this.chartInstance.resize()
-        // Update chart after resize to adjust labels
         this.updateChart()
       }
     },
@@ -1204,7 +1201,6 @@ export default {
           z-index: 9998;
         `
         document.body.appendChild(backdrop)
-        // Force chart to re-render after entering fullscreen
         setTimeout(() => {
           this.initChart()
         }, 100)
@@ -1215,7 +1211,6 @@ export default {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
-        // Force chart to re-render after exiting fullscreen
         setTimeout(() => {
           this.initChart()
         }, 150)
@@ -1356,7 +1351,7 @@ export default {
     },
     
     // =============================================
-    // DATA LOADING - FIXED date handling
+    // DATA LOADING - FIXED for period-based data
     // =============================================
     async refreshAllData() {
       await this.loadData()
@@ -1398,13 +1393,13 @@ export default {
       this.lowStock = res.data
     },
     async loadSalesAnalytics() {
-      // FIXED: Use correct date calculation for today
+      // Calculate days based on selected period
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
                    this.selectedPeriod === 'quarter' ? 90 : 365
       
-      // For 'today', we want data from today only
+      // For 'today', we need to fetch 1 day of data and filter
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
       try {
@@ -1413,7 +1408,7 @@ export default {
         })
         const data = res.data || {}
         
-        // Parse dates correctly - filter for today if needed
+        // Parse daily sales
         let dailySales = (data.dailySales || []).map(day => ({
           ...day,
           items: parseInt(day.items) || 0,
@@ -1434,22 +1429,32 @@ export default {
         
         this.salesTrend = dailySales
         
-        this.consolidatedSales.totalItems = parseInt(data.totalItems) || 0
-        this.consolidatedSales.totalRevenue = parseFloat(data.totalRevenue) || 0
+        // Calculate totals from filtered data for the selected period
+        const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
+        const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+        
+        // Update consolidated sales for the selected period
+        this.consolidatedSales.totalItems = totalItems
+        this.consolidatedSales.totalRevenue = totalRevenue
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-          (parseFloat(data.totalRevenue) || 0) / this.stalls.length : 0
+          totalRevenue / this.stalls.length : 0
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+        
+        // Update product sales for menu performance
         this.productSales = data.productSales || {}
         
+        // Load menu performance with the filtered data
         await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
         this.salesTrend = []
         this.consolidatedSales.totalItems = 0
+        this.consolidatedSales.totalRevenue = 0
       }
     },
     async loadStallPerformance() {
+      // Calculate days based on selected period
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
