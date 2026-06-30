@@ -188,19 +188,19 @@
           </div>
         </div>
 
-        <!-- Stall Performance -->
+        <!-- Stall Performance - Period-based -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
               <h3>🏆 Stall Performance</h3>
-              <span class="card-subtitle">Ranked by revenue</span>
+              <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
             </div>
             <span class="period-tag">{{ getPeriodLabel() }}</span>
           </div>
           <div class="card-modern-body">
             <div v-if="stallPerformance.length === 0" class="empty-state-modern">
               <span>📊</span>
-              <p>No data available</p>
+              <p>No data available for {{ getPeriodLabel() }}</p>
             </div>
             <div v-for="(stall, index) in stallPerformance.slice(0, 5)" :key="stall.id" class="stall-rank-item">
               <div class="stall-rank">
@@ -221,18 +221,18 @@
           </div>
         </div>
 
-        <!-- Menu Performance -->
+        <!-- Menu Performance - Period-based -->
         <div class="card-modern">
           <div class="card-modern-header">
             <div>
               <h3>🍗 Menu Performance</h3>
-              <span class="card-subtitle">Top selling items</span>
+              <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
             </div>
           </div>
           <div class="card-modern-body">
             <div v-if="menuPerformance.length === 0" class="empty-state-modern">
               <span>🍗</span>
-              <p>No data available</p>
+              <p>No data available for {{ getPeriodLabel() }}</p>
             </div>
             <div v-for="(item, index) in menuPerformance.slice(0, 5)" :key="item.name" class="menu-rank-item">
               <div class="menu-rank-info">
@@ -689,7 +689,7 @@ export default {
   props: ['token'],
   data() {
     return {
-      // Tabs - Updated with Menu
+      // Tabs
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -963,11 +963,17 @@ export default {
       const dates = data.map(d => this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
-      // Responsive adjustments
+      // Responsive adjustments - FIXED to show all dates
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
-      const showLabels = chartWidth > 500
-      const labelInterval = chartWidth < 400 ? Math.max(1, Math.floor(dates.length / 4)) : 
-                           chartWidth < 600 ? Math.max(1, Math.floor(dates.length / 6)) : 0
+      const showLabels = true // Always show labels
+      let labelInterval = 0 // Show all labels by default
+      
+      // Only hide labels on very small screens with many data points
+      if (chartWidth < 400 && dates.length > 7) {
+        labelInterval = Math.floor(dates.length / 6)
+      } else if (chartWidth < 500 && dates.length > 10) {
+        labelInterval = Math.floor(dates.length / 8)
+      }
       
       const option = {
         tooltip: {
@@ -994,7 +1000,7 @@ export default {
         grid: {
           left: chartWidth < 400 ? '5%' : '3%',
           right: chartWidth < 400 ? '5%' : '4%',
-          bottom: showLabels ? '10%' : '5%',
+          bottom: '12%',
           top: '8%',
           containLabel: true
         },
@@ -1006,11 +1012,13 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 8,
+            fontSize: chartWidth < 400 ? 9 : 11,
             fontWeight: 500,
             interval: labelInterval,
-            rotate: chartWidth < 400 ? 45 : 0,
-            margin: 8
+            rotate: chartWidth < 400 ? 30 : 0,
+            margin: 12,
+            showMaxLabel: true,
+            showMinLabel: true
           },
           axisTick: {
             show: false
@@ -1029,7 +1037,7 @@ export default {
           },
           axisLabel: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 8,
+            fontSize: chartWidth < 400 ? 9 : 11,
             formatter: function(value) {
               if (value >= 1000) {
                 return 'RM' + (value / 1000).toFixed(1) + 'k'
@@ -1040,7 +1048,7 @@ export default {
           name: chartWidth > 500 ? 'Revenue (RM)' : '',
           nameTextStyle: {
             color: '#94a3b8',
-            fontSize: showLabels ? 11 : 8
+            fontSize: chartWidth < 400 ? 9 : 11
           }
         },
         series: [
@@ -1048,7 +1056,7 @@ export default {
             name: 'Revenue',
             type: 'bar',
             data: revenues,
-            barWidth: showLabels ? '55%' : '40%',
+            barWidth: chartWidth < 400 ? '35%' : '55%',
             itemStyle: {
               borderRadius: [4, 4, 0, 0],
               color: {
@@ -1080,7 +1088,7 @@ export default {
               type: 'solid'
             },
             symbol: 'circle',
-            symbolSize: showLabels ? 6 : 3,
+            symbolSize: chartWidth < 400 ? 4 : 6,
             itemStyle: {
               color: '#F94908',
               borderColor: '#ffffff',
@@ -1441,7 +1449,8 @@ export default {
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         
-        // Update product sales for menu performance
+        // Update product sales for menu performance - FIXED to use selected period
+        // The API returns product sales for the selected period
         this.productSales = data.productSales || {}
         
         // Load menu performance with the filtered data
@@ -1451,6 +1460,7 @@ export default {
         this.salesTrend = []
         this.consolidatedSales.totalItems = 0
         this.consolidatedSales.totalRevenue = 0
+        this.productSales = {}
       }
     },
     async loadStallPerformance() {
