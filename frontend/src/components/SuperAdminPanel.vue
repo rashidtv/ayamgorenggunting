@@ -1,21 +1,21 @@
 <template>
-  <div class="super-admin-panel">
+  <div class="sa-dashboard">
     <!-- ============================================ -->
-    <!-- HEADER WITH STATS                            -->
+    <!-- TAB NAVIGATION - TOP (BEFORE STATS)          -->
     <!-- ============================================ -->
-    <div class="panel-header">
-      <div class="header-left">
-        <h1 class="panel-title">🏢 Super Admin Dashboard</h1>
-        <span class="company-badge">{{ companyName || 'AGG Holdings' }}</span>
-      </div>
-      <div class="header-right">
-        <button @click="refreshAllData" class="btn-modern secondary" :disabled="loading">
-          <span class="btn-icon">⟳</span> Refresh
-        </button>
-        <button @click="exportAllData" class="btn-modern primary" :disabled="exporting">
-          <span class="btn-icon">{{ exporting ? '...' : '⬇' }}</span> Export
-        </button>
-      </div>
+    <div class="tab-navigation-modern">
+      <button 
+        v-for="tab in tabs" 
+        :key="tab.id"
+        :class="['tab-btn-modern', { active: activeTab === tab.id }]"
+        @click="switchTab(tab.id)"
+      >
+        <span class="tab-icon-modern">{{ tab.icon }}</span>
+        <span class="tab-label-modern">{{ tab.label }}</span>
+        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge-modern">
+          {{ lowStock.length }}
+        </span>
+      </button>
     </div>
 
     <!-- ============================================ -->
@@ -38,7 +38,7 @@
         </div>
         <div class="stat-trend up">+8%</div>
       </div>
-      <div class="stat-card" style="--stat-color: #dc2626;">
+      <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
         <div class="stat-icon">⚠️</div>
         <div class="stat-content">
           <span class="stat-number">{{ lowStock.length }}</span>
@@ -47,44 +47,215 @@
         <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
           {{ lowStock.length > 0 ? '⚠️' : '✅' }}
         </div>
-      </div>
-      <div class="stat-card" style="--stat-color: #059669;">
-        <div class="stat-icon">📦</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ menuItems.length }}</span>
-          <span class="stat-label">Menu Items</span>
-        </div>
-        <div class="stat-trend up">+5%</div>
+        <div class="stat-hover">Click to view →</div>
       </div>
     </div>
 
     <!-- ============================================ -->
-    <!-- TAB NAVIGATION                               -->
+    <!-- PERIOD SELECTOR + REFRESH & EXPORT           -->
     <!-- ============================================ -->
-    <div class="tab-navigation">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id"
-        :class="['tab-btn', { active: activeTab === tab.id }]"
-        @click="switchTab(tab.id)"
-      >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        {{ tab.label }}
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge">
-          {{ lowStock.length }}
-        </span>
-      </button>
+    <div v-if="activeTab === 'dashboard'" class="period-section">
+      <div class="period-label">📅 Select Period</div>
+      <div class="period-pills">
+        <button 
+          v-for="p in periods" 
+          :key="p.value"
+          :class="['period-pill', { active: selectedPeriod === p.value }]"
+          @click="selectedPeriod = p.value; refreshAllData()"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+      <div class="period-actions">
+        <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
+          <span class="action-icon">⟳</span>
+          <span class="action-label">Refresh</span>
+        </button>
+        <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
+          <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
+          <span class="action-label">Export</span>
+        </button>
+      </div>
     </div>
 
     <!-- ============================================ -->
-    <!-- TAB CONTENT                                  -->
+    <!-- TAB CONTENT                                 -->
     <!-- ============================================ -->
     <div class="tab-content">
-      
+      <!-- ===== DASHBOARD TAB ===== -->
+      <div v-if="activeTab === 'dashboard'" class="tab-panel">
+        
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Revenue</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              {{ getRevenueChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Items Sold</div>
+            <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
+            <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+              {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Average per Stall</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
+          </div>
+          <div class="kpi-card highlight">
+            <div class="kpi-label">🏆 Top Stall</div>
+            <div class="kpi-value" style="font-size: 1.1rem;">{{ consolidatedSales.topStall || '-' }}</div>
+            <div class="kpi-change" v-if="consolidatedSales.topRevenue">
+              {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Chart with ECharts -->
+        <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
+          <div class="chart-modern-header">
+            <div class="chart-modern-title">
+              <h3>Sales Overview</h3>
+              <span class="chart-modern-sub">{{ getPeriodLabel() }} trend</span>
+            </div>
+            <div class="chart-modern-controls">
+              <button @click="toggleChartFullscreen" class="chart-modern-fullscreen">
+                {{ chartFullscreen ? '✕' : '⛶' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-modern-body">
+            <!-- Stats Row -->
+            <div class="chart-modern-stats" v-if="salesTrend.length > 0">
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Peak</span>
+                <span class="chart-modern-stat-value">{{ formatCurrency(getPeakRevenue()) }}</span>
+                <span class="chart-modern-stat-sub">{{ getPeakDay() }}</span>
+              </div>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Average</span>
+                <span class="chart-modern-stat-value">{{ formatCurrency(getAverageRevenue()) }}</span>
+              </div>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Items</span>
+                <span class="chart-modern-stat-value">{{ formatNumber(getTotalItems()) }}</span>
+              </div>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Trend</span>
+                <span class="chart-modern-stat-value" :class="getTrendDirection()">
+                  {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
+                  {{ getTrendPercentage() }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- ECharts Container -->
+            <div class="chart-wrapper" ref="chartWrapper">
+              <div v-if="salesTrend.length > 0" class="chart-container">
+                <div ref="chartRef" class="echarts-container"></div>
+              </div>
+              <div v-else class="chart-modern-empty">
+                <span>📊</span>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
+              </div>
+            </div>
+
+            <!-- Navigation -->
+            <div v-if="salesTrend.length > chartWindow" class="chart-modern-nav">
+              <button @click="navigateChart('prev')" class="chart-modern-nav-btn" :disabled="chartOffset <= 0">←</button>
+              <span class="chart-modern-nav-label">
+                {{ chartOffset + 1 }}–{{ Math.min(chartOffset + chartWindow, salesTrend.length) }} of {{ salesTrend.length }}
+              </span>
+              <button @click="navigateChart('next')" class="chart-modern-nav-btn" :disabled="chartOffset + chartWindow >= salesTrend.length">→</button>
+              <button @click="resetChartNavigation" class="chart-modern-nav-btn reset" v-if="chartOffset > 0 || chartWindow < salesTrend.length">↺</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stall Performance - Clickable -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏆 Stall Performance</h3>
+              <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
+            </div>
+            <span class="period-tag">{{ getPeriodLabel() }}</span>
+          </div>
+          <div class="card-modern-body">
+            <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+              <span>📊</span>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
+            </div>
+            <div 
+              v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+              :key="stall.id" 
+              class="stall-rank-item clickable-item"
+              @click="viewStallDetails(stall)"
+            >
+              <div class="stall-rank">
+                <span class="stall-rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+                <span class="stall-rank-name">{{ stall.name }}</span>
+              </div>
+              <div class="stall-rank-bar">
+                <div 
+                  class="stall-rank-fill" 
+                  :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+                  :class="getRankClass(index)"
+                ></div>
+              </div>
+              <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+              <span class="stall-rank-click">👆 Click for details</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Performance - Clickable -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🍗 Menu Performance</h3>
+              <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
+            </div>
+          </div>
+          <div class="card-modern-body">
+            <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+              <span>🍗</span>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
+            </div>
+            <div 
+              v-for="(item, index) in menuPerformance.slice(0, 5)" 
+              :key="item.name" 
+              class="menu-rank-item clickable-item"
+              @click="viewMenuItemDetails(item)"
+            >
+              <div class="menu-rank-info">
+                <span class="menu-rank-number">{{ index + 1 }}</span>
+                <span class="menu-rank-name">{{ item.name }}</span>
+                <span class="menu-rank-qty">{{ item.quantity }} sold</span>
+              </div>
+              <div class="menu-rank-bar">
+                <div 
+                  class="menu-rank-fill" 
+                  :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
+                ></div>
+              </div>
+              <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              <span class="menu-rank-click">👆 Click for details</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== INVENTORY TAB ===== -->
       <div v-if="activeTab === 'inventory'" class="tab-panel">
         <div class="card-modern">
-          <div class="card-header">
+          <div class="card-modern-header">
             <div>
               <h3>📦 Inventory Management</h3>
               <span class="card-subtitle">{{ filteredInventoryStalls.length }} stalls</span>
@@ -93,7 +264,7 @@
               ⟳ Refresh
             </button>
           </div>
-          <div class="card-body">
+          <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
                 <input 
@@ -111,7 +282,7 @@
               </select>
             </div>
 
-            <div v-if="stalls.length === 0" class="empty-state">
+            <div v-if="stalls.length === 0" class="empty-state-modern">
               <span>📦</span>
               <p>No stalls found. Create your first stall!</p>
             </div>
@@ -192,14 +363,14 @@
       <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
         <div class="card-modern">
-          <div class="card-header">
+          <div class="card-modern-header">
             <div>
               <h3>🏪 Stall Management</h3>
               <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
             </div>
             <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
           </div>
-          <div class="card-body">
+          <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
                 <input 
@@ -216,27 +387,27 @@
               </select>
             </div>
 
-            <div v-if="filteredStallsList.length === 0" class="empty-state">
+            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
               <span>🏪</span>
               <p>No stalls found</p>
             </div>
 
-            <div v-for="(stall, index) in filteredStallsList" :key="stall.id" class="list-item">
+            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
               <div class="list-item-content">
                 <span class="list-item-index">{{ index + 1 }}</span>
                 <div class="list-item-info">
-                  <span class="list-item-name">{{ stall.name }}</span>
-                  <span class="list-item-code">{{ stall.code }}</span>
+                  <span class="list-item-name">{{ s.name }}</span>
+                  <span class="list-item-code">{{ s.code }}</span>
                 </div>
-                <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
-                  {{ stall.is_active ? 'Active' : 'Inactive' }}
+                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
                 </span>
                 <div class="list-item-actions">
-                  <button @click="openEditStallModal(stall)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="toggleStallStatus(stall)" class="list-item-btn" :title="stall.is_active ? 'Deactivate' : 'Activate'">
-                    {{ stall.is_active ? '⏸️' : '▶️' }}
+                  <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
                   </button>
-                  <button @click="deleteStall(stall.id, stall.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                  <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
                 </div>
               </div>
             </div>
@@ -247,14 +418,14 @@
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
         <div class="card-modern">
-          <div class="card-header">
+          <div class="card-modern-header">
             <div>
               <h3>👥 User Management</h3>
               <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
             </div>
             <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
           </div>
-          <div class="card-body">
+          <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
                 <input 
@@ -271,23 +442,23 @@
               </select>
             </div>
 
-            <div v-if="filteredUsersList.length === 0" class="empty-state">
+            <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
               <span>👥</span>
               <p>No users found</p>
             </div>
 
-            <div v-for="(user, index) in filteredUsersList" :key="user.id" class="list-item">
+            <div v-for="(u, index) in filteredUsersList" :key="u.id" class="list-item">
               <div class="list-item-content">
                 <span class="list-item-index">{{ index + 1 }}</span>
                 <div class="list-item-info">
-                  <span class="list-item-name">{{ user.username }}</span>
-                  <span class="list-item-sub">{{ user.full_name || '-' }}</span>
+                  <span class="list-item-name">{{ u.username }}</span>
+                  <span class="list-item-sub">{{ u.full_name || '-' }}</span>
                 </div>
-                <span class="role-tag">{{ user.role }}</span>
-                <span class="list-item-stalls">{{ (user.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                <span class="role-tag">{{ u.role }}</span>
+                <span class="list-item-stalls">{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
                 <div class="list-item-actions">
-                  <button @click="openEditUserModal(user)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="deleteUser(user.id, user.username)" class="list-item-btn danger" title="Delete">🗑️</button>
+                  <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
                 </div>
               </div>
             </div>
@@ -295,17 +466,17 @@
         </div>
       </div>
 
-      <!-- ===== MENU TAB ===== -->
+      <!-- ===== MENU MANAGEMENT TAB ===== -->
       <div v-if="activeTab === 'menu'" class="tab-panel">
         <div class="card-modern">
-          <div class="card-header">
+          <div class="card-modern-header">
             <div>
               <h3>📋 Menu Management</h3>
-              <span class="card-subtitle">{{ filteredMenuItems.length }} items</span>
+              <span class="card-subtitle">Manage your menu items and recipes</span>
             </div>
             <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
           </div>
-          <div class="card-body">
+          <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
                 <input 
@@ -325,7 +496,7 @@
               <span class="filter-result">{{ filteredMenuItems.length }} items</span>
             </div>
 
-            <div v-if="filteredMenuItems.length === 0" class="empty-state">
+            <div v-if="filteredMenuItems.length === 0" class="empty-state-modern">
               <span>📋</span>
               <p>No menu items found. Create your first menu item!</p>
             </div>
@@ -357,80 +528,75 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- STALL MODAL                                  -->
+    <!-- STALL DETAILS MODAL                         -->
     <!-- ============================================ -->
-    <div v-if="stallModal" class="modal-overlay" @click.self="closeStallModal">
-      <div class="modal-modern">
-        <div class="modal-header">
-          <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
-          <button @click="closeStallModal" class="modal-close-btn">✕</button>
+    <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🏪 {{ selectedStall?.name || 'Stall Details' }}</h3>
+          <button @click="closeStallDetailModal" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Stall Name</label>
-            <input v-model="stallForm.name" placeholder="Stall Name" />
+        <div class="modal-modern-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Items Sold</span>
+              <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Avg Transaction</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">
+                <span :class="['status-badge', getStallStatusClass(selectedStall)]">
+                  {{ getStallStatus(selectedStall) }}
+                </span>
+              </span>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Stall Code</label>
-            <input v-model="stallForm.code" placeholder="Stall Code" />
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <input v-model="stallForm.location" placeholder="Location" />
+          <div class="detail-chart-container">
+            <h4>Sales Trend</h4>
+            <div ref="stallDetailChartRef" class="detail-chart"></div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="closeStallModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
+        <div class="modal-modern-footer">
+          <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
         </div>
       </div>
     </div>
 
     <!-- ============================================ -->
-    <!-- USER MODAL                                   -->
+    <!-- MENU ITEM DETAILS MODAL                     -->
     <!-- ============================================ -->
-    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+    <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
       <div class="modal-modern modal-lg">
-        <div class="modal-header">
-          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
-          <button @click="closeUserModal" class="modal-close-btn">✕</button>
+        <div class="modal-modern-header">
+          <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
+          <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Username</label>
-              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+        <div class="modal-modern-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Total Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
             </div>
-            <div class="form-group">
-              <label>Full Name</label>
-              <input v-model="userForm.full_name" placeholder="Full Name" />
+            <div class="detail-item">
+              <span class="detail-label">Quantity Sold</span>
+              <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
             </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Password</label>
-              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
-              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
+            <div class="detail-item">
+              <span class="detail-label">Average Price</span>
+              <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
             </div>
-            <div class="form-group">
-              <label>Role</label>
-              <select v-model="userForm.role">
-                <option value="stall_admin">Stall Admin</option>
-                <option value="cashier">Cashier</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Assign Stalls:</label>
-            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
-              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
-            </select>
-            <small>Hold Ctrl/Cmd to select multiple</small>
           </div>
         </div>
-        <div class="modal-footer">
-          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+        <div class="modal-modern-footer">
+          <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
         </div>
       </div>
     </div>
@@ -440,46 +606,46 @@
     <!-- ============================================ -->
     <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
       <div class="modal-modern modal-lg">
-        <div class="modal-header">
+        <div class="modal-modern-header">
           <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
           <button @click="closeMenuModal" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
+        <div class="modal-modern-body">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
               <label>Item Name</label>
               <input v-model="menuForm.item_name" placeholder="e.g., AGG" :disabled="editingMenu" />
             </div>
-            <div class="form-group">
+            <div class="modal-form-group">
               <label>Price (RM)</label>
               <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
               <label>Category</label>
               <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
             </div>
-            <div class="form-group">
+            <div class="modal-form-group">
               <label>Description</label>
               <input v-model="menuForm.description" placeholder="Brief description" />
             </div>
           </div>
-          <div class="form-group">
+          <div class="modal-form-group">
             <label>Item Image</label>
             <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
               <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
               <div v-if="menuForm.imagePreview" class="image-preview">
                 <img :src="menuForm.imagePreview" alt="Menu item" />
-                <button @click="removeMenuImage" class="remove-image">✕</button>
+                <button @click="menuForm.imagePreview = null; menuForm.imageFile = null" class="remove-image">✕</button>
               </div>
               <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
                 <span>📷</span>
-                <p>Click to upload image (max 2MB)</p>
+                <p>Click to upload image</p>
               </div>
             </div>
           </div>
-          <div class="form-group">
+          <div class="modal-form-group">
             <label>Recipe (Ingredients)</label>
             <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
               <input v-model="ingredient.material_name" placeholder="Material name" class="recipe-input" />
@@ -489,9 +655,88 @@
             <button @click="addRecipeIngredient" class="btn-modern secondary small">+ Add Ingredient</button>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-modern-footer">
           <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
           <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- USER MODAL                                   -->
+    <!-- ============================================ -->
+    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
+          <button @click="closeUserModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Username</label>
+              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+            </div>
+            <div class="modal-form-group">
+              <label>Full Name</label>
+              <input v-model="userForm.full_name" placeholder="Full Name" />
+            </div>
+          </div>
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Password</label>
+              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
+              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
+            </div>
+            <div class="modal-form-group">
+              <label>Role</label>
+              <select v-model="userForm.role">
+                <option value="stall_admin">Stall Admin</option>
+                <option value="cashier">Cashier</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-form-group">
+            <label>Assign Stalls:</label>
+            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
+              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
+            </select>
+            <small>Hold Ctrl/Cmd to select multiple</small>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
+          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STALL MODAL                                  -->
+    <!-- ============================================ -->
+    <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
+          <button @click="stallModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-group">
+            <label>Stall Name</label>
+            <input v-model="stallForm.name" placeholder="Stall Name" />
+          </div>
+          <div class="modal-form-group">
+            <label>Stall Code</label>
+            <input v-model="stallForm.code" placeholder="Stall Code" />
+          </div>
+          <div class="modal-form-group">
+            <label>Location</label>
+            <input v-model="stallForm.location" placeholder="Location" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
         </div>
       </div>
     </div>
@@ -500,69 +745,90 @@
 
 <script>
 import axios from 'axios'
+import * as echarts from 'echarts'
+import { use } from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { 
+  TitleComponent, 
+  TooltipComponent, 
+  GridComponent, 
+  LegendComponent,
+  MarkLineComponent,
+  MarkPointComponent
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+
+// Register ECharts components
+use([
+  BarChart,
+  LineChart,
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  CanvasRenderer
+])
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
-  name: 'SuperAdminPanel',
-  props: {
-    token: {
-      type: String,
-      required: true
-    },
-    companyLogo: {
-      type: String,
-      default: null
-    }
-  },
+  props: ['token'],
   data() {
     return {
-      // Company
-      companyName: 'AGG Holdings',
-      companyId: 1,
-      
-      // Data
-      stalls: [],
-      users: [],
-      lowStock: [],
-      menuItems: [],
-      
       // Tabs
-      activeTab: 'inventory',
+      activeTab: 'dashboard',
       tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
       
-      // Inventory
-      expandedInventoryStall: null,
-      stallInventory: {},
-      inventorySearch: '',
-      inventoryFilter: 'all',
+      // Chart settings
+      chartFullscreen: false,
+      chartOffset: 0,
+      chartWindow: 7,
+      chartInstance: null,
+      isChartInitialized: false,
       
-      // Stalls
-      stallSearch: '',
-      stallStatusFilter: 'all',
+      // Data
+      stalls: [],
+      users: [],
+      lowStock: [],
+      menuItems: [],
+      consolidatedSales: {
+        totalRevenue: 0,
+        totalItems: 0,
+        averagePerStall: 0,
+        topStall: '-',
+        topRevenue: 0
+      },
+      stallPerformance: [],
+      menuPerformance: [],
+      salesTrend: [],
+      productSales: {},
+      selectedPeriod: 'week',
+      periods: [
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' },
+        { value: 'quarter', label: 'Quarter' },
+        { value: 'year', label: 'Year' }
+      ],
       
-      // Users
-      userSearch: '',
-      userRoleFilter: 'all',
+      // Detail Modals
+      stallDetailModal: false,
+      selectedStall: null,
+      menuDetailModal: false,
+      selectedMenuItem: null,
+      stallDetailChartInstance: null,
       
-      // Menu
+      // Menu filters
       menuSearch: '',
       menuCategoryFilter: 'all',
-      
-      // Stall Modal
-      stallModal: false,
-      editingStall: false,
-      stallForm: { id: null, name: '', code: '', location: '' },
-      
-      // User Modal
-      userModal: false,
-      editingUser: false,
-      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
       
       // Menu Modal
       menuModal: false,
@@ -577,12 +843,39 @@ export default {
         imageFile: null
       },
       
-      // UI State
-      loading: false,
+      // Inventory
+      expandedInventoryStall: null,
+      stallInventory: {},
+      inventorySearch: '',
+      inventoryFilter: 'all',
+      
+      // Stalls tab
+      stallSearch: '',
+      stallStatusFilter: 'all',
+      
+      // Users tab
+      userSearch: '',
+      userRoleFilter: 'all',
+      
+      // Modals
+      userModal: false,
+      editingUser: false,
+      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+      stallModal: false,
+      editingStall: false,
+      stallForm: { id: null, name: '', code: '', location: '' },
+      
       exporting: false,
+      resizeObserver: null,
     }
   },
   computed: {
+    lowStockCount() {
+      return this.lowStock.length
+    },
+    chartVisibleData() {
+      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+    },
     filteredMenuItems() {
       return this.menuItems.filter(item => {
         const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
@@ -590,6 +883,7 @@ export default {
         return matchesSearch && matchesCategory
       })
     },
+    
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
@@ -632,7 +926,50 @@ export default {
     }
   },
   mounted() {
-    this.loadAllData()
+    this.loadData()
+  },
+  watch: {
+    salesTrend: {
+      handler() {
+        this.$nextTick(() => {
+          this.initChart()
+        })
+      },
+      deep: true
+    },
+    chartVisibleData: {
+      handler() {
+        this.updateChart()
+      },
+      deep: true
+    },
+    chartFullscreen(val) {
+      this.$nextTick(() => {
+        if (val) {
+          setTimeout(() => {
+            this.initChart()
+          }, 100)
+        } else {
+          setTimeout(() => {
+            this.initChart()
+          }, 150)
+        }
+      })
+    }
+  },
+  beforeUnmount() {
+    if (this.chartInstance) {
+      this.chartInstance.dispose()
+      this.chartInstance = null
+    }
+    if (this.stallDetailChartInstance) {
+      this.stallDetailChartInstance.dispose()
+      this.stallDetailChartInstance = null
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+    }
+    window.removeEventListener('resize', this.handleChartResize)
   },
   methods: {
     // =============================================
@@ -647,25 +984,441 @@ export default {
         maximumFractionDigits: 0
       }).format(num)
     },
+    
+    formatNumber(value) {
+      const num = Number(value) || 0
+      const rounded = Math.round(num)
+      return new Intl.NumberFormat('en-MY').format(rounded)
+    },
+    
+    formatShortDate(dateStr) {
+      if (!dateStr) return ''
+      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+    },
+    formatFullDate(dateStr) {
+      if (!dateStr) return ''
+      return new Date(dateStr).toLocaleDateString('en-MY', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'short' 
+      })
+    },
+    getPeriodLabel() {
+      var p = this.periods.find(p => p.value === this.selectedPeriod)
+      return p ? p.label : 'Week'
+    },
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
     },
     
     // =============================================
-    // MODAL CLOSE METHODS
+    // MENU IMAGE MANAGEMENT
     // =============================================
-    closeStallModal() {
-      this.stallModal = false
-      this.editingStall = false
-      this.stallForm = { id: null, name: '', code: '', location: '' }
+    handleMenuImageUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        this.menuForm.imageFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.menuForm.imagePreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
     },
-    closeUserModal() {
-      this.userModal = false
-      this.editingUser = false
-      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+    handleMenuImageDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        this.menuForm.imageFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.menuForm.imagePreview = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
     },
-    closeMenuModal() {
-      this.menuModal = false
+    
+    // =============================================
+    // STALL DETAILS
+    // =============================================
+    viewStallDetails(stall) {
+      this.selectedStall = stall
+      this.stallDetailModal = true
+      this.$nextTick(() => {
+        this.initStallDetailChart()
+      })
+    },
+    closeStallDetailModal() {
+      this.stallDetailModal = false
+      this.selectedStall = null
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+    },
+    initStallDetailChart() {
+      if (!this.$refs.stallDetailChartRef) return
+      
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+      
+      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+      
+      // Use actual sales data from the selected period
+      const salesData = this.salesTrend || []
+      const days = salesData.map(d => this.formatShortDate(d.date))
+      const revenues = salesData.map(d => d.revenue || 0)
+      
+      // If no data, use mock data
+      const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => Math.floor(Math.random() * 500) + 50)
+      
+      const option = {
+        tooltip: { trigger: 'axis' },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          top: '8%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: finalDays,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: { color: '#94a3b8', fontSize: 11 }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: { 
+            color: '#94a3b8', 
+            fontSize: 11,
+            formatter: (value) => 'RM' + value
+          }
+        },
+        series: [{
+          type: 'bar',
+          data: finalRevenues,
+          barWidth: '40%',
+          itemStyle: {
+            borderRadius: [4, 4, 0, 0],
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#F94908' },
+                { offset: 1, color: '#fa6a2e' }
+              ]
+            }
+          }
+        }]
+      }
+      
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+    },
+    
+    // =============================================
+    // MENU ITEM DETAILS
+    // =============================================
+    viewMenuItemDetails(item) {
+      this.selectedMenuItem = item
+      this.menuDetailModal = true
+    },
+    closeMenuDetailModal() {
+      this.menuDetailModal = false
+      this.selectedMenuItem = null
+    },
+    
+    // =============================================
+    // HELPER: Get today's date in Malaysia timezone
+    // =============================================
+    getTodayInMalaysia() {
+      const now = new Date()
+      const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
+      const today = new Date(malaysiaTime)
+      today.setHours(0, 0, 0, 0)
+      return today
+    },
+    
+    // =============================================
+    // ECHARTS - Professional Chart
+    // =============================================
+    initChart() {
+      if (!this.$refs.chartRef) return
+      
+      if (this.chartInstance) {
+        this.chartInstance.dispose()
+        this.chartInstance = null
+      }
+      
+      this.chartInstance = echarts.init(this.$refs.chartRef)
+      this.isChartInitialized = true
+      
+      this.updateChart()
+      
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect()
+      }
+      
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleChartResize()
+      })
+      this.resizeObserver.observe(this.$refs.chartRef)
+      
+      window.removeEventListener('resize', this.handleChartResize)
+      window.addEventListener('resize', this.handleChartResize)
+    },
+    
+    updateChart() {
+      if (!this.chartInstance) return
+      
+      const data = this.chartVisibleData
+      if (data.length === 0) {
+        const option = {
+          title: {
+            text: `No sales data for ${this.getPeriodLabel()}`,
+            left: 'center',
+            top: 'center',
+            textStyle: {
+              color: '#94a3b8',
+              fontSize: 14,
+              fontWeight: 400
+            }
+          }
+        }
+        this.chartInstance.setOption(option, true)
+        return
+      }
+      
+      const dates = data.map(d => this.formatShortDate(d.date))
+      const revenues = data.map(d => d.revenue || 0)
+      
+      const chartWidth = this.$refs.chartRef?.clientWidth || 0
+      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: [12, 16],
+          textStyle: { color: '#1e293b', fontSize: 13 },
+          formatter: function(params) {
+            const index = params[0]?.dataIndex || 0
+            const revenue = data[index]?.revenue || 0
+            const itemsCount = data[index]?.items || 0
+            return `
+              <div style="font-weight:600;margin-bottom:4px;">${data[index]?.label || ''}</div>
+              <div style="color:#F94908;font-size:16px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+              <div style="color:#64748b;font-size:12px;">${itemsCount} items sold</div>
+            `
+          }
+        },
+        grid: {
+          left: chartWidth < 400 ? '5%' : '3%',
+          right: chartWidth < 400 ? '5%' : '4%',
+          bottom: '12%',
+          top: '8%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: dates,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            fontWeight: 500,
+            interval: labelInterval,
+            rotate: chartWidth < 400 ? 30 : 0,
+            margin: 12,
+            showMaxLabel: true,
+            showMinLabel: true
+          },
+          axisTick: { show: false },
+          splitLine: { show: false }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            formatter: function(value) {
+              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
+              return 'RM' + value
+            }
+          },
+          name: chartWidth > 500 ? 'Revenue (RM)' : '',
+          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
+        },
+        series: [
+          {
+            name: 'Revenue',
+            type: 'bar',
+            data: revenues,
+            barWidth: chartWidth < 400 ? '35%' : '55%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            },
+            emphasis: { itemStyle: { color: '#d63d07' } }
+          },
+          {
+            name: 'Trend Line',
+            type: 'line',
+            data: revenues,
+            smooth: true,
+            lineStyle: { color: '#F94908', width: 2, type: 'solid' },
+            symbol: 'circle',
+            symbolSize: chartWidth < 400 ? 4 : 6,
+            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(249, 73, 8, 0.15)' },
+                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+                ]
+              }
+            },
+            z: 10
+          }
+        ]
+      }
+      
+      this.chartInstance.setOption(option, true)
+    },
+    
+    handleChartResize() {
+      if (this.chartInstance) {
+        this.chartInstance.resize()
+        this.updateChart()
+      }
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.resize()
+      }
+    },
+    
+    // =============================================
+    // CHART STATS
+    // =============================================
+    getPeakRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      return Math.max(...this.salesTrend.map(d => d.revenue || 0))
+    },
+    getPeakDay() {
+      if (this.salesTrend.length === 0) return ''
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      const day = this.salesTrend.find(d => d.revenue === max)
+      return day ? this.formatShortDate(day.date) : ''
+    },
+    getAverageRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+      return total / this.salesTrend.length
+    },
+    getTotalItems() {
+      return this.salesTrend.reduce((sum, d) => {
+        const items = parseInt(d.items) || 0
+        return sum + items
+      }, 0)
+    },
+    getTrendDirection() {
+      if (this.salesTrend.length < 2) return 'neutral'
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (last > first) return 'up'
+      if (last < first) return 'down'
+      return 'neutral'
+    },
+    getTrendPercentage() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100).toFixed(1)
+    },
+    getRevenueChange() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100)
+    },
+    getItemsChange() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.items || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.items || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100)
+    },
+    
+    // =============================================
+    // CHART NAVIGATION
+    // =============================================
+    navigateChart(direction) {
+      if (direction === 'prev' && this.chartOffset > 0) {
+        this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
+      } else if (direction === 'next' && this.chartOffset + this.chartWindow < this.salesTrend.length) {
+        this.chartOffset = Math.min(
+          this.salesTrend.length - this.chartWindow,
+          this.chartOffset + this.chartWindow
+        )
+      }
+      this.updateChart()
+    },
+    resetChartNavigation() {
+      this.chartOffset = 0
+      this.chartWindow = Math.min(7, this.salesTrend.length)
+      this.updateChart()
+    },
+    toggleChartFullscreen() {
+      this.chartFullscreen = !this.chartFullscreen
+      
+      if (this.chartFullscreen) {
+        document.body.style.overflow = 'hidden'
+        const backdrop = document.createElement('div')
+        backdrop.id = 'fullscreen-backdrop'
+        backdrop.style.cssText = `
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: var(--surface);
+          z-index: 9998;
+        `
+        document.body.appendChild(backdrop)
+        setTimeout(() => {
+          this.initChart()
+        }, 100)
+      } else {
+        document.body.style.overflow = ''
+        const backdrop = document.getElementById('fullscreen-backdrop')
+        if (backdrop) backdrop.remove()
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        }
+        setTimeout(() => {
+          this.initChart()
+        }, 150)
+      }
+    },
+    
+    // =============================================
+    // MENU MANAGEMENT - CRUD
+    // =============================================
+    openMenuModal() {
       this.editingMenu = false
       this.menuForm = {
         item_name: '',
@@ -676,170 +1429,76 @@ export default {
         imagePreview: null,
         imageFile: null
       }
+      this.menuModal = true
     },
-    
-    // =============================================
-    // IMAGE COMPRESSION HELPER
-    // =============================================
-    compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
-      return new Promise((resolve) => {
-        try {
-          const img = new Image()
-          img.onload = () => {
-            let width = img.width
-            let height = img.height
-            
-            // Calculate new dimensions while maintaining aspect ratio
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width
-              width = maxWidth
-            }
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height
-              height = maxHeight
-            }
-            
-            const canvas = document.createElement('canvas')
-            canvas.width = Math.round(width)
-            canvas.height = Math.round(height)
-            const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0, width, height)
-            
-            // Compress to JPEG
-            const compressed = canvas.toDataURL('image/jpeg', quality)
-            resolve(compressed)
-          }
-          img.onerror = () => {
-            resolve(null)
-          }
-          img.src = base64Data
-        } catch (err) {
-          console.error('Compression error:', err)
-          resolve(null)
-        }
-      })
-    },
-    
-    // =============================================
-    // MENU IMAGE HANDLING
-    // =============================================
-    handleMenuImageUpload(event) {
-      const file = event.target.files[0]
-      if (!file) return
-      
-      // Check file size
-      if (file.size > 2 * 1024 * 1024) {
-        this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
-        event.target.value = ''
-        return
+    openEditMenuModal(item) {
+      this.editingMenu = true
+      this.menuForm = {
+        item_name: item.item_name,
+        price: item.price,
+        description: item.description || '',
+        category: item.category || '',
+        recipe: (item.recipe || []).map(r => ({ ...r })),
+        imagePreview: item.image || null,
+        imageFile: null
       }
-      
-      this.menuForm.imageFile = file
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        // Compress the image on upload
-        try {
-          const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-          this.menuForm.imagePreview = compressed || e.target.result
-        } catch (err) {
-          console.warn('Compression failed, using original:', err)
-          this.menuForm.imagePreview = e.target.result
-        }
-      }
-      reader.readAsDataURL(file)
+      this.menuModal = true
     },
-    handleMenuImageDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        if (file.size > 2 * 1024 * 1024) {
-          this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+    closeMenuModal() {
+      this.menuModal = false
+      this.editingMenu = false
+    },
+    addRecipeIngredient() {
+      this.menuForm.recipe.push({ material_name: '', quantity_used: 0 })
+    },
+    removeRecipeIngredient(index) {
+      this.menuForm.recipe.splice(index, 1)
+    },
+    async saveMenuItem() {
+      try {
+        if (!this.menuForm.item_name || !this.menuForm.price) {
+          this.$emit('show-notification', 'Item name and price are required', 'error')
           return
         }
         
-        this.menuForm.imageFile = file
-        const reader = new FileReader()
-        reader.onload = async (e) => {
-          try {
-            const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-            this.menuForm.imagePreview = compressed || e.target.result
-          } catch (err) {
-            this.menuForm.imagePreview = e.target.result
-          }
+        const payload = {
+          item_name: this.menuForm.item_name,
+          price: parseFloat(this.menuForm.price),
+          description: this.menuForm.description,
+          category: this.menuForm.category || 'Main',
+          recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0),
+          image: this.menuForm.imagePreview
         }
-        reader.readAsDataURL(file)
-      }
-    },
-    removeMenuImage() {
-      this.menuForm.imagePreview = null
-      this.menuForm.imageFile = null
-      if (this.$refs.menuImageInput) {
-        this.$refs.menuImageInput.value = ''
-      }
-    },
-    
-    // =============================================
-    // TAB MANAGEMENT
-    // =============================================
-    switchTab(tabId) {
-      this.activeTab = tabId
-    },
-    
-    // =============================================
-    // DATA LOADING
-    // =============================================
-    async loadAllData() {
-      this.loading = true
-      try {
-        await Promise.all([
-          this.loadStalls(),
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadMenuItems()
-        ])
-        await this.loadAllStallsInventory()
-        this.$emit('show-notification', 'Data loaded successfully', 'success')
+        
+        if (this.editingMenu) {
+          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item updated', 'success')
+        } else {
+          await axios.post(`${API_BASE}/menu`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item created', 'success')
+        }
+        
+        this.closeMenuModal()
+        await this.loadMenuItems()
       } catch (err) {
-        console.error('Load data error:', err)
-        this.$emit('show-notification', 'Failed to load data', 'error')
-      } finally {
-        this.loading = false
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
     },
-    async refreshAllData() {
-      await this.loadAllData()
-    },
-    
-    async loadStalls() {
-      try {
-        const res = await axios.get(`${API_BASE}/companies/${this.companyId}/stalls`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.stalls = res.data || []
-      } catch (err) {
-        console.error('Load stalls error:', err)
-        this.stalls = []
-      }
-    },
-    async loadUsers() {
-      try {
-        const res = await axios.get(`${API_BASE}/companies/${this.companyId}/users`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.users = res.data || []
-      } catch (err) {
-        console.error('Load users error:', err)
-        this.users = []
-      }
-    },
-    async loadLowStock() {
-      try {
-        const res = await axios.get(`${API_BASE}/companies/${this.companyId}/low-stock`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.lowStock = res.data || []
-      } catch (err) {
-        console.error('Load low stock error:', err)
-        this.lowStock = []
+    async deleteMenuItem(itemName) {
+      if (confirm(`Delete menu item "${itemName}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/menu/${encodeURIComponent(itemName)}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item deleted', 'success')
+          await this.loadMenuItems()
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete menu item', 'error')
+        }
       }
     },
     async loadMenuItems() {
@@ -849,8 +1508,214 @@ export default {
         })
         this.menuItems = res.data || []
       } catch (err) {
-        console.error('Load menu error:', err)
+        console.error('Failed to load menu items:', err)
         this.menuItems = []
+      }
+    },
+    
+    // =============================================
+    // STALL RANKING
+    // =============================================
+    getRankClass(index) {
+      if (index === 0) return 'gold'
+      if (index === 1) return 'silver'
+      if (index === 2) return 'bronze'
+      return ''
+    },
+    getStallStatus(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'No Sales'
+      if (stall.revenue > 1000) return 'Excellent'
+      if (stall.revenue > 500) return 'Good'
+      if (stall.revenue > 100) return 'Average'
+      return 'Poor'
+    },
+    getStallStatusClass(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'no-sales'
+      if (stall.revenue > 1000) return 'excellent'
+      if (stall.revenue > 500) return 'good'
+      if (stall.revenue > 100) return 'average'
+      return 'poor'
+    },
+    getStallBarWidth(revenue) {
+      const max = Math.max(...this.stallPerformance.map(s => s.revenue || 0), 1)
+      return Math.min((revenue / max) * 100, 100)
+    },
+    getPerformancePercentage(quantity) {
+      const max = Math.max(...this.menuPerformance.map(p => p.quantity), 1)
+      return Math.min((quantity / max) * 100, 100)
+    },
+    
+    // =============================================
+    // TAB MANAGEMENT
+    // =============================================
+    switchTab(tabId) {
+      this.activeTab = tabId
+      if (tabId === 'inventory' && this.lowStock.length > 0) {
+        this.inventoryFilter = 'low'
+      }
+      if (tabId === 'inventory') {
+        this.$nextTick(() => {
+          document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+        })
+      }
+      if (tabId === 'dashboard') {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.initChart()
+          }, 100)
+        })
+      }
+    },
+    
+    // =============================================
+    // DATA LOADING
+    // =============================================
+    async refreshAllData() {
+      await this.loadData()
+    },
+    async loadData() {
+      try {
+        await Promise.all([
+          this.loadStalls(),
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadSalesAnalytics(),
+          this.loadStallPerformance(),
+          this.loadMenuPerformance(),
+          this.loadMenuItems()
+        ])
+        await this.loadAllStallsInventory()
+        this.resetChartNavigation()
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
+    async loadStalls() {
+      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
+      })
+      this.stalls = res.data
+    },
+    async loadUsers() {
+      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
+      })
+      this.users = res.data
+    },
+    async loadLowStock() {
+      const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
+      })
+      this.lowStock = res.data
+    },
+    async loadSalesAnalytics() {
+      const days = this.selectedPeriod === 'today' ? 0 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
+      try {
+        const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        const data = res.data || {}
+        
+        let dailySales = (data.dailySales || []).map(day => ({
+          ...day,
+          items: parseInt(day.items) || 0,
+          revenue: parseFloat(day.revenue) || 0
+        }))
+        
+        if (this.selectedPeriod === 'today') {
+          const today = this.getTodayInMalaysia()
+          
+          dailySales = dailySales.filter(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+        }
+        
+        this.salesTrend = dailySales
+        
+        const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
+        const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+        
+        this.consolidatedSales.totalItems = totalItems
+        this.consolidatedSales.totalRevenue = totalRevenue
+        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+          totalRevenue / this.stalls.length : 0
+        
+        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
+          this.consolidatedSales.topStall = '-'
+          this.consolidatedSales.topRevenue = 0
+        } else {
+          this.consolidatedSales.topStall = data.topStall || '-'
+          this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+        }
+        
+        this.productSales = data.productSales || {}
+        
+        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
+          this.productSales = {}
+        }
+        
+        await this.loadMenuPerformance()
+      } catch (err) {
+        console.error('Failed to load sales analytics:', err)
+        this.salesTrend = []
+        this.consolidatedSales.totalItems = 0
+        this.consolidatedSales.totalRevenue = 0
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
+        this.productSales = {}
+      }
+    },
+    async loadStallPerformance() {
+      const days = this.selectedPeriod === 'today' ? 0 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
+      try {
+        const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        let stallData = res.data || []
+        
+        if (this.selectedPeriod === 'today') {
+          const today = this.getTodayInMalaysia()
+          const hasTodaySales = this.salesTrend.some(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+          
+          if (!hasTodaySales) {
+            stallData = []
+          }
+        }
+        
+        this.stallPerformance = stallData
+      } catch (err) {
+        this.stallPerformance = []
+      }
+    },
+    async loadMenuPerformance() {
+      try {
+        const productSales = this.productSales || {}
+        this.menuPerformance = Object.keys(productSales).map(name => ({
+          name: name,
+          quantity: parseInt(productSales[name].quantity) || 0,
+          revenue: parseFloat(productSales[name].revenue) || 0
+        })).sort((a, b) => b.quantity - a.quantity)
+      } catch (err) {
+        this.menuPerformance = []
       }
     },
     
@@ -867,9 +1732,7 @@ export default {
             ...item,
             newLevel: item.current_level
           }))
-        } catch (err) {
-          console.error(`Load inventory for stall ${stall.id} error:`, err)
-        }
+        } catch (err) {}
       }
     },
     toggleInventoryStall(stallId) {
@@ -888,7 +1751,6 @@ export default {
           newLevel: item.current_level
         }))
       } catch (err) {
-        console.error('Load stall inventory error:', err)
         this.$emit('show-notification', 'Failed to load inventory', 'error')
       }
     },
@@ -940,7 +1802,6 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
       } catch (err) {
-        console.error('Update inventory error:', err)
         this.$emit('show-notification', 'Failed to update stock', 'error')
       }
     },
@@ -968,7 +1829,6 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', 'All stocks updated', 'success')
       } catch (err) {
-        console.error('Bulk update error:', err)
         this.$emit('show-notification', 'Bulk update failed', 'error')
       }
     },
@@ -987,8 +1847,78 @@ export default {
         await this.loadLowStock()
         this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
       } catch (err) {
-        console.error('Reset inventory error:', err)
         this.$emit('show-notification', 'Reset failed', 'error')
+      }
+    },
+    
+    // =============================================
+    // USER CRUD
+    // =============================================
+    openUserModal() {
+      this.editingUser = false
+      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+      this.userModal = true
+    },
+    openEditUserModal(user) {
+      this.editingUser = true
+      this.userForm = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || '',
+        role: user.role,
+        password: '',
+        stall_ids: (user.assigned_stalls || []).map(s => s.id)
+      }
+      this.userModal = true
+    },
+    closeUserModal() {
+      this.userModal = false
+      this.editingUser = false
+    },
+    async saveUser() {
+      try {
+        const payload = {
+          full_name: this.userForm.full_name,
+          role: this.userForm.role,
+          stall_ids: this.userForm.stall_ids
+        }
+        if (this.userForm.password && this.userForm.password.trim() !== '') {
+          payload.password = this.userForm.password
+        }
+        if (this.editingUser) {
+          await axios.put(`${API_BASE}/users/${this.userForm.id}`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'User updated', 'success')
+        } else {
+          if (!this.userForm.password || this.userForm.password.trim() === '') {
+            this.$emit('show-notification', 'Password is required', 'error')
+            return
+          }
+          payload.username = this.userForm.username
+          payload.password = this.userForm.password
+          await axios.post(`${API_BASE}/companies/1/users`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'User created', 'success')
+        }
+        this.closeUserModal()
+        this.loadUsers()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+    async deleteUser(userId, username) {
+      if (confirm(`Delete user "${username}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.loadUsers()
+          this.$emit('show-notification', 'User deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete user', 'error')
+        }
       }
     },
     
@@ -1020,22 +1950,21 @@ export default {
           }, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          this.$emit('show-notification', 'Stall updated successfully!', 'success')
+          this.$emit('show-notification', 'Stall updated', 'success')
         } else {
-          await axios.post(`${API_BASE}/companies/${this.companyId}/stalls`, {
+          await axios.post(`${API_BASE}/companies/1/stalls`, {
             name: this.stallForm.name,
             code: this.stallForm.code,
             location: this.stallForm.location
           }, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          this.$emit('show-notification', 'Stall created successfully!', 'success')
+          this.$emit('show-notification', 'Stall created', 'success')
         }
-        this.closeStallModal()
-        await this.loadStalls()
+        this.stallModal = false
+        this.loadStalls()
         await this.loadAllStallsInventory()
       } catch (err) {
-        console.error('Save stall error:', err)
         this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
       }
     },
@@ -1044,227 +1973,22 @@ export default {
         await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        await this.loadStalls()
+        this.loadStalls()
         this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
       } catch (err) {
-        console.error('Toggle stall error:', err)
         this.$emit('show-notification', 'Failed to update stall', 'error')
       }
     },
     async deleteStall(stallId, stallName) {
-      if (confirm(`Delete stall "${stallName}"? This action cannot be undone.`)) {
+      if (confirm(`Delete stall "${stallName}"?`)) {
         try {
           await axios.delete(`${API_BASE}/stalls/${stallId}`, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          await this.loadStalls()
-          this.$emit('show-notification', 'Stall deleted successfully!', 'success')
+          this.loadStalls()
+          this.$emit('show-notification', 'Stall deleted', 'success')
         } catch (err) {
-          console.error('Delete stall error:', err)
           this.$emit('show-notification', 'Failed to delete stall', 'error')
-        }
-      }
-    },
-    
-    // =============================================
-    // USER CRUD
-    // =============================================
-    openUserModal() {
-      this.editingUser = false
-      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
-      this.userModal = true
-    },
-    openEditUserModal(user) {
-      this.editingUser = true
-      this.userForm = {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name || '',
-        role: user.role,
-        password: '',
-        stall_ids: (user.assigned_stalls || []).map(s => s.id)
-      }
-      this.userModal = true
-    },
-    async saveUser() {
-      try {
-        const payload = {
-          full_name: this.userForm.full_name,
-          role: this.userForm.role,
-          stall_ids: this.userForm.stall_ids
-        }
-        if (this.userForm.password && this.userForm.password.trim() !== '') {
-          payload.password = this.userForm.password
-        }
-        if (this.editingUser) {
-          await axios.put(`${API_BASE}/users/${this.userForm.id}`, payload, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'User updated successfully!', 'success')
-        } else {
-          if (!this.userForm.password || this.userForm.password.trim() === '') {
-            this.$emit('show-notification', 'Password is required', 'error')
-            return
-          }
-          payload.username = this.userForm.username
-          payload.password = this.userForm.password
-          await axios.post(`${API_BASE}/companies/${this.companyId}/users`, payload, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'User created successfully!', 'success')
-        }
-        this.closeUserModal()
-        await this.loadUsers()
-      } catch (err) {
-        console.error('Save user error:', err)
-        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
-      }
-    },
-    async deleteUser(userId, username) {
-      if (confirm(`Delete user "${username}"? This action cannot be undone.`)) {
-        try {
-          await axios.delete(`${API_BASE}/users/${userId}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          await this.loadUsers()
-          this.$emit('show-notification', 'User deleted successfully!', 'success')
-        } catch (err) {
-          console.error('Delete user error:', err)
-          this.$emit('show-notification', 'Failed to delete user', 'error')
-        }
-      }
-    },
-    
-    // =============================================
-    // MENU CRUD - UPDATED WITH IMAGE FIX
-    // =============================================
-    openMenuModal() {
-      this.editingMenu = false
-      this.menuForm = {
-        item_name: '',
-        price: 0,
-        description: '',
-        category: '',
-        recipe: [],
-        imagePreview: null,
-        imageFile: null
-      }
-      this.menuModal = true
-    },
-    openEditMenuModal(item) {
-      this.editingMenu = true
-      this.menuForm = {
-        item_name: item.item_name,
-        price: item.price,
-        description: item.description || '',
-        category: item.category || '',
-        recipe: (item.recipe || []).map(r => ({ ...r })),
-        imagePreview: item.image || null,
-        imageFile: null
-      }
-      this.menuModal = true
-    },
-    addRecipeIngredient() {
-      this.menuForm.recipe.push({ material_name: '', quantity_used: 0 })
-    },
-    removeRecipeIngredient(index) {
-      this.menuForm.recipe.splice(index, 1)
-    },
-    async saveMenuItem() {
-      try {
-        if (!this.menuForm.item_name || !this.menuForm.price) {
-          this.$emit('show-notification', 'Item name and price are required', 'error')
-          return
-        }
-        
-        const payload = {
-          item_name: this.menuForm.item_name,
-          price: parseFloat(this.menuForm.price),
-          description: this.menuForm.description || '',
-          category: this.menuForm.category || 'Main',
-          recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0)
-        }
-        
-        // Handle image - compress if needed to avoid 413 error
-        if (this.menuForm.imagePreview) {
-          let imageData = this.menuForm.imagePreview
-          
-          // If it's a base64 string and too large (over 500KB), compress it
-          if (imageData && imageData.length > 500000) {
-            try {
-              const compressed = await this.compressImage(imageData, 200, 200, 0.6)
-              if (compressed && compressed.length < imageData.length) {
-                imageData = compressed
-                console.log('✅ Image compressed from', Math.round(imageData.length/1024), 'KB to', Math.round(compressed.length/1024), 'KB')
-              }
-            } catch (e) {
-              console.warn('Image compression failed, using original', e)
-            }
-          }
-          
-          // Only include if under 1MB after compression
-          if (imageData && imageData.length < 1 * 1024 * 1024) {
-            payload.image = imageData
-          } else {
-            // If still too large, compress more aggressively
-            try {
-              const compressed = await this.compressImage(imageData, 100, 100, 0.5)
-              if (compressed && compressed.length < 1 * 1024 * 1024) {
-                payload.image = compressed
-                console.log('✅ Image aggressively compressed to', Math.round(compressed.length/1024), 'KB')
-              } else {
-                this.$emit('show-notification', 'Image is too large. Please use a smaller image.', 'warning')
-                // Proceed without image
-              }
-            } catch (e) {
-              this.$emit('show-notification', 'Could not compress image. Proceeding without image.', 'warning')
-            }
-          }
-        }
-        
-        console.log('📤 Sending menu payload with image size:', payload.image ? Math.round(payload.image.length/1024) + 'KB' : 'No image')
-        
-        if (this.editingMenu) {
-          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
-            headers: { 
-              Authorization: `Bearer ${this.token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          this.$emit('show-notification', 'Menu item updated successfully!', 'success')
-        } else {
-          await axios.post(`${API_BASE}/menu`, payload, {
-            headers: { 
-              Authorization: `Bearer ${this.token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          this.$emit('show-notification', 'Menu item created successfully!', 'success')
-        }
-        
-        this.closeMenuModal()
-        await this.loadMenuItems()
-      } catch (err) {
-        console.error('Save menu error:', err)
-        if (err.response?.status === 413) {
-          this.$emit('show-notification', 'Image too large. Please use a smaller image (under 1MB).', 'error')
-        } else {
-          const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
-          this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
-        }
-      }
-    },
-    async deleteMenuItem(itemName) {
-      if (confirm(`Delete menu item "${itemName}"? This action cannot be undone.`)) {
-        try {
-          await axios.delete(`${API_BASE}/menu/${encodeURIComponent(itemName)}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Menu item deleted successfully!', 'success')
-          await this.loadMenuItems()
-        } catch (err) {
-          console.error('Delete menu error:', err)
-          this.$emit('show-notification', 'Failed to delete menu item', 'error')
         }
       }
     },
@@ -1272,67 +1996,79 @@ export default {
     // =============================================
     // EXPORT
     // =============================================
-    async exportAllData() {
+    async exportCurrentTab() {
       if (this.exporting) return
       this.exporting = true
       try {
         this.$emit('show-notification', 'Generating Excel...', 'info')
-        
         const ExcelJS = await import('exceljs')
         const { saveAs } = await import('file-saver')
         const workbook = new ExcelJS.Workbook()
         workbook.creator = 'Chickory Hub'
         
-        // Stalls Sheet
-        const stallSheet = workbook.addWorksheet('Stalls')
-        stallSheet.addRow(['Stall Name', 'Code', 'Status'])
-        for (const stall of this.stalls) {
-          stallSheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
-        }
-        stallSheet.columns.forEach(col => { col.width = 20 })
-        
-        // Users Sheet
-        const userSheet = workbook.addWorksheet('Users')
-        userSheet.addRow(['Username', 'Full Name', 'Role', 'Assigned Stalls'])
-        for (const user of this.users) {
-          userSheet.addRow([
-            user.username,
-            user.full_name || '-',
-            user.role,
-            (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
-          ])
-        }
-        userSheet.columns.forEach(col => { col.width = 20 })
-        
-        // Menu Sheet
-        const menuSheet = workbook.addWorksheet('Menu')
-        menuSheet.addRow(['Item Name', 'Price (RM)', 'Category', 'Recipe'])
-        for (const item of this.menuItems) {
-          const recipe = (item.recipe || []).map(r => `${r.material_name}: ${r.quantity_used}${this.getUnit(r.material_name)}`).join(', ')
-          menuSheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
-        }
-        menuSheet.columns.forEach(col => { col.width = 20 })
-        
-        // Inventory Sheet
-        const invSheet = workbook.addWorksheet('Inventory')
-        invSheet.addRow(['Stall', 'Material', 'Current Level', 'Alert Level', 'Status'])
-        for (const stall of this.stalls) {
-          for (const item of this.getStallInventory(stall.id)) {
-            invSheet.addRow([
-              stall.name,
-              item.material_name,
-              `${item.current_level}${this.getUnit(item.material_name)}`,
-              `${item.alert_level}${this.getUnit(item.material_name)}`,
-              item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK'
+        let sheet, fileName
+        if (this.activeTab === 'dashboard') {
+          sheet = workbook.addWorksheet('Dashboard')
+          sheet.addRow(['📊 Chickory Hub Dashboard', ''])
+          sheet.addRow(['Period', this.getPeriodLabel()])
+          sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0)])
+          sheet.addRow(['Total Items Sold', this.formatNumber(this.consolidatedSales.totalItems || 0)])
+          sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0)])
+          sheet.addRow(['Top Stall', this.consolidatedSales.topStall || '-'])
+          sheet.addRow([])
+          sheet.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
+          for (const day of this.salesTrend) {
+            sheet.addRow([this.formatShortDate(day.date), day.revenue || 0, day.items || 0])
+          }
+          fileName = `Chickory_Dashboard_${this.getPeriodLabel()}_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'inventory') {
+          sheet = workbook.addWorksheet('Inventory')
+          sheet.addRow(['Stall', 'Material', 'Level', 'Alert', 'Status'])
+          for (const stall of this.filteredInventoryStalls) {
+            for (const item of this.getStallInventory(stall.id)) {
+              sheet.addRow([
+                stall.name,
+                item.material_name,
+                `${item.current_level}${this.getUnit(item.material_name)}`,
+                `${item.alert_level}${this.getUnit(item.material_name)}`,
+                item.current_level <= item.alert_level ? 'LOW' : 'OK'
+              ])
+            }
+          }
+          fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'stalls') {
+          sheet = workbook.addWorksheet('Stalls')
+          sheet.addRow(['Name', 'Code', 'Status'])
+          for (const stall of this.filteredStallsList) {
+            sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
+          }
+          fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'menu') {
+          sheet = workbook.addWorksheet('Menu')
+          sheet.addRow(['📋 Menu Management', ''])
+          sheet.addRow(['Item Name', 'Price', 'Category', 'Recipe'])
+          for (const item of this.filteredMenuItems) {
+            const recipe = (item.recipe || []).map(r => `${r.material_name}: ${r.quantity_used}${this.getUnit(r.material_name)}`).join(', ')
+            sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
+          }
+          fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else {
+          sheet = workbook.addWorksheet('Users')
+          sheet.addRow(['Username', 'Role', 'Stalls'])
+          for (const user of this.filteredUsersList) {
+            sheet.addRow([
+              user.username,
+              user.role,
+              (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
             ])
           }
+          fileName = `Chickory_Users_${new Date().toISOString().split('T')[0]}.xlsx`
         }
-        invSheet.columns.forEach(col => { col.width = 20 })
         
-        const fileName = `Chickory_SuperAdmin_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 20) })
         const buffer = await workbook.xlsx.writeBuffer()
         saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
-        this.$emit('show-notification', 'Export completed successfully!', 'success')
+        this.$emit('show-notification', 'Excel downloaded!', 'success')
       } catch (err) {
         console.error('Export error:', err)
         this.$emit('show-notification', 'Export failed', 'error')
@@ -1348,18 +2084,16 @@ export default {
 /* ============================================ */
 /* CSS VARIABLES                                */
 /* ============================================ */
-.super-admin-panel {
+.sa-dashboard {
   --primary: #F94908;
   --primary-light: #fa6a2e;
   --primary-dark: #d63d07;
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --surface-elevated: #f1f5f9;
-  --text: #1e293b;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
+  --bg: var(--background);
+  --surface: var(--surface);
+  --text: var(--text);
+  --text-secondary: var(--text-secondary);
+  --text-tertiary: var(--text-tertiary);
+  --border: var(--border);
   --shadow: 0 2px 8px rgba(0,0,0,0.06);
   --radius: 12px;
   --radius-sm: 8px;
@@ -1367,43 +2101,70 @@ export default {
 }
 
 /* ============================================ */
-/* PANEL HEADER                                 */
+/* TAB NAVIGATION - TOP                        */
 /* ============================================ */
-.panel-header {
+.tab-navigation-modern {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+.tab-navigation-modern::-webkit-scrollbar {
+  display: none;
 }
 
-.panel-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+.tab-btn-modern {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab-btn-modern:hover {
+  background: var(--background);
   color: var(--text);
-  margin: 0;
 }
 
-.company-badge {
+.tab-btn-modern.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
 }
 
-.header-right {
-  display: flex;
-  gap: 0.5rem;
+.tab-icon-modern {
+  font-size: 1rem;
+}
+
+.tab-label-modern {
+  font-size: 0.8rem;
+}
+
+.tab-badge-modern {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  line-height: 18px;
 }
 
 /* ============================================ */
@@ -1445,6 +2206,34 @@ export default {
   box-shadow: var(--shadow);
 }
 
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+  border-color: var(--stat-color);
+}
+
+.stat-card .stat-hover {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 1rem;
+  font-size: 0.6rem;
+  color: var(--stat-color);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.stat-card.clickable:hover .stat-hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .stat-card .stat-hover {
+    display: none;
+  }
+}
+
 .stat-icon {
   font-size: 1.5rem;
   width: 40px;
@@ -1452,7 +2241,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: var(--background);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
@@ -1481,72 +2270,491 @@ export default {
   font-weight: 600;
   padding: 0.1rem 0.5rem;
   border-radius: 20px;
-  background: var(--bg);
+  background: var(--background);
 }
 
 .stat-trend.up { color: #10b981; }
 .stat-trend.down { color: #ef4444; }
 
 /* ============================================ */
-/* TAB NAVIGATION                               */
+/* PERIOD SECTION WITH ACTIONS                  */
 /* ============================================ */
-.tab-navigation {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  background: var(--surface);
-  padding: 0.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow-x: auto;
-}
-
-.tab-navigation::-webkit-scrollbar {
-  display: none;
-}
-
-.tab-btn {
+.period-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: var(--transition);
-  white-space: nowrap;
-  position: relative;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
 
-.tab-btn:hover {
-  background: var(--bg);
+.period-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.period-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.period-pill {
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.period-pill:hover {
+  border-color: var(--primary);
   color: var(--text);
 }
 
-.tab-btn.active {
+.period-pill.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
+  border-color: var(--primary);
 }
 
-.tab-icon {
+.period-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-action-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-action-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.header-action-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+}
+
+.header-action-btn.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  color: white;
+}
+
+.header-action-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
   font-size: 1rem;
 }
 
-.tab-badge {
+.action-label {
+  font-size: 0.75rem;
+}
+
+/* ============================================ */
+/* KPI CARDS                                    */
+/* ============================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.kpi-card.highlight {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(249, 73, 8, 0.05), rgba(250, 106, 46, 0.05));
+}
+
+.kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kpi-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.2rem 0;
+}
+
+.kpi-change {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.kpi-change.positive { color: #10b981; }
+.kpi-change.negative { color: #ef4444; }
+
+/* ============================================ */
+/* ECHARTS CONTAINER                           */
+/* ============================================ */
+.echarts-container {
+  width: 100%;
+  height: 300px;
+}
+
+.chart-modern.fullscreen .echarts-container {
+  height: calc(100vh - 250px);
+}
+
+/* ============================================ */
+/* CHART MODERN                                 */
+/* ============================================ */
+.chart-modern {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.chart-modern.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: var(--surface);
+  border-radius: 0;
+  border: none;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.chart-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chart-modern-title h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.chart-modern-sub {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.chart-modern-controls {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.chart-modern-fullscreen {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: var(--transition);
+  color: var(--text-tertiary);
+}
+
+.chart-modern-fullscreen:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.chart-modern-body {
+  padding: 1.25rem;
+}
+
+/* Chart Stats */
+.chart-modern-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.chart-modern-stat {
+  text-align: center;
+}
+
+.chart-modern-stat-label {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-modern-stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.chart-modern-stat-value.up { color: #10b981; }
+.chart-modern-stat-value.down { color: #ef4444; }
+
+.chart-modern-stat-sub {
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+}
+
+/* Chart Navigation */
+.chart-modern-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.chart-modern-nav-btn {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.chart-modern-nav-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.chart-modern-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.chart-modern-nav-btn.reset {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.chart-modern-nav-btn.reset:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+}
+
+.chart-modern-nav-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+.chart-modern-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 250px;
+  color: var(--text-secondary);
+}
+
+.chart-modern-empty span {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.chart-modern-empty p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ============================================ */
+/* CLICKABLE ITEMS                              */
+/* ============================================ */
+.clickable-item {
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.clickable-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+.stall-rank-click,
+.menu-rank-click {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition: var(--transition);
+  margin-left: 0.5rem;
+}
+
+.clickable-item:hover .stall-rank-click,
+.clickable-item:hover .menu-rank-click {
+  opacity: 1;
+}
+
+/* ============================================ */
+/* DETAIL MODALS                                */
+/* ============================================ */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.detail-item {
+  background: var(--background);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detail-chart-container {
+  margin-top: 1rem;
+}
+
+.detail-chart-container h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.detail-chart {
+  width: 100%;
+  height: 200px;
+}
+
+/* ============================================ */
+/* IMAGE UPLOAD                                 */
+/* ============================================ */
+.image-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.image-upload-area:hover {
+  border-color: var(--primary);
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-tertiary);
+}
+
+.image-placeholder span {
+  font-size: 2rem;
+}
+
+.image-placeholder p {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.image-preview {
+  position: relative;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.remove-image {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background: #ef4444;
   color: white;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-  line-height: 18px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ============================================ */
@@ -1559,7 +2767,7 @@ export default {
   overflow: hidden;
 }
 
-.card-header {
+.card-modern-header {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -1569,7 +2777,7 @@ export default {
   gap: 0.5rem;
 }
 
-.card-header h3 {
+.card-modern-header h3 {
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
@@ -1581,8 +2789,155 @@ export default {
   color: var(--text-secondary);
 }
 
-.card-body {
+.period-tag {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+}
+
+.card-modern-body {
   padding: 1rem;
+}
+
+/* ============================================ */
+/* STALL RANKING                                */
+/* ============================================ */
+.stall-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.stall-rank-item:last-child {
+  border-bottom: none;
+}
+
+.stall-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.stall-rank-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
+.stall-rank-number.silver { background: #d1d5db; color: #374151; }
+.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+.stall-rank-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-rank-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stall-rank-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+}
+
+.stall-rank-fill.gold { background: #fbbf24; }
+.stall-rank-fill.silver { background: #d1d5db; }
+.stall-rank-fill.bronze { background: #f59e0b; }
+
+.stall-rank-revenue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ============================================ */
+/* MENU RANKING                                 */
+/* ============================================ */
+.menu-rank-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.menu-rank-item:last-child {
+  border-bottom: none;
+}
+
+.menu-rank-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.menu-rank-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.65rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-rank-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.menu-rank-qty {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.menu-rank-bar {
+  height: 3px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.2rem;
+}
+
+.menu-rank-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-rank-revenue {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
 }
 
 /* ============================================ */
@@ -1638,172 +2993,9 @@ export default {
   color: var(--text-tertiary);
   font-weight: 500;
   padding: 0.2rem 0.6rem;
-  background: var(--bg);
+  background: var(--background);
   border-radius: 16px;
   border: 1px solid var(--border-light);
-}
-
-/* ============================================ */
-/* BUTTONS                                      */
-/* ============================================ */
-.btn-modern {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-modern.primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-}
-
-.btn-modern.primary:hover {
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-  transform: translateY(-1px);
-}
-
-.btn-modern.secondary {
-  background: var(--bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-
-.btn-modern.secondary:hover {
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.btn-modern.small {
-  padding: 0.15rem 0.5rem;
-  font-size: 0.7rem;
-}
-
-.btn-modern:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-icon {
-  font-size: 0.9rem;
-}
-
-/* ============================================ */
-/* LIST ITEMS                                   */
-/* ============================================ */
-.list-item {
-  border-bottom: 1px solid var(--border-light);
-  padding: 0.25rem 0;
-}
-
-.list-item:last-child {
-  border-bottom: none;
-}
-
-.list-item-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.list-item-index {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.6rem;
-  background: var(--bg);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.list-item-info {
-  flex: 1;
-  min-width: 100px;
-}
-
-.list-item-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.list-item-sub {
-  display: block;
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-}
-
-.list-item-code {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-family: monospace;
-}
-
-.list-item-stalls {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.list-item-actions {
-  display: flex;
-  gap: 0.15rem;
-}
-
-.list-item-btn {
-  padding: 0.1rem 0.3rem;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: var(--transition);
-  color: var(--text-secondary);
-}
-
-.list-item-btn:hover {
-  background: var(--bg);
-  color: var(--text);
-}
-
-.list-item-btn.danger:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* ============================================ */
-/* STATUS TAGS                                  */
-/* ============================================ */
-.status-tag {
-  padding: 0.05rem 0.4rem;
-  border-radius: 12px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-tag.active { background: #d1fae5; color: #059669; }
-.status-tag.inactive { background: #fee2e2; color: #dc2626; }
-.status-tag.danger { background: #fee2e2; color: #dc2626; }
-
-.role-tag {
-  background: #e0e7ff;
-  color: #4338ca;
-  padding: 0.05rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 500;
-  text-transform: capitalize;
 }
 
 /* ============================================ */
@@ -1828,7 +3020,7 @@ export default {
 }
 
 .inventory-stall-header:hover {
-  background: var(--bg);
+  background: var(--background);
 }
 
 .inventory-stall-info {
@@ -1851,7 +3043,7 @@ export default {
 }
 
 .inventory-tag {
-  background: var(--bg);
+  background: var(--background);
   padding: 0.05rem 0.4rem;
   border-radius: 10px;
   font-size: 0.65rem;
@@ -1871,7 +3063,7 @@ export default {
 .inventory-stall-details {
   padding: 0.75rem;
   border-top: 1px solid var(--border-light);
-  background: var(--bg);
+  background: var(--background);
 }
 
 .inventory-items-grid {
@@ -2010,7 +3202,135 @@ export default {
 .alert-row-threshold { font-size: 0.65rem; color: var(--text-tertiary); }
 
 /* ============================================ */
-/* MENU ITEMS                                   */
+/* LIST ITEMS                                   */
+/* ============================================ */
+.list-item {
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.25rem 0;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.list-item-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.6rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.list-item-info {
+  flex: 1;
+  min-width: 100px;
+}
+
+.list-item-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.list-item-sub {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.list-item-code {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.list-item-stalls {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.list-item-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.list-item-btn {
+  padding: 0.1rem 0.3rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.list-item-btn:hover {
+  background: var(--background);
+  color: var(--text);
+}
+
+.list-item-btn.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ============================================ */
+/* STATUS TAGS                                  */
+/* ============================================ */
+.status-tag {
+  padding: 0.05rem 0.4rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-tag.active { background: #d1fae5; color: #059669; }
+.status-tag.inactive { background: #fee2e2; color: #dc2626; }
+.status-tag.danger { background: #fee2e2; color: #dc2626; }
+
+.role-tag {
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active { background: #d1fae5; color: #059669; }
+.status-badge.inactive { background: #fee2e2; color: #dc2626; }
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ============================================ */
+/* MENU MANAGEMENT                              */
 /* ============================================ */
 .menu-item-row {
   border-bottom: 1px solid var(--border-light);
@@ -2037,7 +3357,7 @@ export default {
   justify-content: center;
   font-weight: 700;
   font-size: 0.6rem;
-  background: var(--bg);
+  background: var(--background);
   color: var(--text-secondary);
   flex-shrink: 0;
 }
@@ -2063,7 +3383,7 @@ export default {
 .menu-item-category {
   font-size: 0.65rem;
   color: var(--text-secondary);
-  background: var(--bg);
+  background: var(--background);
   padding: 0.05rem 0.4rem;
   border-radius: 10px;
   margin-left: 0.5rem;
@@ -2095,71 +3415,60 @@ export default {
 }
 
 /* ============================================ */
-/* IMAGE UPLOAD                                 */
+/* BUTTONS                                      */
 /* ============================================ */
-.image-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  text-align: center;
-  min-height: 100px;
-  display: flex;
+.btn-modern {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: var(--transition);
 }
 
-.image-upload-area:hover {
-  border-color: var(--primary);
+.btn-modern.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
 }
 
-.image-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--text-tertiary);
+.btn-modern.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  transform: translateY(-1px);
 }
 
-.image-placeholder span {
-  font-size: 2rem;
-}
-
-.image-placeholder p {
-  font-size: 0.75rem;
-  margin: 0;
-}
-
-.image-preview {
-  position: relative;
-  max-width: 120px;
-  margin: 0 auto;
-}
-
-.image-preview img {
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-sm);
+.btn-modern.secondary {
+  background: var(--background);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
 }
 
-.remove-image {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ef4444;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.btn-modern.secondary:hover {
+  background: var(--surface-elevated);
+  color: var(--text);
 }
+
+.btn-modern.small {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
 
 /* ============================================ */
 /* RECIPE ROWS                                  */
@@ -2187,20 +3496,6 @@ export default {
   font-size: 0.8rem;
 }
 
-.btn-icon-sm {
-  background: transparent;
-  border: none;
-  padding: 0.15rem 0.3rem;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-
-.btn-icon-sm:hover { background: var(--bg); }
-.btn-icon-sm.danger { color: #ef4444; }
-.btn-icon-sm.danger:hover { background: #fee2e2; }
-
 /* ============================================ */
 /* MODALS                                       */
 /* ============================================ */
@@ -2210,179 +3505,135 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   backdrop-filter: blur(4px);
-  animation: modalFadeIn 0.25s ease-out;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .modal-modern {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: var(--radius);
-  max-width: 520px;
+  max-width: 480px;
   width: 92%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: modalSlideUp 0.3s ease-out;
-}
-
-@keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  animation: fadeIn 0.2s ease;
 }
 
 .modal-lg {
-  max-width: 640px;
+  max-width: 600px;
 }
 
-.modal-header {
+.modal-modern-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fafafa;
 }
 
-.modal-header h3 {
+.modal-modern-header h3 {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .modal-close-btn {
   background: none;
   border: none;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-secondary);
   padding: 0 0.25rem;
-  border-radius: 4px;
-  transition: var(--transition);
-  line-height: 1;
 }
 
 .modal-close-btn:hover {
-  color: #ef4444;
-  background: #fef2f2;
+  color: var(--text);
 }
 
-.modal-body {
+.modal-modern-body {
   padding: 1.25rem;
   overflow-y: auto;
   max-height: 60vh;
-  background: #ffffff;
 }
 
-.modal-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  background: #fafafa;
-}
-
-/* ============================================ */
-/* FORM FIELDS                                  */
-/* ============================================ */
-.form-row {
+.modal-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
 
-.form-group {
+.modal-form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
+  gap: 0.2rem;
 }
 
-.form-group label {
-  font-size: 0.8rem;
+.modal-form-group label {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
-.form-group input,
-.form-group select {
-  padding: 0.5rem 0.7rem;
-  border: 1.5px solid #e2e8f0;
+.modal-form-group input,
+.modal-form-group select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  background: #ffffff;
-  color: #1e293b;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
   width: 100%;
-  transition: var(--transition);
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.modal-form-group input:focus,
+.modal-form-group select:focus {
   outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
 }
 
-.form-group input:disabled {
-  background: #f1f5f9;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.form-group small {
+.modal-form-group small {
   font-size: 0.65rem;
-  color: #94a3b8;
+  color: var(--text-tertiary);
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .stall-select-multiple {
-  min-height: 80px;
+  min-height: 60px;
   padding: 0.35rem;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #ffffff;
-  color: #1e293b;
-  width: 100%;
-}
-
-.stall-select-multiple:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
-.empty-state {
+.empty-state-modern {
   text-align: center;
   padding: 2rem 0.5rem;
   color: var(--text-secondary);
 }
 
-.empty-state span {
+.empty-state-modern span {
   font-size: 2rem;
   display: block;
   margin-bottom: 0.5rem;
 }
 
-.empty-state p {
+.empty-state-modern p {
   font-size: 0.85rem;
   margin: 0;
 }
@@ -2390,60 +3641,67 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 768px) {
-  .panel-header {
+  .period-section {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
   }
   
-  .header-left {
+  .period-label {
+    text-align: center;
+  }
+  
+  .period-pills {
     justify-content: center;
   }
   
-  .header-right {
+  .period-actions {
     justify-content: center;
   }
   
-  .stats-grid {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .stat-card { padding: 0.75rem; }
+  .stat-number { font-size: 1.1rem; }
+  
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 1.1rem; }
+  
+  .echarts-container { height: 200px; }
+  .chart-wrapper { min-height: 200px; }
+  
+  .chart-modern-body { padding: 0.75rem; }
+  
+  .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
   }
   
-  .stat-card {
-    padding: 0.75rem;
-  }
+  .chart-modern-stat-value { font-size: 0.8rem; }
   
-  .stat-number {
-    font-size: 1.1rem;
-  }
+  .tab-btn-modern { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+  .tab-label-modern { font-size: 0.7rem; }
   
-  .filter-bar {
-    flex-direction: column;
-  }
+  .filter-bar { flex-direction: column; }
+  .filter-search { min-width: unset; }
+  .filter-select { min-width: unset; }
   
-  .filter-search {
-    min-width: unset;
-  }
+  .inventory-items-grid { grid-template-columns: 1fr; }
+  .inventory-stall-header { flex-direction: column; align-items: flex-start; }
   
-  .filter-select {
-    min-width: unset;
-  }
+  .modal-form-row { grid-template-columns: 1fr; }
+  .modal-modern { width: 95%; }
   
-  .inventory-items-grid {
-    grid-template-columns: 1fr;
-  }
+  .stall-rank-item { flex-wrap: wrap; }
+  .stall-rank { min-width: unset; }
+  .stall-rank-revenue { min-width: unset; }
   
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .modal-modern {
-    width: 95%;
-    max-width: 95%;
-  }
-  
-  .modal-lg {
-    max-width: 95%;
-  }
+  .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
   
   .menu-item-row-content {
     flex-direction: column;
@@ -2460,69 +3718,50 @@ export default {
     align-self: flex-end;
   }
   
-  .recipe-row {
-    flex-wrap: wrap;
-  }
+  .recipe-row { flex-wrap: wrap; }
+  .modal-lg { max-width: 95%; }
+  .detail-grid { grid-template-columns: 1fr 1fr; }
+  .detail-chart { height: 150px; }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
+  .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
+  .stat-number { font-size: 0.95rem; }
   
-  .stat-card {
-    padding: 0.5rem;
-    flex-direction: column;
-    text-align: center;
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-card { padding: 0.5rem; }
+  .kpi-value { font-size: 0.95rem; }
+  
+  .echarts-container { height: 160px; }
+  .chart-wrapper { min-height: 160px; }
+  
+  .chart-modern-stats {
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.25rem;
+    padding: 0.35rem;
   }
   
-  .stat-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
-  }
+  .chart-modern-stat { padding: 0.15rem; }
+  .chart-modern-stat-value { font-size: 0.75rem; }
+  .chart-modern-stat-label { font-size: 0.5rem; }
   
-  .stat-number {
-    font-size: 0.95rem;
-  }
+  .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
   
-  .panel-title {
-    font-size: 1.2rem;
-  }
+  .tab-btn-modern { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
+  .tab-icon-modern { font-size: 0.7rem; }
+  .tab-label-modern { font-size: 0.6rem; }
   
-  .tab-btn {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-  }
+  .list-item-content { gap: 0.35rem; }
+  .list-item-name { font-size: 0.75rem; }
+  .list-item-btn { font-size: 0.75rem; }
   
-  .tab-icon {
-    font-size: 0.8rem;
-  }
+  .empty-state-modern span { font-size: 1.5rem; }
   
-  .list-item-content {
-    gap: 0.35rem;
-  }
-  
-  .list-item-name {
-    font-size: 0.75rem;
-  }
-  
-  .list-item-btn {
-    font-size: 0.75rem;
-  }
-  
-  .empty-state span {
-    font-size: 1.5rem;
-  }
-  
-  .menu-item-info {
-    min-width: unset;
-    width: 100%;
-  }
-  
-  .menu-item-price {
-    display: inline-block;
-  }
+  .menu-item-info { min-width: unset; width: 100%; }
+  .menu-item-price { display: inline-block; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-chart { height: 120px; }
 }
 </style>
