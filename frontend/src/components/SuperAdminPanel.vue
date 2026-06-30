@@ -126,9 +126,7 @@
           </div>
         </div>
 
-        <!-- ============================================ -->
-        <!-- CHART WITH TREND LINE                       -->
-        <!-- ============================================ -->
+        <!-- CHART WITH IMPROVED TREND LINE -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
           <div class="chart-modern-header">
             <div class="chart-modern-title">
@@ -195,52 +193,51 @@
                   </div>
                 </div>
 
-                <!-- Trend Line SVG -->
+                <!-- Trend Line - Thinner, touching bars -->
                 <svg class="chart-trend-line-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="trendAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.15" />
+                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.1" />
                       <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
                     </linearGradient>
                   </defs>
-                  <!-- Area under trend line -->
+                  <!-- Area under trend line - subtle -->
                   <polygon
                     :points="getAreaPoints()"
                     fill="url(#trendAreaGradient)"
-                    opacity="0.6"
+                    opacity="0.4"
                   />
-                  <!-- Trend line -->
+                  <!-- Trend line - thinner -->
                   <polyline
                     :points="getLinePoints()"
                     fill="none"
                     stroke="#F94908"
-                    stroke-width="2.5"
+                    stroke-width="1.5"
                     stroke-linejoin="round"
                     stroke-linecap="round"
                   />
-                  <!-- Points on trend line -->
+                  <!-- Points on trend line - smaller -->
                   <circle
                     v-for="(point, index) in getLinePointsArray()"
                     :key="index"
                     :cx="point.x"
                     :cy="point.y"
-                    r="3.5"
+                    r="2.5"
                     fill="#F94908"
                     stroke="white"
-                    stroke-width="2"
+                    stroke-width="1.5"
                     @mouseenter="showTooltip(index, $event)"
                     @mouseleave="hideTooltip"
                   />
                 </svg>
 
-                <!-- Tooltip -->
+                <!-- Minimalist Tooltip - positioned on bar -->
                 <div 
                   v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartData.length" 
                   class="chart-modern-tooltip" 
                   :style="tooltipPosition"
                   ref="tooltipRef"
                 >
-                  <div class="chart-modern-tooltip-date">{{ chartData[hoveredIndex]?.fullDate || '' }}</div>
                   <div class="chart-modern-tooltip-revenue">{{ formatCurrency(chartData[hoveredIndex]?.value || 0) }}</div>
                   <div class="chart-modern-tooltip-items">{{ formatNumber(chartData[hoveredIndex]?.items || 0) }} items</div>
                 </div>
@@ -323,6 +320,44 @@
                 ></div>
               </div>
               <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== MENU MANAGEMENT ===== -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📋 Menu Management</h3>
+              <span class="card-subtitle">Manage your menu items and recipes</span>
+            </div>
+            <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
+          </div>
+          <div class="card-modern-body">
+            <div v-if="menuItems.length === 0" class="empty-state-modern">
+              <span>📋</span>
+              <p>No menu items found. Create your first menu item!</p>
+            </div>
+            <div v-for="(item, index) in menuItems" :key="item.item_name" class="menu-item-row">
+              <div class="menu-item-row-content">
+                <span class="menu-item-index">{{ index + 1 }}</span>
+                <div class="menu-item-info">
+                  <span class="menu-item-name">{{ item.item_name }}</span>
+                  <span class="menu-item-price">{{ formatCurrency(item.price) }}</span>
+                  <span class="menu-item-category">{{ item.category || 'Main' }}</span>
+                </div>
+                <div class="menu-item-recipe">
+                  <span class="recipe-label">Recipe:</span>
+                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
+                    {{ item.recipe.map(r => `${r.material_name}: ${r.quantity_used}${getUnit(r.material_name)}`).join(', ') }}
+                  </span>
+                  <span v-else class="recipe-empty">No recipe</span>
+                </div>
+                <div class="menu-item-actions">
+                  <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -544,10 +579,57 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- MODALS                                       -->
+    <!-- MENU MODAL                                   -->
+    <!-- ============================================ -->
+    <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
+          <button @click="closeMenuModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Item Name</label>
+              <input v-model="menuForm.item_name" placeholder="e.g., AGG" :disabled="editingMenu" />
+            </div>
+            <div class="modal-form-group">
+              <label>Price (RM)</label>
+              <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
+            </div>
+          </div>
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Category</label>
+              <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
+            </div>
+            <div class="modal-form-group">
+              <label>Description</label>
+              <input v-model="menuForm.description" placeholder="Brief description" />
+            </div>
+          </div>
+          <div class="modal-form-group">
+            <label>Recipe (Ingredients)</label>
+            <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
+              <input v-model="ingredient.material_name" placeholder="Material name" class="recipe-input" />
+              <input type="number" v-model="ingredient.quantity_used" placeholder="Qty" class="recipe-input-small" step="0.5" />
+              <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger">✕</button>
+            </div>
+            <button @click="addRecipeIngredient" class="btn-modern secondary small">+ Add Ingredient</button>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
+          <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- USER MODAL                                   -->
     <!-- ============================================ -->
     <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
-      <div class="modal-modern">
+      <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
           <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
           <button @click="closeUserModal" class="modal-close-btn">✕</button>
@@ -592,6 +674,9 @@
       </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- STALL MODAL                                  -->
+    <!-- ============================================ -->
     <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
       <div class="modal-modern">
         <div class="modal-modern-header">
@@ -651,6 +736,7 @@ export default {
       stalls: [],
       users: [],
       lowStock: [],
+      menuItems: [],
       consolidatedSales: {
         totalRevenue: 0,
         totalItems: 0,
@@ -674,7 +760,18 @@ export default {
       // Tooltip
       tooltipVisible: false,
       hoveredIndex: null,
-      tooltipPosition: { left: '50%', top: '10px' },
+      tooltipPosition: { left: '50%', top: '5px' },
+      
+      // Menu Modal
+      menuModal: false,
+      editingMenu: false,
+      menuForm: {
+        item_name: '',
+        price: 0,
+        description: '',
+        category: '',
+        recipe: []
+      },
       
       // Inventory
       expandedInventoryStall: null,
@@ -937,7 +1034,7 @@ export default {
     },
     
     // =============================================
-    // TOOLTIP - FIXED for responsive
+    // TOOLTIP - Dynamically positioned on bar
     // =============================================
     showTooltip(index, event) {
       this.hoveredIndex = index
@@ -946,43 +1043,132 @@ export default {
       const data = this.chartData
       if (data.length === 0) return
       
-      // Calculate position based on index
-      const totalBars = data.length
-      const position = (index / (totalBars - 1)) * 100
+      // Get the bar element position
+      const barGroup = event?.target?.closest?.('.chart-modern-bar-group') || 
+                       document.querySelectorAll('.chart-modern-bar-group')[index]
       
-      // Set tooltip position
-      this.tooltipPosition = {
-        left: `calc(${position}% - 60px)`,
-        top: '5px'
-      }
-      
-      // Adjust for mobile if needed
-      this.$nextTick(() => {
-        const tooltip = this.$refs.tooltipRef
-        if (tooltip && window.innerWidth < 768) {
-          const rect = tooltip.getBoundingClientRect()
-          const wrapper = this.$refs.chartWrapper
-          if (wrapper) {
-            const wrapperRect = wrapper.getBoundingClientRect()
-            // If tooltip goes off screen, adjust position
-            if (rect.left < 10) {
-              this.tooltipPosition.left = '5px'
-              this.tooltipPosition.transform = 'translateX(0)'
-            } else if (rect.right > window.innerWidth - 10) {
-              this.tooltipPosition.left = 'auto'
-              this.tooltipPosition.right = '5px'
-              this.tooltipPosition.transform = 'translateX(0)'
-            }
+      if (barGroup) {
+        const rect = barGroup.getBoundingClientRect()
+        const wrapper = this.$refs.chartWrapper
+        if (wrapper) {
+          const wrapperRect = wrapper.getBoundingClientRect()
+          // Position tooltip above the bar
+          const x = rect.left - wrapperRect.left + (rect.width / 2)
+          const y = rect.top - wrapperRect.top - 10
+          
+          this.tooltipPosition = {
+            left: `${x}px`,
+            top: `${y}px`,
+            transform: 'translateX(-50%)'
           }
         }
-      })
+      } else {
+        // Fallback: position based on index
+        const totalBars = data.length
+        const position = (index / (totalBars - 1)) * 100
+        this.tooltipPosition = {
+          left: `calc(${position}% - 60px)`,
+          top: '5px',
+          transform: 'translateX(0)'
+        }
+      }
     },
     hideTooltip() {
       this.tooltipVisible = false
       this.hoveredIndex = null
-      // Reset transform
-      this.tooltipPosition.transform = 'translateX(-50%)'
-      this.tooltipPosition.right = 'auto'
+    },
+    
+    // =============================================
+    // MENU MANAGEMENT - CRUD
+    // =============================================
+    openMenuModal() {
+      this.editingMenu = false
+      this.menuForm = {
+        item_name: '',
+        price: 0,
+        description: '',
+        category: '',
+        recipe: []
+      }
+      this.menuModal = true
+    },
+    openEditMenuModal(item) {
+      this.editingMenu = true
+      this.menuForm = {
+        item_name: item.item_name,
+        price: item.price,
+        description: item.description || '',
+        category: item.category || '',
+        recipe: (item.recipe || []).map(r => ({ ...r }))
+      }
+      this.menuModal = true
+    },
+    closeMenuModal() {
+      this.menuModal = false
+      this.editingMenu = false
+    },
+    addRecipeIngredient() {
+      this.menuForm.recipe.push({ material_name: '', quantity_used: 0 })
+    },
+    removeRecipeIngredient(index) {
+      this.menuForm.recipe.splice(index, 1)
+    },
+    async saveMenuItem() {
+      try {
+        if (!this.menuForm.item_name || !this.menuForm.price) {
+          this.$emit('show-notification', 'Item name and price are required', 'error')
+          return
+        }
+        
+        const payload = {
+          item_name: this.menuForm.item_name,
+          price: parseFloat(this.menuForm.price),
+          description: this.menuForm.description,
+          category: this.menuForm.category || 'Main',
+          recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0)
+        }
+        
+        if (this.editingMenu) {
+          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item updated', 'success')
+        } else {
+          await axios.post(`${API_BASE}/menu`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item created', 'success')
+        }
+        
+        this.closeMenuModal()
+        await this.loadMenuItems()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+    async deleteMenuItem(itemName) {
+      if (confirm(`Delete menu item "${itemName}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/menu/${encodeURIComponent(itemName)}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item deleted', 'success')
+          await this.loadMenuItems()
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete menu item', 'error')
+        }
+      }
+    },
+    async loadMenuItems() {
+      try {
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.menuItems = res.data || []
+      } catch (err) {
+        console.error('Failed to load menu items:', err)
+        this.menuItems = []
+      }
     },
     
     // =============================================
@@ -1032,7 +1218,8 @@ export default {
           this.loadLowStock(),
           this.loadSalesAnalytics(),
           this.loadStallPerformance(),
-          this.loadMenuPerformance()
+          this.loadMenuPerformance(),
+          this.loadMenuItems()
         ])
         await this.loadAllStallsInventory()
         this.resetChartNavigation()
@@ -2095,31 +2282,25 @@ export default {
   fill: var(--primary-dark);
 }
 
-/* Tooltip - FIXED responsive */
+/* Tooltip */
 .chart-modern-tooltip {
   position: absolute;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   z-index: 10;
   pointer-events: none;
-  min-width: 90px;
-  max-width: 200px;
+  min-width: 70px;
+  max-width: 150px;
   animation: fadeIn 0.15s ease;
   transform: translateX(-50%);
   top: 5px;
 }
 
-.chart-modern-tooltip-date {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
 .chart-modern-tooltip-revenue {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--primary);
 }
@@ -2241,6 +2422,120 @@ export default {
 
 .card-modern-body {
   padding: 1rem;
+}
+
+/* ============================================ */
+/* MENU MANAGEMENT                              */
+/* ============================================ */
+.menu-item-row {
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.5rem 0;
+}
+
+.menu-item-row:last-child {
+  border-bottom: none;
+}
+
+.menu-item-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.menu-item-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.6rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-item-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.menu-item-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.menu-item-price {
+  font-size: 0.8rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.menu-item-category {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+}
+
+.menu-item-recipe {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 150px;
+}
+
+.recipe-label {
+  font-weight: 500;
+}
+
+.recipe-items {
+  color: var(--text);
+}
+
+.recipe-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.menu-item-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+/* Recipe row in modal */
+.recipe-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.recipe-input {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.recipe-input-small {
+  width: 60px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Modal large */
+.modal-lg {
+  max-width: 600px;
 }
 
 /* ============================================ */
@@ -2968,15 +3263,37 @@ export default {
   
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
   
+  .menu-item-row-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  
+  .menu-item-recipe {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .menu-item-actions {
+    align-self: flex-end;
+  }
+  
+  .recipe-row {
+    flex-wrap: wrap;
+  }
+  
+  .modal-lg {
+    max-width: 95%;
+  }
+  
   .chart-modern-tooltip {
-    min-width: 70px;
-    max-width: 150px;
+    min-width: 60px;
+    max-width: 120px;
     padding: 0.3rem 0.5rem;
     transform: translateX(-50%);
   }
   
   .chart-modern-tooltip-revenue { font-size: 0.7rem; }
-  .chart-modern-tooltip-date { font-size: 0.5rem; }
   .chart-modern-tooltip-items { font-size: 0.5rem; }
 }
 
@@ -3022,16 +3339,24 @@ export default {
   
   .empty-state-modern span { font-size: 1.5rem; }
   
+  .menu-item-info {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .menu-item-price {
+    display: inline-block;
+  }
+  
   .chart-modern-tooltip {
-    min-width: 60px;
-    max-width: 120px;
+    min-width: 50px;
+    max-width: 100px;
     padding: 0.2rem 0.4rem;
     transform: translateX(-50%);
     top: 2px;
   }
   
   .chart-modern-tooltip-revenue { font-size: 0.6rem; }
-  .chart-modern-tooltip-date { font-size: 0.45rem; }
   .chart-modern-tooltip-items { font-size: 0.45rem; }
 }
 </style>
