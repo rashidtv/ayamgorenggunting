@@ -15,7 +15,10 @@
       <div class="brand-panel">
         <div class="brand-content">
           <div class="logo-animation">
-            <div class="logo-icon">🍗</div>
+            <div class="logo-icon">
+              <img v-if="companyLogo" :src="companyLogo" alt="Chickory Hub Logo" class="login-logo-image" />
+              <span v-else>🍗</span>
+            </div>
             <div class="logo-rings">
               <div class="ring ring-1"></div>
               <div class="ring ring-2"></div>
@@ -23,14 +26,12 @@
             </div>
           </div>
           
-          <!-- Animated Brand Title -->
           <h1 class="brand-title">
             <span class="brand-text">Chickory</span>
             <span class="brand-text">Hub</span>
           </h1>
           
-          <p class="brand-subtitle">Ayam Goreng Gunting</p>
-          <p class="brand-tagline">Crispy Chicken · Business Intelligence</p>
+          <p class="brand-tagline">Business Intelligence Platform</p>
           
           <div class="feature-list">
             <div class="feature-item">
@@ -52,7 +53,6 @@
       <!-- Right Panel - Login Form -->
       <div class="login-panel">
         <div class="login-card">
-          <!-- Login Form -->
           <form @submit.prevent="login" class="login-form">
             <div class="form-header">
               <h2 class="form-title">Welcome Back</h2>
@@ -68,7 +68,7 @@
                   required
                   placeholder="Enter username"
                   class="modern-input"
-                >
+                />
                 <div class="input-underline"></div>
               </div>
             </div>
@@ -82,7 +82,7 @@
                   required
                   placeholder="Enter password"
                   class="modern-input"
-                >
+                />
                 <div class="input-underline"></div>
               </div>
             </div>
@@ -106,11 +106,11 @@
             </button>
           </form>
 
-          <!-- Chickory Hub Footer -->
+          <!-- Footer -->
           <div class="login-footer">
             <span class="footer-icon">🍗</span>
             <span class="footer-text">Chickory Hub —</span>
-            <span class="footer-text">Crispy Chicken, Smarter Business</span>
+            <span class="footer-text">Business Intelligence</span>
           </div>
         </div>
       </div>
@@ -120,12 +120,16 @@
 
 <script>
 import axios from 'axios'
-
-// Use environment variable or fallback
-const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
   name: 'Login',
+  props: {
+    companyLogo: {
+      type: String,
+      default: null
+    }
+  },
   data() {
     return {
       username: '',
@@ -145,9 +149,15 @@ export default {
           password: this.password
         }, { timeout: 10000 })
         
+        console.log('📤 Full login response:', response)
+        console.log('📤 Response data:', response.data)
+        console.log('📤 User:', response.data?.user)
+        console.log('📤 Token:', response.data?.token)
+        
         if (response.data && response.data.user && response.data.token) {
           this.$emit('login-success', response.data)
         } else {
+          console.error('❌ Invalid login response structure:', response.data)
           this.error = 'Invalid server response. Please try again.'
           this.loading = false
         }
@@ -160,8 +170,12 @@ export default {
         } else {
           this.error = 'Login failed. Please try again.'
         }
-        console.error('Login error:', error)
+        console.error('❌ Login error:', error)
         this.loading = false
+      } finally {
+        if (this.loading) {
+          this.loading = false
+        }
       }
     }
   }
@@ -314,6 +328,18 @@ export default {
   position: relative;
   z-index: 3;
   animation: bounce 2s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.login-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 .logo-rings {
@@ -395,18 +421,10 @@ export default {
   100% { background-position: 0% center; }
 }
 
-.brand-subtitle {
-  font-size: 1.2rem;
-  font-weight: 600;
-  opacity: 0.95;
-  margin-bottom: 0.25rem;
-  color: white;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.1);
-}
-
 .brand-tagline {
-  font-size: 0.85rem;
-  opacity: 0.85;
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0.9;
   margin-bottom: 2rem;
   letter-spacing: 1px;
   color: rgba(255, 255, 255, 0.9);
@@ -608,11 +626,6 @@ export default {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .btn-text {
   display: flex;
   align-items: center;
@@ -623,7 +636,7 @@ export default {
   font-size: 1rem;
 }
 
-/* ===== CHICKORY HUB FOOTER ===== */
+/* ===== LOGIN FOOTER ===== */
 .login-footer {
   text-align: center;
   padding-top: 1.5rem;
@@ -693,12 +706,8 @@ export default {
     font-size: 2.2rem;
   }
   
-  .brand-subtitle {
-    font-size: 1rem;
-  }
-  
   .brand-tagline {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     margin-bottom: 1.5rem;
   }
   
@@ -721,8 +730,8 @@ export default {
     font-size: 1.8rem;
   }
   
-  .brand-subtitle {
-    font-size: 0.85rem;
+  .brand-tagline {
+    font-size: 0.75rem;
   }
   
   .form-title {

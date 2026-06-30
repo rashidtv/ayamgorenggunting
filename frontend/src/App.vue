@@ -22,7 +22,7 @@
     </div>
 
     <div v-if="!user" class="auth-container">
-      <Login @login-success="handleLoginSuccess" />
+      <Login @login-success="handleLoginSuccess" :company-logo="companyLogo" />
     </div>
 
     <div v-else class="app-layout">
@@ -37,13 +37,11 @@
               </div>
               <div class="logo-text">
                 <h1>Chickory Hub</h1>
-                <span class="tagline">Ayam Goreng Gunting</span>
               </div>
             </div>
           </div>
           <div class="header-controls">
             <div class="control-group">
-              <!-- Notification Toggle Button -->
               <button 
                 @click="toggleNotifications" 
                 class="control-btn" 
@@ -113,6 +111,7 @@
                 v-else-if="user.role === 'super_admin'"
                 :token="token || ''"
                 @show-notification="showNotification"
+                :company-logo="companyLogo"
               />
               <StallView
                 v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
@@ -202,7 +201,6 @@ export default {
       isOnline: true,
       activeStallId: null,
       notificationsEnabled: true,
-      // Logo
       companyLogo: localStorage.getItem('companyLogo') || null,
       logoUploadModal: false,
       tempLogoPreview: null,
@@ -521,7 +519,6 @@ export default {
         this.notificationsEnabled = JSON.parse(savedNotifications);
       }
 
-      // Load logo from localStorage
       const savedLogo = localStorage.getItem('companyLogo');
       if (savedLogo) {
         this.companyLogo = savedLogo;
@@ -735,12 +732,6 @@ body {
   font-weight: 700;
   color: var(--primary);
   line-height: 1.2;
-}
-
-.tagline {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  font-weight: 500;
 }
 
 /* ===== HEADER CONTROLS ===== */
