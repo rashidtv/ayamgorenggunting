@@ -126,7 +126,7 @@
           </div>
         </div>
 
-        <!-- CHART WITH IMPROVED TREND LINE -->
+        <!-- Professional Chart with ECharts -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
           <div class="chart-modern-header">
             <div class="chart-modern-title">
@@ -165,84 +165,11 @@
               </div>
             </div>
 
-            <!-- The Chart -->
-            <div class="chart-modern-wrapper" ref="chartWrapper">
-              <div v-if="chartData.length > 0" class="chart-modern-container">
-                <!-- Bars -->
-                <div class="chart-modern-bars">
-                  <div 
-                    v-for="(item, index) in chartData" 
-                    :key="index"
-                    class="chart-modern-bar-group"
-                    @mouseenter="showTooltip(index, $event)"
-                    @mouseleave="hideTooltip"
-                  >
-                    <div class="chart-modern-bar-track">
-                      <div 
-                        class="chart-modern-bar" 
-                        :style="{ 
-                          height: item.percentage + '%',
-                          background: `linear-gradient(180deg, ${item.color}, ${item.color}dd)`
-                        }"
-                      >
-                        <div class="chart-modern-bar-glow"></div>
-                      </div>
-                    </div>
-                    <span class="chart-modern-bar-label">{{ item.label }}</span>
-                    <span class="chart-modern-bar-value">{{ formatCurrency(item.value) }}</span>
-                  </div>
-                </div>
-
-                <!-- Trend Line - Thinner, touching bars -->
-                <svg class="chart-trend-line-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="trendAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.1" />
-                      <stop offset="100%" style="stop-color:#F94908;stop-opacity:0.01" />
-                    </linearGradient>
-                  </defs>
-                  <!-- Area under trend line - subtle -->
-                  <polygon
-                    :points="getAreaPoints()"
-                    fill="url(#trendAreaGradient)"
-                    opacity="0.4"
-                  />
-                  <!-- Trend line - thinner -->
-                  <polyline
-                    :points="getLinePoints()"
-                    fill="none"
-                    stroke="#F94908"
-                    stroke-width="1.5"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
-                  />
-                  <!-- Points on trend line - smaller -->
-                  <circle
-                    v-for="(point, index) in getLinePointsArray()"
-                    :key="index"
-                    :cx="point.x"
-                    :cy="point.y"
-                    r="2.5"
-                    fill="#F94908"
-                    stroke="white"
-                    stroke-width="1.5"
-                    @mouseenter="showTooltip(index, $event)"
-                    @mouseleave="hideTooltip"
-                  />
-                </svg>
-
-                <!-- Minimalist Tooltip - positioned on bar -->
-                <div 
-                  v-if="tooltipVisible && hoveredIndex !== null && hoveredIndex < chartData.length" 
-                  class="chart-modern-tooltip" 
-                  :style="tooltipPosition"
-                  ref="tooltipRef"
-                >
-                  <div class="chart-modern-tooltip-revenue">{{ formatCurrency(chartData[hoveredIndex]?.value || 0) }}</div>
-                  <div class="chart-modern-tooltip-items">{{ formatNumber(chartData[hoveredIndex]?.items || 0) }} items</div>
-                </div>
+            <!-- ECharts Container -->
+            <div class="chart-wrapper" ref="chartWrapper">
+              <div v-if="salesTrend.length > 0" class="chart-container">
+                <div ref="chartRef" class="echarts-container"></div>
               </div>
-
               <div v-else class="chart-modern-empty">
                 <span>📊</span>
                 <p>No sales data available</p>
@@ -320,44 +247,6 @@
                 ></div>
               </div>
               <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ===== MENU MANAGEMENT ===== -->
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>📋 Menu Management</h3>
-              <span class="card-subtitle">Manage your menu items and recipes</span>
-            </div>
-            <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
-          </div>
-          <div class="card-modern-body">
-            <div v-if="menuItems.length === 0" class="empty-state-modern">
-              <span>📋</span>
-              <p>No menu items found. Create your first menu item!</p>
-            </div>
-            <div v-for="(item, index) in menuItems" :key="item.item_name" class="menu-item-row">
-              <div class="menu-item-row-content">
-                <span class="menu-item-index">{{ index + 1 }}</span>
-                <div class="menu-item-info">
-                  <span class="menu-item-name">{{ item.item_name }}</span>
-                  <span class="menu-item-price">{{ formatCurrency(item.price) }}</span>
-                  <span class="menu-item-category">{{ item.category || 'Main' }}</span>
-                </div>
-                <div class="menu-item-recipe">
-                  <span class="recipe-label">Recipe:</span>
-                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
-                    {{ item.recipe.map(r => `${r.material_name}: ${r.quantity_used}${getUnit(r.material_name)}`).join(', ') }}
-                  </span>
-                  <span v-else class="recipe-empty">No recipe</span>
-                </div>
-                <div class="menu-item-actions">
-                  <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -576,6 +465,66 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== MENU MANAGEMENT TAB ===== -->
+      <div v-if="activeTab === 'menu'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📋 Menu Management</h3>
+              <span class="card-subtitle">Manage your menu items and recipes</span>
+            </div>
+            <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
+          </div>
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="menuSearch" 
+                  placeholder="Search menu items..." 
+                  class="filter-input"
+                />
+              </div>
+              <select v-model="menuCategoryFilter" class="filter-select">
+                <option value="all">All Categories</option>
+                <option value="Main">Main</option>
+                <option value="Side">Side</option>
+                <option value="Drink">Drink</option>
+                <option value="Dessert">Dessert</option>
+              </select>
+              <span class="filter-result">{{ filteredMenuItems.length }} items</span>
+            </div>
+
+            <div v-if="filteredMenuItems.length === 0" class="empty-state-modern">
+              <span>📋</span>
+              <p>No menu items found. Create your first menu item!</p>
+            </div>
+
+            <div v-for="(item, index) in filteredMenuItems" :key="item.item_name" class="menu-item-row">
+              <div class="menu-item-row-content">
+                <span class="menu-item-index">{{ index + 1 }}</span>
+                <div class="menu-item-info">
+                  <span class="menu-item-name">{{ item.item_name }}</span>
+                  <span class="menu-item-price">{{ formatCurrency(item.price) }}</span>
+                  <span class="menu-item-category">{{ item.category || 'Main' }}</span>
+                </div>
+                <div class="menu-item-recipe">
+                  <span class="recipe-label">Recipe:</span>
+                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
+                    {{ item.recipe.map(r => `${r.material_name}: ${r.quantity_used}${getUnit(r.material_name)}`).join(', ') }}
+                  </span>
+                  <span v-else class="recipe-empty">No recipe</span>
+                </div>
+                <div class="menu-item-actions">
+                  <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================ -->
@@ -708,6 +657,31 @@
 
 <script>
 import axios from 'axios'
+import * as echarts from 'echarts'
+import { use } from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { 
+  TitleComponent, 
+  TooltipComponent, 
+  GridComponent, 
+  LegendComponent,
+  MarkLineComponent,
+  MarkPointComponent
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+
+// Register ECharts components
+use([
+  BarChart,
+  LineChart,
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  CanvasRenderer
+])
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
@@ -715,22 +689,21 @@ export default {
   props: ['token'],
   data() {
     return {
-      // Tabs
+      // Tabs - Updated with Menu
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
-        { id: 'users', label: 'Users', icon: '👥' }
+        { id: 'users', label: 'Users', icon: '👥' },
+        { id: 'menu', label: 'Menu', icon: '📋' }
       ],
       
       // Chart settings
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
-      
-      // Colors for bars
-      barColors: ['#F94908', '#fa6a2e', '#fb8b5a', '#fcaa86', '#fdc9b2', '#fddcc6', '#fde8d9'],
+      chartInstance: null,
       
       // Data
       stalls: [],
@@ -757,10 +730,9 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
-      // Tooltip
-      tooltipVisible: false,
-      hoveredIndex: null,
-      tooltipPosition: { left: '50%', top: '5px' },
+      // Menu filters
+      menuSearch: '',
+      menuCategoryFilter: 'all',
       
       // Menu Modal
       menuModal: false,
@@ -805,20 +777,12 @@ export default {
     chartVisibleData() {
       return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
     },
-    chartData() {
-      const data = this.chartVisibleData
-      if (data.length === 0) return []
-      
-      const max = Math.max(...data.map(d => d.revenue || 0), 1)
-      
-      return data.map((day, index) => ({
-        label: this.formatShortDate(day.date),
-        fullDate: this.formatFullDate(day.date),
-        value: day.revenue || 0,
-        items: day.items || 0,
-        percentage: Math.max((day.revenue / max) * 80, 4),
-        color: this.barColors[index % this.barColors.length]
-      }))
+    filteredMenuItems() {
+      return this.menuItems.filter(item => {
+        const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
+        const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
+        return matchesSearch && matchesCategory
+      })
     },
     
     filteredInventoryStalls() {
@@ -865,6 +829,27 @@ export default {
   mounted() {
     this.loadData()
   },
+  watch: {
+    salesTrend: {
+      handler() {
+        this.$nextTick(() => {
+          this.initChart()
+        })
+      },
+      deep: true
+    },
+    chartVisibleData: {
+      handler() {
+        this.updateChart()
+      },
+      deep: true
+    },
+    chartFullscreen() {
+      this.$nextTick(() => {
+        this.initChart()
+      })
+    }
+  },
   methods: {
     // =============================================
     // FORMATTING
@@ -903,6 +888,172 @@ export default {
     },
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
+    },
+    
+    // =============================================
+    // ECHARTS - Professional Chart
+    // =============================================
+    initChart() {
+      if (!this.$refs.chartRef) return
+      
+      // Dispose existing chart
+      if (this.chartInstance) {
+        this.chartInstance.dispose()
+        this.chartInstance = null
+      }
+      
+      // Create new chart
+      this.chartInstance = echarts.init(this.$refs.chartRef)
+      
+      // Set chart options
+      this.updateChart()
+      
+      // Handle resize
+      window.addEventListener('resize', this.handleChartResize)
+    },
+    
+    updateChart() {
+      if (!this.chartInstance) return
+      
+      const data = this.chartVisibleData
+      if (data.length === 0) return
+      
+      const dates = data.map(d => this.formatShortDate(d.date))
+      const revenues = data.map(d => d.revenue || 0)
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: [12, 16],
+          textStyle: {
+            color: '#1e293b',
+            fontSize: 13
+          },
+          formatter: function(params) {
+            const index = params[0]?.dataIndex || 0
+            const revenue = data[index]?.revenue || 0
+            const itemsCount = data[index]?.items || 0
+            return `
+              <div style="font-weight:600;margin-bottom:4px;">${data[index]?.label || ''}</div>
+              <div style="color:#F94908;font-size:16px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+              <div style="color:#64748b;font-size:12px;">${itemsCount} items sold</div>
+            `
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '8%',
+          top: '8%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: dates,
+          axisLine: {
+            lineStyle: { color: '#e2e8f0' }
+          },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: 11,
+            fontWeight: 500
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            lineStyle: {
+              color: '#f1f5f9',
+              type: 'dashed'
+            }
+          },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: 11,
+            formatter: function(value) {
+              return 'RM' + value.toLocaleString()
+            }
+          },
+          name: 'Revenue (RM)',
+          nameTextStyle: {
+            color: '#94a3b8',
+            fontSize: 11
+          }
+        },
+        series: [
+          {
+            name: 'Revenue',
+            type: 'bar',
+            data: revenues,
+            barWidth: '55%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            },
+            emphasis: {
+              itemStyle: {
+                color: '#d63d07'
+              }
+            }
+          },
+          {
+            name: 'Trend Line',
+            type: 'line',
+            data: revenues,
+            smooth: true,
+            lineStyle: {
+              color: '#F94908',
+              width: 2,
+              type: 'solid'
+            },
+            symbol: 'circle',
+            symbolSize: 6,
+            itemStyle: {
+              color: '#F94908',
+              borderColor: '#ffffff',
+              borderWidth: 2
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(249, 73, 8, 0.15)' },
+                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+                ]
+              }
+            },
+            z: 10
+          }
+        ]
+      }
+      
+      this.chartInstance.setOption(option, true)
+    },
+    
+    handleChartResize() {
+      if (this.chartInstance) {
+        this.chartInstance.resize()
+      }
     },
     
     // =============================================
@@ -960,40 +1111,6 @@ export default {
     },
     
     // =============================================
-    // TREND LINE SVG METHODS
-    // =============================================
-    getAreaPoints() {
-      const data = this.chartData
-      if (data.length === 0) return ''
-      const max = Math.max(...data.map(d => d.value || 0), 1)
-      const points = data.map((item, i) => {
-        const x = (i / (data.length - 1)) * 100
-        const y = 100 - ((item.value / max) * 80) - 10
-        return `${x},${y}`
-      })
-      return `0,100,${points.join(',')},100,100`
-    },
-    getLinePoints() {
-      const data = this.chartData
-      if (data.length === 0) return ''
-      const max = Math.max(...data.map(d => d.value || 0), 1)
-      return data.map((item, i) => {
-        const x = (i / (data.length - 1)) * 100
-        const y = 100 - ((item.value / max) * 80) - 10
-        return `${x},${y}`
-      }).join(' ')
-    },
-    getLinePointsArray() {
-      const data = this.chartData
-      if (data.length === 0) return []
-      const max = Math.max(...data.map(d => d.value || 0), 1)
-      return data.map((item, i) => ({
-        x: (i / (data.length - 1)) * 100,
-        y: 100 - ((item.value / max) * 80) - 10
-      }))
-    },
-    
-    // =============================================
     // CHART NAVIGATION
     // =============================================
     navigateChart(direction) {
@@ -1005,10 +1122,12 @@ export default {
           this.chartOffset + this.chartWindow
         )
       }
+      this.updateChart()
     },
     resetChartNavigation() {
       this.chartOffset = 0
       this.chartWindow = Math.min(7, this.salesTrend.length)
+      this.updateChart()
     },
     toggleChartFullscreen() {
       this.chartFullscreen = !this.chartFullscreen
@@ -1023,6 +1142,9 @@ export default {
           z-index: 9998;
         `
         document.body.appendChild(backdrop)
+        this.$nextTick(() => {
+          this.initChart()
+        })
       } else {
         document.body.style.overflow = ''
         const backdrop = document.getElementById('fullscreen-backdrop')
@@ -1030,52 +1152,10 @@ export default {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
+        this.$nextTick(() => {
+          this.initChart()
+        })
       }
-    },
-    
-    // =============================================
-    // TOOLTIP - Dynamically positioned on bar
-    // =============================================
-    showTooltip(index, event) {
-      this.hoveredIndex = index
-      this.tooltipVisible = true
-      
-      const data = this.chartData
-      if (data.length === 0) return
-      
-      // Get the bar element position
-      const barGroup = event?.target?.closest?.('.chart-modern-bar-group') || 
-                       document.querySelectorAll('.chart-modern-bar-group')[index]
-      
-      if (barGroup) {
-        const rect = barGroup.getBoundingClientRect()
-        const wrapper = this.$refs.chartWrapper
-        if (wrapper) {
-          const wrapperRect = wrapper.getBoundingClientRect()
-          // Position tooltip above the bar
-          const x = rect.left - wrapperRect.left + (rect.width / 2)
-          const y = rect.top - wrapperRect.top - 10
-          
-          this.tooltipPosition = {
-            left: `${x}px`,
-            top: `${y}px`,
-            transform: 'translateX(-50%)'
-          }
-        }
-      } else {
-        // Fallback: position based on index
-        const totalBars = data.length
-        const position = (index / (totalBars - 1)) * 100
-        this.tooltipPosition = {
-          left: `calc(${position}% - 60px)`,
-          top: '5px',
-          transform: 'translateX(0)'
-        }
-      }
-    },
-    hideTooltip() {
-      this.tooltipVisible = false
-      this.hoveredIndex = null
     },
     
     // =============================================
@@ -1200,6 +1280,11 @@ export default {
       if (tabId === 'inventory') {
         this.$nextTick(() => {
           document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+        })
+      }
+      if (tabId === 'dashboard') {
+        this.$nextTick(() => {
+          this.initChart()
         })
       }
     },
@@ -1629,6 +1714,15 @@ export default {
             sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
           }
           fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'menu') {
+          sheet = workbook.addWorksheet('Menu')
+          sheet.addRow(['📋 Menu Management', ''])
+          sheet.addRow(['Item Name', 'Price', 'Category', 'Recipe'])
+          for (const item of this.filteredMenuItems) {
+            const recipe = (item.recipe || []).map(r => `${r.material_name}: ${r.quantity_used}${this.getUnit(r.material_name)}`).join(', ')
+            sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
+          }
+          fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
         } else {
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['Username', 'Role', 'Stalls'])
@@ -2047,7 +2141,34 @@ export default {
 .kpi-change.negative { color: #ef4444; }
 
 /* ============================================ */
-/* MODERN CHART                                 */
+/* ECHARTS CONTAINER                           */
+/* ============================================ */
+.echarts-container {
+  width: 100%;
+  height: 300px;
+}
+
+.chart-modern.fullscreen .echarts-container {
+  height: calc(100vh - 250px);
+}
+
+/* ============================================ */
+/* CHART WRAPPER                                */
+/* ============================================ */
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================ */
+/* CHART MODERN                                 */
 /* ============================================ */
 .chart-modern {
   background: var(--surface);
@@ -2155,158 +2276,6 @@ export default {
 
 .chart-modern-stat-sub {
   font-size: 0.5rem;
-  color: var(--text-tertiary);
-}
-
-/* Chart Wrapper */
-.chart-modern-wrapper {
-  position: relative;
-  width: 100%;
-  min-height: 250px;
-}
-
-.chart-modern-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-/* Bars */
-.chart-modern-bars {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 250px;
-  width: 100%;
-  gap: 8px;
-  padding: 0 4px;
-  position: relative;
-  z-index: 1;
-}
-
-.chart-modern-bar-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  height: 100%;
-  cursor: pointer;
-  min-width: 0;
-  position: relative;
-}
-
-.chart-modern-bar-track {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  min-height: 8px;
-  position: relative;
-}
-
-.chart-modern-bar {
-  width: 70%;
-  max-width: 40px;
-  min-width: 6px;
-  min-height: 3px;
-  border-radius: 4px 4px 2px 2px;
-  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  margin: 0 auto;
-  will-change: height;
-}
-
-.chart-modern-bar-glow {
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 4px;
-  background: radial-gradient(ellipse, rgba(255,255,255,0.5) 0%, transparent 70%);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar-glow {
-  opacity: 1;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar {
-  opacity: 0.9;
-  transform: scaleY(1.03);
-  transform-origin: bottom;
-}
-
-.chart-modern-bar-label {
-  font-size: 0.5rem;
-  color: var(--text-tertiary);
-  margin-top: 6px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.chart-modern-bar-value {
-  font-size: 0.5rem;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.chart-modern-bar-group:hover .chart-modern-bar-value {
-  opacity: 1;
-}
-
-/* Trend Line SVG */
-.chart-trend-line-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 250px;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.chart-trend-line-svg circle {
-  pointer-events: all;
-  cursor: pointer;
-  transition: r 0.2s, fill 0.2s;
-}
-
-.chart-trend-line-svg circle:hover {
-  r: 5;
-  fill: var(--primary-dark);
-}
-
-/* Tooltip */
-.chart-modern-tooltip {
-  position: absolute;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.6rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  z-index: 10;
-  pointer-events: none;
-  min-width: 70px;
-  max-width: 150px;
-  animation: fadeIn 0.15s ease;
-  transform: translateX(-50%);
-  top: 5px;
-}
-
-.chart-modern-tooltip-revenue {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.chart-modern-tooltip-items {
-  font-size: 0.6rem;
   color: var(--text-tertiary);
 }
 
@@ -3232,10 +3201,10 @@ export default {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-value { font-size: 1.1rem; }
   
+  .echarts-container { height: 200px; }
+  .chart-wrapper { min-height: 200px; }
+  
   .chart-modern-body { padding: 0.75rem; }
-  .chart-modern-bars { height: 200px; }
-  .chart-trend-line-svg { height: 200px; }
-  .chart-modern-wrapper { min-height: 200px; }
   
   .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -3285,16 +3254,6 @@ export default {
   .modal-lg {
     max-width: 95%;
   }
-  
-  .chart-modern-tooltip {
-    min-width: 60px;
-    max-width: 120px;
-    padding: 0.3rem 0.5rem;
-    transform: translateX(-50%);
-  }
-  
-  .chart-modern-tooltip-revenue { font-size: 0.7rem; }
-  .chart-modern-tooltip-items { font-size: 0.5rem; }
 }
 
 @media (max-width: 480px) {
@@ -3307,12 +3266,8 @@ export default {
   .kpi-card { padding: 0.5rem; }
   .kpi-value { font-size: 0.95rem; }
   
-  .chart-modern-bars { height: 150px; gap: 4px; }
-  .chart-trend-line-svg { height: 150px; }
-  .chart-modern-wrapper { min-height: 150px; }
-  .chart-modern-bar { max-width: 24px; min-width: 4px; }
-  .chart-modern-bar-label { font-size: 0.4rem; }
-  .chart-modern-bar-value { font-size: 0.4rem; }
+  .echarts-container { height: 160px; }
+  .chart-wrapper { min-height: 160px; }
   
   .chart-modern-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -3347,17 +3302,5 @@ export default {
   .menu-item-price {
     display: inline-block;
   }
-  
-  .chart-modern-tooltip {
-    min-width: 50px;
-    max-width: 100px;
-    padding: 0.2rem 0.4rem;
-    transform: translateX(-50%);
-    top: 2px;
-  }
-  
-  .chart-modern-tooltip-revenue { font-size: 0.6rem; }
-  .chart-modern-tooltip-items { font-size: 0.45rem; }
 }
 </style>
-/* ============================================ */
