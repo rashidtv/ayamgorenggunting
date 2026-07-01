@@ -73,14 +73,16 @@
         >
           <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
             <div class="item-image-wrapper">
-              <img 
-                v-if="item.image && item.image.startsWith('data:image')" 
-                :src="item.image" 
-                :alt="item.item_name"
-                class="item-image"
-              />
-              <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
-            </div>
+  <template v-if="item.image">
+    <img 
+      :src="getImageUrl(item.image)" 
+      :alt="item.item_name"
+      class="item-image"
+      @error="item.image = null"
+    />
+  </template>
+  <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
+</div>
             <div class="item-info">
               <div class="item-name">{{ item.item_name }}</div>
               <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
@@ -336,6 +338,19 @@ export default {
       return this.iconMap[itemName] || '🍗'
     },
 
+getImageUrl(imagePath) {
+  if (!imagePath) return null
+  // If it's already a full URL or base64, return as-is
+  if (imagePath.startsWith('http') || imagePath.startsWith('data:image')) {
+    return imagePath
+  }
+  // If it's a relative path, prepend the backend URL
+  if (imagePath.startsWith('/uploads/')) {
+    return `https://agg-backend.onrender.com${imagePath}`
+  }
+  // Fallback: try to use as-is
+  return imagePath
+},
     getUnit(materialName) {
       return materialName === 'Oil' ? 'L' : 'kg'
     },
