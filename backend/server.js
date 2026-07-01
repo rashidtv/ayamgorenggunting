@@ -280,7 +280,7 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
 
 // ==================== INVENTORY UPDATE ROUTE ====================
 app.post('/api/inventory/update', authenticateToken, async (req, res) => {
-  const { materialName, newLevel, stallId } = req.body;
+  const { materialName, newLevel, stallId, alertLevel } = req.body;
   let targetStallId = stallId ? parseInt(stallId) : null;
 
   if (!targetStallId) {
@@ -296,25 +296,25 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: 'Access denied' });
 
   try {
-    // Check if inventory exists for this stall and material
+    // Always use alert level 10 for Chicken
+    const finalAlertLevel = materialName === 'Chicken' ? 10 : (alertLevel || 10);
+
     const checkRes = await pool.query(
       'SELECT id FROM inventory WHERE stall_id = $1 AND material_name = $2',
       [targetStallId, materialName]
     );
 
     if (checkRes.rows.length === 0) {
-      // Insert new inventory with default alert level
       await pool.query(
         `INSERT INTO inventory (stall_id, material_name, current_level, alert_level) 
          VALUES ($1, $2, $3, $4)`,
-        [targetStallId, materialName, newLevel, 10]
+        [targetStallId, materialName, newLevel, finalAlertLevel]
       );
     } else {
-      // Update existing inventory
       await pool.query(
-        `UPDATE inventory SET current_level = $1, updated_at = CURRENT_TIMESTAMP
-         WHERE stall_id = $2 AND material_name = $3`,
-        [newLevel, targetStallId, materialName]
+        `UPDATE inventory SET current_level = $1, alert_level = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE stall_id = $3 AND material_name = $4`,
+        [newLevel, finalAlertLevel, targetStallId, materialName]
       );
     }
     res.json({ success: true });

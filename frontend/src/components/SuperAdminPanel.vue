@@ -1880,18 +1880,27 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
     // =============================================
     // INVENTORY METHODS
     // =============================================
-    // Add this method to initialize inventory for a new stall
 async initializeStallInventory(stallId) {
   try {
-    await axios.post(`${API_BASE}/inventory/update`, {
-      stallId: stallId,
-      materialName: 'Chicken',
-      newLevel: 100,
-      alertLevel: 10  // Set alert at 10 pieces
-    }, {
+    // Check if Chicken already exists
+    const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     });
-    console.log('✅ Inventory initialized for stall', stallId);
+    
+    const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken');
+    
+    if (!chickenExists) {
+      // Only initialize if Chicken doesn't exist
+      await axios.post(`${API_BASE}/inventory/update`, {
+        stallId: stallId,
+        materialName: 'Chicken',
+        newLevel: 100,
+        alertLevel: 10  // Always alert at 10
+      }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      console.log('✅ Inventory initialized for stall', stallId);
+    }
   } catch (err) {
     console.error('Failed to initialize inventory:', err);
   }
