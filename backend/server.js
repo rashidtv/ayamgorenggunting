@@ -312,24 +312,36 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    
+    // Insert the sale
     await client.query(
       'INSERT INTO sales (stall_id, item_name, price) VALUES ($1, $2, $3)',
       [targetStallId, itemName, price]
     );
+    
+    // Check for recipe
     const recipeRes = await client.query('SELECT material_name, quantity_used FROM recipes WHERE item_name = $1', [itemName]);
-    if (recipeRes.rows.length === 0) throw new Error('No recipe found for ' + itemName);
-    for (const recipe of recipeRes.rows) {
-      await client.query(
-        `UPDATE inventory SET current_level = current_level - $1, updated_at = CURRENT_TIMESTAMP
-         WHERE stall_id = $2 AND material_name = $3`,
-        [recipe.quantity_used, targetStallId, recipe.material_name]
-      );
+    
+    // If recipe exists, update inventory
+    if (recipeRes.rows.length > 0) {
+      for (const recipe of recipeRes.rows) {
+        await client.query(
+          `UPDATE inventory SET current_level = current_level - $1, updated_at = CURRENT_TIMESTAMP
+           WHERE stall_id = $2 AND material_name = $3`,
+          [recipe.quantity_used, targetStallId, recipe.material_name]
+        );
+      }
+      console.log(`✅ Sold ${itemName}, updated inventory for ${recipeRes.rows.length} ingredients`);
+    } else {
+      // No recipe found - just log (don't throw error)
+      console.log(`ℹ️ ${itemName} sold (no recipe, inventory not updated)`);
     }
+    
     await client.query('COMMIT');
     res.json({ success: true, message: `Sold ${itemName}` });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
+    console.error('Sell error:', err);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();

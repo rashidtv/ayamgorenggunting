@@ -601,66 +601,90 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- MENU MODAL                                   -->
-    <!-- ============================================ -->
-    <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
-          <button @click="closeMenuModal" class="modal-close-btn">✕</button>
+  <!-- ============================================ -->
+<!-- MENU MODAL - FIXED WHITE BACKGROUND          -->
+<!-- ============================================ -->
+<div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
+      <button @click="closeMenuModal" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body" style="background: #ffffff;">
+      <div class="modal-form-row">
+        <div class="modal-form-group">
+          <label>Item Name</label>
+          <input v-model="menuForm.item_name" placeholder="e.g., Nasi Ayam" :disabled="editingMenu" />
         </div>
-        <div class="modal-modern-body">
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Item Name</label>
-              <input v-model="menuForm.item_name" placeholder="e.g., AGG" :disabled="editingMenu" />
-            </div>
-            <div class="modal-form-group">
-              <label>Price (RM)</label>
-              <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
-            </div>
-          </div>
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Category</label>
-              <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
-            </div>
-            <div class="modal-form-group">
-              <label>Description</label>
-              <input v-model="menuForm.description" placeholder="Brief description" />
-            </div>
-          </div>
-          <div class="modal-form-group">
-            <label>Item Image</label>
-            <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
-              <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
-              <div v-if="menuForm.imagePreview" class="image-preview">
-  <img :src="menuForm.imagePreview" alt="Menu item" />
-  <button @click="removeMenuImage" class="remove-image">✕</button>
-</div>
-              <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
-                <span>📷</span>
-                <p>Click to upload image</p>
-              </div>
-            </div>
-          </div>
-          <div class="modal-form-group">
-            <label>Recipe (Ingredients)</label>
-            <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
-              <input v-model="ingredient.material_name" placeholder="Material name" class="recipe-input" />
-              <input type="number" v-model="ingredient.quantity_used" placeholder="Qty" class="recipe-input-small" step="0.5" />
-              <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger">✕</button>
-            </div>
-            <button @click="addRecipeIngredient" class="btn-modern secondary small">+ Add Ingredient</button>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+        <div class="modal-form-group">
+          <label>Price (RM)</label>
+          <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
         </div>
       </div>
+      <div class="modal-form-row">
+        <div class="modal-form-group">
+          <label>Category</label>
+          <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
+        </div>
+        <div class="modal-form-group">
+          <label>Description</label>
+          <input v-model="menuForm.description" placeholder="Brief description" />
+        </div>
+      </div>
+      <div class="modal-form-group">
+        <label>Item Image</label>
+        <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
+          <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
+          <div v-if="menuForm.imagePreview" class="image-preview">
+            <img :src="menuForm.imagePreview" alt="Menu item" />
+            <button @click="removeMenuImage" class="remove-image">✕</button>
+          </div>
+          <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
+            <span>📷</span>
+            <p>Click to upload image (max 2MB)</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ===== RECIPE SECTION - FIXED ===== -->
+      <div class="modal-form-group recipe-section">
+        <label>Recipe (Ingredients)</label>
+        <p class="recipe-hint">Add ingredients needed for this menu item. Leave empty if no ingredients needed.</p>
+        
+        <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
+          <div class="recipe-field">
+            <label class="recipe-label">Ingredient</label>
+            <input 
+              v-model="ingredient.material_name" 
+              placeholder="e.g., Chicken piece" 
+              class="recipe-input" 
+            />
+          </div>
+          <div class="recipe-field">
+            <label class="recipe-label">Quantity</label>
+            <input 
+              type="number" 
+              v-model="ingredient.quantity_used" 
+              placeholder="e.g., 2" 
+              class="recipe-input-small" 
+              step="1" 
+              min="1"
+            />
+          </div>
+          <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
+        </div>
+        
+        <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
+          + Add Ingredient
+        </button>
+      </div>
     </div>
+    <div class="modal-modern-footer">
+      <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
+      <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+    </div>
+  </div>
+</div>
 
     <!-- ============================================ -->
     <!-- USER MODAL                                   -->
@@ -1520,8 +1544,11 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
       this.editingMenu = false
     },
     addRecipeIngredient() {
-      this.menuForm.recipe.push({ material_name: '', quantity_used: 0 })
-    },
+  this.menuForm.recipe.push({ 
+    material_name: 'Chicken piece', 
+    quantity_used: 1 
+  })
+},
     removeRecipeIngredient(index) {
       this.menuForm.recipe.splice(index, 1)
     },
@@ -3011,6 +3038,111 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.25rem;
+}
+
+/* ============================================ */
+/* RECIPE SECTION - FIXED                       */
+/* ============================================ */
+.recipe-section {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.recipe-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.recipe-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.recipe-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.recipe-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.recipe-input {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.recipe-input-small {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 80px;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input-small:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.add-recipe-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ============================================ */
+/* MODAL OVERRIDES - WHITE BACKGROUND           */
+/* ============================================ */
+.modal-modern {
+  background: #ffffff !important;
+}
+
+.modal-modern-body {
+  background: #ffffff !important;
+}
+
+.modal-modern-header {
+  background: #fafafa !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.modal-modern-footer {
+  background: #fafafa !important;
+  border-top: 1px solid #e5e7eb !important;
 }
 
 .menu-rank-number {
