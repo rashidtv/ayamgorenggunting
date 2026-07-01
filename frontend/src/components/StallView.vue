@@ -360,25 +360,29 @@ export default {
     },
 
     async loadMenu() {
-      this.loadingMenu = true
-      try {
-        const res = await axios.get(`${API_BASE}/menu`, {
-          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
-        this.menuItems = res.data.map(item => ({
-          ...item,
-          quantity: 0
-        }))
-        // Reset quantities for new menu
-        this.menuQuantities = {}
-      } catch (error) {
-        console.error('Failed to load menu:', error)
-        this.menuItems = []
-        this.$emit('show-notification', 'Failed to load menu items', 'error')
-      } finally {
-        this.loadingMenu = false
-      }
-    },
+  this.loadingMenu = true
+  try {
+    const res = await axios.get(`${API_BASE}/menu`, {
+      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+    })
+    console.log('📸 Menu items with images:', res.data.map(item => ({
+      name: item.item_name,
+      image: item.image ? item.image.substring(0, 100) : 'null',
+      imageType: item.image ? (item.image.startsWith('data:image') ? 'base64' : 'url') : 'none'
+    })))
+    this.menuItems = res.data.map(item => ({
+      ...item,
+      quantity: 0
+    }))
+    this.menuQuantities = {}
+  } catch (error) {
+    console.error('Failed to load menu:', error)
+    this.menuItems = []
+    this.$emit('show-notification', 'Failed to load menu items', 'error')
+  } finally {
+    this.loadingMenu = false
+  }
+},
 
     async loadInventory() {
       const response = await axios.get(`${API_BASE}/inventory`, {
