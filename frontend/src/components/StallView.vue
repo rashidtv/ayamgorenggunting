@@ -890,8 +890,8 @@ getImageUrl(imagePath) {
 
 /* Image Styles - NEW */
 .item-image-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   flex-shrink: 0;
   border-radius: 12px;
   overflow: hidden;
@@ -900,14 +900,13 @@ getImageUrl(imagePath) {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .item-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 4px;
+  padding: 2px;
 }
 
 .item-icon {
@@ -1570,11 +1569,10 @@ getImageUrl(imagePath) {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .item-image-wrapper {
-    width: 64px;
-    height: 64px;
-  }
+.item-image-wrapper {
+  width: 70px;
+  height: 70px;
+}
   
   .item-icon {
     font-size: 1.6rem;
@@ -1736,10 +1734,9 @@ getImageUrl(imagePath) {
 
 @media (max-width: 480px) {
   .item-image-wrapper {
-    width: 56px;
-    height: 56px;
-    border-radius: 8px;
-  }
+  width: 60px;
+  height: 60px;
+}
   
   .item-icon {
     font-size: 1.3rem;
