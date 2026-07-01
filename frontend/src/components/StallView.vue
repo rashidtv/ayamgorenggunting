@@ -888,7 +888,7 @@ getImageUrl(imagePath) {
   left: 100%;
 }
 
-/* Image Styles - NEW */
+/* Image Styles - FIXED */
 .item-image-wrapper {
   width: 90px;
   height: 90px;
@@ -900,13 +900,14 @@ getImageUrl(imagePath) {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .item-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 2px;
+  padding: 3px;
 }
 
 .item-icon {
@@ -1569,17 +1570,10 @@ getImageUrl(imagePath) {
 }
 
 /* Responsive */
-.item-image-wrapper {
-  width: 70px;
-  height: 70px;
-}
-  
-  .item-icon {
-    font-size: 1.6rem;
-    width: 40px;
-    height: 40px;
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
-}
   
   .section-header {
     flex-direction: column;
@@ -1676,53 +1670,8 @@ getImageUrl(imagePath) {
   }
 
   .item-image-wrapper {
-    width: 48px;
-    height: 48px;
-  }
-}
-
-/* ============================================ */
-/* IMAGE STYLES - PERMANENT FIX                 */
-/* ============================================ */
-.item-image-wrapper {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-.item-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: 4px;
-}
-
-/* Fallback icon styling */
-.item-icon {
-  font-size: 2rem;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* ============================================ */
-/* RESPONSIVE IMAGE SIZES                       */
-/* ============================================ */
-@media (max-width: 768px) {
-  .item-image-wrapper {
-    width: 64px;
-    height: 64px;
+    width: 70px;
+    height: 70px;
   }
   
   .item-icon {
@@ -1733,17 +1682,11 @@ getImageUrl(imagePath) {
 }
 
 @media (max-width: 480px) {
-  .item-image-wrapper {
-  width: 60px;
-  height: 60px;
-}
-  
-  .item-icon {
-    font-size: 1.3rem;
-    width: 36px;
-    height: 36px;
+  .inventory-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
   }
-}
   
   .product-info {
     min-width: 100px;
@@ -1779,8 +1722,15 @@ getImageUrl(imagePath) {
   }
 
   .item-image-wrapper {
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+  }
+  
+  .item-icon {
+    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
   }
 }
 </style>
