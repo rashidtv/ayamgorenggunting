@@ -513,7 +513,7 @@
   <span class="recipe-label">Recipe:</span>
   <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
     <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
-      {{ r.material_name }}: {{ r.quantity_used }} pieces
+      {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
     </span>
   </span>
   <span v-else class="recipe-empty">No recipe</span>
@@ -1883,11 +1883,11 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
     // Add this method to initialize inventory for a new stall
 async initializeStallInventory(stallId) {
   try {
-    // Only Chicken with pieces
     await axios.post(`${API_BASE}/inventory/update`, {
       stallId: stallId,
       materialName: 'Chicken',
-      newLevel: 100  // Start with 100 pieces
+      newLevel: 100,
+      alertLevel: 10  // Set alert at 10 pieces
     }, {
       headers: { Authorization: `Bearer ${this.token}` }
     });
@@ -1950,9 +1950,8 @@ async initializeStallInventory(stallId) {
     getStallInventorySummary(stallId) {
   const inventory = this.getStallInventory(stallId)
   if (inventory.length === 0) {
-    // Only show Chicken with pieces
     return [
-      { material_name: 'Chicken', current_level: '?', alert_level: 20 }
+      { material_name: 'Chicken', current_level: '?', alert_level: 10 }  // Changed from 20 to 10
     ]
   }
   return inventory

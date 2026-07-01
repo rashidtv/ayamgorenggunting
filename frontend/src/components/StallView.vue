@@ -88,7 +88,7 @@
    <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
   <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
   <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
-    {{ r.material_name }}: {{ r.quantity_used }} pieces
+    {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
   </span>
 </div>
 <div v-else class="item-recipe-info no-recipe">
@@ -1786,6 +1786,58 @@ getImageUrl(imagePath) {
     font-size: 1.3rem;
     width: 36px;
     height: 36px;
+  }
+}
+
+/* ============================================ */
+/* RECIPE INDICATORS - IMPROVED                 */
+/* ============================================ */
+.item-recipe-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.recipe-badge {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.no-recipe .recipe-badge {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.recipe-detail {
+  font-size: 0.6rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.05rem 0.4rem;
+  border-radius: 8px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Desktop - better spacing */
+@media (min-width: 769px) {
+  .item-recipe-info {
+    gap: 0.5rem;
+  }
+  
+  .recipe-detail {
+    font-size: 0.65rem;
+    padding: 0.05rem 0.5rem;
   }
 }
 </style>

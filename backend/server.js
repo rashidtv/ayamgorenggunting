@@ -263,20 +263,29 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
       'SELECT * FROM inventory WHERE stall_id = ANY($1::int[]) ORDER BY material_name',
       [stallIds]
     );
-    res.json(inventoryRes.rows);
+    
+    // Ensure alert_level is set to 10 for Chicken if not set
+    const results = inventoryRes.rows.map(item => ({
+      ...item,
+      alert_level: item.material_name === 'Chicken' ? (item.alert_level || 10) : item.alert_level
+    }));
+    
+    res.json(results);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
 
+
+// ==================== INVENTORY UPDATE ROUTE ====================
 app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   const { materialName, newLevel, stallId } = req.body;
   let targetStallId = stallId ? parseInt(stallId) : null;
 
   if (!targetStallId) {
     if (req.user.role === 'super_super_admin') {
-      return res.status(400).json({ error: 'stallId required for super_super_admin' });
+      return res.status(400).json({ error: 'stallId required' });
     }
     targetStallId = req.user.assigned_stalls?.[0]?.id;
   }
@@ -287,16 +296,31 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: 'Access denied' });
 
   try {
-    const result = await pool.query(
-      `UPDATE inventory SET current_level = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE stall_id = $2 AND material_name = $3`,
-      [newLevel, targetStallId, materialName]
+    // Check if inventory exists for this stall and material
+    const checkRes = await pool.query(
+      'SELECT id FROM inventory WHERE stall_id = $1 AND material_name = $2',
+      [targetStallId, materialName]
     );
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Material not found' });
+
+    if (checkRes.rows.length === 0) {
+      // Insert new inventory with default alert level
+      await pool.query(
+        `INSERT INTO inventory (stall_id, material_name, current_level, alert_level) 
+         VALUES ($1, $2, $3, $4)`,
+        [targetStallId, materialName, newLevel, 10]
+      );
+    } else {
+      // Update existing inventory
+      await pool.query(
+        `UPDATE inventory SET current_level = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE stall_id = $2 AND material_name = $3`,
+        [newLevel, targetStallId, materialName]
+      );
+    }
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Update failed' });
+    console.error('Inventory update error:', err);
+    res.status(500).json({ error: 'Failed to update inventory' });
   }
 });
 
