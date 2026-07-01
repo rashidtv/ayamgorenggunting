@@ -510,12 +510,14 @@
                   <span class="menu-item-category">{{ item.category || 'Main' }}</span>
                 </div>
                 <div class="menu-item-recipe">
-                  <span class="recipe-label">Recipe:</span>
-                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
-                    {{ item.recipe.map(r => `${r.material_name}: ${r.quantity_used}${getUnit(r.material_name)}`).join(', ') }}
-                  </span>
-                  <span v-else class="recipe-empty">No recipe</span>
-                </div>
+  <span class="recipe-label">Recipe:</span>
+  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
+    <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
+      {{ r.material_name }}: {{ r.quantity_used }} pieces
+    </span>
+  </span>
+  <span v-else class="recipe-empty">No recipe</span>
+</div>
                 <div class="menu-item-actions">
                   <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
                   <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
@@ -647,37 +649,40 @@
       </div>
       
       <!-- ===== RECIPE SECTION - FIXED ===== -->
-      <div class="modal-form-group recipe-section">
-        <label>Recipe (Ingredients)</label>
-        <p class="recipe-hint">Add ingredients needed for this menu item. Leave empty if no ingredients needed.</p>
-        
-        <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
-          <div class="recipe-field">
-            <label class="recipe-label">Ingredient</label>
-            <input 
-              v-model="ingredient.material_name" 
-              placeholder="e.g., Chicken piece" 
-              class="recipe-input" 
-            />
-          </div>
-          <div class="recipe-field">
-            <label class="recipe-label">Quantity</label>
-            <input 
-              type="number" 
-              v-model="ingredient.quantity_used" 
-              placeholder="e.g., 2" 
-              class="recipe-input-small" 
-              step="1" 
-              min="1"
-            />
-          </div>
-          <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
-        </div>
-        
-        <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
-          + Add Ingredient
-        </button>
-      </div>
+      <!-- ===== RECIPE SECTION - SIMPLIFIED ===== -->
+<div class="modal-form-group recipe-section">
+  <label>Recipe (Ingredients)</label>
+  <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
+  
+  <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
+    <div class="recipe-field">
+      <label class="recipe-label">Ingredient</label>
+      <input 
+        v-model="ingredient.material_name" 
+        placeholder="Chicken" 
+        class="recipe-input" 
+        value="Chicken"
+        readonly
+      />
+    </div>
+    <div class="recipe-field">
+      <label class="recipe-label">Pieces Needed</label>
+      <input 
+        type="number" 
+        v-model="ingredient.quantity_used" 
+        placeholder="e.g., 2" 
+        class="recipe-input-small" 
+        step="1" 
+        min="1"
+      />
+    </div>
+    <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
+  </div>
+  
+  <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
+    + Add Chicken to Recipe
+  </button>
+</div>
     </div>
     <div class="modal-modern-footer">
       <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
@@ -1032,7 +1037,8 @@ export default {
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
-  return materialName === 'Oil' ? 'L' : 'kg'
+  // Only Chicken exists, always return 'pieces'
+  return 'pieces';
 },
 
 // =============================================
@@ -1545,7 +1551,7 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
     },
     addRecipeIngredient() {
   this.menuForm.recipe.push({ 
-    material_name: 'Chicken piece', 
+    material_name: 'Chicken', 
     quantity_used: 1 
   })
 },
@@ -1564,7 +1570,12 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
       price: parseFloat(this.menuForm.price),
       description: this.menuForm.description || '',
       category: this.menuForm.category || 'Main',
-      recipe: this.menuForm.recipe.filter(r => r.material_name && r.quantity_used > 0)
+      recipe: this.menuForm.recipe
+        .filter(r => r.material_name && r.quantity_used > 0)
+        .map(r => ({
+          material_name: 'Chicken',
+          quantity_used: parseInt(r.quantity_used) || 1
+        }))
     }
     
     // Handle image - compress if needed to avoid 413 error
@@ -1869,19 +1880,51 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
     // =============================================
     // INVENTORY METHODS
     // =============================================
+    // Add this method to initialize inventory for a new stall
+async initializeStallInventory(stallId) {
+  try {
+    // Only Chicken with pieces
+    await axios.post(`${API_BASE}/inventory/update`, {
+      stallId: stallId,
+      materialName: 'Chicken',
+      newLevel: 100  // Start with 100 pieces
+    }, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    console.log('✅ Inventory initialized for stall', stallId);
+  } catch (err) {
+    console.error('Failed to initialize inventory:', err);
+  }
+},
+    
     async loadAllStallsInventory() {
-      for (const stall of this.stalls) {
-        try {
-          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.stallInventory[stall.id] = res.data.map(item => ({
-            ...item,
-            newLevel: item.current_level
-          }))
-        } catch (err) {}
+  for (const stall of this.stalls) {
+    try {
+      const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      // If no inventory exists, initialize with Chicken
+      if (res.data.length === 0) {
+        await this.initializeStallInventory(stall.id);
+        // Reload after initialization
+        const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+        this.stallInventory[stall.id] = res2.data.map(item => ({
+          ...item,
+          newLevel: item.current_level
+        }));
+      } else {
+        this.stallInventory[stall.id] = res.data.map(item => ({
+          ...item,
+          newLevel: item.current_level
+        }));
       }
-    },
+    } catch (err) {
+      console.error(`Load inventory for stall ${stall.id} error:`, err);
+    }
+  }
+},
     toggleInventoryStall(stallId) {
       this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
       if (this.expandedInventoryStall === stallId) {
@@ -1905,16 +1948,15 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
       return this.stallInventory[stallId] || []
     },
     getStallInventorySummary(stallId) {
-      const inventory = this.getStallInventory(stallId)
-      if (inventory.length === 0) {
-        return [
-          { material_name: 'Chicken', current_level: '?', alert_level: 10 },
-          { material_name: 'Flour', current_level: '?', alert_level: 5 },
-          { material_name: 'Oil', current_level: '?', alert_level: 8 }
-        ]
-      }
-      return inventory
-    },
+  const inventory = this.getStallInventory(stallId)
+  if (inventory.length === 0) {
+    // Only show Chicken with pieces
+    return [
+      { material_name: 'Chicken', current_level: '?', alert_level: 20 }
+    ]
+  }
+  return inventory
+},
     getFilteredInventoryItems(stallId) {
       const inventory = this.getStallInventory(stallId)
       if (this.inventoryFilter === 'low') {
@@ -4015,5 +4057,15 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
+}
+
+.recipe-tag {
+  display: inline-block;
+  background: #f1f5f9;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  margin: 0.1rem 0.2rem;
+  font-size: 0.7rem;
+  border: 1px solid #e2e8f0;
 }
 </style>

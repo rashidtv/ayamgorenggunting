@@ -109,6 +109,11 @@ const userCanAccessCompany = (user, companyId) => {
 
 // ==================== HELPER FUNCTIONS ====================
 
+function getUnit(materialName) {
+  // Only Chicken exists now, always return 'pieces'
+  return 'pieces';
+}
+
 async function getUserById(id) {
   try {
     const res = await pool.query(`
@@ -1014,21 +1019,11 @@ app.delete('/api/menu/:itemName', authenticateToken, async (req, res) => {
 // Get all available materials – Allow any authenticated user
 app.get('/api/materials', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT DISTINCT material_name FROM inventory 
-      UNION 
-      SELECT DISTINCT material_name FROM recipes
-      ORDER BY material_name
-    `);
-    let materials = result.rows.map(r => r.material_name);
-    if (materials.length === 0) {
-      materials = ['Chicken', 'Flour', 'Oil'];
-    }
-    materials = materials.filter(m => m !== 'Spices');
-    res.json(materials);
+    // Only return Chicken as the only material
+    res.json(['Chicken']);
   } catch (err) {
     console.error('Error in /api/materials:', err);
-    res.json(['Chicken', 'Flour', 'Oil']);
+    res.json(['Chicken']);
   }
 });
 

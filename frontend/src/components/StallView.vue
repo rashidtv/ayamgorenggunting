@@ -85,15 +85,15 @@
     <div class="item-name">{{ item.item_name }}</div>
     <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
     <!-- RECIPE INDICATOR -->
-    <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
-      <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
-      <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
-        {{ r.material_name }}: {{ r.quantity_used }}
-      </span>
-    </div>
-    <div v-else class="item-recipe-info no-recipe">
-      <span class="recipe-badge">✅ No ingredients needed</span>
-    </div>
+   <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
+  <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
+  <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
+    {{ r.material_name }}: {{ r.quantity_used }} pieces
+  </span>
+</div>
+<div v-else class="item-recipe-info no-recipe">
+  <span class="recipe-badge">✅ No ingredients needed</span>
+</div>
   </div>
             <div class="item-action">
               <div class="item-price">{{ formatCurrency(item.price) }}</div>
@@ -175,9 +175,12 @@
             </div>
           </div>
           <div class="stock-levels">
-            <div class="level-current"><span class="level-value">{{ item.current_level.toFixed(2) }}</span><span class="level-unit">{{ getUnit(item.material_name) }}</span></div>
-            <div class="level-alert">Alert at: {{ item.alert_level }}{{ getUnit(item.material_name) }}</div>
-          </div>
+  <div class="level-current">
+    <span class="level-value">{{ item.current_level.toFixed(0) }}</span>
+    <span class="level-unit">pieces</span>
+  </div>
+  <div class="level-alert">Alert at: {{ item.alert_level }} pieces</div>
+</div>
           <div class="stock-progress">
             <div class="progress-info">
               <span class="progress-label">Stock Level</span>
@@ -186,9 +189,16 @@
             <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
           </div>
           <div class="inventory-actions" v-if="role !== 'cashier'">
-            <button @click="updateStock(item.material_name, item.current_level + 5)" class="btn btn-outline stock-btn" :disabled="connectionError"><span class="btn-icon">+</span> Add 5{{ getUnit(item.material_name) }}</button>
-            <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError"><span class="btn-icon">+</span> Add 1{{ getUnit(item.material_name) }}</button>
-          </div>
+  <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
+    <span class="btn-icon">+</span> Add 10 pieces
+  </button>
+  <button @click="updateStock(item.material_name, item.current_level + 5)" class="btn btn-ghost stock-btn" :disabled="connectionError">
+    <span class="btn-icon">+</span> Add 5 pieces
+  </button>
+  <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError">
+    <span class="btn-icon">+</span> Add 1 piece
+  </button>
+</div>
           <div class="inventory-glow"></div>
         </div>
       </div>
@@ -365,8 +375,9 @@ getImageUrl(imagePath) {
   return imagePath
 },
     getUnit(materialName) {
-      return materialName === 'Oil' ? 'L' : 'kg'
-    },
+  // Only Chicken exists, always return 'pieces'
+  return 'pieces';
+},
 
     updateLastUpdateTime() {
       const now = new Date()
