@@ -298,6 +298,7 @@ export default {
   background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
   color: white;
   padding: 0;
+  padding-left: 2rem;  /* ADD THIS - creates space on the left */
   display: flex;
   align-items: center;
   justify-content: center;
