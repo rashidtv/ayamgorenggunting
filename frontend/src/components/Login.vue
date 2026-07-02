@@ -11,29 +11,37 @@
     </div>
 
     <div class="login-content">
-      <!-- Left Panel - Brand -->
+      <!-- Brand Panel - Now showing banner -->
       <div class="brand-panel">
         <div class="brand-content">
-          <div class="logo-animation">
-            <div class="logo-icon">
-              <img v-if="companyLogo" :src="companyLogo" alt="Chickory Hub Logo" class="login-logo-image" />
-              <span v-else>🍗</span>
-            </div>
-            <div class="logo-rings">
-              <div class="ring ring-1"></div>
-              <div class="ring ring-2"></div>
-              <div class="ring ring-3"></div>
+          <!-- BANNER IMAGE - Full width, no text overlay -->
+          <div class="banner-wrapper">
+            <img 
+              v-if="bannerImage" 
+              :src="bannerImage" 
+              alt="Chickory Hub Banner" 
+              class="login-banner-image"
+            />
+            <!-- Fallback if no banner -->
+            <div v-else class="banner-fallback">
+              <div class="logo-animation">
+                <div class="logo-icon">🍗</div>
+                <div class="logo-rings">
+                  <div class="ring ring-1"></div>
+                  <div class="ring ring-2"></div>
+                  <div class="ring ring-3"></div>
+                </div>
+              </div>
+              <h1 class="brand-title">
+                <span class="brand-text">Chickory</span>
+                <span class="brand-text">Hub</span>
+              </h1>
+              <p class="brand-tagline">Business Intelligence Platform</p>
             </div>
           </div>
           
-          <h1 class="brand-title">
-            <span class="brand-text">Chickory</span>
-            <span class="brand-text">Hub</span>
-          </h1>
-          
-          <p class="brand-tagline">Business Intelligence Platform</p>
-          
-          <div class="feature-list">
+          <!-- Feature List - Only show if no banner -->
+          <div v-if="!bannerImage" class="feature-list">
             <div class="feature-item">
               <span class="feature-icon">📊</span>
               <span>Real-time Analytics</span>
@@ -120,6 +128,7 @@
 
 <script>
 import axios from 'axios'
+
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
@@ -136,28 +145,24 @@ export default {
       password: '',
       error: '',
       loading: false,
-    bannerImage: localStorage.getItem('systemBanner') || null  // Changed from 'companyBanner'
+      bannerImage: localStorage.getItem('systemBanner') || null
     }
   },
-
   mounted() {
-  this.fetchBanner()
-},
-
-methods: {
-  async fetchBanner() {
-    try {
-      const response = await axios.get(`${API_BASE}/system/banner`)
-      if (response.data.bannerUrl) {
-        this.bannerImage = response.data.bannerUrl
-        localStorage.setItem('systemBanner', response.data.bannerUrl)
-      }
-    } catch (err) {
-      console.log('No system banner found, using default')
-    }
+    this.fetchBanner()
   },
-  
   methods: {
+    async fetchBanner() {
+      try {
+        const response = await axios.get(`${API_BASE}/system/banner`)
+        if (response.data.bannerUrl) {
+          this.bannerImage = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+        }
+      } catch (err) {
+        console.log('No system banner found, using default')
+      }
+    },
     async login() {
       this.loading = true
       this.error = ''
@@ -288,16 +293,17 @@ methods: {
   position: relative;
 }
 
-/* ===== BRAND PANEL ===== */
+/* ===== BRAND PANEL - BANNER DISPLAY ===== */
 .brand-panel {
   background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
   color: white;
-  padding: 2.5rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  min-height: 400px;
 }
 
 .brand-panel::before {
@@ -327,14 +333,39 @@ methods: {
 }
 
 .brand-content {
-  text-align: center;
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 400px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ===== LOGO ANIMATION ===== */
+/* ===== BANNER IMAGE ===== */
+.banner-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.login-banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ===== FALLBACK (NO BANNER) ===== */
+.banner-fallback {
+  text-align: center;
+  padding: 2rem;
+  width: 100%;
+}
+
 .logo-animation {
   position: relative;
   width: 100px;
@@ -352,13 +383,6 @@ methods: {
   justify-content: center;
   width: 100%;
   height: 100%;
-}
-
-.login-logo-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 50%;
 }
 
 .logo-rings {
@@ -407,13 +431,11 @@ methods: {
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
 }
 
-/* ===== BRAND TITLE ===== */
 .brand-title {
   font-size: 2.8rem;
   font-weight: 800;
   margin-bottom: 0.25rem;
   line-height: 1.1;
-  word-wrap: break-word;
   color: white;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
   animation: textFadeIn 1.2s ease-out;
@@ -450,7 +472,6 @@ methods: {
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* Feature List */
 .feature-list {
   display: flex;
   flex-direction: column;
@@ -505,12 +526,12 @@ methods: {
 .form-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--text, #1e293b);
   margin-bottom: 0.25rem;
 }
 
 .form-subtitle {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
   font-size: 0.9rem;
 }
 
@@ -530,17 +551,17 @@ methods: {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1rem;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #94a3b8);
   z-index: 2;
 }
 
 .modern-input {
   width: 100%;
   padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border, #e2e8f0);
   border-radius: 10px;
   font-size: 0.9rem;
-  background: var(--surface);
+  background: var(--surface, #ffffff);
   transition: all 0.3s ease;
   position: relative;
   z-index: 1;
@@ -660,9 +681,9 @@ methods: {
   text-align: center;
   padding-top: 1.5rem;
   margin-top: 1.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border, #e2e8f0);
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -699,12 +720,18 @@ methods: {
   }
   
   .brand-panel {
-    padding: 2rem 1.5rem;
-    min-height: 180px;
+    padding: 0;
+    min-height: 200px;
+    max-height: 300px;
   }
   
-  .brand-content {
-    max-width: none;
+  .login-banner-image {
+    object-fit: cover;
+    min-height: 200px;
+  }
+  
+  .banner-fallback {
+    padding: 1.5rem;
   }
   
   .logo-animation {
@@ -745,6 +772,15 @@ methods: {
 }
 
 @media (max-width: 480px) {
+  .brand-panel {
+    min-height: 150px;
+    max-height: 220px;
+  }
+  
+  .login-banner-image {
+    min-height: 150px;
+  }
+  
   .brand-title {
     font-size: 1.8rem;
   }
