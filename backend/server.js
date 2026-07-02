@@ -1222,8 +1222,11 @@ app.post('/api/system/banner', authenticateToken, upload.single('banner'), async
       return res.status(400).json({ error: 'No image uploaded' });
     }
     
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const bannerUrl = `${baseUrl}/uploads/banners/${req.file.filename}`;
+    // ===== FIX: Always use HTTPS =====
+    const baseUrl = process.env.BASE_URL || `https://${req.get('host')}`;
+    // Remove any http:// and ensure https://
+    const cleanBaseUrl = baseUrl.replace(/^http:\/\//, 'https://');
+    const bannerUrl = `${cleanBaseUrl}/uploads/banners/${req.file.filename}`;
     
     // Make sure uploads/banners directory exists
     const bannerDir = path.join(__dirname, 'uploads/banners');
