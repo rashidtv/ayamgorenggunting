@@ -297,8 +297,7 @@ export default {
 .brand-panel {
   background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
   color: white;
-  padding: 0;
-  padding-left: 2rem;  /* ADD THIS - creates space on the left */
+  padding: 0;  /* Keep padding 0 so background fills entire panel */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,6 +340,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-left: 2rem;  /* ADD THIS - moves the image right */
 }
 
 /* ===== BANNER IMAGE ===== */
