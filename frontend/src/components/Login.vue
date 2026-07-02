@@ -359,13 +359,6 @@ export default {
   display: block;
 }
 
-/* Desktop only */
-@media (min-width: 1024px) {
-  .login-banner-image {
-    transform: translateX(50px);
-  }
-}
-
 /* ===== FALLBACK (NO BANNER) ===== */
 .banner-fallback {
   text-align: center;
