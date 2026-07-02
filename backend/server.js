@@ -1169,4 +1169,111 @@ if (require.main === module) {
   });
 }
 
+// =============================================
+// SYSTEM BANNER ROUTES
+// =============================================
+
+// Get system banner (public - no auth required)
+app.get('/api/system/banner', async (req, res) => {
+  try {
+    // Check if system_settings table exists, if not create it
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'system_settings'
+      )
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      // Create table if it doesn't exist
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS system_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          banner_url TEXT,
+          updated_by INTEGER,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      // Insert default record
+      await pool.query(`INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
+    }
+    
+    const result = await pool.query(
+      `SELECT banner_url FROM system_settings WHERE id = 1`
+    );
+    res.json({ 
+      bannerUrl: result.rows[0]?.banner_url || null 
+    });
+  } catch (err) {
+    console.error('Get banner error:', err);
+    res.json({ bannerUrl: null });
+  }
+});
+
+// Upload system banner (Super Super Admin only)
+app.post('/api/system/banner', authenticateToken, upload.single('banner'), async (req, res) => {
+  // Check if user is Super Super Admin
+  if (req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Only System Administrators can upload banners' });
+  }
+  
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image uploaded' });
+    }
+    
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const bannerUrl = `${baseUrl}/uploads/banners/${req.file.filename}`;
+    
+    // Make sure uploads/banners directory exists
+    const bannerDir = path.join(__dirname, 'uploads/banners');
+    if (!fs.existsSync(bannerDir)) {
+      fs.mkdirSync(bannerDir, { recursive: true });
+    }
+    
+    // Ensure system_settings table exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        banner_url TEXT,
+        updated_by INTEGER,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Insert or update
+    await pool.query(`
+      INSERT INTO system_settings (id, banner_url, updated_by, updated_at)
+      VALUES (1, $1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET 
+        banner_url = EXCLUDED.banner_url,
+        updated_by = EXCLUDED.updated_by,
+        updated_at = CURRENT_TIMESTAMP
+    `, [bannerUrl, req.user.id]);
+    
+    res.json({ success: true, bannerUrl });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Failed to upload banner: ' + err.message });
+  }
+});
+
+// Remove system banner (Super Super Admin only)
+app.delete('/api/system/banner', authenticateToken, async (req, res) => {
+  // Check if user is Super Super Admin
+  if (req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Only System Administrators can remove banners' });
+  }
+  
+  try {
+    await pool.query(`
+      UPDATE system_settings SET banner_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = 1
+    `);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Remove banner error:', err);
+    res.status(500).json({ error: 'Failed to remove banner' });
+  }
+});
+
 module.exports = app;

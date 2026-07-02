@@ -79,13 +79,113 @@
               <span class="quick-icon">🔄</span>
               <span>Refresh Data</span>
             </button>
+            <button @click="activeTab = 'settings'" class="quick-btn">
+              <span class="quick-icon">⚙️</span>
+              <span>System Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SETTINGS TAB - System Admin Only              -->
+    <!-- ============================================ -->
+    <div v-if="activeTab === 'settings'" class="card full-width">
+      <div class="card-header">
+        <div>
+          <h3>⚙️ System Settings</h3>
+          <span class="card-subtitle">Customize the platform appearance</span>
+        </div>
+        <button @click="activeTab = null" class="btn-close">✕ Close</button>
+      </div>
+      <div class="card-body">
+        <!-- Banner Upload Section -->
+        <div class="settings-section">
+          <h4>Login Page Banner</h4>
+          <p class="settings-description">
+            Upload a banner image that will appear on the login page across all companies.
+            Recommended size: 3840 x 2160 pixels (16:9 ratio)
+          </p>
+          
+          <div class="banner-upload-area">
+            <!-- Current Banner Preview -->
+            <div v-if="bannerPreview || systemBanner" class="banner-preview">
+              <img 
+                :src="bannerPreview || systemBanner" 
+                alt="Login Banner" 
+                class="banner-image-preview"
+              />
+              <button 
+                v-if="bannerPreview" 
+                @click="removeBannerPreview" 
+                class="remove-banner-btn"
+                title="Remove banner"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <!-- Upload Area -->
+            <div 
+              v-else 
+              class="upload-drop-zone"
+              @dragover.prevent 
+              @drop.prevent="handleBannerDrop"
+            >
+              <input 
+                type="file" 
+                ref="bannerInput" 
+                accept="image/*" 
+                @change="handleBannerSelect" 
+                style="display:none" 
+              />
+              <div class="upload-content">
+                <span class="upload-icon">🖼️</span>
+                <p>Drag & drop your banner image here</p>
+                <p class="upload-hint">or <span @click="$refs.bannerInput.click()" class="upload-link">click to browse</span></p>
+                <p class="upload-format">Supports: JPG, PNG, WebP | Max: 10MB</p>
+              </div>
+            </div>
+            
+            <!-- Upload Progress -->
+            <div v-if="uploading" class="upload-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+              </div>
+              <span class="progress-text">{{ uploadProgress }}%</span>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="banner-actions">
+            <button 
+              @click="saveBanner" 
+              class="btn btn-primary" 
+              :disabled="!bannerPreview || uploading"
+            >
+              {{ uploading ? 'Uploading...' : 'Save Banner' }}
+            </button>
+            <button 
+              v-if="systemBanner" 
+              @click="removeBanner" 
+              class="btn btn-danger"
+            >
+              Remove Banner
+            </button>
+          </div>
+          
+          <!-- Current Banner Info -->
+          <div v-if="systemBanner" class="banner-info">
+            <span class="info-label">Current Banner:</span>
+            <span class="info-value">{{ systemBanner }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Companies Table -->
-    <div class="card full-width">
+    <div v-if="activeTab !== 'settings'" class="card full-width">
       <div class="card-header">
         <h3>🏢 Companies</h3>
         <button @click="openCompanyModal()" class="btn btn-primary btn-sm">+ New</button>
@@ -133,7 +233,7 @@
     </div>
 
     <!-- Stall & User Management for Selected Company -->
-    <div v-if="selectedCompany" class="card full-width selected-company">
+    <div v-if="selectedCompany && activeTab !== 'settings'" class="card full-width selected-company">
       <div class="card-header">
         <h3>📍 {{ selectedCompany.name }} – Management</h3>
         <button @click="selectedCompany = null" class="btn-close">✕ Close</button>
@@ -297,6 +397,7 @@ export default {
   props: ['token'],
   data() {
     return {
+      // Existing data
       health: { total_users: 0, total_stalls: 0, db_size_mb: 0, uptime: 99.95 },
       announcements: [],
       companies: [],
@@ -312,13 +413,25 @@ export default {
       userModal: false,
       newUser: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
       showAnnouncementModal: false,
-      newAnnouncement: { title: '', content: '', target_roles: [], end_date: '' }
+      newAnnouncement: { title: '', content: '', target_roles: [], end_date: '' },
+      
+      // New Settings data
+      activeTab: null,
+      bannerPreview: null,
+      bannerFile: null,
+      uploading: false,
+      uploadProgress: 0,
+      systemBanner: localStorage.getItem('systemBanner') || null,
     }
   },
   mounted() {
     this.loadData()
+    this.fetchBanner()
   },
   methods: {
+    // =============================================
+    // EXISTING METHODS
+    // =============================================
     async loadData() {
       try {
         const [health, ann, comp] = await Promise.all([
@@ -406,6 +519,157 @@ export default {
     async deleteAnnouncement(id) {
       await axios.delete(`${API_BASE}/announcements/${id}`, { headers: { Authorization: `Bearer ${this.token}` } })
       this.loadData()
+    },
+
+    // =============================================
+    // BANNER MANAGEMENT METHODS
+    // =============================================
+    async fetchBanner() {
+      try {
+        const response = await axios.get(`${API_BASE}/system/banner`)
+        if (response.data.bannerUrl) {
+          this.systemBanner = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+        }
+      } catch (err) {
+        console.log('No system banner found')
+      }
+    },
+
+    handleBannerSelect(event) {
+      const file = event.target.files[0]
+      if (file) {
+        this.processBannerFile(file)
+      }
+    },
+
+    handleBannerDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        this.processBannerFile(file)
+      }
+    },
+
+    processBannerFile(file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        this.$emit('show-notification', 'File too large. Maximum size is 10MB.', 'error')
+        return
+      }
+      
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
+        this.$emit('show-notification', 'Please upload JPG, PNG, or WebP images only.', 'error')
+        return
+      }
+      
+      this.bannerFile = file
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.bannerPreview = e.target.result
+      }
+      reader.readAsDataURL(file)
+      
+      // Reset input
+      if (this.$refs.bannerInput) {
+        this.$refs.bannerInput.value = ''
+      }
+    },
+
+    async saveBanner() {
+      if (!this.bannerPreview) {
+        this.$emit('show-notification', 'Please select an image first.', 'warning')
+        return
+      }
+      
+      this.uploading = true
+      this.uploadProgress = 0
+      
+      try {
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          if (this.uploadProgress < 90) {
+            this.uploadProgress += 10
+          }
+        }, 200)
+        
+        // Upload the banner
+        const formData = new FormData()
+        formData.append('banner', this.bannerFile || this.dataUrlToBlob(this.bannerPreview))
+        
+        const response = await axios.post(`${API_BASE}/system/banner`, formData, {
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            this.uploadProgress = Math.min(percentCompleted, 95)
+          }
+        })
+        
+        clearInterval(progressInterval)
+        this.uploadProgress = 100
+        
+        if (response.data.success) {
+          this.systemBanner = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+          this.$emit('show-notification', 'Banner uploaded successfully!', 'success')
+          
+          // Clear preview after save
+          setTimeout(() => {
+            this.bannerPreview = null
+            this.bannerFile = null
+            this.uploadProgress = 0
+            this.uploading = false
+          }, 1000)
+        }
+      } catch (err) {
+        console.error('Banner upload error:', err)
+        const errorMsg = err.response?.data?.error || 'Failed to upload banner. Please try again.'
+        this.$emit('show-notification', errorMsg, 'error')
+        this.uploading = false
+        this.uploadProgress = 0
+      }
+    },
+
+    async removeBanner() {
+      if (!confirm('Remove the system banner image?')) return
+      
+      try {
+        await axios.delete(`${API_BASE}/system/banner`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.systemBanner = null
+        this.bannerPreview = null
+        this.bannerFile = null
+        localStorage.removeItem('systemBanner')
+        this.$emit('show-notification', 'Banner removed successfully.', 'success')
+      } catch (err) {
+        console.error('Remove banner error:', err)
+        this.$emit('show-notification', 'Failed to remove banner.', 'error')
+      }
+    },
+
+    removeBannerPreview() {
+      this.bannerPreview = null
+      this.bannerFile = null
+      if (this.$refs.bannerInput) {
+        this.$refs.bannerInput.value = ''
+      }
+    },
+
+    dataUrlToBlob(dataUrl) {
+      const arr = dataUrl.split(',')
+      const mime = arr[0].match(/:(.*?);/)[1]
+      const bstr = atob(arr[1])
+      let n = bstr.length
+      const u8arr = new Uint8Array(n)
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n)
+      }
+      return new Blob([u8arr], { type: mime })
     }
   }
 }
@@ -523,6 +787,12 @@ export default {
   margin: 0;
 }
 
+.card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
 .card-body {
   padding: 1.25rem;
 }
@@ -546,9 +816,25 @@ export default {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-sm {
@@ -837,6 +1123,185 @@ export default {
   font-size: 1rem;
 }
 
+/* ============================================ */
+/* SETTINGS - BANNER UPLOAD                    */
+/* ============================================ */
+.settings-section {
+  padding: 0.5rem 0;
+}
+
+.settings-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.settings-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.banner-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  background: var(--background);
+  margin-bottom: 1rem;
+}
+
+.banner-upload-area:hover {
+  border-color: #F94908;
+}
+
+.banner-preview {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.banner-image-preview {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-banner-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-banner-btn:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.upload-drop-zone {
+  width: 100%;
+  padding: 2rem;
+  cursor: pointer;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-icon {
+  font-size: 3rem;
+}
+
+.upload-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.upload-hint {
+  font-size: 0.85rem !important;
+}
+
+.upload-link {
+  color: #F94908;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.upload-link:hover {
+  color: #d63d07;
+}
+
+.upload-format {
+  font-size: 0.75rem !important;
+  color: var(--text-tertiary) !important;
+}
+
+.upload-progress {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.banner-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.banner-info {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.info-value {
+  color: var(--text);
+  word-break: break-all;
+  font-size: 0.75rem;
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;
@@ -921,6 +1386,26 @@ export default {
   .modal {
     width: 95%;
     padding: 1rem;
+  }
+
+  .banner-preview {
+    max-width: 100%;
+  }
+  
+  .banner-image-preview {
+    max-height: 200px;
+  }
+  
+  .upload-drop-zone {
+    padding: 1rem;
+  }
+  
+  .upload-icon {
+    font-size: 2rem;
+  }
+  
+  .upload-content p {
+    font-size: 0.85rem;
   }
 }
 

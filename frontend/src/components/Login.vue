@@ -135,9 +135,28 @@ export default {
       username: '',
       password: '',
       error: '',
-      loading: false
+      loading: false,
+    bannerImage: localStorage.getItem('systemBanner') || null  // Changed from 'companyBanner'
     }
   },
+
+  mounted() {
+  this.fetchBanner()
+},
+
+methods: {
+  async fetchBanner() {
+    try {
+      const response = await axios.get(`${API_BASE}/system/banner`)
+      if (response.data.bannerUrl) {
+        this.bannerImage = response.data.bannerUrl
+        localStorage.setItem('systemBanner', response.data.bannerUrl)
+      }
+    } catch (err) {
+      console.log('No system banner found, using default')
+    }
+  },
+  
   methods: {
     async login() {
       this.loading = true
