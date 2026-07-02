@@ -1212,29 +1212,21 @@ app.get('/api/system/banner', async (req, res) => {
 
 // Upload system banner (Super Super Admin only)
 app.post('/api/system/banner', authenticateToken, upload.single('banner'), async (req, res) => {
-  // Check if user is Super Super Admin
   if (req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Only System Administrators can upload banners' });
   }
-  
+
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image uploaded' });
     }
-    
-    // ===== FIX: Always use HTTPS =====
+
     const baseUrl = process.env.BASE_URL || `https://${req.get('host')}`;
-    // Remove any http:// and ensure https://
     const cleanBaseUrl = baseUrl.replace(/^http:\/\//, 'https://');
-    const bannerUrl = `${cleanBaseUrl}/uploads/banners/${req.file.filename}`;
-    
-    // Make sure uploads/banners directory exists
-    const bannerDir = path.join(__dirname, 'uploads/banners');
-    if (!fs.existsSync(bannerDir)) {
-      fs.mkdirSync(bannerDir, { recursive: true });
-    }
-    
-    // Ensure system_settings table exists
+
+    // ✅ Correct URL
+    const bannerUrl = `${cleanBaseUrl}/uploads/${req.file.filename}`;
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS system_settings (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -1243,21 +1235,21 @@ app.post('/api/system/banner', authenticateToken, upload.single('banner'), async
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
-    // Insert or update
+
     await pool.query(`
       INSERT INTO system_settings (id, banner_url, updated_by, updated_at)
       VALUES (1, $1, $2, CURRENT_TIMESTAMP)
-      ON CONFLICT (id) DO UPDATE SET 
+      ON CONFLICT (id) DO UPDATE SET
         banner_url = EXCLUDED.banner_url,
         updated_by = EXCLUDED.updated_by,
         updated_at = CURRENT_TIMESTAMP
     `, [bannerUrl, req.user.id]);
-    
+
     res.json({ success: true, bannerUrl });
+
   } catch (err) {
-    console.error('Upload error:', err);
-    res.status(500).json({ error: 'Failed to upload banner: ' + err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
