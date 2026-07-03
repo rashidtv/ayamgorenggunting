@@ -977,49 +977,47 @@ export default {
       return matchesSearch && matchesCategory
     })
   },
-    
-    filteredInventoryStalls() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-                              this.getStallInventory(stall.id).some(item => 
-                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-                              )
-        const matchesStatus = this.inventoryFilter === 'all' || 
-                              (this.inventoryFilter === 'active' && stall.is_active) ||
-                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
-                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-        return matchesSearch && matchesStatus
-      })
-    },
-    filteredLowStock() {
-      if (this.inventorySearch) {
-        return this.lowStock.filter(item => 
-          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-        )
-      }
-      return this.lowStock
-    },
-    filteredStallsList() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-        const matchesStatus = this.stallStatusFilter === 'all' || 
-                              (this.stallStatusFilter === 'active' && stall.is_active) ||
-                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
-        return matchesSearch && matchesStatus
-      })
-    },
-    filteredUsersList() {
-      return this.users.filter(user => {
-        const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase()))
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-        return matchesSearch && matchesRole
-      })
+  filteredInventoryStalls() {
+    return this.stalls.filter(stall => {
+      const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                            this.getStallInventory(stall.id).some(item => 
+                              item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                            )
+      const matchesStatus = this.inventoryFilter === 'all' || 
+                            (this.inventoryFilter === 'active' && stall.is_active) ||
+                            (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                            (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+      return matchesSearch && matchesStatus
+    })
+  },
+  filteredLowStock() {
+    if (this.inventorySearch) {
+      return this.lowStock.filter(item => 
+        item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+        item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+      )
     }
-
-     activeTabLabel() {
+    return this.lowStock
+  },
+  filteredStallsList() {
+    return this.stalls.filter(stall => {
+      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+      const matchesStatus = this.stallStatusFilter === 'all' || 
+                            (this.stallStatusFilter === 'active' && stall.is_active) ||
+                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
+      return matchesSearch && matchesStatus
+    })
+  },
+  filteredUsersList() {
+    return this.users.filter(user => {
+      const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+                            (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase()))
+      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+      return matchesSearch && matchesRole
+    })
+  },  // <-- ADD COMMA HERE
+  activeTabLabel() {
     const tab = this.tabs.find(t => t.id === this.activeTab)
     return tab ? tab.label : 'Dashboard'
   },
@@ -1027,8 +1025,7 @@ export default {
     const tab = this.tabs.find(t => t.id === this.activeTab)
     return tab ? tab.icon : '📊'
   }
-}
-  },
+}  // <-- ONLY ONE } HERE to close computed
   mounted() {
     this.loadData()
     this.fetchBanner()
