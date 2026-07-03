@@ -363,7 +363,8 @@ export default {
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;  /* Changed from 'cover' to 'contain' */
+  object-fit: cover;
+  object-position: 30% center;  /* Focus on 30% from the left */
   display: block;
 }
 
