@@ -21,20 +21,6 @@
       </div>
     </div>
 
-    <!-- Connection Status - ONLY SHOWS WHEN ERROR -->
-    <div v-if="connectionError" class="connection-banner error">
-      <div class="banner-content">
-        <span class="banner-icon">⚠️</span>
-        <div class="banner-text">
-          <div class="banner-title">Connection Issue</div>
-          <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
-        </div>
-        <button @click="loadData" class="btn btn-outline retry-btn">
-          <span class="btn-icon">🔄</span> Retry Connection
-        </button>
-      </div>
-    </div>
-
     <!-- ===== BANNER SECTION ===== -->
     <div v-if="systemBanner" class="banner-section">
       <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
@@ -685,7 +671,7 @@ export default {
 }
 
 /* ============================================ */
-/* TOP CONTROLS ROW - Same as Super Admin       */
+/* TOP CONTROLS ROW - Exactly like Super Admin  */
 /* ============================================ */
 .top-controls-row {
   display: flex;
@@ -759,63 +745,7 @@ export default {
   font-size: 0.9rem;
 }
 
-/* ============================================ */
-/* CONNECTION BANNER - ONLY SHOWS WHEN ERROR   */
-/* ============================================ */
-.connection-banner {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--radius-lg);
-  padding: var(--space);
-  margin-bottom: 1.25rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.connection-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--error);
-  opacity: 0.6;
-}
-
-.banner-content {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space);
-}
-
-.banner-icon {
-  font-size: var(--font-size-lg);
-  flex-shrink: 0;
-}
-
-.banner-text {
-  flex: 1;
-}
-
-.banner-title {
-  font-weight: 600;
-  color: var(--error);
-  margin-bottom: var(--space-xs);
-  font-size: var(--font-size-sm);
-}
-
-.banner-desc {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-}
-
-.retry-btn {
-  flex-shrink: 0;
-}
-
-/* ===== BANNER SECTION - MATCHING SUPER ADMIN ===== */
+/* ===== BANNER SECTION - EXACTLY LIKE SUPER ADMIN ===== */
 .banner-section {
   margin-bottom: 1.25rem;
   border-radius: 12px;
