@@ -4085,7 +4085,7 @@ async initializeStallInventory(stallId) {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
-}
+
 
 .recipe-tag {
   display: inline-block;
