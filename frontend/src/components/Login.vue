@@ -324,22 +324,16 @@ export default {
   padding-left: 2rem;  /* ADD THIS - moves the image right */
 }
 
-/* ===== BANNER IMAGE ===== */
-/* ===== BRAND PANEL - WHITE BACKGROUND ===== */
 .brand-panel {
-  background: #ffffff;  /* White to match container */
-  color: #1e293b;
+  background: #ffffff;
   padding: 0;
-  padding-left: 2rem;  /* Moves the image right */
   display: flex;
   align-items: center;
-  justify-content: flex-start;  /* Align content to the left with padding */
-  position: relative;
+  justify-content: center;
+  min-height: 550px;  /* Increased from 400px to 550px */
   overflow: hidden;
-  min-height: 400px;
 }
 
-/* Remove orange effects */
 .brand-panel::before,
 .brand-panel::after {
   display: none;
@@ -359,7 +353,7 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 50%;  /* Centers the image perfectly */
+  object-position: center;
   display: block;
 }
 
