@@ -28,19 +28,28 @@
     <div v-else class="app-layout">
       <!-- Modern Header with Logo -->
       <header class="app-header">
-        <div class="header-content">
-          <div class="brand">
-            <div class="logo">
-              <div class="logo-placeholder" @click="openLogoUpload">
-                <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
-                <span v-else class="logo-icon">🍗</span>
-              </div>
-              <div class="logo-text">
-                <h1>Chickory Hub</h1>
-              </div>
-            </div>
-          </div>
-          <div class="header-controls">
+  <div class="header-content">
+    <!-- System Banner (replaces logo) -->
+    <div v-if="systemBanner" class="header-banner">
+      <img 
+        :src="systemBanner" 
+        alt="Chickory Hub" 
+        class="header-banner-image"
+      />
+    </div>
+    <!-- Fallback brand logo -->
+    <div v-else class="brand">
+      <div class="logo">
+        <div class="logo-placeholder" @click="openLogoUpload">
+          <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
+          <span v-else class="logo-icon">🍗</span>
+        </div>
+        <div class="logo-text">
+          <h1>Chickory Hub</h1>
+        </div>
+      </div>
+    </div>
+    <div class="header-controls">
             <div class="control-group">
               <button 
                 @click="toggleNotifications" 
@@ -204,6 +213,7 @@ export default {
       companyLogo: localStorage.getItem('companyLogo') || null,
       logoUploadModal: false,
       tempLogoPreview: null,
+      systemBanner: localStorage.getItem('systemBanner') || null,
       tempLogoFile: null,
     };
   },
@@ -281,6 +291,20 @@ export default {
         this.logoUploadModal = false
         this.showNotification('Logo updated successfully!', 'success')
       }
+
+  async fetchSystemBanner() {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'}/system/banner`)
+      if (response.data.bannerUrl) {
+        this.systemBanner = response.data.bannerUrl
+        localStorage.setItem('systemBanner', response.data.bannerUrl)
+      }
+    } catch (err) {
+      console.log('No system banner found')
+    }
+  },
+}
+
     },
 
     // =============================================
@@ -568,6 +592,7 @@ export default {
     this.initializeApp();
     this.initializePWA();
     this.checkNetworkStatus();
+    this.fetchSystemBanner();
     window.addEventListener('unhandledrejection', (event) => {
       console.error('Unhandled promise rejection:', event.reason);
       this.showNotification('Something went wrong. Please try again.', 'error');
@@ -1352,4 +1377,44 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ===== HEADER BANNER ===== */
+.header-banner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  max-height: 60px;
+  flex: 0 1 auto;
+}
+
+.header-banner-image {
+  height: 100%;
+  max-height: 55px;
+  width: auto;
+  max-width: 300px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-banner {
+    max-height: 40px;
+  }
+  .header-banner-image {
+    max-height: 36px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-banner {
+    max-height: 32px;
+  }
+  .header-banner-image {
+    max-height: 28px;
+    max-width: 150px;
+  }
+}
+
 </style>
