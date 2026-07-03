@@ -29,52 +29,34 @@
       <!-- Modern Header with Logo -->
       <header class="app-header">
   <div class="header-content">
-    <!-- System Banner (replaces logo) -->
-    <div v-if="systemBanner" class="header-banner">
-      <img 
-        :src="systemBanner" 
-        alt="Chickory Hub" 
-        class="header-banner-image"
-      />
-    </div>
-    <!-- Fallback brand logo -->
-    <div v-else class="brand">
-      <div class="logo">
-        <div class="logo-placeholder" @click="openLogoUpload">
-          <img v-if="companyLogo" :src="companyLogo" alt="Company Logo" class="logo-image" />
-          <span v-else class="logo-icon">🍗</span>
-        </div>
-        <div class="logo-text">
-          <h1>Chickory Hub</h1>
-        </div>
-      </div>
-    </div>
-    <div class="header-controls">
-            <div class="control-group">
-              <button 
-                @click="toggleNotifications" 
-                class="control-btn" 
-                :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
-              >
-                <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-              </button>
-              <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-                <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-              </button>
-              <div class="user-menu">
-                <span class="user-greeting">Hello, {{ user?.username || 'User' }}</span>
-                <div class="user-badge">
-                  <span class="user-role">{{ userRoleText }}</span>
-                </div>
-              </div>
-            </div>
-            <button @click="logout" class="btn btn-ghost logout-btn">
-              <span class="btn-icon">↩</span>
-              Sign Out
-            </button>
+    <!-- Remove brand/logo section completely -->
+    <!-- Just keep the header controls -->
+    <div class="header-controls" style="width: 100%; justify-content: flex-end;">
+      <div class="control-group">
+        <button 
+          @click="toggleNotifications" 
+          class="control-btn" 
+          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+        >
+          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+        </button>
+        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+        </button>
+        <div class="user-menu">
+          <span class="user-greeting">Hello, {{ user?.username || 'User' }}</span>
+          <div class="user-badge">
+            <span class="user-role">{{ userRoleText }}</span>
           </div>
         </div>
-      </header>
+      </div>
+      <button @click="logout" class="btn btn-ghost logout-btn">
+        <span class="btn-icon">↩</span>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</header>
 
       <!-- Logo Upload Modal -->
       <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
@@ -694,6 +676,7 @@ body {
   z-index: 100;
   backdrop-filter: blur(20px);
   background: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 0;
 }
 
 .dark-theme .app-header {
@@ -705,9 +688,9 @@ body {
   margin: 0 auto;
   padding: 0 var(--space-lg);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  height: 70px;
+  height: 56px;
 }
 
 .brand {
@@ -1288,20 +1271,13 @@ body {
 @media (max-width: 768px) {
   .header-content {
     padding: 0 var(--space);
-    flex-direction: column;
-    gap: var(--space);
-    height: auto;
-    padding: var(--space);
+    height: 48px;
   }
-
-  .header-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
+  
   .user-greeting {
     display: none;
   }
+}
 
   .main-content {
     padding: var(--space);
@@ -1329,13 +1305,11 @@ body {
 }
 
 @media (max-width: 480px) {
-  .logo-text h1 {
-    font-size: var(--font-size-lg);
-  }
-
   .header-content {
-    padding: var(--space-sm);
+    height: 44px;
+    padding: 0 var(--space-sm);
   }
+}
 
   .logo-placeholder {
     width: 36px;

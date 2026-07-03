@@ -4107,7 +4107,7 @@ async initializeStallInventory(stallId) {
   width: 100%;
   height: auto;
   max-height: 180px;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 

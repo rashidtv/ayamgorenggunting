@@ -1871,7 +1871,7 @@ getImageUrl(imagePath) {
   width: 100%;
   height: auto;
   max-height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
