@@ -26,37 +26,7 @@
     </div>
 
     <div v-else class="app-layout">
-      <!-- Modern Header with Logo -->
-      <header class="app-header">
-  <div class="header-content">
-    <!-- Remove brand/logo section completely -->
-    <!-- Just keep the header controls -->
-    <div class="header-controls" style="width: 100%; justify-content: flex-end;">
-      <div class="control-group">
-        <button 
-          @click="toggleNotifications" 
-          class="control-btn" 
-          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
-        >
-          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-        </button>
-        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-        </button>
-        <div class="user-menu">
-          <span class="user-greeting">Hello, {{ user?.username || 'User' }}</span>
-          <div class="user-badge">
-            <span class="user-role">{{ userRoleText }}</span>
-          </div>
-        </div>
-      </div>
-      <button @click="logout" class="btn btn-ghost logout-btn">
-        <span class="btn-icon">↩</span>
-        Sign Out
-      </button>
-    </div>
-  </div>
-</header>
+      <!-- ===== NO HEADER - REMOVED ===== -->
 
       <!-- Logo Upload Modal -->
       <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
@@ -103,6 +73,13 @@
                 :token="token || ''"
                 @show-notification="showNotification"
                 :company-logo="companyLogo"
+                :dark-mode="darkMode"
+                :notifications-enabled="notificationsEnabled"
+                @toggle-dark-mode="toggleDarkMode"
+                @toggle-notifications="toggleNotifications"
+                @logout="logout"
+                :username="user?.username"
+                :user-role-text="userRoleText"
               />
               <StallView
                 v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
@@ -111,6 +88,13 @@
                 :token="token || ''"
                 :role="user.role"
                 @show-notification="showNotification"
+                :dark-mode="darkMode"
+                :notifications-enabled="notificationsEnabled"
+                @toggle-dark-mode="toggleDarkMode"
+                @toggle-notifications="toggleNotifications"
+                @logout="logout"
+                :username="user?.username"
+                :user-role-text="userRoleText"
               />
               <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
             </template>
@@ -195,7 +179,6 @@ export default {
       companyLogo: localStorage.getItem('companyLogo') || null,
       logoUploadModal: false,
       tempLogoPreview: null,
-      systemBanner: localStorage.getItem('systemBanner') || null,
       tempLogoFile: null,
     };
   },
@@ -274,18 +257,6 @@ export default {
         this.showNotification('Logo updated successfully!', 'success')
       }
     },
-
- async fetchSystemBanner() {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'}/system/banner`);
-      if (response.data.bannerUrl) {
-        this.systemBanner = response.data.bannerUrl;
-        localStorage.setItem('systemBanner', response.data.bannerUrl);
-      }
-    } catch (err) {
-      console.log('No system banner found');
-    }
-  },
 
     // =============================================
     // AUTHENTICATION
@@ -572,7 +543,6 @@ export default {
     this.initializeApp();
     this.initializePWA();
     this.checkNetworkStatus();
-    this.fetchSystemBanner();
     window.addEventListener('unhandledrejection', (event) => {
       console.error('Unhandled promise rejection:', event.reason);
       this.showNotification('Something went wrong. Please try again.', 'error');
@@ -582,7 +552,7 @@ export default {
 </script>
 
 <style>
-/* ===== ROOT VARIABLES ===== */
+/* ===== ROOT VARIABLES - Keep existing ===== */
 :root {
   --primary: #F94908;
   --primary-dark: #d63d07;
@@ -666,195 +636,7 @@ body {
   flex-direction: column;
 }
 
-/* ===== HEADER ===== */
-.app-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.8);
-  padding: 0.5rem 0;
-}
-
-.dark-theme .app-header {
-  background: rgba(30, 41, 59, 0.8);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  height: 56px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.logo-placeholder {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
-  flex-shrink: 0;
-  transition: var(--transition);
-}
-
-.logo-placeholder:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-}
-
-.logo-icon {
-  font-size: 1.8rem;
-}
-
-.logo-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.logo-text h1 {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--primary);
-  line-height: 1.2;
-}
-
-/* ===== HEADER CONTROLS ===== */
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.control-btn {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-sm);
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.control-btn:hover {
-  background: var(--surface-elevated);
-  border-color: var(--primary);
-}
-
-.control-btn .control-icon {
-  font-size: 1.1rem;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.user-greeting {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.user-badge {
-  background: var(--primary-gradient);
-  color: white;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-/* ===== BUTTONS ===== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space);
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition);
-  font-family: inherit;
-}
-
-.btn-primary {
-  background: var(--primary-gradient);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.btn-outline:hover {
-  background: var(--surface-elevated);
-  border-color: var(--primary);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.btn-ghost:hover {
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.btn-icon {
-  font-size: var(--font-size);
-}
-
-.logout-btn {
-  color: var(--error);
-}
-
-.logout-btn:hover {
-  background: var(--error);
-  color: white;
-}
+/* ===== NO HEADER STYLES - REMOVED ===== */
 
 /* ===== LOGO UPLOAD MODAL ===== */
 .modal-overlay {
@@ -1269,15 +1051,6 @@ body {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .header-content {
-    padding: 0 var(--space);
-    height: 48px;
-  }
-  
-  .user-greeting {
-    display: none;
-  }
-
   .main-content {
     padding: var(--space);
   }
@@ -1296,26 +1069,6 @@ body {
 
   .notification {
     min-width: auto;
-  }
-
-  .user-menu {
-    flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 480px) {
-  .header-content {
-    height: 44px;
-    padding: 0 var(--space-sm);
-  }
-
-  .logo-placeholder {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .logo-icon {
-    font-size: 1.4rem;
   }
 }
 
@@ -1347,44 +1100,4 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-
-/* ===== HEADER BANNER ===== */
-.header-banner {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  max-height: 60px;
-  flex: 0 1 auto;
-}
-
-.header-banner-image {
-  height: 100%;
-  max-height: 55px;
-  width: auto;
-  max-width: 300px;
-  object-fit: contain;
-  display: block;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .header-banner {
-    max-height: 40px;
-  }
-  .header-banner-image {
-    max-height: 36px;
-    max-width: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .header-banner {
-    max-height: 32px;
-  }
-  .header-banner-image {
-    max-height: 28px;
-    max-width: 150px;
-  }
-}
-
 </style>

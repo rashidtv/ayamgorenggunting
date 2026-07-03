@@ -1,22 +1,68 @@
 <template>
   <div class="sa-dashboard">
-    <!-- ============================================ -->
-    <!-- TAB NAVIGATION - TOP (BEFORE STATS)          -->
-    <!-- ============================================ -->
-    <div class="tab-navigation-modern">
+    <!-- ===== TOP ROW: Tabs Dropdown + Period Dropdown + User Controls ===== -->
+<div class="top-controls-row">
+  <!-- Tabs Dropdown -->
+  <div class="tab-dropdown">
+    <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
+      <span class="dropdown-icon">{{ activeTabIcon }}</span>
+      <span class="dropdown-label">{{ activeTabLabel }}</span>
+      <span class="dropdown-arrow">▼</span>
+    </button>
+    <div v-if="dropdownOpen" class="dropdown-menu">
       <button 
         v-for="tab in tabs" 
         :key="tab.id"
-        :class="['tab-btn-modern', { active: activeTab === tab.id }]"
-        @click="switchTab(tab.id)"
+        :class="['dropdown-item', { active: activeTab === tab.id }]"
+        @click="selectTab(tab.id)"
       >
-        <span class="tab-icon-modern">{{ tab.icon }}</span>
-        <span class="tab-label-modern">{{ tab.label }}</span>
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="tab-badge-modern">
+        <span class="dropdown-item-icon">{{ tab.icon }}</span>
+        <span class="dropdown-item-label">{{ tab.label }}</span>
+        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="dropdown-badge">
           {{ lowStock.length }}
         </span>
       </button>
     </div>
+  </div>
+
+  <!-- Period Dropdown (only shows on dashboard) -->
+  <div v-if="activeTab === 'dashboard'" class="period-dropdown">
+    <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
+      <span class="dropdown-icon">📅</span>
+      <span class="dropdown-label">{{ getPeriodLabel() }}</span>
+      <span class="dropdown-arrow">▼</span>
+    </button>
+    <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
+      <button 
+        v-for="p in periods" 
+        :key="p.value"
+        :class="['dropdown-item', { active: selectedPeriod === p.value }]"
+        @click="selectPeriod(p.value)"
+      >
+        {{ p.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- User Controls -->
+  <div class="user-controls">
+    <button 
+      @click="toggleNotifications" 
+      class="control-btn" 
+      :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+    >
+      <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+    </button>
+    <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+      <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+    </button>
+    <span class="user-label">Hello, {{ username || 'User' }}</span>
+    <span class="user-badge">{{ userRoleText }}</span>
+    <button @click="logout" class="logout-btn">
+      <span class="btn-icon">↩</span> Sign Out
+    </button>
+  </div>
+</div>
 
  <!-- ===== BANNER SECTION ===== -->
     <div v-if="systemBanner" class="banner-section">
@@ -808,10 +854,22 @@ use([
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
+
+  props: {
+  token: { type: String, required: true },
+  companyLogo: { type: String, default: null },
+  // ADD THESE NEW PROPS:
+  darkMode: { type: Boolean, default: false },
+  notificationsEnabled: { type: Boolean, default: true },
+  username: { type: String, default: 'User' },
+  userRoleText: { type: String, default: 'User' }
+},
+
   props: ['token'],
   data() {
     return {
       // Tabs
+      
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -829,6 +887,8 @@ export default {
       isChartInitialized: false,
       
       // Data
+      dropdownOpen: false,
+      periodDropdownOpen: false,
       systemBanner: localStorage.getItem('systemBanner') || null,
       stalls: [],
       users: [],
@@ -905,6 +965,16 @@ export default {
     }
   },
   computed: {
+
+     activeTabLabel() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.label : 'Dashboard'
+  },
+  activeTabIcon() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.icon : '📊'
+  }
+}
     lowStockCount() {
       return this.lowStock.length
     },
@@ -963,6 +1033,7 @@ export default {
   mounted() {
     this.loadData()
     this.fetchBanner()
+    document.addEventListener('click', this.handleClickOutside)
   },
   watch: {
     salesTrend: {
@@ -994,6 +1065,7 @@ export default {
     }
   },
   beforeUnmount() {
+    
     if (this.chartInstance) {
       this.chartInstance.dispose()
       this.chartInstance = null
@@ -1005,9 +1077,46 @@ export default {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
     }
+    document.removeEventListener('click', this.handleClickOutside)
     window.removeEventListener('resize', this.handleChartResize)
   },
   methods: {
+
+      toggleDropdown() {
+    this.dropdownOpen = !this.dropdownOpen
+    if (this.dropdownOpen) this.periodDropdownOpen = false
+  },
+  togglePeriodDropdown() {
+    this.periodDropdownOpen = !this.periodDropdownOpen
+    if (this.periodDropdownOpen) this.dropdownOpen = false
+  },
+  selectTab(tabId) {
+    this.activeTab = tabId
+    this.dropdownOpen = false
+    this.switchTab(tabId)
+  },
+  selectPeriod(value) {
+    this.selectedPeriod = value
+    this.periodDropdownOpen = false
+    this.refreshAllData()
+  },
+  handleClickOutside(event) {
+    const container = this.$el
+    if (container && !container.contains(event.target)) {
+      this.dropdownOpen = false
+      this.periodDropdownOpen = false
+    }
+  },
+  toggleDarkMode() {
+    this.$emit('toggle-dark-mode')
+  },
+  toggleNotifications() {
+    this.$emit('toggle-notifications')
+  },
+  logout() {
+    this.$emit('logout')
+  },
+}
     // =============================================
     // FORMATTING
     // =============================================
@@ -4129,5 +4238,202 @@ async initializeStallInventory(stallId) {
     max-height: 90px;
   }
 }
+/* ===== TOP CONTROLS ROW ===== */
+.top-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
 
+/* ===== TAB DROPDOWN ===== */
+.tab-dropdown {
+  position: relative;
+  min-width: 180px;
+}
+
+.period-dropdown {
+  position: relative;
+  min-width: 120px;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: var(--transition);
+  width: 100%;
+}
+
+.dropdown-toggle:hover {
+  border-color: var(--primary);
+}
+
+.dropdown-toggle.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-arrow {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 50;
+  animation: dropdownSlide 0.2s ease;
+}
+
+.period-menu {
+  min-width: 140px;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--background);
+  color: var(--text);
+}
+
+.dropdown-item.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.dropdown-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  line-height: 18px;
+}
+
+/* ===== USER CONTROLS ===== */
+.user-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.control-btn:hover {
+  background: var(--surface-elevated);
+  border-color: var(--primary);
+}
+
+.user-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+}
+
+.user-badge {
+  background: var(--primary-gradient);
+  color: white;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.logout-btn {
+  color: var(--error);
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.logout-btn:hover {
+  background: var(--error);
+  color: white;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon {
+  font-size: 0.9rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .top-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .user-controls {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .tab-dropdown,
+  .period-dropdown {
+    min-width: unset;
+  }
+}
 </style>
