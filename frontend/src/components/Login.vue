@@ -330,7 +330,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 550px;  /* Increased from 400px to 550px */
+  min-height: 600px;  /* Increased */
   overflow: hidden;
 }
 
