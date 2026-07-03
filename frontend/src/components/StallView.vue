@@ -759,20 +759,41 @@ export default {
   font-size: 0.9rem;
 }
 
-/* ===== BANNER SECTION ===== */
+/* ===== BANNER SECTION - MATCHING SUPER ADMIN ===== */
 .banner-section {
   margin-bottom: 1.25rem;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--surface);
+  padding: 0.5rem;
 }
 
 .dashboard-banner {
   width: 100%;
   height: auto;
-  max-height: 150px;
+  max-height: 220px;
   object-fit: contain;
   display: block;
+  border-radius: 8px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-banner {
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-banner {
+    max-height: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 90px;
+  }
 }
 
 /* Connection Banner */
@@ -1884,10 +1905,6 @@ export default {
     width: 40px;
     height: 40px;
   }
-  
-  .dashboard-banner {
-    max-height: 90px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1940,10 +1957,6 @@ export default {
     font-size: 1.3rem;
     width: 36px;
     height: 36px;
-  }
-  
-  .dashboard-banner {
-    max-height: 60px;
   }
 }
 
