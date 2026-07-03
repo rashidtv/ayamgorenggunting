@@ -295,36 +295,22 @@ export default {
 
 /* ===== BRAND PANEL - BANNER DISPLAY ===== */
 .brand-panel {
-  background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
-  color: white;
-  padding: 0;  /* Keep padding 0 so background fills entire panel */
+  background: #ffffff;  /* White to match container */
+  color: #1e293b;
+  padding: 0;
+  padding-left: 2rem;  /* Moves the image right */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;  /* Align content to the left with padding */
   position: relative;
   overflow: hidden;
   min-height: 400px;
 }
 
-.brand-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
+/* Remove orange effects */
+.brand-panel::before,
 .brand-panel::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-  animation: glowPulse 4s ease-in-out infinite;
+  display: none;
 }
 
 @keyframes glowPulse {
@@ -344,6 +330,27 @@ export default {
 }
 
 /* ===== BANNER IMAGE ===== */
+/* ===== BRAND PANEL - WHITE BACKGROUND ===== */
+.brand-panel {
+  background: #ffffff;  /* White to match container */
+  color: #1e293b;
+  padding: 0;
+  padding-left: 2rem;  /* Moves the image right */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;  /* Align content to the left with padding */
+  position: relative;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+/* Remove orange effects */
+.brand-panel::before,
+.brand-panel::after {
+  display: none;
+}
+
+/* ===== BANNER WRAPPER ===== */
 .banner-wrapper {
   width: 100%;
   height: 100%;
