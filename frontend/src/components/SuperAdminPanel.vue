@@ -4108,7 +4108,7 @@ async initializeStallInventory(stallId) {
   height: auto;
   max-height: 250px;
   object-fit: cover;  /* Fills the space */
-  object-position: center;  /* Centers the image */
+  object-position: center 30%;  /* Centers the image */
   display: block;
 }
 
