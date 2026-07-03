@@ -1,5 +1,26 @@
 <template>
   <div class="stall-view">
+    <!-- ===== TOP ROW: User Controls ===== -->
+    <div class="top-controls-row">
+      <div class="user-controls">
+        <button 
+          @click="toggleNotifications" 
+          class="control-btn" 
+          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+        >
+          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+        </button>
+        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+        </button>
+        <span class="user-label">Hello, {{ username || 'User' }}</span>
+        <span class="user-badge">{{ userRoleText }}</span>
+        <button @click="logout" class="logout-btn">
+          <span class="btn-icon">↩</span> Sign Out
+        </button>
+      </div>
+    </div>
+
     <!-- Connection Status -->
     <div v-if="connectionError" class="connection-banner error">
       <div class="banner-content">
@@ -14,7 +35,8 @@
       </div>
     </div>
 
-<div v-if="systemBanner" class="banner-section">
+    <!-- ===== BANNER SECTION ===== -->
+    <div v-if="systemBanner" class="banner-section">
       <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
     </div>
 
@@ -76,29 +98,29 @@
           class="menu-item-wrapper"
         >
           <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
-  <div class="item-image-wrapper">
-    <img 
-      v-if="item.image && item.image.startsWith('data:image')" 
-      :src="item.image" 
-      :alt="item.item_name"
-      class="item-image"
-    />
-    <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
-  </div>
-  <div class="item-info">
-    <div class="item-name">{{ item.item_name }}</div>
-    <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
-    <!-- RECIPE INDICATOR -->
-   <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
-  <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
-  <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
-    {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
-  </span>
-</div>
-<div v-else class="item-recipe-info no-recipe">
-  <span class="recipe-badge">✅ No ingredients needed</span>
-</div>
-  </div>
+            <div class="item-image-wrapper">
+              <img 
+                v-if="item.image && item.image.startsWith('data:image')" 
+                :src="item.image" 
+                :alt="item.item_name"
+                class="item-image"
+              />
+              <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
+            </div>
+            <div class="item-info">
+              <div class="item-name">{{ item.item_name }}</div>
+              <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
+              <!-- RECIPE INDICATOR -->
+              <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
+                <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
+                <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
+                  {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
+                </span>
+              </div>
+              <div v-else class="item-recipe-info no-recipe">
+                <span class="recipe-badge">✅ No ingredients needed</span>
+              </div>
+            </div>
             <div class="item-action">
               <div class="item-price">{{ formatCurrency(item.price) }}</div>
               <div class="quantity-controls">
@@ -179,12 +201,12 @@
             </div>
           </div>
           <div class="stock-levels">
-  <div class="level-current">
-    <span class="level-value">{{ item.current_level.toFixed(0) }}</span>
-    <span class="level-unit">pieces</span>
-  </div>
-  <div class="level-alert">Alert at: {{ item.alert_level }} pieces</div>
-</div>
+            <div class="level-current">
+              <span class="level-value">{{ item.current_level.toFixed(0) }}</span>
+              <span class="level-unit">pieces</span>
+            </div>
+            <div class="level-alert">Alert at: {{ item.alert_level }} pieces</div>
+          </div>
           <div class="stock-progress">
             <div class="progress-info">
               <span class="progress-label">Stock Level</span>
@@ -193,16 +215,16 @@
             <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
           </div>
           <div class="inventory-actions" v-if="role !== 'cashier'">
-  <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
-    <span class="btn-icon">+</span> Add 10 pieces
-  </button>
-  <button @click="updateStock(item.material_name, item.current_level + 5)" class="btn btn-ghost stock-btn" :disabled="connectionError">
-    <span class="btn-icon">+</span> Add 5 pieces
-  </button>
-  <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError">
-    <span class="btn-icon">+</span> Add 1 piece
-  </button>
-</div>
+            <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
+              <span class="btn-icon">+</span> Add 10 pieces
+            </button>
+            <button @click="updateStock(item.material_name, item.current_level + 5)" class="btn btn-ghost stock-btn" :disabled="connectionError">
+              <span class="btn-icon">+</span> Add 5 pieces
+            </button>
+            <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError">
+              <span class="btn-icon">+</span> Add 1 piece
+            </button>
+          </div>
           <div class="inventory-glow"></div>
         </div>
       </div>
@@ -313,7 +335,11 @@ export default {
   props: { 
     stallId: { type: String, default: null }, 
     token: { type: String, default: null },
-    role: { type: String, default: 'stall_admin' }
+    role: { type: String, default: 'stall_admin' },
+    darkMode: { type: Boolean, default: false },
+    notificationsEnabled: { type: Boolean, default: true },
+    username: { type: String, default: 'User' },
+    userRoleText: { type: String, default: 'Stall Admin' }
   },
   data() {
     return {
@@ -358,32 +384,38 @@ export default {
     formatCurrency, 
     formatNumber,
 
+    // =============================================
+    // USER CONTROLS
+    // =============================================
+    toggleDarkMode() {
+      this.$emit('toggle-dark-mode')
+    },
+    toggleNotifications() {
+      this.$emit('toggle-notifications')
+    },
+    logout() {
+      this.$emit('logout')
+    },
+
     getIcon(itemName) {
       return this.iconMap[itemName] || '🍗'
     },
 
-getImageUrl(imagePath) {
-  if (!imagePath) return null
-  
-  // Already a full URL or base64
-  if (imagePath.startsWith('http') || imagePath.startsWith('data:image')) {
-    return imagePath
-  }
-  
-  // Relative path from uploads
-  if (imagePath.startsWith('/uploads/')) {
-    // Use your backend URL
-    const backendUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com'
-    return `${backendUrl}${imagePath}`
-  }
-  
-  // Fallback
-  return imagePath
-},
+    getImageUrl(imagePath) {
+      if (!imagePath) return null
+      if (imagePath.startsWith('http') || imagePath.startsWith('data:image')) {
+        return imagePath
+      }
+      if (imagePath.startsWith('/uploads/')) {
+        const backendUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com'
+        return `${backendUrl}${imagePath}`
+      }
+      return imagePath
+    },
+
     getUnit(materialName) {
-  // Only Chicken exists, always return 'pieces'
-  return 'pieces';
-},
+      return 'pieces'
+    },
 
     updateLastUpdateTime() {
       const now = new Date()
@@ -404,42 +436,42 @@ getImageUrl(imagePath) {
       } finally { this.loadingData = false }
     },
 
- async fetchBanner() {
-    try {
-      const response = await axios.get(`${API_BASE}/system/banner`)
-      if (response.data.bannerUrl) {
-        this.systemBanner = response.data.bannerUrl
-        localStorage.setItem('systemBanner', response.data.bannerUrl)
+    async fetchBanner() {
+      try {
+        const response = await axios.get(`${API_BASE}/system/banner`)
+        if (response.data.bannerUrl) {
+          this.systemBanner = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+        }
+      } catch (err) {
+        console.log('No system banner found')
       }
-    } catch (err) {
-      console.log('No system banner found')
-    }
-  },
+    },
 
-   async loadMenu() {
-  this.loadingMenu = true
-  try {
-    const res = await axios.get(`${API_BASE}/menu`, {
-      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-    })
-    console.log('📸 Menu items with recipes:', res.data.map(item => ({
-      name: item.item_name,
-      hasRecipe: item.recipe && item.recipe.length > 0,
-      recipeCount: item.recipe ? item.recipe.length : 0
-    })))
-    this.menuItems = res.data.map(item => ({
-      ...item,
-      quantity: 0
-    }))
-    this.menuQuantities = {}
-  } catch (error) {
-    console.error('Failed to load menu:', error)
-    this.menuItems = []
-    this.$emit('show-notification', 'Failed to load menu items', 'error')
-  } finally {
-    this.loadingMenu = false
-  }
-},
+    async loadMenu() {
+      this.loadingMenu = true
+      try {
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        console.log('📸 Menu items with recipes:', res.data.map(item => ({
+          name: item.item_name,
+          hasRecipe: item.recipe && item.recipe.length > 0,
+          recipeCount: item.recipe ? item.recipe.length : 0
+        })))
+        this.menuItems = res.data.map(item => ({
+          ...item,
+          quantity: 0
+        }))
+        this.menuQuantities = {}
+      } catch (error) {
+        console.error('Failed to load menu:', error)
+        this.menuItems = []
+        this.$emit('show-notification', 'Failed to load menu items', 'error')
+      } finally {
+        this.loadingMenu = false
+      }
+    },
 
     async loadInventory() {
       const response = await axios.get(`${API_BASE}/inventory`, {
@@ -490,7 +522,6 @@ getImageUrl(imagePath) {
       const newQty = this.menuQuantities[key] + delta
       if (newQty < 0) return
       this.menuQuantities[key] = newQty
-      // Update the menu item for display
       const menuItem = this.menuItems.find(i => i.item_name === key)
       if (menuItem) {
         menuItem.quantity = newQty
@@ -506,7 +537,6 @@ getImageUrl(imagePath) {
       
       this.loading = true
       try {
-        // Sell each quantity individually
         for (let i = 0; i < qty; i++) {
           await axios.post(`${API_BASE}/sell`, {
             itemName: item.item_name,
@@ -516,7 +546,6 @@ getImageUrl(imagePath) {
             headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
           })
         }
-        // Reset quantity
         this.menuQuantities[item.item_name] = 0
         const menuItem = this.menuItems.find(i => i.item_name === item.item_name)
         if (menuItem) {
@@ -653,6 +682,97 @@ getImageUrl(imagePath) {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* ============================================ */
+/* TOP CONTROLS ROW - Same as Super Admin       */
+/* ============================================ */
+.top-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.user-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.control-btn:hover {
+  background: var(--surface-elevated);
+  border-color: var(--primary);
+}
+
+.user-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+}
+
+.user-badge {
+  background: var(--primary-gradient);
+  color: white;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.logout-btn {
+  color: var(--error);
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.logout-btn:hover {
+  background: var(--error);
+  color: white;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon {
+  font-size: 0.9rem;
+}
+
+/* ===== BANNER SECTION ===== */
+.banner-section {
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-banner {
+  width: 100%;
+  height: auto;
+  max-height: 150px;
+  object-fit: contain;
+  display: block;
 }
 
 /* Connection Banner */
@@ -924,7 +1044,6 @@ getImageUrl(imagePath) {
   left: 100%;
 }
 
-/* Image Styles - FIXED */
 .item-image-wrapper {
   width: 90px;
   height: 90px;
@@ -1600,13 +1719,63 @@ getImageUrl(imagePath) {
   font-size: 0.9rem;
 }
 
+/* ============================================ */
+/* RECIPE INDICATORS                           */
+/* ============================================ */
+.item-recipe-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.recipe-badge {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.no-recipe .recipe-badge {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.recipe-detail {
+  font-size: 0.6rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.05rem 0.4rem;
+  border-radius: 8px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive */
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
 @media (max-width: 768px) {
+  .top-controls-row {
+    justify-content: center;
+  }
+  
+  .user-controls {
+    justify-content: center;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -1715,6 +1884,10 @@ getImageUrl(imagePath) {
     width: 40px;
     height: 40px;
   }
+  
+  .dashboard-banner {
+    max-height: 90px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1763,91 +1936,17 @@ getImageUrl(imagePath) {
     border-radius: 8px;
   }
   
-  /* ============================================ */
-/* RECIPE INDICATORS                           */
-/* ============================================ */
-.item-recipe-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
-}
-
-.recipe-badge {
-  font-size: 0.6rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 10px;
-  background: #e0e7ff;
-  color: #4338ca;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.no-recipe .recipe-badge {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.recipe-detail {
-  font-size: 0.6rem;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 0.05rem 0.4rem;
-  border-radius: 8px;
-  white-space: nowrap;
-}
-
   .item-icon {
     font-size: 1.3rem;
     width: 36px;
     height: 36px;
   }
+  
+  .dashboard-banner {
+    max-height: 60px;
+  }
 }
 
-/* ============================================ */
-/* RECIPE INDICATORS - IMPROVED                 */
-/* ============================================ */
-.item-recipe-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
-}
-
-.recipe-badge {
-  font-size: 0.6rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 10px;
-  background: #e0e7ff;
-  color: #4338ca;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  white-space: nowrap;
-}
-
-.no-recipe .recipe-badge {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.recipe-detail {
-  font-size: 0.6rem;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 0.05rem 0.4rem;
-  border-radius: 8px;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-}
-
-/* Desktop - better spacing */
 @media (min-width: 769px) {
   .item-recipe-info {
     gap: 0.5rem;
@@ -1858,33 +1957,4 @@ getImageUrl(imagePath) {
     padding: 0.05rem 0.5rem;
   }
 }
-
-/* ===== BANNER SECTION ===== */
-.banner-section {
-  margin-bottom: 1.25rem;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.dashboard-banner {
-  width: 100%;
-  height: auto;
-  max-height: 150px;
-  object-fit: contain;
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .dashboard-banner {
-    max-height: 90px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-banner {
-    max-height: 60px;
-  }
-}
-
 </style>
