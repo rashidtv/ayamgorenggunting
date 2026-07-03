@@ -1045,7 +1045,7 @@ export default {
     },
     getUnit(materialName) {
   // Only Chicken exists, always return 'pieces'
-  return 'pieces';
+  return 'pieces';  },
 
    async fetchBanner() {
     try {
