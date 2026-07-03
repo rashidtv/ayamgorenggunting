@@ -18,6 +18,11 @@
       </button>
     </div>
 
+ <!-- ===== BANNER SECTION ===== -->
+    <div v-if="systemBanner" class="banner-section">
+      <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
+    </div>
+
     <!-- ============================================ -->
     <!-- STATS CARDS                                  -->
     <!-- ============================================ -->
@@ -824,6 +829,7 @@ export default {
       isChartInitialized: false,
       
       // Data
+      systemBanner: localStorage.getItem('systemBanner') || null,
       stalls: [],
       users: [],
       lowStock: [],
@@ -956,6 +962,7 @@ export default {
   },
   mounted() {
     this.loadData()
+    this.fetchBanner()
   },
   watch: {
     salesTrend: {
@@ -1039,6 +1046,17 @@ export default {
     getUnit(materialName) {
   // Only Chicken exists, always return 'pieces'
   return 'pieces';
+
+   async fetchBanner() {
+    try {
+      const response = await axios.get(`${API_BASE}/system/banner`)
+      if (response.data.bannerUrl) {
+        this.systemBanner = response.data.bannerUrl
+        localStorage.setItem('systemBanner', response.data.bannerUrl)
+      }
+    } catch (err) {
+      console.log('No system banner found')
+    }
 },
 
 // =============================================
@@ -4076,4 +4094,33 @@ async initializeStallInventory(stallId) {
   font-size: 0.7rem;
   border: 1px solid #e2e8f0;
 }
+
+/* ===== BANNER SECTION ===== */
+.banner-section {
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-banner {
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .dashboard-banner {
+    max-height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 70px;
+  }
+}
+
 </style>

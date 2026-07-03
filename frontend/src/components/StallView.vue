@@ -14,6 +14,10 @@
       </div>
     </div>
 
+<div v-if="systemBanner" class="banner-section">
+      <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
+    </div>
+
     <!-- Quick Stats -->
     <div class="stats-grid">
       <div class="stat-card">
@@ -314,6 +318,7 @@ export default {
   data() {
     return {
       inventory: [],
+      systemBanner: localStorage.getItem('systemBanner') || null,
       processedInventory: [],
       todaySales: { items_sold: 0, total_revenue: 0 },
       analytics: { dailySales: [], productSales: {} },
@@ -341,6 +346,7 @@ export default {
   mounted() {
     this.loadData()
     this.loadMenu()
+    this.fetchBanner()
     this.interval = setInterval(this.loadData, 30000)
     this.updateTimeInterval = setInterval(this.updateLastUpdateTime, 60000)
   },
@@ -397,6 +403,19 @@ getImageUrl(imagePath) {
         this.$emit('show-notification', 'Failed to load data from server', 'error')
       } finally { this.loadingData = false }
     },
+
+ async fetchBanner() {
+    try {
+      const response = await axios.get(`${API_BASE}/system/banner`)
+      if (response.data.bannerUrl) {
+        this.systemBanner = response.data.bannerUrl
+        localStorage.setItem('systemBanner', response.data.bannerUrl)
+      }
+    } catch (err) {
+      console.log('No system banner found')
+    }
+  },
+}
 
    async loadMenu() {
   this.loadingMenu = true
@@ -1840,4 +1859,33 @@ getImageUrl(imagePath) {
     padding: 0.05rem 0.5rem;
   }
 }
+
+/* ===== BANNER SECTION ===== */
+.banner-section {
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-banner {
+  width: 100%;
+  height: auto;
+  max-height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .dashboard-banner {
+    max-height: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 60px;
+  }
+}
+
 </style>
