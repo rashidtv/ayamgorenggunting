@@ -415,7 +415,6 @@ getImageUrl(imagePath) {
       console.log('No system banner found')
     }
   },
-}
 
    async loadMenu() {
   this.loadingMenu = true
