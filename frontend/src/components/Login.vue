@@ -322,7 +322,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 2rem;  /* ADD THIS - moves the image right */
+  padding: 0;  /* Remove padding-left */
 }
 
 /* ===== BANNER WRAPPER ===== */
@@ -338,7 +338,7 @@ export default {
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;  /* Shows FULL image, no cropping */
+  object-fit: contain;
   display: block;
 }
 
