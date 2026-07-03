@@ -296,11 +296,12 @@ export default {
 /* ===== BRAND PANEL - BANNER DISPLAY ===== */
 .brand-panel {
   background: #ffffff;
-  padding: 1.5rem;  /* Gives some space around the image */
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 400px;
+  overflow: hidden;
 }
 
 .brand-panel::before,
@@ -324,21 +325,6 @@ export default {
   padding-left: 2rem;  /* ADD THIS - moves the image right */
 }
 
-.brand-panel {
-  background: #ffffff;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 700px;  /* Increased */
-  overflow: hidden;
-}
-
-.brand-panel::before,
-.brand-panel::after {
-  display: none;
-}
-
 /* ===== BANNER WRAPPER ===== */
 .banner-wrapper {
   width: 100%;
@@ -352,8 +338,7 @@ export default {
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  object-fit: contain;  /* Shows FULL image, no cropping */
   display: block;
 }
 
