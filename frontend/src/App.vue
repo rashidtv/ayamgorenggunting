@@ -290,7 +290,8 @@ export default {
         localStorage.setItem('companyLogo', this.tempLogoPreview)
         this.logoUploadModal = false
         this.showNotification('Logo updated successfully!', 'success')
-      },
+      }
+    },
 
  async fetchSystemBanner() {
     try {
