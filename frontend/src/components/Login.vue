@@ -295,19 +295,14 @@ export default {
 
 /* ===== BRAND PANEL - BANNER DISPLAY ===== */
 .brand-panel {
-  background: #ffffff;  /* White to match container */
-  color: #1e293b;
-  padding: 0;
-  padding-left: 2rem;  /* Moves the image right */
+  background: #ffffff;
+  padding: 1.5rem;  /* Even padding on all sides */
   display: flex;
   align-items: center;
-  justify-content: flex-start;  /* Align content to the left with padding */
-  position: relative;
-  overflow: hidden;
+  justify-content: center;
   min-height: 400px;
 }
 
-/* Remove orange effects */
 .brand-panel::before,
 .brand-panel::after {
   display: none;
@@ -358,13 +353,13 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-radius: 8px;  /* Optional: rounded corners */
 }
 
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 30% center;  /* Focus on 30% from the left */
+  object-fit: contain;  /* Full image visible */
   display: block;
 }
 
