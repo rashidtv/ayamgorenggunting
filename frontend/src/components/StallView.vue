@@ -1902,4 +1902,22 @@ export default {
     padding: 0.05rem 0.5rem;
   }
 }
+
+/* ============================================ */
+/* FORCE ALIGNMENT - OVERRIDE PARENT            */
+/* ============================================ */
+.stall-view {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.stall-view .top-controls-row {
+  margin-bottom: 1.25rem !important;
+  padding-top: 0 !important;
+}
+
+.stall-view .banner-section {
+  margin-bottom: 1.25rem !important;
+  margin-top: 0 !important;
+}
 </style>
