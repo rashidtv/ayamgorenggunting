@@ -704,13 +704,14 @@ export default {
   
   .brand-panel {
     padding: 0;
-    min-height: 200px;
-    max-height: 300px;
+    min-height: 250px;  /* Increased from 200px */
+    max-height: 400px;  /* Increased from 300px */
   }
   
   .login-banner-image {
-    object-fit: cover;
-    min-height: 200px;
+    object-fit: contain;  /* CHANGED from 'cover' to 'contain' */
+    min-height: 250px;   /* Increased from 200px */
+    max-height: 400px;   /* Added to match container */
   }
   
   .banner-fallback {
