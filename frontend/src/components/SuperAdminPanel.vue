@@ -3962,20 +3962,22 @@ async initializeStallInventory(stallId) {
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 1024px) {
-  .stats-grid { grid-template-columns: repeat(3, 1fr); }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-banner {
+    max-height: 160px;
+  }
 }
 
 @media (max-width: 768px) {
-  .period-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
+  .dashboard-banner {
+    max-height: 120px;
   }
+}
   
-  .period-label {
-    text-align: center;
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 80px;
   }
+}
   
   .period-pills {
     justify-content: center;
@@ -4101,25 +4103,33 @@ async initializeStallInventory(stallId) {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--surface);
+  padding: 0.5rem;
 }
 
 .dashboard-banner {
   width: 100%;
   height: auto;
-  max-height: 600px;
+  max-height: 220px;  /* Slightly larger for desktop */
   object-fit: contain;
   display: block;
 }
 
+@media (max-width: 1024px) {
+  .dashboard-banner {
+    max-height: 180px;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-banner {
-    max-height: 100px;
+    max-height: 140px;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-banner {
-    max-height: 70px;
+    max-height: 90px;
   }
 }
 
