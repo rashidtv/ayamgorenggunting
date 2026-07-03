@@ -1277,7 +1277,6 @@ body {
   .user-greeting {
     display: none;
   }
-}
 
   .main-content {
     padding: var(--space);
@@ -1309,7 +1308,6 @@ body {
     height: 44px;
     padding: 0 var(--space-sm);
   }
-}
 
   .logo-placeholder {
     width: 36px;
