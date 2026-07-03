@@ -4106,7 +4106,9 @@ async initializeStallInventory(stallId) {
 .dashboard-banner {
   width: 100%;
   height: auto;
-  object-fit: contain;
+  max-height: 250px;
+  object-fit: cover;  /* Fills the space */
+  object-position: center;  /* Centers the image */
   display: block;
 }
 
