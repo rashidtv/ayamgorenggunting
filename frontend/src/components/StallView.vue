@@ -1,25 +1,25 @@
 <template>
   <div class="stall-view">
     <!-- ===== TOP ROW: User Controls ===== -->
-    <div class="top-controls-row">
-      <div class="user-controls">
-        <button 
-          @click="toggleNotifications" 
-          class="control-btn" 
-          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
-        >
-          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-        </button>
-        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-        </button>
-        <span class="user-label">Hello, {{ username || 'User' }}</span>
-        <span class="user-badge">{{ userRoleText }}</span>
-        <button @click="logout" class="logout-btn">
-          <span class="btn-icon">↩</span> Sign Out
-        </button>
-      </div>
-    </div>
+    <!-- ===== TOP ROW: User Controls ===== -->
+<div class="top-controls-row">
+  <div class="user-controls">
+    <button 
+      @click="toggleNotifications" 
+      class="control-btn" 
+      :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+    >
+      <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+    </button>
+    <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+      <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+    </button>
+    <span class="user-badge">{{ userRoleText }}</span>
+    <button @click="logout" class="logout-btn" title="Sign Out">
+      <span class="btn-icon">↩</span>
+    </button>
+  </div>
+</div>
 
     <!-- ===== BANNER SECTION ===== -->
     <div v-if="systemBanner" class="banner-section">
@@ -324,7 +324,6 @@ export default {
     role: { type: String, default: 'stall_admin' },
     darkMode: { type: Boolean, default: false },
     notificationsEnabled: { type: Boolean, default: true },
-    username: { type: String, default: 'User' },
     userRoleText: { type: String, default: 'Stall Admin' }
   },
   data() {
@@ -671,7 +670,7 @@ export default {
 }
 
 /* ============================================ */
-/* TOP CONTROLS ROW - Exactly like Super Admin  */
+/* TOP CONTROLS ROW - COMPACT ONE LINE         */
 /* ============================================ */
 .top-controls-row {
   display: flex;
@@ -683,21 +682,22 @@ export default {
 .user-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
 }
 
 .control-btn {
   background: var(--background);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.35rem 0.5rem;
+  padding: 0.3rem 0.4rem;
   cursor: pointer;
   transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .control-btn:hover {
@@ -705,40 +705,37 @@ export default {
   border-color: var(--primary);
 }
 
-.user-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  padding: 0.2rem 0.5rem;
-}
-
 .user-badge {
   background: var(--primary-gradient);
   color: white;
-  padding: 0.15rem 0.6rem;
+  padding: 0.2rem 0.7rem;
   border-radius: var(--radius-xl);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .logout-btn {
   color: var(--error);
   background: transparent;
-  border: none;
-  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.5rem;
   cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.9rem;
   transition: var(--transition);
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--surface);
 }
 
 .logout-btn:hover {
   background: var(--error);
   color: white;
-  border-radius: var(--radius-sm);
+  border-color: var(--error);
 }
 
 .btn-icon {
@@ -1903,21 +1900,4 @@ export default {
   }
 }
 
-/* ============================================ */
-/* FORCE ALIGNMENT - OVERRIDE PARENT            */
-/* ============================================ */
-.stall-view {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-.stall-view .top-controls-row {
-  margin-bottom: 1.25rem !important;
-  padding-top: 0 !important;
-}
-
-.stall-view .banner-section {
-  margin-bottom: 1.25rem !important;
-  margin-top: 0 !important;
-}
 </style>

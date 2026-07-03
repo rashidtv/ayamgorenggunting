@@ -69,33 +69,32 @@
                 @show-notification="showNotification"
               />
               <SuperAdminPanel
-                v-else-if="user.role === 'super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-                :company-logo="companyLogo"
-                :dark-mode="darkMode"
-                :notifications-enabled="notificationsEnabled"
-                @toggle-dark-mode="toggleDarkMode"
-                @toggle-notifications="toggleNotifications"
-                @logout="logout"
-                :username="user?.username"
-                :user-role-text="userRoleText"
-              />
-              <StallView
-                v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
-                :key="stallIdForView"
-                :stallId="stallIdForView"
-                :token="token || ''"
-                :role="user.role"
-                @show-notification="showNotification"
-                :dark-mode="darkMode"
-                :notifications-enabled="notificationsEnabled"
-                @toggle-dark-mode="toggleDarkMode"
-                @toggle-notifications="toggleNotifications"
-                @logout="logout"
-                :username="user?.username"
-                :user-role-text="userRoleText"
-              />
+  v-else-if="user.role === 'super_admin'"
+  :token="token || ''"
+  @show-notification="showNotification"
+  :company-logo="companyLogo"
+  :dark-mode="darkMode"
+  :notifications-enabled="notificationsEnabled"
+  @toggle-dark-mode="toggleDarkMode"
+  @toggle-notifications="toggleNotifications"
+  @logout="logout"
+  :user-role-text="userRoleText"
+/>
+
+<StallView
+  v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
+  :key="stallIdForView"
+  :stallId="stallIdForView"
+  :token="token || ''"
+  :role="user.role"
+  @show-notification="showNotification"
+  :dark-mode="darkMode"
+  :notifications-enabled="notificationsEnabled"
+  @toggle-dark-mode="toggleDarkMode"
+  @toggle-notifications="toggleNotifications"
+  @logout="logout"
+  :user-role-text="userRoleText"
+/>
               <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
             </template>
           </div>
