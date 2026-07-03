@@ -1,70 +1,70 @@
 <template>
   <div class="sa-dashboard">
     <!-- ===== TOP ROW: Tabs Dropdown + Period Dropdown + User Controls ===== -->
-<div class="top-controls-row">
-  <!-- Tabs Dropdown -->
-  <div class="tab-dropdown">
-    <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
-      <span class="dropdown-icon">{{ activeTabIcon }}</span>
-      <span class="dropdown-label">{{ activeTabLabel }}</span>
-      <span class="dropdown-arrow">▼</span>
-    </button>
-    <div v-if="dropdownOpen" class="dropdown-menu">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id"
-        :class="['dropdown-item', { active: activeTab === tab.id }]"
-        @click="selectTab(tab.id)"
-      >
-        <span class="dropdown-item-icon">{{ tab.icon }}</span>
-        <span class="dropdown-item-label">{{ tab.label }}</span>
-        <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="dropdown-badge">
-          {{ lowStock.length }}
-        </span>
-      </button>
+    <div class="top-controls-row">
+      <!-- Tabs Dropdown -->
+      <div class="tab-dropdown">
+        <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
+          <span class="dropdown-icon">{{ activeTabIcon }}</span>
+          <span class="dropdown-label">{{ activeTabLabel }}</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        <div v-if="dropdownOpen" class="dropdown-menu">
+          <button 
+            v-for="tab in tabs" 
+            :key="tab.id"
+            :class="['dropdown-item', { active: activeTab === tab.id }]"
+            @click="selectTab(tab.id)"
+          >
+            <span class="dropdown-item-icon">{{ tab.icon }}</span>
+            <span class="dropdown-item-label">{{ tab.label }}</span>
+            <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="dropdown-badge">
+              {{ lowStock.length }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Period Dropdown (only shows on dashboard) -->
+      <div v-if="activeTab === 'dashboard'" class="period-dropdown">
+        <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
+          <span class="dropdown-icon">📅</span>
+          <span class="dropdown-label">{{ getPeriodLabel() }}</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
+          <button 
+            v-for="p in periods" 
+            :key="p.value"
+            :class="['dropdown-item', { active: selectedPeriod === p.value }]"
+            @click="selectPeriod(p.value)"
+          >
+            {{ p.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- User Controls -->
+      <div class="user-controls">
+        <button 
+          @click="toggleNotifications" 
+          class="control-btn" 
+          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
+        >
+          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
+        </button>
+        <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
+          <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
+        </button>
+        <span class="user-label">Hello, {{ username || 'User' }}</span>
+        <span class="user-badge">{{ userRoleText }}</span>
+        <button @click="logout" class="logout-btn">
+          <span class="btn-icon">↩</span> Sign Out
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Period Dropdown (only shows on dashboard) -->
-  <div v-if="activeTab === 'dashboard'" class="period-dropdown">
-    <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
-      <span class="dropdown-icon">📅</span>
-      <span class="dropdown-label">{{ getPeriodLabel() }}</span>
-      <span class="dropdown-arrow">▼</span>
-    </button>
-    <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
-      <button 
-        v-for="p in periods" 
-        :key="p.value"
-        :class="['dropdown-item', { active: selectedPeriod === p.value }]"
-        @click="selectPeriod(p.value)"
-      >
-        {{ p.label }}
-      </button>
-    </div>
-  </div>
-
-  <!-- User Controls -->
-  <div class="user-controls">
-    <button 
-      @click="toggleNotifications" 
-      class="control-btn" 
-      :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
-    >
-      <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-    </button>
-    <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
-      <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
-    </button>
-    <span class="user-label">Hello, {{ username || 'User' }}</span>
-    <span class="user-badge">{{ userRoleText }}</span>
-    <button @click="logout" class="logout-btn">
-      <span class="btn-icon">↩</span> Sign Out
-    </button>
-  </div>
-</div>
-
- <!-- ===== BANNER SECTION ===== -->
+    <!-- ===== BANNER SECTION ===== -->
     <div v-if="systemBanner" class="banner-section">
       <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
     </div>
@@ -561,14 +561,14 @@
                   <span class="menu-item-category">{{ item.category || 'Main' }}</span>
                 </div>
                 <div class="menu-item-recipe">
-  <span class="recipe-label">Recipe:</span>
-  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
-    <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
-      {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
-    </span>
-  </span>
-  <span v-else class="recipe-empty">No recipe</span>
-</div>
+                  <span class="recipe-label">Recipe:</span>
+                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
+                    <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
+                      {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
+                    </span>
+                  </span>
+                  <span v-else class="recipe-empty">No recipe</span>
+                </div>
                 <div class="menu-item-actions">
                   <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
                   <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
@@ -654,93 +654,92 @@
       </div>
     </div>
 
-  <!-- ============================================ -->
-<!-- MENU MODAL - FIXED WHITE BACKGROUND          -->
-<!-- ============================================ -->
-<div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
-      <button @click="closeMenuModal" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body" style="background: #ffffff;">
-      <div class="modal-form-row">
-        <div class="modal-form-group">
-          <label>Item Name</label>
-          <input v-model="menuForm.item_name" placeholder="e.g., Nasi Ayam" :disabled="editingMenu" />
+    <!-- ============================================ -->
+    <!-- MENU MODAL - FIXED WHITE BACKGROUND          -->
+    <!-- ============================================ -->
+    <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
+          <button @click="closeMenuModal" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-form-group">
-          <label>Price (RM)</label>
-          <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
-        </div>
-      </div>
-      <div class="modal-form-row">
-        <div class="modal-form-group">
-          <label>Category</label>
-          <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
-        </div>
-        <div class="modal-form-group">
-          <label>Description</label>
-          <input v-model="menuForm.description" placeholder="Brief description" />
-        </div>
-      </div>
-      <div class="modal-form-group">
-        <label>Item Image</label>
-        <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
-          <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
-          <div v-if="menuForm.imagePreview" class="image-preview">
-            <img :src="menuForm.imagePreview" alt="Menu item" />
-            <button @click="removeMenuImage" class="remove-image">✕</button>
+        <div class="modal-modern-body" style="background: #ffffff;">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Item Name</label>
+              <input v-model="menuForm.item_name" placeholder="e.g., Nasi Ayam" :disabled="editingMenu" />
+            </div>
+            <div class="modal-form-group">
+              <label>Price (RM)</label>
+              <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
+            </div>
           </div>
-          <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
-            <span>📷</span>
-            <p>Click to upload image (max 2MB)</p>
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Category</label>
+              <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
+            </div>
+            <div class="modal-form-group">
+              <label>Description</label>
+              <input v-model="menuForm.description" placeholder="Brief description" />
+            </div>
+          </div>
+          <div class="modal-form-group">
+            <label>Item Image</label>
+            <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
+              <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
+              <div v-if="menuForm.imagePreview" class="image-preview">
+                <img :src="menuForm.imagePreview" alt="Menu item" />
+                <button @click="removeMenuImage" class="remove-image">✕</button>
+              </div>
+              <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
+                <span>📷</span>
+                <p>Click to upload image (max 2MB)</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ===== RECIPE SECTION - SIMPLIFIED ===== -->
+          <div class="modal-form-group recipe-section">
+            <label>Recipe (Ingredients)</label>
+            <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
+            
+            <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
+              <div class="recipe-field">
+                <label class="recipe-label">Ingredient</label>
+                <input 
+                  v-model="ingredient.material_name" 
+                  placeholder="Chicken" 
+                  class="recipe-input" 
+                  value="Chicken"
+                  readonly
+                />
+              </div>
+              <div class="recipe-field">
+                <label class="recipe-label">Pieces Needed</label>
+                <input 
+                  type="number" 
+                  v-model="ingredient.quantity_used" 
+                  placeholder="e.g., 2" 
+                  class="recipe-input-small" 
+                  step="1" 
+                  min="1"
+                />
+              </div>
+              <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
+            </div>
+            
+            <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
+              + Add Chicken to Recipe
+            </button>
           </div>
         </div>
+        <div class="modal-modern-footer">
+          <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
+          <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+        </div>
       </div>
-      
-      <!-- ===== RECIPE SECTION - FIXED ===== -->
-      <!-- ===== RECIPE SECTION - SIMPLIFIED ===== -->
-<div class="modal-form-group recipe-section">
-  <label>Recipe (Ingredients)</label>
-  <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
-  
-  <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
-    <div class="recipe-field">
-      <label class="recipe-label">Ingredient</label>
-      <input 
-        v-model="ingredient.material_name" 
-        placeholder="Chicken" 
-        class="recipe-input" 
-        value="Chicken"
-        readonly
-      />
     </div>
-    <div class="recipe-field">
-      <label class="recipe-label">Pieces Needed</label>
-      <input 
-        type="number" 
-        v-model="ingredient.quantity_used" 
-        placeholder="e.g., 2" 
-        class="recipe-input-small" 
-        step="1" 
-        min="1"
-      />
-    </div>
-    <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
-  </div>
-  
-  <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
-    + Add Chicken to Recipe
-  </button>
-</div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
-      <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
-    </div>
-  </div>
-</div>
 
     <!-- ============================================ -->
     <!-- USER MODAL                                   -->
@@ -854,21 +853,18 @@ use([
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
-
   props: {
-  token: { type: String, required: true },
-  companyLogo: { type: String, default: null },
-  // ADD THESE NEW PROPS:
-  darkMode: { type: Boolean, default: false },
-  notificationsEnabled: { type: Boolean, default: true },
-  username: { type: String, default: 'User' },
-  userRoleText: { type: String, default: 'User' }
-},
+    token: { type: String, required: true },
+    companyLogo: { type: String, default: null },
+    darkMode: { type: Boolean, default: false },
+    notificationsEnabled: { type: Boolean, default: true },
+    username: { type: String, default: 'User' },
+    userRoleText: { type: String, default: 'User' }
+  },
 
   data() {
     return {
       // Tabs
-      
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -963,74 +959,77 @@ export default {
       resizeObserver: null,
     }
   },
+
   computed: {
-  lowStockCount() {
-    return this.lowStock.length
-  },
-  chartVisibleData() {
-    return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
-  },
-  filteredMenuItems() {
-    return this.menuItems.filter(item => {
-      const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
-      const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
-      return matchesSearch && matchesCategory
-    })
-  },
-  filteredInventoryStalls() {
-    return this.stalls.filter(stall => {
-      const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-                            this.getStallInventory(stall.id).some(item => 
-                              item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-                            )
-      const matchesStatus = this.inventoryFilter === 'all' || 
-                            (this.inventoryFilter === 'active' && stall.is_active) ||
-                            (this.inventoryFilter === 'inactive' && !stall.is_active) ||
-                            (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-      return matchesSearch && matchesStatus
-    })
-  },
-  filteredLowStock() {
-    if (this.inventorySearch) {
-      return this.lowStock.filter(item => 
-        item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-        item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-      )
+    lowStockCount() {
+      return this.lowStock.length
+    },
+    chartVisibleData() {
+      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+    },
+    filteredMenuItems() {
+      return this.menuItems.filter(item => {
+        const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
+        const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
+        return matchesSearch && matchesCategory
+      })
+    },
+    filteredInventoryStalls() {
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                              this.getStallInventory(stall.id).some(item => 
+                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                              )
+        const matchesStatus = this.inventoryFilter === 'all' || 
+                              (this.inventoryFilter === 'active' && stall.is_active) ||
+                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+        return matchesSearch && matchesStatus
+      })
+    },
+    filteredLowStock() {
+      if (this.inventorySearch) {
+        return this.lowStock.filter(item => 
+          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
+      }
+      return this.lowStock
+    },
+    filteredStallsList() {
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+        const matchesStatus = this.stallStatusFilter === 'all' || 
+                              (this.stallStatusFilter === 'active' && stall.is_active) ||
+                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
+        return matchesSearch && matchesStatus
+      })
+    },
+    filteredUsersList() {
+      return this.users.filter(user => {
+        const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+                              (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase()))
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+        return matchesSearch && matchesRole
+      })
+    },
+    activeTabLabel() {
+      const tab = this.tabs.find(t => t.id === this.activeTab)
+      return tab ? tab.label : 'Dashboard'
+    },
+    activeTabIcon() {
+      const tab = this.tabs.find(t => t.id === this.activeTab)
+      return tab ? tab.icon : '📊'
     }
-    return this.lowStock
   },
-  filteredStallsList() {
-    return this.stalls.filter(stall => {
-      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-      const matchesStatus = this.stallStatusFilter === 'all' || 
-                            (this.stallStatusFilter === 'active' && stall.is_active) ||
-                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
-      return matchesSearch && matchesStatus
-    })
-  },
-  filteredUsersList() {
-    return this.users.filter(user => {
-      const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
-                            (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase()))
-      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-      return matchesSearch && matchesRole
-    })
-  },  // <-- ADD COMMA HERE
-  activeTabLabel() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.label : 'Dashboard'
-  },
-  activeTabIcon() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.icon : '📊'
-  }
-}  // <-- ONLY ONE } HERE to close computed
+
   mounted() {
     this.loadData()
     this.fetchBanner()
     document.addEventListener('click', this.handleClickOutside)
   },
+
   watch: {
     salesTrend: {
       handler() {
@@ -1060,8 +1059,8 @@ export default {
       })
     }
   },
+
   beforeUnmount() {
-    
     if (this.chartInstance) {
       this.chartInstance.dispose()
       this.chartInstance = null
@@ -1076,42 +1075,45 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     window.removeEventListener('resize', this.handleChartResize)
   },
-  methods: {
 
-      toggleDropdown() {
-    this.dropdownOpen = !this.dropdownOpen
-    if (this.dropdownOpen) this.periodDropdownOpen = false
-  },
-  togglePeriodDropdown() {
-    this.periodDropdownOpen = !this.periodDropdownOpen
-    if (this.periodDropdownOpen) this.dropdownOpen = false
-  },
-  selectTab(tabId) {
-    this.activeTab = tabId
-    this.dropdownOpen = false
-    this.switchTab(tabId)
-  },
-  selectPeriod(value) {
-    this.selectedPeriod = value
-    this.periodDropdownOpen = false
-    this.refreshAllData()
-  },
-  handleClickOutside(event) {
-    const container = this.$el
-    if (container && !container.contains(event.target)) {
+  methods: {
+    // =============================================
+    // DROPDOWN METHODS
+    // =============================================
+    toggleDropdown() {
+      this.dropdownOpen = !this.dropdownOpen
+      if (this.dropdownOpen) this.periodDropdownOpen = false
+    },
+    togglePeriodDropdown() {
+      this.periodDropdownOpen = !this.periodDropdownOpen
+      if (this.periodDropdownOpen) this.dropdownOpen = false
+    },
+    selectTab(tabId) {
+      this.activeTab = tabId
       this.dropdownOpen = false
+      this.switchTab(tabId)
+    },
+    selectPeriod(value) {
+      this.selectedPeriod = value
       this.periodDropdownOpen = false
-    }
-  },
-  toggleDarkMode() {
-    this.$emit('toggle-dark-mode')
-  },
-  toggleNotifications() {
-    this.$emit('toggle-notifications')
-  },
-  logout() {
-    this.$emit('logout')
-  },
+      this.refreshAllData()
+    },
+    handleClickOutside(event) {
+      const container = this.$el
+      if (container && !container.contains(event.target)) {
+        this.dropdownOpen = false
+        this.periodDropdownOpen = false
+      }
+    },
+    toggleDarkMode() {
+      this.$emit('toggle-dark-mode')
+    },
+    toggleNotifications() {
+      this.$emit('toggle-notifications')
+    },
+    logout() {
+      this.$emit('logout')
+    },
 
     // =============================================
     // FORMATTING
@@ -1125,13 +1127,11 @@ export default {
         maximumFractionDigits: 0
       }).format(num)
     },
-    
     formatNumber(value) {
       const num = Number(value) || 0
       const rounded = Math.round(num)
       return new Intl.NumberFormat('en-MY').format(rounded)
     },
-    
     formatShortDate(dateStr) {
       if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
@@ -1149,117 +1149,117 @@ export default {
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
-  // Only Chicken exists, always return 'pieces'
-  return 'pieces';  },
+      // Only Chicken exists, always return 'pieces'
+      return 'pieces'
+    },
 
-   async fetchBanner() {
-    try {
-      const response = await axios.get(`${API_BASE}/system/banner`)
-      if (response.data.bannerUrl) {
-        this.systemBanner = response.data.bannerUrl
-        localStorage.setItem('systemBanner', response.data.bannerUrl)
+    async fetchBanner() {
+      try {
+        const response = await axios.get(`${API_BASE}/system/banner`)
+        if (response.data.bannerUrl) {
+          this.systemBanner = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+        }
+      } catch (err) {
+        console.log('No system banner found')
       }
-    } catch (err) {
-      console.log('No system banner found')
-    }
-},
+    },
 
-// =============================================
-// IMAGE COMPRESSION HELPER
-// =============================================
-compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image()
-      img.onload = () => {
-        let width = img.width
-        let height = img.height
-        
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width
-          width = maxWidth
+    // =============================================
+    // IMAGE COMPRESSION HELPER
+    // =============================================
+    compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
+      return new Promise((resolve) => {
+        try {
+          const img = new Image()
+          img.onload = () => {
+            let width = img.width
+            let height = img.height
+            
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width
+              width = maxWidth
+            }
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height
+              height = maxHeight
+            }
+            
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(width)
+            canvas.height = Math.round(height)
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+            
+            const compressed = canvas.toDataURL('image/jpeg', quality)
+            resolve(compressed)
+          }
+          img.onerror = () => {
+            resolve(null)
+          }
+          img.src = base64Data
+        } catch (err) {
+          console.error('Compression error:', err)
+          resolve(null)
         }
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height
-          height = maxHeight
-        }
-        
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.round(width)
-        canvas.height = Math.round(height)
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        
-        const compressed = canvas.toDataURL('image/jpeg', quality)
-        resolve(compressed)
-      }
-      img.onerror = () => {
-        resolve(null)
-      }
-      img.src = base64Data
-    } catch (err) {
-      console.error('Compression error:', err)
-      resolve(null)
-    }
-  })
-},
+      })
+    },
     
     // =============================================
     // MENU IMAGE MANAGEMENT
     // =============================================
     handleMenuImageUpload(event) {
-  const file = event.target.files[0]
-  if (!file) return
-  
-  // Check file size (2MB limit)
-  if (file.size > 2 * 1024 * 1024) {
-    this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
-    event.target.value = ''
-    return
-  }
-  
-  this.menuForm.imageFile = file
-  const reader = new FileReader()
-  reader.onload = async (e) => {
-    try {
-      const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-      this.menuForm.imagePreview = compressed || e.target.result
-    } catch (err) {
-      console.warn('Compression failed, using original:', err)
-      this.menuForm.imagePreview = e.target.result
-    }
-  }
-  reader.readAsDataURL(file)
-},
-   handleMenuImageDrop(event) {
-  const file = event.dataTransfer.files[0]
-  if (file && file.type.startsWith('image/')) {
-    if (file.size > 2 * 1024 * 1024) {
-      this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
-      return
-    }
-    
-    this.menuForm.imageFile = file
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      try {
-        const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-        this.menuForm.imagePreview = compressed || e.target.result
-      } catch (err) {
-        this.menuForm.imagePreview = e.target.result
+      const file = event.target.files[0]
+      if (!file) return
+      
+      // Check file size (2MB limit)
+      if (file.size > 2 * 1024 * 1024) {
+        this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+        event.target.value = ''
+        return
       }
-    }
-    reader.readAsDataURL(file)
-  }
-},
-    
+      
+      this.menuForm.imageFile = file
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+          this.menuForm.imagePreview = compressed || e.target.result
+        } catch (err) {
+          console.warn('Compression failed, using original:', err)
+          this.menuForm.imagePreview = e.target.result
+        }
+      }
+      reader.readAsDataURL(file)
+    },
+    handleMenuImageDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        if (file.size > 2 * 1024 * 1024) {
+          this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+          return
+        }
+        
+        this.menuForm.imageFile = file
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+          try {
+            const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+            this.menuForm.imagePreview = compressed || e.target.result
+          } catch (err) {
+            this.menuForm.imagePreview = e.target.result
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    },
     removeMenuImage() {
-  this.menuForm.imagePreview = null
-  this.menuForm.imageFile = null
-  if (this.$refs.menuImageInput) {
-    this.$refs.menuImageInput.value = ''
-  }
-},
+      this.menuForm.imagePreview = null
+      this.menuForm.imageFile = null
+      if (this.$refs.menuImageInput) {
+        this.$refs.menuImageInput.value = ''
+      }
+    },
 
     // =============================================
     // STALL DETAILS
@@ -1673,102 +1673,102 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
       this.editingMenu = false
     },
     addRecipeIngredient() {
-  this.menuForm.recipe.push({ 
-    material_name: 'Chicken', 
-    quantity_used: 1 
-  })
-},
+      this.menuForm.recipe.push({ 
+        material_name: 'Chicken', 
+        quantity_used: 1 
+      })
+    },
     removeRecipeIngredient(index) {
       this.menuForm.recipe.splice(index, 1)
     },
     async saveMenuItem() {
-  try {
-    if (!this.menuForm.item_name || !this.menuForm.price) {
-      this.$emit('show-notification', 'Item name and price are required', 'error')
-      return
-    }
-    
-    const payload = {
-      item_name: this.menuForm.item_name,
-      price: parseFloat(this.menuForm.price),
-      description: this.menuForm.description || '',
-      category: this.menuForm.category || 'Main',
-      recipe: this.menuForm.recipe
-        .filter(r => r.material_name && r.quantity_used > 0)
-        .map(r => ({
-          material_name: 'Chicken',
-          quantity_used: parseInt(r.quantity_used) || 1
-        }))
-    }
-    
-    // Handle image - compress if needed to avoid 413 error
-    if (this.menuForm.imagePreview) {
-      let imageData = this.menuForm.imagePreview
-      
-      // If it's a base64 string and too large (over 500KB), compress it
-      if (imageData && imageData.length > 500000) {
-        try {
-          const compressed = await this.compressImage(imageData, 200, 200, 0.6)
-          if (compressed && compressed.length < imageData.length) {
-            imageData = compressed
-            console.log('✅ Image compressed from', Math.round(imageData.length/1024), 'KB to', Math.round(compressed.length/1024), 'KB')
-          }
-        } catch (e) {
-          console.warn('Image compression failed, using original', e)
+      try {
+        if (!this.menuForm.item_name || !this.menuForm.price) {
+          this.$emit('show-notification', 'Item name and price are required', 'error')
+          return
         }
-      }
-      
-      // Only include if under 1MB after compression
-      if (imageData && imageData.length < 1 * 1024 * 1024) {
-        payload.image = imageData
-      } else {
-        // If still too large, compress more aggressively
-        try {
-          const compressed = await this.compressImage(imageData, 100, 100, 0.5)
-          if (compressed && compressed.length < 1 * 1024 * 1024) {
-            payload.image = compressed
-            console.log('✅ Image aggressively compressed to', Math.round(compressed.length/1024), 'KB')
+        
+        const payload = {
+          item_name: this.menuForm.item_name,
+          price: parseFloat(this.menuForm.price),
+          description: this.menuForm.description || '',
+          category: this.menuForm.category || 'Main',
+          recipe: this.menuForm.recipe
+            .filter(r => r.material_name && r.quantity_used > 0)
+            .map(r => ({
+              material_name: 'Chicken',
+              quantity_used: parseInt(r.quantity_used) || 1
+            }))
+        }
+        
+        // Handle image - compress if needed to avoid 413 error
+        if (this.menuForm.imagePreview) {
+          let imageData = this.menuForm.imagePreview
+          
+          // If it's a base64 string and too large (over 500KB), compress it
+          if (imageData && imageData.length > 500000) {
+            try {
+              const compressed = await this.compressImage(imageData, 200, 200, 0.6)
+              if (compressed && compressed.length < imageData.length) {
+                imageData = compressed
+                console.log('✅ Image compressed from', Math.round(imageData.length/1024), 'KB to', Math.round(compressed.length/1024), 'KB')
+              }
+            } catch (e) {
+              console.warn('Image compression failed, using original', e)
+            }
+          }
+          
+          // Only include if under 1MB after compression
+          if (imageData && imageData.length < 1 * 1024 * 1024) {
+            payload.image = imageData
           } else {
-            this.$emit('show-notification', 'Image is too large. Please use a smaller image.', 'warning')
+            // If still too large, compress more aggressively
+            try {
+              const compressed = await this.compressImage(imageData, 100, 100, 0.5)
+              if (compressed && compressed.length < 1 * 1024 * 1024) {
+                payload.image = compressed
+                console.log('✅ Image aggressively compressed to', Math.round(compressed.length/1024), 'KB')
+              } else {
+                this.$emit('show-notification', 'Image is too large. Please use a smaller image.', 'warning')
+              }
+            } catch (e) {
+              this.$emit('show-notification', 'Could not compress image. Proceeding without image.', 'warning')
+            }
           }
-        } catch (e) {
-          this.$emit('show-notification', 'Could not compress image. Proceeding without image.', 'warning')
+        }
+        
+        console.log('📤 Sending menu payload with image size:', payload.image ? Math.round(payload.image.length/1024) + 'KB' : 'No image')
+        
+        if (this.editingMenu) {
+          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
+            headers: { 
+              Authorization: `Bearer ${this.token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+          this.$emit('show-notification', 'Menu item updated successfully!', 'success')
+        } else {
+          await axios.post(`${API_BASE}/menu`, payload, {
+            headers: { 
+              Authorization: `Bearer ${this.token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+          this.$emit('show-notification', 'Menu item created successfully!', 'success')
+        }
+        
+        this.closeMenuModal()
+        await this.loadMenuItems()
+      } catch (err) {
+        console.error('Save menu error:', err)
+        if (err.response?.status === 413) {
+          this.$emit('show-notification', 'Image too large. Please use a smaller image (under 1MB).', 'error')
+        } else {
+          const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
+          this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
         }
       }
-    }
-    
-    console.log('📤 Sending menu payload with image size:', payload.image ? Math.round(payload.image.length/1024) + 'KB' : 'No image')
-    
-    if (this.editingMenu) {
-      await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
-        headers: { 
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      this.$emit('show-notification', 'Menu item updated successfully!', 'success')
-    } else {
-      await axios.post(`${API_BASE}/menu`, payload, {
-        headers: { 
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      this.$emit('show-notification', 'Menu item created successfully!', 'success')
-    }
-    
-    this.closeMenuModal()
-    await this.loadMenuItems()
-  } catch (err) {
-    console.error('Save menu error:', err)
-    if (err.response?.status === 413) {
-      this.$emit('show-notification', 'Image too large. Please use a smaller image (under 1MB).', 'error')
-    } else {
-      const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
-      this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
-    }
-  }
-},
+    },
     async deleteMenuItem(itemName) {
       if (confirm(`Delete menu item "${itemName}"?`)) {
         try {
@@ -2003,60 +2003,60 @@ compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
     // =============================================
     // INVENTORY METHODS
     // =============================================
-async initializeStallInventory(stallId) {
-  try {
-    // Check if Chicken already exists
-    const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    });
-    
-    const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken');
-    
-    if (!chickenExists) {
-      // Only initialize if Chicken doesn't exist
-      await axios.post(`${API_BASE}/inventory/update`, {
-        stallId: stallId,
-        materialName: 'Chicken',
-        newLevel: 100,
-        alertLevel: 10  // Always alert at 10
-      }, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      });
-      console.log('✅ Inventory initialized for stall', stallId);
-    }
-  } catch (err) {
-    console.error('Failed to initialize inventory:', err);
-  }
-},
-    
-    async loadAllStallsInventory() {
-  for (const stall of this.stalls) {
-    try {
-      const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      // If no inventory exists, initialize with Chicken
-      if (res.data.length === 0) {
-        await this.initializeStallInventory(stall.id);
-        // Reload after initialization
-        const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+    async initializeStallInventory(stallId) {
+      try {
+        // Check if Chicken already exists
+        const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         });
-        this.stallInventory[stall.id] = res2.data.map(item => ({
-          ...item,
-          newLevel: item.current_level
-        }));
-      } else {
-        this.stallInventory[stall.id] = res.data.map(item => ({
-          ...item,
-          newLevel: item.current_level
-        }));
+        
+        const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken');
+        
+        if (!chickenExists) {
+          // Only initialize if Chicken doesn't exist
+          await axios.post(`${API_BASE}/inventory/update`, {
+            stallId: stallId,
+            materialName: 'Chicken',
+            newLevel: 100,
+            alertLevel: 10  // Always alert at 10
+          }, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          console.log('✅ Inventory initialized for stall', stallId);
+        }
+      } catch (err) {
+        console.error('Failed to initialize inventory:', err);
       }
-    } catch (err) {
-      console.error(`Load inventory for stall ${stall.id} error:`, err);
-    }
-  }
-},
+    },
+    
+    async loadAllStallsInventory() {
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          // If no inventory exists, initialize with Chicken
+          if (res.data.length === 0) {
+            await this.initializeStallInventory(stall.id);
+            // Reload after initialization
+            const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            });
+            this.stallInventory[stall.id] = res2.data.map(item => ({
+              ...item,
+              newLevel: item.current_level
+            }));
+          } else {
+            this.stallInventory[stall.id] = res.data.map(item => ({
+              ...item,
+              newLevel: item.current_level
+            }));
+          }
+        } catch (err) {
+          console.error(`Load inventory for stall ${stall.id} error:`, err);
+        }
+      }
+    },
     toggleInventoryStall(stallId) {
       this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
       if (this.expandedInventoryStall === stallId) {
@@ -2080,14 +2080,14 @@ async initializeStallInventory(stallId) {
       return this.stallInventory[stallId] || []
     },
     getStallInventorySummary(stallId) {
-  const inventory = this.getStallInventory(stallId)
-  if (inventory.length === 0) {
-    return [
-      { material_name: 'Chicken', current_level: '?', alert_level: 10 }  // Changed from 20 to 10
-    ]
-  }
-  return inventory
-},
+      const inventory = this.getStallInventory(stallId)
+      if (inventory.length === 0) {
+        return [
+          { material_name: 'Chicken', current_level: '?', alert_level: 10 }
+        ]
+      }
+      return inventory
+    },
     getFilteredInventoryItems(stallId) {
       const inventory = this.getStallInventory(stallId)
       if (this.inventoryFilter === 'low') {
@@ -2420,62 +2420,108 @@ async initializeStallInventory(stallId) {
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ============================================ */
-/* TAB NAVIGATION - TOP                        */
-/* ============================================ */
-.tab-navigation-modern {
+/* ===== TOP CONTROLS ROW ===== */
+.top-controls-row {
   display: flex;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.25rem;
-  background: var(--surface);
-  padding: 0.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
-.tab-navigation-modern::-webkit-scrollbar {
-  display: none;
+/* ===== TAB DROPDOWN ===== */
+.tab-dropdown {
+  position: relative;
+  min-width: 180px;
 }
 
-.tab-btn-modern {
+.period-dropdown {
+  position: relative;
+  min-width: 120px;
+}
+
+.dropdown-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border: none;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 0.85rem;
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
   transition: var(--transition);
-  white-space: nowrap;
-  position: relative;
+  width: 100%;
 }
 
-.tab-btn-modern:hover {
+.dropdown-toggle:hover {
+  border-color: var(--primary);
+}
+
+.dropdown-toggle.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-arrow {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 50;
+  animation: dropdownSlide 0.2s ease;
+}
+
+.period-menu {
+  min-width: 140px;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  text-align: left;
+}
+
+.dropdown-item:hover {
   background: var(--background);
   color: var(--text);
 }
 
-.tab-btn-modern.active {
+.dropdown-item.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
 }
 
-.tab-icon-modern {
-  font-size: 1rem;
-}
-
-.tab-label-modern {
-  font-size: 0.8rem;
-}
-
-.tab-badge-modern {
+.dropdown-badge {
   background: #ef4444;
   color: white;
   border-radius: 50%;
@@ -2485,6 +2531,110 @@ async initializeStallInventory(stallId) {
   min-width: 18px;
   text-align: center;
   line-height: 18px;
+}
+
+/* ===== USER CONTROLS ===== */
+.user-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.control-btn:hover {
+  background: var(--surface-elevated);
+  border-color: var(--primary);
+}
+
+.user-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+}
+
+.user-badge {
+  background: var(--primary-gradient);
+  color: white;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.logout-btn {
+  color: var(--error);
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.logout-btn:hover {
+  background: var(--error);
+  color: white;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon {
+  font-size: 0.9rem;
+}
+
+/* ===== BANNER SECTION ===== */
+.banner-section {
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--surface);
+  padding: 0.5rem;
+}
+
+.dashboard-banner {
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-banner {
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-banner {
+    max-height: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 90px;
+  }
 }
 
 /* ============================================ */
@@ -3213,111 +3363,6 @@ async initializeStallInventory(stallId) {
   margin-bottom: 0.25rem;
 }
 
-/* ============================================ */
-/* RECIPE SECTION - FIXED                       */
-/* ============================================ */
-.recipe-section {
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  margin-top: 0.5rem;
-}
-
-.recipe-hint {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-bottom: 0.75rem;
-  font-style: italic;
-}
-
-.recipe-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-end;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-.recipe-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.recipe-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.recipe-input {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 100%;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.recipe-input-small {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 80px;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input-small:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.add-recipe-btn {
-  margin-top: 0.5rem;
-  width: 100%;
-  justify-content: center;
-}
-
-/* ============================================ */
-/* MODAL OVERRIDES - WHITE BACKGROUND           */
-/* ============================================ */
-.modal-modern {
-  background: #ffffff !important;
-}
-
-.modal-modern-body {
-  background: #ffffff !important;
-}
-
-.modal-modern-header {
-  background: #fafafa !important;
-  border-bottom: 1px solid #e5e7eb !important;
-}
-
-.modal-modern-footer {
-  background: #fafafa !important;
-  border-top: 1px solid #e5e7eb !important;
-}
-
 .menu-rank-number {
   width: 22px;
   height: 22px;
@@ -3922,6 +3967,90 @@ async initializeStallInventory(stallId) {
 }
 
 /* ============================================ */
+/* RECIPE SECTION - FIXED                       */
+/* ============================================ */
+.recipe-section {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.recipe-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.recipe-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.recipe-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.recipe-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.recipe-input {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.recipe-input-small {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 80px;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input-small:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.add-recipe-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ============================================ */
 /* MODALS                                       */
 /* ============================================ */
 .modal-overlay {
@@ -4066,15 +4195,21 @@ async initializeStallInventory(stallId) {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
-@media (max-width: 1024px) {
-  .dashboard-banner {
-    max-height: 160px;
-  }
-}
-
 @media (max-width: 768px) {
-  .dashboard-banner {
-    max-height: 120px;
+  .top-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .user-controls {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .tab-dropdown,
+  .period-dropdown {
+    min-width: unset;
   }
   
   .period-pills {
@@ -4103,9 +4238,6 @@ async initializeStallInventory(stallId) {
   }
   
   .chart-modern-stat-value { font-size: 0.8rem; }
-  
-  .tab-btn-modern { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
-  .tab-label-modern { font-size: 0.7rem; }
   
   .filter-bar { flex-direction: column; }
   .filter-search { min-width: unset; }
@@ -4142,13 +4274,13 @@ async initializeStallInventory(stallId) {
   .modal-lg { max-width: 95%; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .detail-chart { height: 150px; }
+  
+  .dashboard-banner {
+    max-height: 140px;
+  }
 }
 
 @media (max-width: 480px) {
-  .dashboard-banner {
-    max-height: 80px;
-  }
-  
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
   .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
@@ -4187,6 +4319,10 @@ async initializeStallInventory(stallId) {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
+  
+  .dashboard-banner {
+    max-height: 90px;
+  }
 }
 
 .recipe-tag {
@@ -4199,237 +4335,24 @@ async initializeStallInventory(stallId) {
   border: 1px solid #e2e8f0;
 }
 
-/* ===== BANNER SECTION ===== */
-.banner-section {
-  margin-bottom: 1.25rem;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  background: var(--surface);
-  padding: 0.5rem;
+/* ============================================ */
+/* MODAL OVERRIDES - WHITE BACKGROUND           */
+/* ============================================ */
+.modal-modern {
+  background: #ffffff !important;
 }
 
-.dashboard-banner {
-  width: 100%;
-  height: auto;
-  max-height: 220px;  /* Slightly larger for desktop */
-  object-fit: contain;
-  display: block;
+.modal-modern-body {
+  background: #ffffff !important;
 }
 
-@media (max-width: 1024px) {
-  .dashboard-banner {
-    max-height: 180px;
-  }
+.modal-modern-header {
+  background: #fafafa !important;
+  border-bottom: 1px solid #e5e7eb !important;
 }
 
-@media (max-width: 768px) {
-  .dashboard-banner {
-    max-height: 140px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-banner {
-    max-height: 90px;
-  }
-}
-/* ===== TOP CONTROLS ROW ===== */
-.top-controls-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-
-/* ===== TAB DROPDOWN ===== */
-.tab-dropdown {
-  position: relative;
-  min-width: 180px;
-}
-
-.period-dropdown {
-  position: relative;
-  min-width: 120px;
-}
-
-.dropdown-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text);
-  transition: var(--transition);
-  width: 100%;
-}
-
-.dropdown-toggle:hover {
-  border-color: var(--primary);
-}
-
-.dropdown-toggle.open .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.dropdown-arrow {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-left: auto;
-  transition: transform 0.2s ease;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 0.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  z-index: 50;
-  animation: dropdownSlide 0.2s ease;
-}
-
-.period-menu {
-  min-width: 140px;
-}
-
-@keyframes dropdownSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  transition: var(--transition);
-  text-align: left;
-}
-
-.dropdown-item:hover {
-  background: var(--background);
-  color: var(--text);
-}
-
-.dropdown-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-}
-
-.dropdown-badge {
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-  line-height: 18px;
-}
-
-/* ===== USER CONTROLS ===== */
-.user-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-  flex-wrap: wrap;
-}
-
-.control-btn {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.35rem 0.5rem;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.control-btn:hover {
-  background: var(--surface-elevated);
-  border-color: var(--primary);
-}
-
-.user-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  padding: 0.2rem 0.5rem;
-}
-
-.user-badge {
-  background: var(--primary-gradient);
-  color: white;
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-xl);
-  font-size: 0.65rem;
-  font-weight: 600;
-}
-
-.logout-btn {
-  color: var(--error);
-  background: transparent;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.logout-btn:hover {
-  background: var(--error);
-  color: white;
-  border-radius: var(--radius-sm);
-}
-
-.btn-icon {
-  font-size: 0.9rem;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .top-controls-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  
-  .user-controls {
-    margin-left: 0;
-    justify-content: center;
-  }
-  
-  .tab-dropdown,
-  .period-dropdown {
-    min-width: unset;
-  }
+.modal-modern-footer {
+  background: #fafafa !important;
+  border-top: 1px solid #e5e7eb !important;
 }
 </style>
