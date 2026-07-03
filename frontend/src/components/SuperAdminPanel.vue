@@ -865,7 +865,6 @@ export default {
   userRoleText: { type: String, default: 'User' }
 },
 
-  props: ['token'],
   data() {
     return {
       // Tabs
@@ -965,29 +964,19 @@ export default {
     }
   },
   computed: {
-
-     activeTabLabel() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.label : 'Dashboard'
+  lowStockCount() {
+    return this.lowStock.length
   },
-  activeTabIcon() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.icon : '📊'
-  }
-}
-    lowStockCount() {
-      return this.lowStock.length
-    },
-    chartVisibleData() {
-      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
-    },
-    filteredMenuItems() {
-      return this.menuItems.filter(item => {
-        const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
-        const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
-        return matchesSearch && matchesCategory
-      })
-    },
+  chartVisibleData() {
+    return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+  },
+  filteredMenuItems() {
+    return this.menuItems.filter(item => {
+      const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
+      const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
+      return matchesSearch && matchesCategory
+    })
+  },
     
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
@@ -1029,6 +1018,16 @@ export default {
         return matchesSearch && matchesRole
       })
     }
+
+     activeTabLabel() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.label : 'Dashboard'
+  },
+  activeTabIcon() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.icon : '📊'
+  }
+}
   },
   mounted() {
     this.loadData()
@@ -1116,7 +1115,7 @@ export default {
   logout() {
     this.$emit('logout')
   },
-}
+
     // =============================================
     // FORMATTING
     // =============================================
