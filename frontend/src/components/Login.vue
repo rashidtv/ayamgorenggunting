@@ -358,7 +358,8 @@ export default {
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;  /* Makes image fill the space */
+  object-fit: cover;
+  object-position: center;  /* Centers the image, shows the middle */
   display: block;
 }
 
