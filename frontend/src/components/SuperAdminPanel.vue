@@ -3971,13 +3971,6 @@ async initializeStallInventory(stallId) {
   .dashboard-banner {
     max-height: 120px;
   }
-}
-  
-@media (max-width: 480px) {
-  .dashboard-banner {
-    max-height: 80px;
-  }
-}
   
   .period-pills {
     justify-content: center;
@@ -4047,6 +4040,10 @@ async initializeStallInventory(stallId) {
 }
 
 @media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 80px;
+  }
+  
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
   .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
@@ -4085,7 +4082,7 @@ async initializeStallInventory(stallId) {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
-
+}
 
 .recipe-tag {
   display: inline-block;
