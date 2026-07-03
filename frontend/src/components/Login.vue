@@ -296,7 +296,7 @@ export default {
 /* ===== BRAND PANEL - BANNER DISPLAY ===== */
 .brand-panel {
   background: #ffffff;
-  padding: 1.5rem;  /* Even padding on all sides */
+  padding: 1.5rem;  /* Gives some space around the image */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,13 +353,12 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 8px;  /* Optional: rounded corners */
 }
 
 .login-banner-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;  /* Full image visible */
+  object-fit: cover;  /* Makes image fill the space */
   display: block;
 }
 
