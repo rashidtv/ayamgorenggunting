@@ -28,8 +28,8 @@
 
     <!-- ===== CONTROLS SECTION (below banner) ===== -->
     <div class="controls-section">
-      <!-- Tabs Dropdown Row -->
-      <div class="tabs-row">
+      <div class="controls-row">
+        <!-- Tab Dropdown -->
         <div class="tab-dropdown">
           <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
             <span class="dropdown-icon">{{ activeTabIcon }}</span>
@@ -51,23 +51,27 @@
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Period + Actions Row -->
-      <div v-if="activeTab === 'dashboard'" class="period-actions-row">
-        <div class="period-wrapper">
-          <span class="period-label">📅 Select Period</span>
-          <div class="period-pills">
+        <!-- Period Dropdown -->
+        <div v-if="activeTab === 'dashboard'" class="period-dropdown-wrapper">
+          <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
+            <span class="dropdown-icon">📅</span>
+            <span class="dropdown-label">{{ getPeriodLabel() }}</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
             <button 
               v-for="p in periods" 
               :key="p.value"
-              :class="['period-pill', { active: selectedPeriod === p.value }]"
-              @click="selectedPeriod = p.value; refreshAllData()"
+              :class="['dropdown-item', { active: selectedPeriod === p.value }]"
+              @click="selectPeriod(p.value)"
             >
               {{ p.label }}
             </button>
           </div>
         </div>
+
+        <!-- Action Buttons -->
         <div class="action-buttons">
           <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
             <span class="action-icon">⟳</span>
@@ -2509,26 +2513,38 @@ export default {
 /* ============================================ */
 .controls-section {
   margin-bottom: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
-.tabs-row {
+.controls-row {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
 }
 
+/* Tab Dropdown */
 .tab-dropdown {
   position: relative;
-  min-width: 180px;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+/* Period Dropdown */
+.period-dropdown-wrapper {
+  position: relative;
+  min-width: 140px;
+  flex-shrink: 0;
 }
 
 .dropdown-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -2568,6 +2584,10 @@ export default {
   overflow: hidden;
   z-index: 50;
   animation: dropdownSlide 0.2s ease;
+}
+
+.period-menu {
+  min-width: 140px;
 }
 
 @keyframes dropdownSlide {
@@ -2612,68 +2632,13 @@ export default {
   line-height: 18px;
 }
 
-/* ============================================ */
-/* PERIOD + ACTIONS ROW                         */
-/* ============================================ */
-.period-actions-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  background: var(--background);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-
-.period-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.period-wrapper .period-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.period-pills {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.period-pill {
-  padding: 0.3rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: var(--transition);
-  color: var(--text-secondary);
-}
-
-.period-pill:hover {
-  border-color: var(--primary);
-  color: var(--text);
-}
-
-.period-pill.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  border-color: var(--primary);
-}
-
+/* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .header-action-btn {
@@ -2688,6 +2653,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .header-action-btn:hover {
@@ -4171,27 +4137,20 @@ export default {
     justify-content: center;
   }
   
-  .tab-dropdown {
-    min-width: unset;
-    width: 100%;
-  }
-  
-  .period-actions-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .period-wrapper {
+  .controls-row {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
   }
   
-  .period-pills {
-    justify-content: center;
+  .tab-dropdown,
+  .period-dropdown-wrapper {
+    min-width: unset;
+    width: 100%;
   }
   
   .action-buttons {
+    margin-left: 0;
     justify-content: center;
   }
   
@@ -4253,11 +4212,6 @@ export default {
   .dashboard-banner {
     max-height: 140px;
   }
-  
-  .period-pill {
-    padding: 0.2rem 0.6rem;
-    font-size: 0.7rem;
-  }
 }
 
 @media (max-width: 480px) {
@@ -4300,22 +4254,23 @@ export default {
     max-height: 90px;
   }
   
-  .period-pills {
-    flex-wrap: wrap;
-  }
-  
-  .period-pill {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.65rem;
-  }
-  
-  .action-label {
-    font-size: 0.65rem;
+  .action-buttons {
+    flex-direction: row;
+    width: 100%;
   }
   
   .header-action-btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .dropdown-toggle {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .dropdown-label {
+    font-size: 0.8rem;
   }
 }
 </style>
