@@ -1,50 +1,7 @@
 <template>
   <div class="sa-dashboard">
-    <!-- ===== TOP ROW: Tabs Dropdown + Period Dropdown + User Controls ===== -->
+    <!-- ===== TOP ROW: User Controls only ===== -->
     <div class="top-controls-row">
-      <!-- Tabs Dropdown -->
-      <div class="tab-dropdown">
-        <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
-          <span class="dropdown-icon">{{ activeTabIcon }}</span>
-          <span class="dropdown-label">{{ activeTabLabel }}</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        <div v-if="dropdownOpen" class="dropdown-menu">
-          <button 
-            v-for="tab in tabs" 
-            :key="tab.id"
-            :class="['dropdown-item', { active: activeTab === tab.id }]"
-            @click="selectTab(tab.id)"
-          >
-            <span class="dropdown-item-icon">{{ tab.icon }}</span>
-            <span class="dropdown-item-label">{{ tab.label }}</span>
-            <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="dropdown-badge">
-              {{ lowStock.length }}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Period Dropdown (only shows on dashboard) -->
-      <div v-if="activeTab === 'dashboard'" class="period-dropdown">
-        <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
-          <span class="dropdown-icon">📅</span>
-          <span class="dropdown-label">{{ getPeriodLabel() }}</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
-          <button 
-            v-for="p in periods" 
-            :key="p.value"
-            :class="['dropdown-item', { active: selectedPeriod === p.value }]"
-            @click="selectPeriod(p.value)"
-          >
-            {{ p.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- User Controls -->
       <div class="user-controls">
         <button 
           @click="toggleNotifications" 
@@ -67,6 +24,61 @@
     <!-- ===== BANNER SECTION ===== -->
     <div v-if="systemBanner" class="banner-section">
       <img :src="systemBanner" alt="System Banner" class="dashboard-banner" />
+    </div>
+
+    <!-- ===== CONTROLS SECTION (below banner) ===== -->
+    <div class="controls-section">
+      <!-- Tabs Dropdown Row -->
+      <div class="tabs-row">
+        <div class="tab-dropdown">
+          <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
+            <span class="dropdown-icon">{{ activeTabIcon }}</span>
+            <span class="dropdown-label">{{ activeTabLabel }}</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div v-if="dropdownOpen" class="dropdown-menu">
+            <button 
+              v-for="tab in tabs" 
+              :key="tab.id"
+              :class="['dropdown-item', { active: activeTab === tab.id }]"
+              @click="selectTab(tab.id)"
+            >
+              <span class="dropdown-item-icon">{{ tab.icon }}</span>
+              <span class="dropdown-item-label">{{ tab.label }}</span>
+              <span v-if="tab.id === 'inventory' && lowStock.length > 0" class="dropdown-badge">
+                {{ lowStock.length }}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Period + Actions Row -->
+      <div v-if="activeTab === 'dashboard'" class="period-actions-row">
+        <div class="period-wrapper">
+          <span class="period-label">📅 Select Period</span>
+          <div class="period-pills">
+            <button 
+              v-for="p in periods" 
+              :key="p.value"
+              :class="['period-pill', { active: selectedPeriod === p.value }]"
+              @click="selectedPeriod = p.value; refreshAllData()"
+            >
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
+            <span class="action-icon">⟳</span>
+            <span class="action-label">Refresh</span>
+          </button>
+          <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
+            <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
+            <span class="action-label">Export</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================ -->
@@ -99,33 +111,6 @@
           {{ lowStock.length > 0 ? '⚠️' : '✅' }}
         </div>
         <div class="stat-hover">Click to view →</div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- PERIOD SELECTOR + REFRESH & EXPORT           -->
-    <!-- ============================================ -->
-    <div v-if="activeTab === 'dashboard'" class="period-section">
-      <div class="period-label">📅 Select Period</div>
-      <div class="period-pills">
-        <button 
-          v-for="p in periods" 
-          :key="p.value"
-          :class="['period-pill', { active: selectedPeriod === p.value }]"
-          @click="selectedPeriod = p.value; refreshAllData()"
-        >
-          {{ p.label }}
-        </button>
-      </div>
-      <div class="period-actions">
-        <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
-          <span class="action-icon">⟳</span>
-          <span class="action-label">Refresh</span>
-        </button>
-        <button @click="exportCurrentTab" class="header-action-btn primary" :disabled="exporting">
-          <span class="action-icon">{{ exporting ? '...' : '⬇' }}</span>
-          <span class="action-label">Export</span>
-        </button>
       </div>
     </div>
 
@@ -1149,7 +1134,6 @@ export default {
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
-      // Only Chicken exists, always return 'pieces'
       return 'pieces'
     },
 
@@ -1212,7 +1196,6 @@ export default {
       const file = event.target.files[0]
       if (!file) return
       
-      // Check file size (2MB limit)
       if (file.size > 2 * 1024 * 1024) {
         this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
         event.target.value = ''
@@ -1289,12 +1272,10 @@ export default {
       
       this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
       
-      // Use actual sales data from the selected period
       const salesData = this.salesTrend || []
       const days = salesData.map(d => this.formatShortDate(d.date))
       const revenues = salesData.map(d => d.revenue || 0)
       
-      // If no data, use mock data
       const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
       const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => Math.floor(Math.random() * 500) + 50)
       
@@ -1701,11 +1682,9 @@ export default {
             }))
         }
         
-        // Handle image - compress if needed to avoid 413 error
         if (this.menuForm.imagePreview) {
           let imageData = this.menuForm.imagePreview
           
-          // If it's a base64 string and too large (over 500KB), compress it
           if (imageData && imageData.length > 500000) {
             try {
               const compressed = await this.compressImage(imageData, 200, 200, 0.6)
@@ -1718,11 +1697,9 @@ export default {
             }
           }
           
-          // Only include if under 1MB after compression
           if (imageData && imageData.length < 1 * 1024 * 1024) {
             payload.image = imageData
           } else {
-            // If still too large, compress more aggressively
             try {
               const compressed = await this.compressImage(imageData, 100, 100, 0.5)
               if (compressed && compressed.length < 1 * 1024 * 1024) {
@@ -2005,7 +1982,6 @@ export default {
     // =============================================
     async initializeStallInventory(stallId) {
       try {
-        // Check if Chicken already exists
         const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         });
@@ -2013,12 +1989,11 @@ export default {
         const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken');
         
         if (!chickenExists) {
-          // Only initialize if Chicken doesn't exist
           await axios.post(`${API_BASE}/inventory/update`, {
             stallId: stallId,
             materialName: 'Chicken',
             newLevel: 100,
-            alertLevel: 10  // Always alert at 10
+            alertLevel: 10
           }, {
             headers: { Authorization: `Bearer ${this.token}` }
           });
@@ -2035,10 +2010,8 @@ export default {
           const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          // If no inventory exists, initialize with Chicken
           if (res.data.length === 0) {
             await this.initializeStallInventory(stall.id);
-            // Reload after initialization
             const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
               headers: { Authorization: `Bearer ${this.token}` }
             });
@@ -2424,113 +2397,8 @@ export default {
 .top-controls-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
   margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-
-/* ===== TAB DROPDOWN ===== */
-.tab-dropdown {
-  position: relative;
-  min-width: 180px;
-}
-
-.period-dropdown {
-  position: relative;
-  min-width: 120px;
-}
-
-.dropdown-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text);
-  transition: var(--transition);
-  width: 100%;
-}
-
-.dropdown-toggle:hover {
-  border-color: var(--primary);
-}
-
-.dropdown-toggle.open .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.dropdown-arrow {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-left: auto;
-  transition: transform 0.2s ease;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 0.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  z-index: 50;
-  animation: dropdownSlide 0.2s ease;
-}
-
-.period-menu {
-  min-width: 140px;
-}
-
-@keyframes dropdownSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  transition: var(--transition);
-  text-align: left;
-}
-
-.dropdown-item:hover {
-  background: var(--background);
-  color: var(--text);
-}
-
-.dropdown-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-}
-
-.dropdown-badge {
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-  line-height: 18px;
 }
 
 /* ===== USER CONTROLS ===== */
@@ -2538,7 +2406,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-left: auto;
   flex-wrap: wrap;
 }
 
@@ -2638,6 +2505,222 @@ export default {
 }
 
 /* ============================================ */
+/* CONTROLS SECTION - BELOW BANNER              */
+/* ============================================ */
+.controls-section {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tabs-row {
+  display: flex;
+  align-items: center;
+}
+
+.tab-dropdown {
+  position: relative;
+  min-width: 180px;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: var(--transition);
+  width: 100%;
+}
+
+.dropdown-toggle:hover {
+  border-color: var(--primary);
+}
+
+.dropdown-toggle.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-arrow {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 50;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--background);
+  color: var(--text);
+}
+
+.dropdown-item.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.dropdown-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  line-height: 18px;
+}
+
+/* ============================================ */
+/* PERIOD + ACTIONS ROW                         */
+/* ============================================ */
+.period-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--background);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.period-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.period-wrapper .period-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.period-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.period-pill {
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.period-pill:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.period-pill.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border-color: var(--primary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.header-action-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-action-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.header-action-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+}
+
+.header-action-btn.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  color: white;
+}
+
+.header-action-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  font-size: 1rem;
+}
+
+.action-label {
+  font-size: 0.75rem;
+}
+
+/* ============================================ */
 /* STATS GRID                                   */
 /* ============================================ */
 .stats-grid {
@@ -2698,12 +2781,6 @@ export default {
   opacity: 1;
 }
 
-@media (max-width: 768px) {
-  .stat-card .stat-hover {
-    display: none;
-  }
-}
-
 .stat-icon {
   font-size: 1.5rem;
   width: 40px;
@@ -2747,107 +2824,13 @@ export default {
 .stat-trend.down { color: #ef4444; }
 
 /* ============================================ */
-/* PERIOD SECTION WITH ACTIONS                  */
-/* ============================================ */
-.period-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-
-.period-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.period-pills {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.period-pill {
-  padding: 0.3rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: var(--transition);
-  color: var(--text-secondary);
-}
-
-.period-pill:hover {
-  border-color: var(--primary);
-  color: var(--text);
-}
-
-.period-pill.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  border-color: var(--primary);
-}
-
-.period-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.header-action-btn {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.header-action-btn:hover {
-  border-color: var(--primary);
-  color: var(--text);
-  transform: translateY(-1px);
-}
-
-.header-action-btn.primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  border: none;
-}
-
-.header-action-btn.primary:hover {
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-  color: white;
-}
-
-.header-action-btn.primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-icon {
-  font-size: 1rem;
-}
-
-.action-label {
-  font-size: 0.75rem;
-}
-
-/* ============================================ */
 /* KPI CARDS                                    */
 /* ============================================ */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .kpi-card {
@@ -2913,6 +2896,7 @@ export default {
   border-radius: var(--radius);
   overflow: hidden;
   transition: var(--transition);
+  margin-bottom: 1.25rem;
 }
 
 .chart-modern.fullscreen {
@@ -3115,119 +3099,6 @@ export default {
 }
 
 /* ============================================ */
-/* DETAIL MODALS                                */
-/* ============================================ */
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.detail-item {
-  background: var(--background);
-  padding: 0.75rem;
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.detail-label {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.detail-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.detail-chart-container {
-  margin-top: 1rem;
-}
-
-.detail-chart-container h4 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: var(--text);
-}
-
-.detail-chart {
-  width: 100%;
-  height: 200px;
-}
-
-/* ============================================ */
-/* IMAGE UPLOAD                                 */
-/* ============================================ */
-.image-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  text-align: center;
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.image-upload-area:hover {
-  border-color: var(--primary);
-}
-
-.image-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--text-tertiary);
-}
-
-.image-placeholder span {
-  font-size: 2rem;
-}
-
-.image-placeholder p {
-  font-size: 0.75rem;
-  margin: 0;
-}
-
-.image-preview {
-  position: relative;
-  max-width: 120px;
-  margin: 0 auto;
-}
-
-.image-preview img {
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.remove-image {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ef4444;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ============================================ */
 /* MODERN CARDS                                 */
 /* ============================================ */
 .card-modern {
@@ -3235,6 +3106,7 @@ export default {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  margin-bottom: 1.25rem;
 }
 
 .card-modern-header {
@@ -3783,107 +3655,6 @@ export default {
   text-transform: capitalize;
 }
 
-.status-badge {
-  padding: 0.15rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.active { background: #d1fae5; color: #059669; }
-.status-badge.inactive { background: #fee2e2; color: #dc2626; }
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
-/* ============================================ */
-/* MENU MANAGEMENT                              */
-/* ============================================ */
-.menu-item-row {
-  border-bottom: 1px solid var(--border-light);
-  padding: 0.5rem 0;
-}
-
-.menu-item-row:last-child {
-  border-bottom: none;
-}
-
-.menu-item-row-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.menu-item-index {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.6rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.menu-item-info {
-  flex: 1;
-  min-width: 120px;
-}
-
-.menu-item-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.menu-item-price {
-  font-size: 0.8rem;
-  color: var(--primary);
-  font-weight: 600;
-  margin-left: 0.5rem;
-}
-
-.menu-item-category {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  margin-left: 0.5rem;
-}
-
-.menu-item-recipe {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  flex: 1;
-  min-width: 150px;
-}
-
-.recipe-label {
-  font-weight: 500;
-}
-
-.recipe-items {
-  color: var(--text);
-}
-
-.recipe-empty {
-  color: var(--text-tertiary);
-  font-style: italic;
-}
-
-.menu-item-actions {
-  display: flex;
-  gap: 0.15rem;
-}
-
 /* ============================================ */
 /* BUTTONS                                      */
 /* ============================================ */
@@ -3924,130 +3695,6 @@ export default {
 .btn-modern.small {
   padding: 0.15rem 0.5rem;
   font-size: 0.7rem;
-}
-
-.btn-icon-sm {
-  background: transparent;
-  border: none;
-  padding: 0.15rem 0.3rem;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-
-.btn-icon-sm:hover { background: var(--background); }
-.btn-icon-sm.danger { color: #ef4444; }
-.btn-icon-sm.danger:hover { background: #fee2e2; }
-
-/* ============================================ */
-/* RECIPE ROWS                                  */
-/* ============================================ */
-.recipe-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-bottom: 0.3rem;
-}
-
-.recipe-input {
-  flex: 1;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.recipe-input-small {
-  width: 60px;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-/* ============================================ */
-/* RECIPE SECTION - FIXED                       */
-/* ============================================ */
-.recipe-section {
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  margin-top: 0.5rem;
-}
-
-.recipe-hint {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-bottom: 0.75rem;
-  font-style: italic;
-}
-
-.recipe-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-end;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-.recipe-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.recipe-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.recipe-input {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 100%;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.recipe-input-small {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 80px;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input-small:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.add-recipe-btn {
-  margin-top: 0.5rem;
-  width: 100%;
-  justify-content: center;
 }
 
 /* ============================================ */
@@ -4173,6 +3820,326 @@ export default {
 }
 
 /* ============================================ */
+/* DETAIL MODALS                                */
+/* ============================================ */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.detail-item {
+  background: var(--background);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detail-chart-container {
+  margin-top: 1rem;
+}
+
+.detail-chart-container h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.detail-chart {
+  width: 100%;
+  height: 200px;
+}
+
+.status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ============================================ */
+/* IMAGE UPLOAD                                 */
+/* ============================================ */
+.image-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.image-upload-area:hover {
+  border-color: var(--primary);
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-tertiary);
+}
+
+.image-placeholder span {
+  font-size: 2rem;
+}
+
+.image-placeholder p {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.image-preview {
+  position: relative;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.remove-image {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================ */
+/* RECIPE SECTION                               */
+/* ============================================ */
+.recipe-section {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.recipe-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.recipe-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.recipe-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.recipe-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.recipe-input {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.recipe-input-small {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 80px;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input-small:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.add-recipe-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
+
+.recipe-tag {
+  display: inline-block;
+  background: #f1f5f9;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  margin: 0.1rem 0.2rem;
+  font-size: 0.7rem;
+  border: 1px solid #e2e8f0;
+}
+
+/* ============================================ */
+/* MENU MANAGEMENT                              */
+/* ============================================ */
+.menu-item-row {
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.5rem 0;
+}
+
+.menu-item-row:last-child {
+  border-bottom: none;
+}
+
+.menu-item-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.menu-item-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.6rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-item-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.menu-item-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.menu-item-price {
+  font-size: 0.8rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.menu-item-category {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+}
+
+.menu-item-recipe {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 150px;
+}
+
+.recipe-label {
+  font-weight: 500;
+}
+
+.recipe-items {
+  color: var(--text);
+}
+
+.recipe-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.menu-item-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+/* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
 .empty-state-modern {
@@ -4197,26 +4164,34 @@ export default {
 /* ============================================ */
 @media (max-width: 768px) {
   .top-controls-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  
-  .user-controls {
-    margin-left: 0;
     justify-content: center;
   }
   
-  .tab-dropdown,
-  .period-dropdown {
+  .user-controls {
+    justify-content: center;
+  }
+  
+  .tab-dropdown {
     min-width: unset;
+    width: 100%;
+  }
+  
+  .period-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .period-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
   }
   
   .period-pills {
     justify-content: center;
   }
   
-  .period-actions {
+  .action-buttons {
     justify-content: center;
   }
   
@@ -4278,6 +4253,11 @@ export default {
   .dashboard-banner {
     max-height: 140px;
   }
+  
+  .period-pill {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -4305,10 +4285,6 @@ export default {
   
   .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
   
-  .tab-btn-modern { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
-  .tab-icon-modern { font-size: 0.7rem; }
-  .tab-label-modern { font-size: 0.6rem; }
-  
   .list-item-content { gap: 0.35rem; }
   .list-item-name { font-size: 0.75rem; }
   .list-item-btn { font-size: 0.75rem; }
@@ -4323,36 +4299,23 @@ export default {
   .dashboard-banner {
     max-height: 90px;
   }
-}
-
-.recipe-tag {
-  display: inline-block;
-  background: #f1f5f9;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  margin: 0.1rem 0.2rem;
-  font-size: 0.7rem;
-  border: 1px solid #e2e8f0;
-}
-
-/* ============================================ */
-/* MODAL OVERRIDES - WHITE BACKGROUND           */
-/* ============================================ */
-.modal-modern {
-  background: #ffffff !important;
-}
-
-.modal-modern-body {
-  background: #ffffff !important;
-}
-
-.modal-modern-header {
-  background: #fafafa !important;
-  border-bottom: 1px solid #e5e7eb !important;
-}
-
-.modal-modern-footer {
-  background: #fafafa !important;
-  border-top: 1px solid #e5e7eb !important;
+  
+  .period-pills {
+    flex-wrap: wrap;
+  }
+  
+  .period-pill {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+  
+  .action-label {
+    font-size: 0.65rem;
+  }
+  
+  .header-action-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
 }
 </style>
