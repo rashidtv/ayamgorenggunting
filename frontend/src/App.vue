@@ -1100,4 +1100,30 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ============================================ */
+/* FORCE CONSISTENT SPACING FOR ALL VIEWS      */
+/* ============================================ */
+
+/* Make sure all dashboard views have consistent top spacing */
+.dashboard-container > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Ensure StallView matches Super Admin Panel spacing */
+.stall-view .top-controls-row {
+  margin-bottom: 1.25rem !important;
+}
+
+.stall-view .banner-section {
+  margin-bottom: 1.25rem !important;
+}
+
+/* If StallView has a wrapper, ensure it has no extra padding */
+.stall-view {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
 </style>
