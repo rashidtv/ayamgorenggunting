@@ -292,20 +292,17 @@ export default {
         this.showNotification('Logo updated successfully!', 'success')
       },
 
-  async fetchSystemBanner() {
+ async fetchSystemBanner() {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'}/system/banner`)
+      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'}/system/banner`);
       if (response.data.bannerUrl) {
-        this.systemBanner = response.data.bannerUrl
-        localStorage.setItem('systemBanner', response.data.bannerUrl)
+        this.systemBanner = response.data.bannerUrl;
+        localStorage.setItem('systemBanner', response.data.bannerUrl);
       }
     } catch (err) {
-      console.log('No system banner found')
+      console.log('No system banner found');
     }
   },
-}
-
-    },
 
     // =============================================
     // AUTHENTICATION
