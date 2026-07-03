@@ -1,5 +1,19 @@
 <template>
   <div class="stall-view">
+    <!-- Connection Status - MOVED TO TOP -->
+    <div v-if="connectionError" class="connection-banner error">
+      <div class="banner-content">
+        <span class="banner-icon">⚠️</span>
+        <div class="banner-text">
+          <div class="banner-title">Connection Issue</div>
+          <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
+        </div>
+        <button @click="loadData" class="btn btn-outline retry-btn">
+          <span class="btn-icon">🔄</span> Retry Connection
+        </button>
+      </div>
+    </div>
+
     <!-- ===== TOP ROW: User Controls ===== -->
     <div class="top-controls-row">
       <div class="user-controls">
@@ -17,20 +31,6 @@
         <span class="user-badge">{{ userRoleText }}</span>
         <button @click="logout" class="logout-btn">
           <span class="btn-icon">↩</span> Sign Out
-        </button>
-      </div>
-    </div>
-
-    <!-- Connection Status -->
-    <div v-if="connectionError" class="connection-banner error">
-      <div class="banner-content">
-        <span class="banner-icon">⚠️</span>
-        <div class="banner-text">
-          <div class="banner-title">Connection Issue</div>
-          <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
-        </div>
-        <button @click="loadData" class="btn btn-outline retry-btn">
-          <span class="btn-icon">🔄</span> Retry Connection
         </button>
       </div>
     </div>
@@ -685,6 +685,62 @@ export default {
 }
 
 /* ============================================ */
+/* CONNECTION BANNER - AT TOP                   */
+/* ============================================ */
+.connection-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space);
+  margin-bottom: var(--space);
+  position: relative;
+  overflow: hidden;
+}
+
+.connection-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--error);
+  opacity: 0.6;
+}
+
+.banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space);
+}
+
+.banner-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-title {
+  font-weight: 600;
+  color: var(--error);
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.banner-desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.retry-btn {
+  flex-shrink: 0;
+}
+
+/* ============================================ */
 /* TOP CONTROLS ROW - Same as Super Admin       */
 /* ============================================ */
 .top-controls-row {
@@ -794,60 +850,6 @@ export default {
   .dashboard-banner {
     max-height: 90px;
   }
-}
-
-/* Connection Banner */
-.connection-banner {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--radius-lg);
-  padding: var(--space);
-  margin-bottom: var(--space);
-  position: relative;
-  overflow: hidden;
-}
-
-.connection-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--error);
-  opacity: 0.6;
-}
-
-.banner-content {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space);
-}
-
-.banner-icon {
-  font-size: var(--font-size-lg);
-  flex-shrink: 0;
-}
-
-.banner-text {
-  flex: 1;
-}
-
-.banner-title {
-  font-weight: 600;
-  color: var(--error);
-  margin-bottom: var(--space-xs);
-  font-size: var(--font-size-sm);
-}
-
-.banner-desc {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-}
-
-.retry-btn {
-  flex-shrink: 0;
 }
 
 /* Stats Grid */
