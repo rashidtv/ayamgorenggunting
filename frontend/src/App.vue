@@ -26,8 +26,6 @@
     </div>
 
     <div v-else class="app-layout">
-      <!-- ===== NO HEADER - REMOVED ===== -->
-
       <!-- Logo Upload Modal -->
       <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
         <div class="modal-modern">
@@ -54,6 +52,17 @@
         </div>
       </div>
 
+      <!-- ===== GLOBAL HEADER ===== -->
+      <DashboardHeader 
+        :role-text="userRoleText"
+        :dark-mode="darkMode"
+        :notifications-enabled="notificationsEnabled"
+        :banner-url="systemBanner"
+        @toggle-dark-mode="toggleDarkMode"
+        @toggle-notifications="toggleNotifications"
+        @logout="logout"
+      />
+
       <!-- Main Content -->
       <main class="main-content">
         <div class="content-wrapper">
@@ -69,32 +78,19 @@
                 @show-notification="showNotification"
               />
               <SuperAdminPanel
-  v-else-if="user.role === 'super_admin'"
-  :token="token || ''"
-  @show-notification="showNotification"
-  :company-logo="companyLogo"
-  :dark-mode="darkMode"
-  :notifications-enabled="notificationsEnabled"
-  @toggle-dark-mode="toggleDarkMode"
-  @toggle-notifications="toggleNotifications"
-  @logout="logout"
-  :user-role-text="userRoleText"
-/>
-
-<StallView
-  v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
-  :key="stallIdForView"
-  :stallId="stallIdForView"
-  :token="token || ''"
-  :role="user.role"
-  @show-notification="showNotification"
-  :dark-mode="darkMode"
-  :notifications-enabled="notificationsEnabled"
-  @toggle-dark-mode="toggleDarkMode"
-  @toggle-notifications="toggleNotifications"
-  @logout="logout"
-  :user-role-text="userRoleText"
-/>
+                v-else-if="user.role === 'super_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+                :company-logo="companyLogo"
+              />
+              <StallView
+                v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
+                :key="stallIdForView"
+                :stallId="stallIdForView"
+                :token="token || ''"
+                :role="user.role"
+                @show-notification="showNotification"
+              />
               <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
             </template>
           </div>
@@ -145,12 +141,15 @@
 </template>
 
 <script>
+import axios from 'axios'
 import Login from './components/Login.vue';
 import StallView from './components/StallView.vue';
 import AdminDashboard from './components/AdminDashboard.vue';
 import SuperAdminPanel from './components/SuperAdminPanel.vue';
 import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
+import DashboardHeader from './components/DashboardHeader.vue';
 import { useAuthStore } from './stores/auth';
+import API_BASE from './config/api.js';
 
 export default {
   name: 'App',
@@ -160,6 +159,7 @@ export default {
     AdminDashboard,
     SuperAdminPanel,
     SuperSuperAdminPanel,
+    DashboardHeader,
   },
   data() {
     return {
@@ -179,6 +179,7 @@ export default {
       logoUploadModal: false,
       tempLogoPreview: null,
       tempLogoFile: null,
+      systemBanner: localStorage.getItem('systemBanner') || null,
     };
   },
   computed: {
@@ -258,6 +259,21 @@ export default {
     },
 
     // =============================================
+    // BANNER MANAGEMENT
+    // =============================================
+    async fetchBanner() {
+      try {
+        const response = await axios.get(`${API_BASE}/system/banner`)
+        if (response.data.bannerUrl) {
+          this.systemBanner = response.data.bannerUrl
+          localStorage.setItem('systemBanner', response.data.bannerUrl)
+        }
+      } catch (err) {
+        console.log('No system banner found')
+      }
+    },
+
+    // =============================================
     // AUTHENTICATION
     // =============================================
     handleLoginSuccess(responseData) {
@@ -298,6 +314,7 @@ export default {
           this.loading = false;
           this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
           this.updateLastUpdateTime();
+          this.fetchBanner();
         }, 500);
       });
     },
@@ -498,6 +515,11 @@ export default {
         this.companyLogo = savedLogo;
       }
 
+      const savedBanner = localStorage.getItem('systemBanner');
+      if (savedBanner) {
+        this.systemBanner = savedBanner;
+      }
+
       setInterval(() => {
         this.updateLastUpdateTime();
       }, 60000);
@@ -533,6 +555,7 @@ export default {
           if (this.user) {
             this.showNotification('Welcome back!', 'success');
             this.updateLastUpdateTime();
+            this.fetchBanner();
           }
         }
       }
@@ -634,8 +657,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
-/* ===== NO HEADER STYLES - REMOVED ===== */
 
 /* ===== LOGO UPLOAD MODAL ===== */
 .modal-overlay {
@@ -1099,30 +1120,4 @@ input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-
-/* ============================================ */
-/* FORCE CONSISTENT SPACING FOR ALL VIEWS      */
-/* ============================================ */
-
-/* Make sure all dashboard views have consistent top spacing */
-.dashboard-container > *:first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
-/* Ensure StallView matches Super Admin Panel spacing */
-.stall-view .top-controls-row {
-  margin-bottom: 1.25rem !important;
-}
-
-.stall-view .banner-section {
-  margin-bottom: 1.25rem !important;
-}
-
-/* If StallView has a wrapper, ensure it has no extra padding */
-.stall-view {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
 </style>
