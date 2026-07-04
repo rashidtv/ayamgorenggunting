@@ -1,5 +1,18 @@
 <template>
   <div class="stall-view">
+    <!-- Connection Status -->
+    <div v-if="connectionError" class="connection-banner error">
+      <div class="banner-content">
+        <span class="banner-icon">⚠️</span>
+        <div class="banner-text">
+          <div class="banner-title">Connection Issue</div>
+          <div class="banner-desc">Cannot connect to server. Please ensure backend is running.</div>
+        </div>
+        <button @click="loadData" class="btn btn-outline retry-btn">
+          <span class="btn-icon">🔄</span> Retry Connection
+        </button>
+      </div>
+    </div>
 
     <!-- Quick Stats -->
     <div class="stats-grid">
@@ -41,14 +54,7 @@
           <h2>Quick Sales</h2>
           <p>Tap to sell items instantly</p>
         </div>
-        <div class="section-actions">
-          <div class="last-updated">
-            <span class="update-icon">🕒</span> Updated: {{ lastUpdateTime }}
-          </div>
-          <button @click="loadData" class="btn btn-ghost refresh-btn">
-            <span class="btn-icon">🔄</span> Refresh
-          </button>
-        </div>
+        <!-- REMOVED: last-updated and refresh button -->
       </div>
 
       <!-- DYNAMIC MENU FROM DATABASE -->
@@ -175,6 +181,7 @@
             </div>
             <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
           </div>
+          <!-- Inventory update buttons - HIDDEN for Cashier -->
           <div class="inventory-actions" v-if="role !== 'cashier'">
             <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
               <span class="btn-icon">+</span> Add 10 pieces
@@ -185,6 +192,11 @@
             <button @click="updateStock(item.material_name, item.current_level + 1)" class="btn btn-ghost stock-btn" :disabled="connectionError">
               <span class="btn-icon">+</span> Add 1 piece
             </button>
+          </div>
+          <!-- Show message for Cashier -->
+          <div v-else class="cashier-stock-message">
+            <span class="message-icon">🔒</span>
+            <span class="message-text">Stock management is restricted to Stall Admins only</span>
           </div>
           <div class="inventory-glow"></div>
         </div>
@@ -296,7 +308,7 @@ export default {
   props: { 
     stallId: { type: String, default: null }, 
     token: { type: String, default: null },
-
+    role: { type: String, default: 'stall_admin' }
   },
   data() {
     return {
@@ -329,11 +341,9 @@ export default {
     this.loadData()
     this.loadMenu()
     this.interval = setInterval(this.loadData, 30000)
-    this.updateTimeInterval = setInterval(this.updateLastUpdateTime, 60000)
   },
   beforeUnmount() {
     clearInterval(this.interval)
-    clearInterval(this.updateTimeInterval)
   },
   methods: {
     formatCurrency, 
@@ -359,18 +369,12 @@ export default {
       return 'pieces'
     },
 
-    updateLastUpdateTime() {
-      const now = new Date()
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })
-    },
-
     async loadData() {
       if (!this.activeStallId) return
       this.loadingData = true
       this.connectionError = false
       try {
         await Promise.all([this.loadInventory(), this.loadTodaySales(), this.loadAnalytics()])
-        this.updateLastUpdateTime()
       } catch (error) {
         console.error(error)
         this.connectionError = true
@@ -614,6 +618,59 @@ export default {
   gap: var(--space-lg);
 }
 
+/* Connection Banner */
+.connection-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space);
+  margin-bottom: var(--space);
+  position: relative;
+  overflow: hidden;
+}
+
+.connection-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--error);
+  opacity: 0.6;
+}
+
+.banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space);
+}
+
+.banner-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-title {
+  font-weight: 600;
+  color: var(--error);
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.banner-desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.retry-btn {
+  flex-shrink: 0;
+}
 
 /* Stats Grid */
 .stats-grid {
@@ -744,31 +801,6 @@ export default {
 .section-title p {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-}
-
-.section-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.last-updated {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  background: var(--background);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.update-icon {
-  font-size: var(--font-size-sm);
-}
-
-.refresh-btn {
-  padding: var(--space-sm);
 }
 
 /* Menu Grid */
@@ -1184,6 +1216,7 @@ export default {
   background: var(--error);
 }
 
+/* Inventory Actions - Only for non-cashier */
 .inventory-actions {
   display: flex;
   gap: var(--space-sm);
@@ -1193,6 +1226,28 @@ export default {
   flex: 1;
   padding: var(--space-sm);
   font-size: var(--font-size-sm);
+}
+
+/* Cashier message - shown when role is cashier */
+.cashier-stock-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-sm);
+  margin-top: 0.5rem;
+}
+
+.message-icon {
+  font-size: 1rem;
+}
+
+.message-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* Analytics */
@@ -1554,14 +1609,6 @@ export default {
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 768px) {
-  .top-controls-row {
-    justify-content: center;
-  }
-  
-  .user-controls {
-    justify-content: center;
-  }
-  
   .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -1735,5 +1782,4 @@ export default {
     padding: 0.05rem 0.5rem;
   }
 }
-
 </style>
