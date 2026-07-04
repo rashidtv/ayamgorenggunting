@@ -72,26 +72,37 @@
           </div>
           <div v-else class="dashboard-container">
             <template v-if="user && user.role">
+              <!-- Super Super Admin -->
               <SuperSuperAdminPanel
                 v-if="user.role === 'super_super_admin'"
                 :token="token || ''"
                 @show-notification="showNotification"
               />
+              
+              <!-- Super Admin -->
               <SuperAdminPanel
                 v-else-if="user.role === 'super_admin'"
                 :token="token || ''"
                 @show-notification="showNotification"
                 :company-logo="companyLogo"
               />
+              
+              <!-- Stall Admin -->
+              <StallAdminPanel
+                v-else-if="user.role === 'stall_admin'"
+                :token="token || ''"
+                @show-notification="showNotification"
+              />
+              
+              <!-- Cashier -->
               <StallView
-                v-else-if="(user.role === 'stall_admin' || user.role === 'cashier') && isValidStallId"
+                v-else-if="user.role === 'cashier' && isValidStallId"
                 :key="stallIdForView"
                 :stallId="stallIdForView"
                 :token="token || ''"
                 :role="user.role"
                 @show-notification="showNotification"
               />
-              <AdminDashboard v-else :token="token || ''" @show-notification="showNotification" />
             </template>
           </div>
         </div>
@@ -144,9 +155,9 @@
 import axios from 'axios'
 import Login from './components/Login.vue';
 import StallView from './components/StallView.vue';
-import AdminDashboard from './components/AdminDashboard.vue';
 import SuperAdminPanel from './components/SuperAdminPanel.vue';
 import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
+import StallAdminPanel from './components/StallAdminPanel.vue';
 import DashboardHeader from './components/DashboardHeader.vue';
 import { useAuthStore } from './stores/auth';
 import API_BASE from './config/api.js';
@@ -156,9 +167,9 @@ export default {
   components: {
     Login,
     StallView,
-    AdminDashboard,
     SuperAdminPanel,
     SuperSuperAdminPanel,
+    StallAdminPanel,
     DashboardHeader,
   },
   data() {
@@ -198,7 +209,7 @@ export default {
     },
     stallIdForView() {
       if (!this.user) return '';
-      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin') {
+      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin' || this.user.role === 'stall_admin') {
         return '';
       }
       const stallId = this.activeStallId || this.user.stall_id;
