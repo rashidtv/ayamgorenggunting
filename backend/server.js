@@ -25,7 +25,7 @@ app.use(express.urlencoded({
 
 // ============ CORS ============
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://agg-frontend.onrender.com', 'https://your-custom-domain.com']
+  ? ['https://agg-frontend.onrender.com', 'https://chickoryhub.com', 'https://www.chickoryhub.com']
   : ['http://localhost:5173', 'http://localhost:10000', 'https://*.preview.app.github.dev'];
 
 app.use(cors({ 
