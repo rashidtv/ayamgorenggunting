@@ -81,34 +81,39 @@
     <!-- ===== PROBLEM / SOLUTION ===== -->
     <section class="problem-section">
       <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Challenges We Solve</span>
+          <h2>Stop Struggling. Start Growing.</h2>
+          <p>Common problems we help you overcome</p>
+        </div>
         <div class="problem-grid">
-          <div class="problem-item">
-            <span class="problem-icon">📋</span>
-            <div>
-              <h3>Manual Record Keeping</h3>
-              <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
+          <div class="problem-card">
+            <div class="problem-icon-wrapper">
+              <span class="problem-icon">📋</span>
             </div>
+            <h3>Manual Record Keeping</h3>
+            <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
           </div>
-          <div class="problem-item">
-            <span class="problem-icon">📦</span>
-            <div>
-              <h3>Inventory Chaos</h3>
-              <p>Know exactly when to restock. Never run out of chicken again.</p>
+          <div class="problem-card">
+            <div class="problem-icon-wrapper">
+              <span class="problem-icon">📦</span>
             </div>
+            <h3>Inventory Chaos</h3>
+            <p>Know exactly when to restock. Never run out of chicken again.</p>
           </div>
-          <div class="problem-item">
-            <span class="problem-icon">📊</span>
-            <div>
-              <h3>No Real Insights</h3>
-              <p>Get real-time analytics and make data-driven decisions for your business.</p>
+          <div class="problem-card">
+            <div class="problem-icon-wrapper">
+              <span class="problem-icon">📊</span>
             </div>
+            <h3>No Real Insights</h3>
+            <p>Get real-time analytics and make data-driven decisions for your business.</p>
           </div>
-          <div class="problem-item">
-            <span class="problem-icon">👥</span>
-            <div>
-              <h3>Multi-stall Complexity</h3>
-              <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
+          <div class="problem-card">
+            <div class="problem-icon-wrapper">
+              <span class="problem-icon">👥</span>
             </div>
+            <h3>Multi-stall Complexity</h3>
+            <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
           </div>
         </div>
       </div>
@@ -176,46 +181,57 @@
           <span class="section-tag">Why We're Different</span>
           <h2>Chickory Hub vs Traditional Methods</h2>
         </div>
-        <div class="comparison-table">
-          <div class="comparison-row header">
-            <div class="comparison-cell">Feature</div>
-            <div class="comparison-cell chickory">Chickory Hub</div>
-            <div class="comparison-cell competitor">Manual Methods</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Real-time Sales</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ No</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Inventory Auto-Deduct</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ Manual</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Multi-Stall Management</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ Complex</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Role-Based Access</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ No</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Mobile PWA</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ No</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Analytics & Charts</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ Manual</div>
-          </div>
-          <div class="comparison-row">
-            <div class="comparison-cell">Low Stock Alerts</div>
-            <div class="comparison-cell chickory">✅ Yes</div>
-            <div class="comparison-cell competitor">❌ No</div>
+        <div class="comparison-wrapper">
+          <div class="comparison-grid">
+            <div class="comparison-item">
+              <span class="comparison-feature">Real-time Sales</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ No</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Inventory Auto-Deduct</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ Manual</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Multi-Stall Management</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ Complex</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Role-Based Access</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ No</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Mobile PWA</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ No</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Analytics & Charts</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ Manual</span>
+              </div>
+            </div>
+            <div class="comparison-item">
+              <span class="comparison-feature">Low Stock Alerts</span>
+              <div class="comparison-badges">
+                <span class="badge chickory">✅ Yes</span>
+                <span class="badge manual">❌ No</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -746,42 +762,74 @@ export default {
 .problem-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
-.problem-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
+.problem-card {
   background: var(--background);
   border-radius: var(--radius);
+  padding: 2rem 1.5rem;
+  text-align: center;
   border: 1px solid var(--border-light);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.problem-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  opacity: 0;
   transition: var(--transition);
 }
 
-.problem-item:hover {
+.problem-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
   border-color: var(--primary-light);
-  box-shadow: var(--shadow-sm);
+}
+
+.problem-card:hover::before {
+  opacity: 1;
+}
+
+.problem-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(249, 73, 8, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  transition: var(--transition);
+}
+
+.problem-card:hover .problem-icon-wrapper {
+  background: rgba(249, 73, 8, 0.15);
+  transform: scale(1.05);
 }
 
 .problem-icon {
   font-size: 1.6rem;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
 }
 
-.problem-item h3 {
-  font-size: 0.95rem;
+.problem-card h3 {
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.5rem;
 }
 
-.problem-item p {
+.problem-card p {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
   margin: 0;
 }
 
@@ -800,37 +848,59 @@ export default {
 
 .feature-card {
   background: var(--surface);
-  padding: 2rem;
+  padding: 2rem 1.5rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   text-align: center;
   transition: var(--transition);
+  position: relative;
 }
 
 .feature-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-md);
   border-color: var(--primary-light);
 }
 
 .feature-card.highlight {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(249, 73, 8, 0.03), rgba(250, 106, 46, 0.03));
+  background: linear-gradient(135deg, rgba(249, 73, 8, 0.04), rgba(250, 106, 46, 0.04));
+}
+
+.feature-card.highlight::after {
+  content: '⭐ Most Popular';
+  position: absolute;
+  top: -10px;
+  right: 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .feature-icon-wrapper {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: rgba(249, 73, 8, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
+  transition: var(--transition);
+}
+
+.feature-card:hover .feature-icon-wrapper {
+  background: rgba(249, 73, 8, 0.15);
+  transform: scale(1.05);
 }
 
 .feature-icon {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
 }
 
 .feature-card h3 {
@@ -844,6 +914,7 @@ export default {
   font-size: 0.9rem;
   color: var(--text-secondary);
   line-height: 1.6;
+  margin: 0;
 }
 
 /* ============================================ */
@@ -854,52 +925,66 @@ export default {
   background: var(--surface);
 }
 
-.comparison-table {
-  max-width: 800px;
+.comparison-wrapper {
+  max-width: 700px;
   margin: 0 auto;
+}
+
+.comparison-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--background);
   border-radius: var(--radius);
-  overflow: hidden;
   border: 1px solid var(--border);
+  padding: 0.5rem;
+}
+
+.comparison-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.comparison-item:hover {
   background: var(--background);
 }
 
-.comparison-row {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
-}
-
-.comparison-row.header {
-  background: var(--surface);
-  font-weight: 600;
-  border-bottom: 2px solid var(--border);
-}
-
-.comparison-row:nth-child(even) {
-  background: var(--surface);
-}
-
-.comparison-cell {
-  padding: 0.75rem 1rem;
+.comparison-feature {
   font-size: 0.9rem;
-  color: var(--text);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.comparison-cell:first-child {
   font-weight: 500;
+  color: var(--text);
 }
 
-.comparison-cell.chickory {
-  color: var(--primary);
+.comparison-badges {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.badge {
+  font-size: 0.8rem;
   font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+  min-width: 60px;
+  text-align: center;
 }
 
-.comparison-cell.competitor {
-  color: var(--text-secondary);
+.badge.chickory {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.comparison-row:last-child .comparison-cell {
-  border-bottom: none;
+.badge.manual {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 /* ============================================ */
@@ -1301,7 +1386,8 @@ export default {
   
   .problem-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
   }
   
   .features-grid {
@@ -1310,23 +1396,31 @@ export default {
     margin: 0 auto;
   }
   
-  .comparison-row {
-    grid-template-columns: 1fr;
-    padding: 0.5rem;
-  }
-  
-  .comparison-cell {
-    padding: 0.4rem;
-    font-size: 0.8rem;
-  }
-  
-  .comparison-row.header {
+  .feature-card.highlight::after {
     display: none;
   }
   
-  .comparison-cell:first-child {
-    font-weight: 700;
-    border-bottom: 1px solid var(--border-light);
+  .comparison-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .comparison-badges {
+    gap: 1rem;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+    min-width: 50px;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .comparison-feature {
+    font-size: 0.8rem;
   }
   
   .section-header h2 {
@@ -1381,11 +1475,38 @@ export default {
   }
   
   .feature-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
   
-  .problem-item {
-    padding: 1rem;
+  .feature-icon-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .feature-icon {
+    font-size: 1.5rem;
+  }
+  
+  .problem-card {
+    padding: 1.25rem;
+  }
+  
+  .problem-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .problem-icon {
+    font-size: 1.3rem;
+  }
+  
+  .comparison-item {
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .badge {
+    font-size: 0.65rem;
+    min-width: 40px;
   }
   
   .modal-modern {
