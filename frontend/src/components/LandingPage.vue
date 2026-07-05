@@ -78,77 +78,57 @@
       </div>
     </section>
 
-    <!-- ===== FEATURES ===== -->
-    <section class="features-section">
+    <!-- ===== ALL FEATURES ===== -->
+    <section class="all-features-section">
       <div class="container">
-        <div class="features-grid">
-          <div class="feature-item">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">⚡</span>
-            </div>
+        <div class="all-features-grid">
+          <div class="all-feature-card color-1">
+            <div class="all-feature-icon">⚡</div>
             <h3>Real-time Sales</h3>
             <p>Track revenue and items sold instantly</p>
           </div>
-          <div class="feature-item highlight">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">🛒</span>
-            </div>
+          <div class="all-feature-card color-2">
+            <div class="all-feature-icon">🛒</div>
             <h3>Smart Inventory</h3>
             <p>Auto-deduct stock, set low alerts</p>
           </div>
-          <div class="feature-item">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">📱</span>
-            </div>
-            <h3>Works Anywhere</h3>
-            <p>PWA ready, offline capable</p>
+          <div class="all-feature-card color-3">
+            <div class="all-feature-icon">📱</div>
+            <h3>PWA Works Anywhere</h3>
+            <p>Offline capable, no app store</p>
           </div>
-          <div class="feature-item">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">🔐</span>
-            </div>
+          <div class="all-feature-card color-4">
+            <div class="all-feature-icon">🔐</div>
             <h3>Role-Based Access</h3>
             <p>Cashiers, Admins, Super Admins</p>
           </div>
-          <div class="feature-item">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">📊</span>
-            </div>
+          <div class="all-feature-card color-5">
+            <div class="all-feature-icon">📊</div>
             <h3>Analytics Dashboard</h3>
             <p>Visual charts & performance</p>
           </div>
-          <div class="feature-item">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">👨‍👩‍👧‍👦</span>
-            </div>
+          <div class="all-feature-card color-6">
+            <div class="all-feature-icon">👨‍👩‍👧‍👦</div>
             <h3>Multi-Stall</h3>
             <p>All stalls, one dashboard</p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== WHY US ===== -->
-    <section class="why-section">
-      <div class="container">
-        <div class="why-grid">
-          <div class="why-card">
-            <div class="why-icon">📋</div>
+          <div class="all-feature-card color-7">
+            <div class="all-feature-icon">📋</div>
             <h3>No More Paper</h3>
             <p>Digital record keeping</p>
           </div>
-          <div class="why-card">
-            <div class="why-icon">📦</div>
+          <div class="all-feature-card color-8">
+            <div class="all-feature-icon">📦</div>
             <h3>Never Run Out</h3>
             <p>Smart inventory alerts</p>
           </div>
-          <div class="why-card">
-            <div class="why-icon">📊</div>
+          <div class="all-feature-card color-9">
+            <div class="all-feature-icon">📊</div>
             <h3>Know Your Business</h3>
             <p>Real-time analytics</p>
           </div>
-          <div class="why-card">
-            <div class="why-icon">👥</div>
+          <div class="all-feature-card color-10">
+            <div class="all-feature-icon">👥</div>
             <h3>One Dashboard</h3>
             <p>Manage all stalls</p>
           </div>
@@ -216,7 +196,7 @@
             <span class="amount">RM940</span>
             <span class="period">/year</span>
           </div>
-          <div class="price-sub">Includes RM100 setup fee</div>
+          <div class="price-sub">Includes RM100 setup fee for life</div>
           <ul class="pricing-list">
             <li>✅ All features</li>
             <li>✅ Unlimited stalls</li>
@@ -676,111 +656,66 @@ export default {
 }
 
 /* ============================================ */
-/* FEATURES                                     */
+/* ALL FEATURES                                 */
 /* ============================================ */
-.features-section {
-  padding: 3rem 0;
+.all-features-section {
+  padding: 4rem 0;
   background: var(--surface);
 }
 
-.features-grid {
+.all-features-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1.5rem;
 }
 
-.feature-item {
+.all-feature-card {
   text-align: center;
   padding: 1.5rem 1rem;
-  background: var(--background);
   border-radius: var(--radius);
   border: 1px solid var(--border-light);
   transition: var(--transition);
-}
-
-.feature-item:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-sm);
-  border-color: var(--primary-light);
-}
-
-.feature-item.highlight {
-  border-color: var(--primary);
-  background: rgba(249, 73, 8, 0.03);
-}
-
-.feature-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(249, 73, 8, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 0.5rem;
-}
-
-.feature-icon {
-  font-size: 1.3rem;
-}
-
-.feature-item h3 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.2rem;
-}
-
-.feature-item p {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* ============================================ */
-/* WHY SECTION                                  */
-/* ============================================ */
-.why-section {
-  padding: 3rem 0;
   background: var(--background);
 }
 
-.why-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-}
-
-.why-card {
-  text-align: center;
-  padding: 1.5rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  transition: var(--transition);
-}
-
-.why-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-sm);
+.all-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
   border-color: var(--primary-light);
 }
 
-.why-icon {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
+.all-feature-icon {
+  font-size: 2.2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
 }
 
-.why-card h3 {
-  font-size: 0.95rem;
+/* Color Variants */
+.color-1 .all-feature-icon { background: #fef3c7; color: #d97706; }
+.color-2 .all-feature-icon { background: #d1fae5; color: #059669; }
+.color-3 .all-feature-icon { background: #dbeafe; color: #2563eb; }
+.color-4 .all-feature-icon { background: #ede9fe; color: #7c3aed; }
+.color-5 .all-feature-icon { background: #fce7f3; color: #db2777; }
+.color-6 .all-feature-icon { background: #cffafe; color: #0891b2; }
+.color-7 .all-feature-icon { background: #fef3c7; color: #d97706; }
+.color-8 .all-feature-icon { background: #d1fae5; color: #059669; }
+.color-9 .all-feature-icon { background: #dbeafe; color: #2563eb; }
+.color-10 .all-feature-icon { background: #ede9fe; color: #7c3aed; }
+
+.all-feature-card h3 {
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 0.2rem;
 }
 
-.why-card p {
-  font-size: 0.8rem;
+.all-feature-card p {
+  font-size: 0.75rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -789,8 +724,8 @@ export default {
 /* COMPARISON                                   */
 /* ============================================ */
 .comparison-section {
-  padding: 3rem 0;
-  background: var(--surface);
+  padding: 4rem 0;
+  background: var(--background);
 }
 
 .comparison-wrapper {
@@ -824,7 +759,7 @@ export default {
 }
 
 .comparison-grid {
-  background: var(--background);
+  background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
@@ -843,7 +778,7 @@ export default {
 }
 
 .comparison-row:nth-child(even) {
-  background: var(--surface);
+  background: var(--background);
 }
 
 .comp-feature {
@@ -868,13 +803,14 @@ export default {
 /* PRICING                                      */
 /* ============================================ */
 .pricing-section {
-  padding: 3rem 0;
+  padding: 4rem 0;
+  background: var(--surface);
 }
 
 .pricing-card {
   max-width: 380px;
   margin: 0 auto;
-  background: var(--surface);
+  background: var(--background);
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 2px solid var(--border);
@@ -946,7 +882,7 @@ export default {
 /* CTA                                          */
 /* ============================================ */
 .cta-section {
-  padding: 3rem 0;
+  padding: 4rem 0;
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   text-align: center;
@@ -1232,12 +1168,8 @@ export default {
     margin: 0 auto;
   }
   
-  .features-grid {
+  .all-features-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .why-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1255,12 +1187,8 @@ export default {
     max-width: 100%;
   }
   
-  .features-grid {
+  .all-features-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .why-grid {
-    grid-template-columns: 1fr 1fr;
   }
   
   .comparison-row {
@@ -1303,12 +1231,27 @@ export default {
     font-size: 1rem;
   }
   
-  .features-grid {
-    grid-template-columns: 1fr;
+  .all-features-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
   }
   
-  .why-grid {
-    grid-template-columns: 1fr;
+  .all-feature-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.6rem;
+  }
+  
+  .all-feature-card {
+    padding: 1rem 0.75rem;
+  }
+  
+  .all-feature-card h3 {
+    font-size: 0.8rem;
+  }
+  
+  .all-feature-card p {
+    font-size: 0.65rem;
   }
   
   .comparison-row {
