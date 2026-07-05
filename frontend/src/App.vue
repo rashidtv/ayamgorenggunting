@@ -21,11 +21,23 @@
       </div>
     </div>
 
-    <!-- ===== LANDING PAGE (Public) ===== -->
-    <LandingPage 
-      v-if="!user" 
-      @show-notification="showNotification"
-    />
+    <!-- ===== PUBLIC PAGES ===== -->
+    <template v-if="!user">
+      <!-- Landing Page -->
+      <LandingPage 
+        v-if="!showLogin"
+        @show-login="showLogin = true"
+        @show-notification="showNotification"
+      />
+      
+      <!-- Login Page -->
+      <Login 
+        v-else
+        @login-success="handleLoginSuccess"
+        @show-landing="showLogin = false"
+        :company-logo="companyLogo"
+      />
+    </template>
 
     <!-- ===== AUTHENTICATED APP ===== -->
     <div v-else class="app-layout">
@@ -196,6 +208,7 @@ export default {
       tempLogoPreview: null,
       tempLogoFile: null,
       systemBanner: localStorage.getItem('systemBanner') || null,
+      showLogin: false, // Toggle between Landing and Login
     };
   },
   computed: {
@@ -328,6 +341,7 @@ export default {
           localStorage.setItem('darkMode', this.darkMode);
           console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
           this.loading = false;
+          this.showLogin = false; // Close login after success
           this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
           this.updateLastUpdateTime();
           this.fetchBanner();
@@ -344,6 +358,7 @@ export default {
         this.user = null;
         this.token = null;
         this.activeStallId = null;
+        this.showLogin = false; // Show landing page
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         this.showNotification('Signed out successfully', 'success');
