@@ -542,6 +542,77 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== REGISTRATIONS TAB ===== -->
+      <div v-if="activeTab === 'registrations'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📝 Registration Requests</h3>
+              <span class="card-subtitle">{{ pendingRegistrations.length }} pending registration{{ pendingRegistrations.length !== 1 ? 's' : '' }}</span>
+            </div>
+            <button @click="loadRegistrations" class="btn-modern secondary small">
+              ⟳ Refresh
+            </button>
+          </div>
+          <div class="card-modern-body">
+            <div v-if="loadingRegistrations" class="loading-state small">
+              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+              <p>Loading registrations...</p>
+            </div>
+            
+            <div v-else-if="registrations.length === 0" class="empty-state-modern">
+              <span>📭</span>
+              <p>No registration requests found</p>
+            </div>
+            
+            <div v-else class="registrations-list">
+              <div v-for="reg in registrations" :key="reg.id" class="registration-item">
+                <div class="registration-info">
+                  <div class="registration-header">
+                    <span class="registration-company">{{ reg.company_name }}</span>
+                    <span :class="['status-badge', `status-${reg.status}`]">
+                      {{ reg.status.toUpperCase() }}
+                    </span>
+                  </div>
+                  <div class="registration-details">
+                    <span class="registration-contact">
+                      👤 {{ reg.contact_person }} &bull; 📧 {{ reg.email }} &bull; 📞 {{ reg.phone }}
+                    </span>
+                    <span class="registration-date">
+                      🕐 {{ new Date(reg.created_at).toLocaleDateString('en-MY', { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) }}
+                    </span>
+                  </div>
+                  <div v-if="reg.payment_receipt" class="registration-receipt">
+                    <a href="#" @click.prevent="viewReceipt(reg.payment_receipt)" class="receipt-link">
+                      📎 View Payment Receipt
+                    </a>
+                  </div>
+                  <div v-if="reg.status === 'rejected'" class="registration-reason">
+                    <span class="rejection-label">❌ Rejection reason:</span>
+                    <span class="rejection-text">{{ reg.rejection_reason }}</span>
+                  </div>
+                </div>
+                
+                <div v-if="reg.status === 'pending'" class="registration-actions">
+                  <button @click="approveRegistration(reg.id)" class="btn-modern primary small">
+                    ✅ Approve
+                  </button>
+                  <button @click="openRejectModal(reg.id)" class="btn-modern danger small">
+                    ❌ Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================ -->
@@ -783,6 +854,66 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- REJECT MODAL                                 -->
+    <!-- ============================================ -->
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>❌ Reject Registration</h3>
+          <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            Please provide a reason for rejecting this registration request.
+          </p>
+          <div class="modal-form-group">
+            <label>Rejection Reason *</label>
+            <textarea 
+              v-model="rejectReason" 
+              rows="4"
+              placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
+              style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
+            Confirm Rejection
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- VIEW RECEIPT MODAL                           -->
+    <!-- ============================================ -->
+    <div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>📎 Payment Receipt</h3>
+          <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body" style="text-align: center;">
+          <img v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')" 
+               :src="viewReceiptUrl" 
+               alt="Payment Receipt" 
+               style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm);" 
+          />
+          <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('/uploads/')">
+            <a :href="viewReceiptUrl" target="_blank" class="btn-modern primary">
+              📄 Open Receipt
+            </a>
+          </div>
+          <p v-else style="color: var(--text-secondary);">No receipt available</p>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -820,7 +951,6 @@ export default {
   props: {
     token: { type: String, required: true },
     companyLogo: { type: String, default: null },
-    
   },
 
   data() {
@@ -832,7 +962,8 @@ export default {
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu', label: 'Menu', icon: '📋' }
+        { id: 'menu', label: 'Menu', icon: '📋' },
+        { id: 'registrations', label: 'Registrations', icon: '📝' }
       ],
       
       // Chart settings
@@ -917,6 +1048,16 @@ export default {
       
       exporting: false,
       resizeObserver: null,
+
+      // Registrations
+      registrations: [],
+      pendingRegistrations: [],
+      loadingRegistrations: false,
+      showRejectModal: false,
+      rejectReason: '',
+      rejectId: null,
+      viewReceiptModal: false,
+      viewReceiptUrl: null,
     }
   },
 
@@ -981,6 +1122,9 @@ export default {
     activeTabIcon() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.icon : '📊'
+    },
+    pendingRegistrationsCount() {
+      return this.registrations.filter(r => r.status === 'pending').length
     }
   },
 
@@ -1065,7 +1209,6 @@ export default {
       }
     },
     
-
     // =============================================
     // FORMATTING
     // =============================================
@@ -1780,6 +1923,79 @@ export default {
     },
     
     // =============================================
+    // REGISTRATIONS METHODS
+    // =============================================
+    async loadRegistrations() {
+      this.loadingRegistrations = true
+      try {
+        const res = await axios.get(`${API_BASE}/register/pending`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.registrations = res.data
+        this.pendingRegistrations = res.data.filter(r => r.status === 'pending')
+      } catch (err) {
+        console.error('Failed to load registrations:', err)
+        this.$emit('show-notification', 'Failed to load registrations', 'error')
+      } finally {
+        this.loadingRegistrations = false
+      }
+    },
+
+    async approveRegistration(id) {
+      if (!confirm('Approve this registration?')) return
+      
+      try {
+        const res = await axios.post(`${API_BASE}/register/approve/${id}`, {}, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        if (res.data.success) {
+          this.$emit('show-notification', 'Registration approved! Welcome email sent.', 'success')
+          this.loadRegistrations()
+          this.loadData() // Refresh other data
+        }
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Failed to approve', 'error')
+      }
+    },
+
+    openRejectModal(id) {
+      this.rejectId = id
+      this.rejectReason = ''
+      this.showRejectModal = true
+    },
+
+    async confirmReject() {
+      if (!this.rejectReason.trim()) {
+        this.$emit('show-notification', 'Please provide a rejection reason', 'warning')
+        return
+      }
+      
+      try {
+        const res = await axios.post(`${API_BASE}/register/reject/${this.rejectId}`, {
+          rejection_reason: this.rejectReason
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        if (res.data.success) {
+          this.$emit('show-notification', 'Registration rejected. Email sent.', 'success')
+          this.showRejectModal = false
+          this.rejectReason = ''
+          this.rejectId = null
+          this.loadRegistrations()
+        }
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error')
+      }
+    },
+
+    viewReceipt(url) {
+      this.viewReceiptUrl = url
+      this.viewReceiptModal = true
+    },
+    
+    // =============================================
     // DATA LOADING
     // =============================================
     async refreshAllData() {
@@ -1794,7 +2010,8 @@ export default {
           this.loadSalesAnalytics(),
           this.loadStallPerformance(),
           this.loadMenuPerformance(),
-          this.loadMenuItems()
+          this.loadMenuItems(),
+          this.loadRegistrations()
         ])
         await this.loadAllStallsInventory()
         this.resetChartNavigation()
@@ -2299,6 +2516,21 @@ export default {
             sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
           }
           fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'registrations') {
+          sheet = workbook.addWorksheet('Registrations')
+          sheet.addRow(['📝 Registration Requests', ''])
+          sheet.addRow(['Company', 'Contact', 'Email', 'Phone', 'Status', 'Date'])
+          for (const reg of this.registrations) {
+            sheet.addRow([
+              reg.company_name,
+              reg.contact_person,
+              reg.email,
+              reg.phone,
+              reg.status,
+              new Date(reg.created_at).toLocaleDateString('en-MY')
+            ])
+          }
+          fileName = `Chickory_Registrations_${new Date().toISOString().split('T')[0]}.xlsx`
         } else {
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['Username', 'Role', 'Stalls'])
@@ -3503,6 +3735,16 @@ export default {
   font-size: 0.7rem;
 }
 
+.btn-modern.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-modern.danger:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
 /* ============================================ */
 /* MODALS                                       */
 /* ============================================ */
@@ -3946,6 +4188,125 @@ export default {
 }
 
 /* ============================================ */
+/* REGISTRATIONS                                */
+/* ============================================ */
+.registrations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.registration-item {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  transition: var(--transition);
+}
+
+.registration-item:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.registration-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.registration-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.registration-company {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.status-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-approved {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.status-rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.registration-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.registration-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.registration-date {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.registration-receipt {
+  margin-top: 0.25rem;
+}
+
+.receipt-link {
+  color: var(--primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.receipt-link:hover {
+  text-decoration: underline;
+}
+
+.registration-reason {
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: #fef2f2;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #dc2626;
+}
+
+.rejection-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.rejection-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.registration-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
 .empty-state-modern {
@@ -3969,14 +4330,6 @@ export default {
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 768px) {
-  .top-controls-row {
-    justify-content: center;
-  }
-  
-  .user-controls {
-    justify-content: center;
-  }
-  
   .controls-row {
     flex-direction: column;
     align-items: stretch;
@@ -4049,8 +4402,13 @@ export default {
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .detail-chart { height: 150px; }
   
-  .dashboard-banner {
-    max-height: 140px;
+  .registration-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .registration-actions {
+    justify-content: flex-end;
   }
 }
 
@@ -4089,10 +4447,6 @@ export default {
   .menu-item-price { display: inline-block; }
   .detail-grid { grid-template-columns: 1fr; }
   .detail-chart { height: 120px; }
-  
-  .dashboard-banner {
-    max-height: 90px;
-  }
   
   .action-buttons {
     flex-direction: row;

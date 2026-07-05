@@ -533,6 +533,96 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== MENU ASSIGNMENT TAB ===== -->
+      <div v-if="activeTab === 'menu-assignment'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📋 Menu Assignment</h3>
+              <span class="card-subtitle">Assign menu items to stalls</span>
+            </div>
+            <button @click="loadMenuAssignments" class="btn-modern secondary small">
+              ⟳ Refresh
+            </button>
+          </div>
+          <div class="card-modern-body">
+            <!-- Select Stall -->
+            <div class="filter-bar">
+              <div class="filter-search">
+                <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+                <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+                  <option value="">-- Select a stall --</option>
+                  <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                    {{ stall.name }} ({{ stall.code }})
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Menu Assignment List -->
+            <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+              <span>🏪</span>
+              <p>Please select a stall to manage its menu</p>
+            </div>
+
+            <div v-else-if="loadingMenuAssignments" class="loading-state small">
+              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+              <p>Loading menu assignments...</p>
+            </div>
+
+            <div v-else class="menu-assignment-list">
+              <div class="assignment-header">
+                <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
+                <button @click="selectAllMenus" class="btn-modern secondary small">
+                  ✅ Select All
+                </button>
+                <button @click="deselectAllMenus" class="btn-modern secondary small">
+                  ❌ Deselect All
+                </button>
+              </div>
+
+              <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+                <span>📋</span>
+                <p>No menu items available. Please create menu items first.</p>
+              </div>
+
+              <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
+                <div class="assignment-item-content">
+                  <div class="assignment-item-info">
+                    <div class="assignment-item-checkbox">
+                      <input 
+                        type="checkbox" 
+                        :id="`menu-${item.item_name}`" 
+                        v-model="menuAssignments[item.item_name]"
+                        :disabled="savingAssignment"
+                      />
+                      <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                        <span class="assignment-item-name">{{ item.item_name }}</span>
+                        <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                        <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedAssignmentStall" class="assignment-actions">
+                <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                  {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+                </button>
+                <button @click="resetMenuAssignments" class="btn-modern secondary">
+                  ↩ Reset
+                </button>
+              </div>
+
+              <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+                {{ savedAssignmentMessage }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================ -->
@@ -792,7 +882,8 @@ export default {
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu', label: 'Menu', icon: '📋' }
+        { id: 'menu', label: 'Menu', icon: '📋' },
+        { id: 'menu-assignment', label: 'Menu Assignment', icon: '📋' }
       ],
       
       // Chart settings
@@ -874,6 +965,15 @@ export default {
       
       exporting: false,
       resizeObserver: null,
+
+      // Menu Assignment
+      selectedAssignmentStall: null,
+      menuAssignments: {},
+      originalMenuAssignments: {},
+      loadingMenuAssignments: false,
+      savingAssignment: false,
+      savedAssignmentMessage: '',
+      savedAssignmentType: 'success',
     }
   },
 
@@ -890,6 +990,9 @@ export default {
         const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
         return matchesSearch && matchesCategory
       })
+    },
+    filteredMenuItemsForAssignment() {
+      return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
     },
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
@@ -973,6 +1076,13 @@ export default {
           }, 150)
         }
       })
+    },
+    selectedAssignmentStall: {
+      handler(newStallId) {
+        if (newStallId) {
+          this.loadMenuAssignments()
+        }
+      }
     }
   },
 
@@ -1682,6 +1792,99 @@ export default {
     },
     
     // =============================================
+    // MENU ASSIGNMENT METHODS
+    // =============================================
+    async loadMenuAssignments() {
+      if (!this.selectedAssignmentStall) return
+      
+      this.loadingMenuAssignments = true
+      this.savedAssignmentMessage = ''
+      
+      try {
+        // Load all menu items first
+        await this.loadMenuItems()
+        
+        // Load current assignments for the selected stall
+        const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        // Build assignment map
+        const assignedItems = res.data || []
+        this.menuAssignments = {}
+        this.menuItems.forEach(item => {
+          this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
+        })
+        
+        // Save original state for reset
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        
+      } catch (err) {
+        console.error('Failed to load menu assignments:', err)
+        this.$emit('show-notification', 'Failed to load menu assignments', 'error')
+      } finally {
+        this.loadingMenuAssignments = false
+      }
+    },
+
+    async saveMenuAssignments() {
+      if (!this.selectedAssignmentStall) return
+      
+      this.savingAssignment = true
+      this.savedAssignmentMessage = ''
+      
+      try {
+        // Get selected items
+        const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key])
+        
+        await axios.post(`${API_BASE}/menu/assignments`, {
+          stallId: this.selectedAssignmentStall,
+          items: selectedItems
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        // Save original state
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        
+        this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
+        this.savedAssignmentType = 'success'
+        this.$emit('show-notification', 'Menu assignments saved!', 'success')
+        
+      } catch (err) {
+        console.error('Failed to save menu assignments:', err)
+        this.savedAssignmentMessage = '❌ Failed to save menu assignments'
+        this.savedAssignmentType = 'error'
+        this.$emit('show-notification', 'Failed to save menu assignments', 'error')
+      } finally {
+        this.savingAssignment = false
+      }
+    },
+
+    resetMenuAssignments() {
+      if (this.selectedAssignmentStall) {
+        this.menuAssignments = { ...this.originalMenuAssignments }
+        this.savedAssignmentMessage = '↩ Reset to saved state'
+        this.savedAssignmentType = 'info'
+        setTimeout(() => {
+          this.savedAssignmentMessage = ''
+        }, 3000)
+      }
+    },
+
+    selectAllMenus() {
+      this.menuItems.forEach(item => {
+        this.menuAssignments[item.item_name] = true
+      })
+    },
+
+    deselectAllMenus() {
+      this.menuItems.forEach(item => {
+        this.menuAssignments[item.item_name] = false
+      })
+    },
+    
+    // =============================================
     // STALL RANKING
     // =============================================
     getRankClass(index) {
@@ -2184,6 +2387,16 @@ export default {
             sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
           }
           fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'menu-assignment') {
+          sheet = workbook.addWorksheet('Menu Assignment')
+          sheet.addRow(['📋 Menu Assignment', ''])
+          sheet.addRow(['Stall:', this.stalls.find(s => s.id === this.selectedAssignmentStall)?.name || 'No stall selected'])
+          sheet.addRow([])
+          sheet.addRow(['Menu Item', 'Assigned'])
+          for (const item of this.filteredMenuItemsForAssignment) {
+            sheet.addRow([item.item_name, this.menuAssignments[item.item_name] ? '✅ Yes' : '❌ No'])
+          }
+          fileName = `Chickory_Menu_Assignment_${new Date().toISOString().split('T')[0]}.xlsx`
         } else {
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['Username', 'Role', 'Stalls'])
@@ -3028,6 +3241,135 @@ export default {
   background: var(--background);
   border-radius: 16px;
   border: 1px solid var(--border-light);
+}
+
+/* ============================================ */
+/* MENU ASSIGNMENT                             */
+/* ============================================ */
+.menu-assignment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.assignment-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.assignment-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: auto;
+}
+
+.assignment-item {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  transition: var(--transition);
+}
+
+.assignment-item:hover {
+  border-color: var(--primary);
+}
+
+.assignment-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assignment-item-info {
+  flex: 1;
+}
+
+.assignment-item-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assignment-item-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.assignment-item-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.assignment-item-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.assignment-item-price {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.assignment-item-category {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--surface);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+}
+
+.assignment-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.assignment-message {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+.assignment-message.success {
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.assignment-message.error {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.assignment-message.info {
+  background: #dbeafe;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================ */
@@ -3924,6 +4266,20 @@ export default {
   .modal-lg { max-width: 95%; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .detail-chart { height: 150px; }
+  
+  .assignment-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .assignment-count {
+    margin-right: 0;
+    text-align: center;
+  }
+  
+  .assignment-item-label {
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {

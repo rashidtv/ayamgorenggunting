@@ -8,6 +8,15 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Email service
+const {
+  sendRegistrationReceived,
+  sendRegistrationApproved,
+  sendRegistrationRejected,
+  sendNewUserCreated,
+  sendPasswordReset
+} = require('./emails/resend');
+
 const app = express();
 const port = process.env.PORT || 10000;
 
@@ -1039,6 +1048,263 @@ app.delete('/api/menu/:itemName', authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== MENU ASSIGNMENT ROUTES ====================
+
+/**
+ * GET /api/menu/assignments/:stallId
+ * Get all menu items assigned to a specific stall
+ */
+app.get('/api/menu/assignments/:stallId', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  try {
+    // Get all assigned menu items for this stall
+    const result = await pool.query(
+      `SELECT item_name FROM stall_menu_assignments 
+       WHERE stall_id = $1 AND is_active = true
+       ORDER BY item_name`,
+      [stallId]
+    );
+    
+    res.json(result.rows.map(row => row.item_name));
+  } catch (err) {
+    console.error('Error fetching menu assignments:', err);
+    res.status(500).json({ error: 'Failed to fetch menu assignments' });
+  }
+});
+
+/**
+ * POST /api/menu/assignments
+ * Save menu assignments for a stall
+ * Body: { stallId: number, items: string[] }
+ */
+app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
+  const { stallId, items } = req.body;
+  
+  if (!stallId) {
+    return res.status(400).json({ error: 'Stall ID is required' });
+  }
+
+  const targetStallId = parseInt(stallId);
+  if (isNaN(targetStallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, targetStallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  // Validate items array
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ error: 'Items must be an array' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // First, deactivate all current assignments for this stall
+    await client.query(
+      `UPDATE stall_menu_assignments 
+       SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+       WHERE stall_id = $1`,
+      [targetStallId]
+    );
+
+    // If there are items to assign, activate them
+    if (items.length > 0) {
+      // Verify all items exist in menu_items table
+      const placeholders = items.map((_, i) => `$${i + 1}`).join(', ');
+      const checkQuery = `
+        SELECT item_name FROM menu_items 
+        WHERE item_name IN (${placeholders})
+      `;
+      const checkResult = await client.query(checkQuery, items);
+      
+      const existingItems = checkResult.rows.map(row => row.item_name);
+      
+      // Only assign items that exist
+      for (const itemName of existingItems) {
+        await client.query(
+          `INSERT INTO stall_menu_assignments (stall_id, item_name, is_active) 
+           VALUES ($1, $2, true) 
+           ON CONFLICT (stall_id, item_name) 
+           DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP`,
+          [targetStallId, itemName]
+        );
+      }
+
+      // Log any items that don't exist
+      const missingItems = items.filter(item => !existingItems.includes(item));
+      if (missingItems.length > 0) {
+        console.log(`⚠️ The following items do not exist: ${missingItems.join(', ')}`);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ 
+      success: true, 
+      message: `Menu assignments saved successfully!`,
+      assignedCount: items.length 
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error saving menu assignments:', err);
+    res.status(500).json({ error: 'Failed to save menu assignments', details: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * GET /api/menu/assignments/all
+ * Get all menu assignments for all stalls (Super Admin only)
+ */
+app.get('/api/menu/assignments/all', authenticateToken, async (req, res) => {
+  // Only super_admin and super_super_admin can view all
+  if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    let query = `
+      SELECT s.id as stall_id, s.name as stall_name, 
+             COALESCE(
+               (SELECT json_agg(item_name) 
+                FROM stall_menu_assignments sma 
+                WHERE sma.stall_id = s.id AND sma.is_active = true),
+               '[]'
+             ) as assigned_items
+      FROM stalls s
+    `;
+
+    // If super_admin, only show their company's stalls
+    if (req.user.role === 'super_admin') {
+      query += ` WHERE s.company_id = $1`;
+      const result = await pool.query(query, [req.user.company_id]);
+      return res.json(result.rows);
+    }
+
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching all menu assignments:', err);
+    res.status(500).json({ error: 'Failed to fetch menu assignments' });
+  }
+});
+
+/**
+ * DELETE /api/menu/assignments/:stallId/:itemName
+ * Remove a specific menu item assignment from a stall
+ */
+app.delete('/api/menu/assignments/:stallId/:itemName', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  const { itemName } = req.params;
+
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE stall_menu_assignments 
+       SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+       WHERE stall_id = $1 AND item_name = $2`,
+      [stallId, itemName]
+    );
+
+    res.json({ success: true, message: 'Menu item unassigned from stall' });
+  } catch (err) {
+    console.error('Error removing menu assignment:', err);
+    res.status(500).json({ error: 'Failed to remove menu assignment' });
+  }
+});
+
+/**
+ * POST /api/menu/assignments/bulk
+ * Bulk assign menu items to multiple stalls (Super Admin only)
+ */
+app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
+  // Only super_admin and super_super_admin can do bulk operations
+  if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { assignments } = req.body; // [{ stallId: 1, items: ['item1', 'item2'] }]
+
+  if (!Array.isArray(assignments) || assignments.length === 0) {
+    return res.status(400).json({ error: 'Assignments array is required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const assignment of assignments) {
+      const { stallId, items } = assignment;
+      
+      if (!stallId || !Array.isArray(items)) {
+        continue;
+      }
+
+      // Deactivate all current assignments for this stall
+      await client.query(
+        `UPDATE stall_menu_assignments 
+         SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+         WHERE stall_id = $1`,
+        [stallId]
+      );
+
+      // Activate new assignments
+      for (const itemName of items) {
+        // Check if item exists
+        const itemCheck = await client.query(
+          'SELECT item_name FROM menu_items WHERE item_name = $1',
+          [itemName]
+        );
+        
+        if (itemCheck.rows.length > 0) {
+          await client.query(
+            `INSERT INTO stall_menu_assignments (stall_id, item_name, is_active) 
+             VALUES ($1, $2, true) 
+             ON CONFLICT (stall_id, item_name) 
+             DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP`,
+            [stallId, itemName]
+          );
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Bulk menu assignments saved successfully!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error saving bulk menu assignments:', err);
+    res.status(500).json({ error: 'Failed to save bulk menu assignments' });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== MATERIALS ====================
 // Get all available materials – Allow any authenticated user
 app.get('/api/materials', authenticateToken, async (req, res) => {
@@ -1268,6 +1534,197 @@ app.delete('/api/system/banner', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Remove banner error:', err);
     res.status(500).json({ error: 'Failed to remove banner' });
+  }
+});
+
+// =============================================
+// REGISTRATION ROUTES
+// =============================================
+
+// Submit registration request (public - no auth required)
+app.post('/api/register/request', async (req, res) => {
+  const { company_name, contact_person, email, phone, payment_receipt } = req.body;
+  
+  // Validate required fields
+  if (!company_name || !contact_person || !email || !phone) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  try {
+    // Check if email already registered
+    const existing = await pool.query(
+      'SELECT id FROM registration_requests WHERE email = $1 AND status = $2',
+      [email, 'pending']
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'A registration with this email is already pending' });
+    }
+    
+    // Insert registration request
+    const result = await pool.query(
+      `INSERT INTO registration_requests (company_name, contact_person, email, phone, payment_receipt)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [company_name, contact_person, email, phone, payment_receipt]
+    );
+    
+    // Send confirmation email
+      await sendRegistrationReceived(email, company_name, contact_person);
+    
+    res.json({ 
+      success: true, 
+      id: result.rows[0].id,
+      message: 'Registration submitted successfully! Please wait for approval.' 
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Failed to submit registration' });
+  }
+});
+
+// Get pending registrations (Super Admin only)
+app.get('/api/register/pending', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can access
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  try {
+    const result = await pool.query(
+      `SELECT * FROM registration_requests WHERE status = 'pending' ORDER BY created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get pending registrations error:', err);
+    res.status(500).json({ error: 'Failed to fetch registrations' });
+  }
+});
+
+// Approve registration (Super Admin only)
+app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can approve
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  const { id } = req.params;
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Get the registration request
+    const requestRes = await client.query(
+      'SELECT * FROM registration_requests WHERE id = $1 AND status = $2',
+      [id, 'pending']
+    );
+    
+    if (requestRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Registration request not found or already processed' });
+    }
+    
+    const request = requestRes.rows[0];
+    
+    // Create company
+    const companyRes = await client.query(
+      `INSERT INTO companies (name, created_by) VALUES ($1, $2) RETURNING id`,
+      [request.company_name, req.user.id]
+    );
+    const companyId = companyRes.rows[0].id;
+    
+    // Generate random password (8 characters + '!')
+    const tempPassword = Math.random().toString(36).slice(-8) + '!';
+    const hashedPassword = bcrypt.hashSync(tempPassword, 10);
+    
+    // Create first user (Stall Admin)
+    const username = `admin_${companyId}`;
+    await client.query(
+      `INSERT INTO users (username, password, full_name, role, company_id, is_first_login, is_active)
+       VALUES ($1, $2, $3, $4, $5, true, true)`,
+      [username, hashedPassword, request.contact_person, 'stall_admin', companyId]
+    );
+    
+    // Create default inventory for the company's stalls (if any)
+    // Note: Stalls will be created later by the admin
+    
+    // Update registration request status
+    await client.query(
+      `UPDATE registration_requests SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [id]
+    );
+    
+    await client.query('COMMIT');
+    
+    // Send welcome email with credentials
+await sendRegistrationApproved(
+  request.email,
+  request.company_name,
+  request.contact_person,
+  username,
+  tempPassword,
+  process.env.LOGIN_URL || 'https://chickoryhub.com/login'
+);
+    
+    res.json({ 
+      success: true, 
+      companyId,
+      username,
+      tempPassword,
+      message: 'Registration approved! Welcome email sent to the user.'
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Approval error:', err);
+    res.status(500).json({ error: 'Failed to approve registration' });
+  } finally {
+    client.release();
+  }
+});
+
+// Reject registration (Super Admin only)
+app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can reject
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  const { id } = req.params;
+  const { rejection_reason } = req.body;
+  
+  if (!rejection_reason) {
+    return res.status(400).json({ error: 'Rejection reason is required' });
+  }
+  
+  try {
+    const result = await pool.query(
+      `UPDATE registration_requests 
+       SET status = 'rejected', rejection_reason = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 AND status = 'pending'
+       RETURNING email, company_name`,
+      [rejection_reason, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Registration request not found or already processed' });
+    }
+    
+  // Send rejection email
+await sendRegistrationRejected(
+  result.rows[0].email,
+  result.rows[0].company_name,
+  rejection_reason
+);
+    
+    res.json({ success: true, message: 'Registration rejected' });
+  } catch (err) {
+    console.error('Rejection error:', err);
+    res.status(500).json({ error: 'Failed to reject registration' });
   }
 });
 

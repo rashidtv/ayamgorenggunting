@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-header">
-    <!-- ===== TOP ROW: User Controls ===== -->
-    <div class="top-controls-row">
+    <!-- ===== TOP ROW: User Controls (only when logged in) ===== -->
+    <div v-if="!isPublic" class="top-controls-row">
       <div class="user-controls">
         <button 
           @click="toggleNotifications" 
@@ -47,6 +47,10 @@ export default {
     bannerUrl: {
       type: String,
       default: null
+    },
+    isPublic: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
@@ -69,7 +73,7 @@ export default {
 }
 
 /* ============================================ */
-/* TOP CONTROLS ROW - EXACTLY LIKE SUPER ADMIN  */
+/* TOP CONTROLS ROW                             */
 /* ============================================ */
 .top-controls-row {
   display: flex;
@@ -142,7 +146,7 @@ export default {
 }
 
 /* ============================================ */
-/* BANNER SECTION - EXACTLY LIKE SUPER ADMIN    */
+/* BANNER SECTION                               */
 /* ============================================ */
 .banner-section {
   margin-bottom: 1.25rem;

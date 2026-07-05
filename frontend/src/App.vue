@@ -21,10 +21,13 @@
       </div>
     </div>
 
-    <div v-if="!user" class="auth-container">
-      <Login @login-success="handleLoginSuccess" :company-logo="companyLogo" />
-    </div>
+    <!-- ===== LANDING PAGE (Public) ===== -->
+    <LandingPage 
+      v-if="!user" 
+      @show-notification="showNotification"
+    />
 
+    <!-- ===== AUTHENTICATED APP ===== -->
     <div v-else class="app-layout">
       <!-- Logo Upload Modal -->
       <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
@@ -154,6 +157,7 @@
 <script>
 import axios from 'axios'
 import Login from './components/Login.vue';
+import LandingPage from './components/LandingPage.vue';
 import StallView from './components/StallView.vue';
 import SuperAdminPanel from './components/SuperAdminPanel.vue';
 import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
@@ -166,6 +170,7 @@ export default {
   name: 'App',
   components: {
     Login,
+    LandingPage,
     StallView,
     SuperAdminPanel,
     SuperSuperAdminPanel,
