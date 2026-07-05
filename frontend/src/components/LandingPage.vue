@@ -14,7 +14,7 @@
           <div class="hero-content">
             <div class="hero-badge">🚀 #1 Chicken Business Platform</div>
             <h1>Manage Your <br><span>Chicken Business</span><br>Like a Pro</h1>
-            <p>All-in-one platform designed specifically for chicken stall owners. Track sales, manage inventory, and grow your business from anywhere.</p>
+            <p>All-in-one platform for chicken stall owners. Track sales, manage inventory, and grow your business from anywhere.</p>
             <div class="hero-actions">
               <button @click="openRegistration" class="btn-primary btn-lg">
                 Register Now
@@ -78,97 +78,79 @@
       </div>
     </section>
 
-    <!-- ===== PROBLEM / SOLUTION ===== -->
-    <section class="problem-section">
+    <!-- ===== FEATURES ===== -->
+    <section class="features-section">
       <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Challenges We Solve</span>
-          <h2>Stop Struggling. Start Growing.</h2>
-          <p>Common problems we help you overcome</p>
-        </div>
-        <div class="problem-grid">
-          <div class="problem-card">
-            <div class="problem-icon-wrapper">
-              <span class="problem-icon">📋</span>
+        <div class="features-grid">
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">⚡</span>
             </div>
-            <h3>Manual Record Keeping</h3>
-            <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
+            <h3>Real-time Sales</h3>
+            <p>Track revenue and items sold instantly</p>
           </div>
-          <div class="problem-card">
-            <div class="problem-icon-wrapper">
-              <span class="problem-icon">📦</span>
+          <div class="feature-item highlight">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">🛒</span>
             </div>
-            <h3>Inventory Chaos</h3>
-            <p>Know exactly when to restock. Never run out of chicken again.</p>
+            <h3>Smart Inventory</h3>
+            <p>Auto-deduct stock, set low alerts</p>
           </div>
-          <div class="problem-card">
-            <div class="problem-icon-wrapper">
-              <span class="problem-icon">📊</span>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">📱</span>
             </div>
-            <h3>No Real Insights</h3>
-            <p>Get real-time analytics and make data-driven decisions for your business.</p>
+            <h3>Works Anywhere</h3>
+            <p>PWA ready, offline capable</p>
           </div>
-          <div class="problem-card">
-            <div class="problem-icon-wrapper">
-              <span class="problem-icon">👥</span>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">🔐</span>
             </div>
-            <h3>Multi-stall Complexity</h3>
-            <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
+            <h3>Role-Based Access</h3>
+            <p>Cashiers, Admins, Super Admins</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">📊</span>
+            </div>
+            <h3>Analytics Dashboard</h3>
+            <p>Visual charts & performance</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">👨‍👩‍👧‍👦</span>
+            </div>
+            <h3>Multi-Stall</h3>
+            <p>All stalls, one dashboard</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ===== WHY US ===== -->
-    <section class="features-section">
+    <section class="why-section">
       <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Why Chickory Hub</span>
-          <h2>Built for Chicken Business Owners</h2>
-          <p>Everything you need to run your stall efficiently</p>
-        </div>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">⚡</span>
-            </div>
-            <h3>Real-time Sales</h3>
-            <p>Track sales as they happen. See revenue, items sold, and trends instantly.</p>
+        <div class="why-grid">
+          <div class="why-card">
+            <div class="why-icon">📋</div>
+            <h3>No More Paper</h3>
+            <p>Digital record keeping</p>
           </div>
-          <div class="feature-card highlight">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">🛒</span>
-            </div>
-            <h3>Smart Inventory</h3>
-            <p>Auto-deduct chicken from inventory when items are sold. Set low-stock alerts.</p>
+          <div class="why-card">
+            <div class="why-icon">📦</div>
+            <h3>Never Run Out</h3>
+            <p>Smart inventory alerts</p>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">📱</span>
-            </div>
-            <h3>Works on Any Device</h3>
-            <p>Install as PWA on your phone. Works offline. No app store required.</p>
+          <div class="why-card">
+            <div class="why-icon">📊</div>
+            <h3>Know Your Business</h3>
+            <p>Real-time analytics</p>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">🔐</span>
-            </div>
-            <h3>Role-Based Access</h3>
-            <p>Stall Admins manage inventory. Cashiers focus on selling. Super Admins oversee all.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">📊</span>
-            </div>
-            <h3>Analytics Dashboard</h3>
-            <p>Visual charts, top-selling items, stall performance. Know your business.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">👨‍👩‍👧‍👦</span>
-            </div>
-            <h3>Multi-Stall Management</h3>
-            <p>Own multiple stalls? Manage them all from one place with one login.</p>
+          <div class="why-card">
+            <div class="why-icon">👥</div>
+            <h3>One Dashboard</h3>
+            <p>Manage all stalls</p>
           </div>
         </div>
       </div>
@@ -177,60 +159,47 @@
     <!-- ===== COMPARISON ===== -->
     <section class="comparison-section">
       <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Why We're Different</span>
-          <h2>Chickory Hub vs Traditional Methods</h2>
-        </div>
         <div class="comparison-wrapper">
+          <div class="comparison-header">
+            <span class="comparison-title">Chickory Hub</span>
+            <span class="comparison-vs">vs</span>
+            <span class="comparison-title manual">Manual</span>
+          </div>
           <div class="comparison-grid">
-            <div class="comparison-item">
-              <span class="comparison-feature">Real-time Sales</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ No</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Real-time Sales</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Inventory Auto-Deduct</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ Manual</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Inventory Auto-Deduct</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Multi-Stall Management</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ Complex</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Multi-Stall</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Role-Based Access</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ No</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Role Access</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Mobile PWA</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ No</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Mobile App</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Analytics & Charts</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ Manual</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Analytics</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
-            <div class="comparison-item">
-              <span class="comparison-feature">Low Stock Alerts</span>
-              <div class="comparison-badges">
-                <span class="badge chickory">✅ Yes</span>
-                <span class="badge manual">❌ No</span>
-              </div>
+            <div class="comparison-row">
+              <span class="comp-feature">Low Stock Alerts</span>
+              <span class="comp-chickory">✅</span>
+              <span class="comp-manual">❌</span>
             </div>
           </div>
         </div>
@@ -240,33 +209,22 @@
     <!-- ===== PRICING ===== -->
     <section class="pricing-section">
       <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Simple Pricing</span>
-          <h2>One Plan. All Features.</h2>
-          <p>No hidden fees. Cancel anytime.</p>
-        </div>
         <div class="pricing-card">
-          <div class="pricing-badge">🔥 Most Popular</div>
-          <div class="pricing-header">
-            <h3>Annual Plan</h3>
-            <div class="price">
-              <span class="amount">RM940</span>
-              <span class="period">/year</span>
-            </div>
-            <div class="price-sub">Includes RM100 setup fee</div>
+          <div class="pricing-badge">🔥 Popular</div>
+          <h3>Annual Plan</h3>
+          <div class="price">
+            <span class="amount">RM940</span>
+            <span class="period">/year</span>
           </div>
-          <div class="pricing-features">
-            <ul>
-              <li>✅ All features included</li>
-              <li>✅ Unlimited stalls</li>
-              <li>✅ Unlimited users</li>
-              <li>✅ 24/7 support</li>
-              <li>✅ Automatic updates</li>
-              <li>✅ No hidden fees</li>
-            </ul>
-          </div>
+          <div class="price-sub">Includes RM100 setup fee</div>
+          <ul class="pricing-list">
+            <li>✅ All features</li>
+            <li>✅ Unlimited stalls</li>
+            <li>✅ Unlimited users</li>
+            <li>✅ 24/7 support</li>
+          </ul>
           <button @click="openRegistration" class="btn-primary btn-block">
-            🚀 Register Now
+            Register Now
           </button>
         </div>
       </div>
@@ -276,8 +234,8 @@
     <section class="cta-section">
       <div class="container">
         <div class="cta-content">
-          <h2>Ready to Grow Your Chicken Business?</h2>
-          <p>Join other stall owners who are already managing their business better with Chickory Hub.</p>
+          <h2>Ready to Grow Your Business?</h2>
+          <p>Start managing your chicken business the smart way.</p>
           <button @click="openRegistration" class="btn-primary btn-lg">
             🚀 Register Now
           </button>
@@ -502,39 +460,6 @@ export default {
 }
 
 /* ============================================ */
-/* SECTION HEADER                               */
-/* ============================================ */
-.section-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.section-tag {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--primary);
-  background: rgba(249, 73, 8, 0.08);
-  padding: 0.3rem 1rem;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.75rem;
-}
-
-.section-header h2 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 0.5rem;
-}
-
-.section-header p {
-  font-size: 1.05rem;
-  color: var(--text-secondary);
-}
-
-/* ============================================ */
 /* HERO SECTION                                 */
 /* ============================================ */
 .hero-section {
@@ -580,7 +505,7 @@ export default {
 .hero-content p {
   font-size: 1.1rem;
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.6;
   margin-bottom: 2rem;
   max-width: 500px;
 }
@@ -589,7 +514,6 @@ export default {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 0;
 }
 
 .btn-primary {
@@ -752,168 +676,112 @@ export default {
 }
 
 /* ============================================ */
-/* PROBLEM SECTION                              */
+/* FEATURES                                     */
 /* ============================================ */
-.problem-section {
-  padding: 4rem 0;
+.features-section {
+  padding: 3rem 0;
   background: var(--surface);
 }
 
-.problem-grid {
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1.5rem;
+}
+
+.feature-item {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.feature-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-light);
+}
+
+.feature-item.highlight {
+  border-color: var(--primary);
+  background: rgba(249, 73, 8, 0.03);
+}
+
+.feature-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(249, 73, 8, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.5rem;
+}
+
+.feature-icon {
+  font-size: 1.3rem;
+}
+
+.feature-item h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.feature-item p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================ */
+/* WHY SECTION                                  */
+/* ============================================ */
+.why-section {
+  padding: 3rem 0;
+  background: var(--background);
+}
+
+.why-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
 }
 
-.problem-card {
-  background: var(--background);
-  border-radius: var(--radius);
-  padding: 2rem 1.5rem;
+.why-card {
   text-align: center;
-  border: 1px solid var(--border-light);
-  transition: var(--transition);
-  position: relative;
-  overflow: hidden;
-}
-
-.problem-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  opacity: 0;
-  transition: var(--transition);
-}
-
-.problem-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-light);
-}
-
-.problem-card:hover::before {
-  opacity: 1;
-}
-
-.problem-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(249, 73, 8, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  transition: var(--transition);
-}
-
-.problem-card:hover .problem-icon-wrapper {
-  background: rgba(249, 73, 8, 0.15);
-  transform: scale(1.05);
-}
-
-.problem-icon {
-  font-size: 1.6rem;
-}
-
-.problem-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.5rem;
-}
-
-.problem-card p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* ============================================ */
-/* FEATURES                                     */
-/* ============================================ */
-.features-section {
-  padding: 4rem 0;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-}
-
-.feature-card {
+  padding: 1.5rem;
   background: var(--surface);
-  padding: 2rem 1.5rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  text-align: center;
   transition: var(--transition);
-  position: relative;
 }
 
-.feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
+.why-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-sm);
   border-color: var(--primary-light);
 }
 
-.feature-card.highlight {
-  border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(249, 73, 8, 0.04), rgba(250, 106, 46, 0.04));
-}
-
-.feature-card.highlight::after {
-  content: '⭐ Most Popular';
-  position: absolute;
-  top: -10px;
-  right: 1rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 0.15rem 0.6rem;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.feature-icon-wrapper {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(249, 73, 8, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  transition: var(--transition);
-}
-
-.feature-card:hover .feature-icon-wrapper {
-  background: rgba(249, 73, 8, 0.15);
-  transform: scale(1.05);
-}
-
-.feature-icon {
-  font-size: 1.8rem;
-}
-
-.feature-card h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text);
+.why-icon {
+  font-size: 2rem;
+  display: block;
   margin-bottom: 0.5rem;
 }
 
-.feature-card p {
-  font-size: 0.9rem;
+.why-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.why-card p {
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  line-height: 1.6;
   margin: 0;
 }
 
@@ -921,84 +789,93 @@ export default {
 /* COMPARISON                                   */
 /* ============================================ */
 .comparison-section {
-  padding: 4rem 0;
+  padding: 3rem 0;
   background: var(--surface);
 }
 
 .comparison-wrapper {
-  max-width: 700px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
-.comparison-grid {
+.comparison-header {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.comparison-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.comparison-title.manual {
+  color: var(--text-secondary);
+}
+
+.comparison-vs {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.comparison-grid {
   background: var(--background);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  padding: 0.5rem;
+  overflow: hidden;
 }
 
-.comparison-item {
-  display: flex;
+.comparison-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-light);
   align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1rem;
+}
+
+.comparison-row:last-child {
+  border-bottom: none;
+}
+
+.comparison-row:nth-child(even) {
   background: var(--surface);
-  border-radius: var(--radius-sm);
-  transition: var(--transition);
 }
 
-.comparison-item:hover {
-  background: var(--background);
-}
-
-.comparison-feature {
-  font-size: 0.9rem;
-  font-weight: 500;
+.comp-feature {
+  font-size: 0.85rem;
   color: var(--text);
+  font-weight: 500;
 }
 
-.comparison-badges {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.badge {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.15rem 0.6rem;
-  border-radius: 6px;
-  min-width: 60px;
+.comp-chickory {
+  font-size: 0.9rem;
   text-align: center;
-}
-
-.badge.chickory {
-  background: rgba(16, 185, 129, 0.1);
   color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.badge.manual {
-  background: rgba(239, 68, 68, 0.08);
+.comp-manual {
+  font-size: 0.9rem;
+  text-align: center;
   color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 /* ============================================ */
 /* PRICING                                      */
 /* ============================================ */
 .pricing-section {
-  padding: 4rem 0;
+  padding: 3rem 0;
 }
 
 .pricing-card {
-  max-width: 420px;
+  max-width: 380px;
   margin: 0 auto;
   background: var(--surface);
-  padding: 2.5rem;
+  padding: 2rem;
   border-radius: var(--radius-lg);
   border: 2px solid var(--border);
   text-align: center;
@@ -1018,15 +895,15 @@ export default {
   transform: translateX(-50%);
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
-  padding: 0.2rem 1rem;
+  padding: 0.15rem 1rem;
   border-radius: 20px;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
 }
 
-.pricing-header h3 {
-  font-size: 1.2rem;
+.pricing-card h3 {
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 0.5rem;
@@ -1037,60 +914,54 @@ export default {
 }
 
 .price .amount {
-  font-size: 3rem;
+  font-size: 2.8rem;
   font-weight: 800;
   color: var(--primary);
 }
 
 .price .period {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
 }
 
 .price-sub {
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  font-size: 0.85rem;
 }
 
-.pricing-features {
+.pricing-list {
+  list-style: none;
+  padding: 0;
   margin: 1.5rem 0;
   text-align: left;
 }
 
-.pricing-features ul {
-  list-style: none;
-  padding: 0;
-}
-
-.pricing-features li {
-  padding: 0.4rem 0;
+.pricing-list li {
+  padding: 0.3rem 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 /* ============================================ */
 /* CTA                                          */
 /* ============================================ */
 .cta-section {
-  padding: 4rem 0;
+  padding: 3rem 0;
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   text-align: center;
 }
 
 .cta-content h2 {
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .cta-content p {
-  font-size: 1.1rem;
+  font-size: 1rem;
   opacity: 0.9;
   margin-bottom: 1.5rem;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .cta-content .btn-primary {
@@ -1361,11 +1232,11 @@ export default {
     margin: 0 auto;
   }
   
-  .problem-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
   
-  .features-grid {
+  .why-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1384,59 +1255,21 @@ export default {
     max-width: 100%;
   }
   
-  .problem-grid {
-    grid-template-columns: 1fr;
-    max-width: 400px;
-    margin: 0 auto;
-  }
-  
   .features-grid {
-    grid-template-columns: 1fr;
-    max-width: 400px;
-    margin: 0 auto;
+    grid-template-columns: repeat(2, 1fr);
   }
   
-  .feature-card.highlight::after {
-    display: none;
+  .why-grid {
+    grid-template-columns: 1fr 1fr;
   }
   
-  .comparison-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-    padding: 0.6rem 0.8rem;
+  .comparison-row {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    padding: 0.4rem 0.8rem;
   }
   
-  .comparison-badges {
-    gap: 1rem;
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .badge {
-    font-size: 0.7rem;
-    min-width: 50px;
-    padding: 0.1rem 0.4rem;
-  }
-  
-  .comparison-feature {
-    font-size: 0.8rem;
-  }
-  
-  .section-header h2 {
-    font-size: 1.6rem;
-  }
-  
-  .pricing-card {
-    padding: 1.5rem;
-  }
-  
-  .price .amount {
-    font-size: 2.2rem;
-  }
-  
-  .cta-content h2 {
-    font-size: 1.6rem;
+  .comp-feature {
+    font-size: 0.75rem;
   }
   
   .footer-content {
@@ -1471,54 +1304,41 @@ export default {
   }
   
   .features-grid {
-    max-width: 100%;
+    grid-template-columns: 1fr;
   }
   
-  .feature-card {
-    padding: 1.25rem;
+  .why-grid {
+    grid-template-columns: 1fr;
   }
   
-  .feature-icon-wrapper {
-    width: 50px;
-    height: 50px;
+  .comparison-row {
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 0.3rem 0.5rem;
   }
   
-  .feature-icon {
-    font-size: 1.5rem;
+  .comp-feature {
+    font-size: 0.7rem;
   }
   
-  .problem-card {
-    padding: 1.25rem;
-  }
-  
-  .problem-icon-wrapper {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .problem-icon {
-    font-size: 1.3rem;
-  }
-  
-  .comparison-item {
-    padding: 0.4rem 0.6rem;
-  }
-  
-  .badge {
-    font-size: 0.65rem;
-    min-width: 40px;
-  }
-  
-  .modal-modern {
-    width: 95%;
-  }
-  
-  .modal-modern-body {
-    padding: 1rem;
+  .comp-chickory,
+  .comp-manual {
+    font-size: 0.8rem;
   }
   
   .container {
     padding: 0 1rem;
+  }
+  
+  .pricing-card {
+    padding: 1.5rem;
+  }
+  
+  .price .amount {
+    font-size: 2.2rem;
+  }
+  
+  .cta-content h2 {
+    font-size: 1.5rem;
   }
 }
 </style>
