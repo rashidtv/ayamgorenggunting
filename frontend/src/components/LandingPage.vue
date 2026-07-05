@@ -136,56 +136,6 @@
       </div>
     </section>
 
-    <!-- ===== COMPARISON ===== -->
-    <section class="comparison-section">
-      <div class="container">
-        <div class="comparison-wrapper">
-          <div class="comparison-header">
-            <span class="comparison-title">Chickory Hub</span>
-            <span class="comparison-vs">vs</span>
-            <span class="comparison-title manual">Manual</span>
-          </div>
-          <div class="comparison-grid">
-            <div class="comparison-row">
-              <span class="comp-feature">Real-time Sales</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Inventory Auto-Deduct</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Multi-Stall</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Role Access</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Mobile App</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Analytics</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-            <div class="comparison-row">
-              <span class="comp-feature">Low Stock Alerts</span>
-              <span class="comp-chickory">✅</span>
-              <span class="comp-manual">❌</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ===== PRICING ===== -->
     <section class="pricing-section">
       <div class="container">
@@ -721,96 +671,17 @@ export default {
 }
 
 /* ============================================ */
-/* COMPARISON                                   */
-/* ============================================ */
-.comparison-section {
-  padding: 4rem 0;
-  background: var(--background);
-}
-
-.comparison-wrapper {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.comparison-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.comparison-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.comparison-title.manual {
-  color: var(--text-secondary);
-}
-
-.comparison-vs {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-}
-
-.comparison-grid {
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.comparison-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border-light);
-  align-items: center;
-}
-
-.comparison-row:last-child {
-  border-bottom: none;
-}
-
-.comparison-row:nth-child(even) {
-  background: var(--background);
-}
-
-.comp-feature {
-  font-size: 0.85rem;
-  color: var(--text);
-  font-weight: 500;
-}
-
-.comp-chickory {
-  font-size: 0.9rem;
-  text-align: center;
-  color: #059669;
-}
-
-.comp-manual {
-  font-size: 0.9rem;
-  text-align: center;
-  color: #dc2626;
-}
-
-/* ============================================ */
 /* PRICING                                      */
 /* ============================================ */
 .pricing-section {
   padding: 4rem 0;
-  background: var(--surface);
+  background: var(--background);
 }
 
 .pricing-card {
   max-width: 380px;
   margin: 0 auto;
-  background: var(--background);
+  background: var(--surface);
   padding: 2rem;
   border-radius: var(--radius-lg);
   border: 2px solid var(--border);
@@ -1191,15 +1062,6 @@ export default {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .comparison-row {
-    grid-template-columns: 1.5fr 1fr 1fr;
-    padding: 0.4rem 0.8rem;
-  }
-  
-  .comp-feature {
-    font-size: 0.75rem;
-  }
-  
   .footer-content {
     flex-direction: column;
     text-align: center;
@@ -1252,20 +1114,6 @@ export default {
   
   .all-feature-card p {
     font-size: 0.65rem;
-  }
-  
-  .comparison-row {
-    grid-template-columns: 1fr 1fr 1fr;
-    padding: 0.3rem 0.5rem;
-  }
-  
-  .comp-feature {
-    font-size: 0.7rem;
-  }
-  
-  .comp-chickory,
-  .comp-manual {
-    font-size: 0.8rem;
   }
   
   .container {
