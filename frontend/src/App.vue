@@ -23,6 +23,12 @@
 
     <!-- ===== PUBLIC PAGES ===== -->
     <template v-if="!user">
+
+    <ResetPassword 
+      v-if="showResetPassword && resetToken"
+      :token="resetToken"
+      @reset-complete="showResetPassword = false"
+    />
       <!-- Landing Page -->
       <LandingPage 
         v-if="!showLogin"

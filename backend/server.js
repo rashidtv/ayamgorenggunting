@@ -14,7 +14,9 @@ const {
   sendRegistrationApproved,
   sendRegistrationRejected,
   sendNewUserCreated,
-  sendPasswordReset
+  sendPasswordReset,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmation
 } = require('./emails/resend');
 
 const app = express();
@@ -1678,10 +1680,21 @@ await sendRegistrationApproved(
       tempPassword,
       message: 'Registration approved! Welcome email sent to the user.'
     });
+
+    const userResult = await client.query(
+  `INSERT INTO users 
+   (username, password, full_name, role, company_id, is_first_login, email) 
+   VALUES ($1, $2, $3, $4, $5, $6, $7) 
+   RETURNING id`,
+  [username, hashedPassword, request.contact_person, 'stall_admin', companyId, true, request.email]
+);
+const userId = userResult.rows[0].id;
+
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Approval error:', err);
     res.status(500).json({ error: 'Failed to approve registration' });
+
   } finally {
     client.release();
   }
@@ -1725,6 +1738,173 @@ await sendRegistrationRejected(
   } catch (err) {
     console.error('Rejection error:', err);
     res.status(500).json({ error: 'Failed to reject registration' });
+  }
+});
+
+// ==================== PASSWORD RESET ROUTES ====================
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset link
+ */
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  try {
+    // Find user by email
+    const userRes = await pool.query(
+      'SELECT id, username, email FROM users WHERE email = $1',
+      [email]
+    );
+    
+    if (userRes.rows.length === 0) {
+      // For security, don't reveal if email exists or not
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with this email, a reset link has been sent.' 
+      });
+    }
+
+    const user = userRes.rows[0];
+    
+    // Generate unique token
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Set expiry (1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+    
+    // Store token in database
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at) 
+       VALUES ($1, $2, $3)`,
+      [user.id, token, expiresAt]
+    );
+    
+    // Build reset URL
+    const resetUrl = `${process.env.APP_URL || 'https://chickoryhub.com'}/reset-password?token=${token}`;
+    
+    // Send email with reset link
+    await sendPasswordResetEmail(user.email, user.username, resetUrl);
+    
+    console.log(`🔑 Password reset link sent to ${user.email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'If an account exists with this email, a reset link has been sent.' 
+    });
+    
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+/**
+ * POST /api/auth/validate-reset-token
+ * Validate password reset token
+ */
+app.post('/api/auth/validate-reset-token', async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM password_reset_tokens 
+       WHERE token = $1 AND used = false AND expires_at > NOW()`,
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        valid: false, 
+        error: 'Invalid or expired token' 
+      });
+    }
+    
+    res.json({ valid: true });
+    
+  } catch (err) {
+    console.error('Validate token error:', err);
+    res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using token
+ */
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token and new password are required' });
+  }
+  
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Get token
+    const tokenRes = await client.query(
+      `SELECT * FROM password_reset_tokens 
+       WHERE token = $1 AND used = false AND expires_at > NOW()`,
+      [token]
+    );
+    
+    if (tokenRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
+    
+    const resetToken = tokenRes.rows[0];
+    
+    // Hash new password
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    
+    // Update user password
+    await client.query(
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedPassword, resetToken.user_id]
+    );
+    
+    // Mark token as used
+    await client.query(
+      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
+      [resetToken.id]
+    );
+    
+    await client.query('COMMIT');
+    
+    // Send confirmation email
+    await sendPasswordResetConfirmation(email);
+    
+    res.json({ success: true, message: 'Password reset successfully' });
+    
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
+  } finally {
+    client.release();
   }
 });
 

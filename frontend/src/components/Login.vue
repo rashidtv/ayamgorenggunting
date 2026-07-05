@@ -61,6 +61,13 @@
       <!-- Right Panel - Login Form -->
       <div class="login-panel">
         <div class="login-card">
+          <!-- Back to Home Button -->
+          <div class="login-back">
+            <button @click="goHome" class="back-btn">
+              ← Back to Home
+            </button>
+          </div>
+
           <form @submit.prevent="login" class="login-form">
             <div class="form-header">
               <h2 class="form-title">Welcome Back</h2>
@@ -76,6 +83,7 @@
                   required
                   placeholder="Enter username"
                   class="modern-input"
+                  :disabled="loading"
                 />
                 <div class="input-underline"></div>
               </div>
@@ -90,9 +98,26 @@
                   required
                   placeholder="Enter password"
                   class="modern-input"
+                  :disabled="loading"
                 />
                 <div class="input-underline"></div>
               </div>
+            </div>
+
+            <!-- Login Options: Remember Me & Forgot Password -->
+            <div class="login-options">
+              <label class="remember-me">
+                <input type="checkbox" v-model="rememberMe" />
+                <span>Remember me</span>
+              </label>
+              <a href="#" @click.prevent="openForgotPassword" class="forgot-link">
+                Forgot password?
+              </a>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="error" class="error-message">
+              ❌ {{ error }}
             </div>
 
             <button 
@@ -123,6 +148,60 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== FORGOT PASSWORD MODAL ===== -->
+    <div v-if="showForgotPassword" class="modal-overlay" @click.self="closeForgotPassword">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>🔑 Reset Password</h3>
+          <button @click="closeForgotPassword" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <p class="reset-description">
+            Enter your email address and we'll send you a link to reset your password.
+          </p>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input 
+              v-model="resetEmail" 
+              type="email" 
+              placeholder="Enter your registered email"
+              required
+            />
+          </div>
+          <div v-if="resetMessage" class="reset-message" :class="resetMessageType">
+            {{ resetMessage }}
+          </div>
+          <button @click="requestPasswordReset" class="btn-primary full-width" :disabled="resetLoading">
+            {{ resetLoading ? 'Sending...' : 'Send Reset Link' }}
+          </button>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeForgotPassword" class="btn-modern secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RESET CONFIRMATION MODAL ===== -->
+    <div v-if="showResetConfirm" class="modal-overlay" @click.self="closeResetConfirm">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>✅ Check Your Email</h3>
+          <button @click="closeResetConfirm" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="reset-confirm-content">
+            <div class="reset-confirm-icon">📧</div>
+            <h3>Password Reset Link Sent</h3>
+            <p>We've sent a password reset link to <strong>{{ resetEmail }}</strong></p>
+            <p class="reset-confirm-note">If you don't see it, check your spam folder.</p>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeResetConfirm" class="btn-modern primary">OK, Got it</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -141,17 +220,36 @@ export default {
   },
   data() {
     return {
+      // Login
       username: '',
       password: '',
+      rememberMe: false,
       error: '',
       loading: false,
-      bannerImage: localStorage.getItem('systemBanner') || null
+      bannerImage: localStorage.getItem('systemBanner') || null,
+      
+      // Forgot Password
+      showForgotPassword: false,
+      resetEmail: '',
+      resetLoading: false,
+      resetMessage: '',
+      resetMessageType: 'info',
+      showResetConfirm: false
     }
   },
   mounted() {
     this.fetchBanner()
+    
+    // Auto-fill username if "Remember Me" was checked
+    if (localStorage.getItem('rememberMe') === 'true') {
+      this.username = localStorage.getItem('username') || ''
+      this.rememberMe = true
+    }
   },
   methods: {
+    // =============================================
+    // BANNER
+    // =============================================
     async fetchBanner() {
       try {
         const response = await axios.get(`${API_BASE}/system/banner`)
@@ -163,7 +261,16 @@ export default {
         console.log('No system banner found, using default')
       }
     },
+
+    // =============================================
+    // LOGIN
+    // =============================================
     async login() {
+      if (!this.username || !this.password) {
+        this.error = 'Please enter username and password'
+        return
+      }
+      
       this.loading = true
       this.error = ''
       
@@ -179,6 +286,15 @@ export default {
         console.log('📤 Token:', response.data?.token)
         
         if (response.data && response.data.user && response.data.token) {
+          // Handle "Remember Me"
+          if (this.rememberMe) {
+            localStorage.setItem('rememberMe', 'true')
+            localStorage.setItem('username', this.username)
+          } else {
+            localStorage.removeItem('rememberMe')
+            localStorage.removeItem('username')
+          }
+          
           this.$emit('login-success', response.data)
         } else {
           console.error('❌ Invalid login response structure:', response.data)
@@ -200,6 +316,82 @@ export default {
         if (this.loading) {
           this.loading = false
         }
+      }
+    },
+
+    // =============================================
+    // NAVIGATION
+    // =============================================
+    goHome() {
+      this.$emit('show-landing')
+    },
+
+    // =============================================
+    // FORGOT PASSWORD
+    // =============================================
+    openForgotPassword() {
+      this.showForgotPassword = true
+      this.resetEmail = ''
+      this.resetMessage = ''
+      this.resetMessageType = 'info'
+    },
+    
+    closeForgotPassword() {
+      this.showForgotPassword = false
+      this.resetEmail = ''
+      this.resetMessage = ''
+      this.resetLoading = false
+    },
+    
+    closeResetConfirm() {
+      this.showResetConfirm = false
+      this.closeForgotPassword()
+    },
+    
+    async requestPasswordReset() {
+      // Validate email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!this.resetEmail) {
+        this.resetMessage = 'Please enter your email address'
+        this.resetMessageType = 'error'
+        return
+      }
+      if (!emailRegex.test(this.resetEmail)) {
+        this.resetMessage = 'Please enter a valid email address'
+        this.resetMessageType = 'error'
+        return
+      }
+      
+      this.resetLoading = true
+      this.resetMessage = ''
+      
+      try {
+        const response = await axios.post(`${API_BASE}/auth/forgot-password`, {
+          email: this.resetEmail
+        })
+        
+        // Close forgot password modal and show confirmation
+        this.closeForgotPassword()
+        this.showResetConfirm = true
+        
+        this.$emit('show-notification', 'Password reset link sent to your email!', 'success')
+        
+      } catch (error) {
+        console.error('Reset error:', error)
+        
+        // Handle different error cases
+        if (error.response?.status === 404) {
+          this.resetMessage = 'No account found with this email address'
+          this.resetMessageType = 'error'
+        } else if (error.response?.data?.error) {
+          this.resetMessage = error.response.data.error
+          this.resetMessageType = 'error'
+        } else {
+          this.resetMessage = 'Failed to send reset link. Please try again later.'
+          this.resetMessageType = 'error'
+        }
+      } finally {
+        this.resetLoading = false
       }
     }
   }
@@ -322,7 +514,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;  /* Remove padding-left */
+  padding: 0;
 }
 
 /* ===== BANNER WRAPPER ===== */
@@ -493,6 +685,29 @@ export default {
   flex-direction: column;
 }
 
+/* Back to Home */
+.login-back {
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: var(--transition, all 0.3s ease);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.back-btn:hover {
+  color: #F94908;
+}
+
 /* Login Form */
 .login-form {
   flex: 1;
@@ -502,7 +717,7 @@ export default {
 
 .form-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -520,7 +735,7 @@ export default {
 
 /* Input Fields */
 .input-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   flex-shrink: 0;
 }
 
@@ -575,6 +790,58 @@ export default {
 
 .modern-input:focus + .input-underline {
   transform: scaleX(1);
+}
+
+/* Login Options */
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #F94908;
+}
+
+.remember-me span {
+  font-size: 0.85rem;
+}
+
+.forgot-link {
+  color: #F94908;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Error Message */
+.error-message {
+  color: #ef4444;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: var(--radius-sm, 6px);
+  text-align: center;
+  margin-bottom: 0.75rem;
 }
 
 /* Login Button */
@@ -659,6 +926,11 @@ export default {
   font-size: 1rem;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* ===== LOGIN FOOTER ===== */
 .login-footer {
   text-align: center;
@@ -688,7 +960,247 @@ export default {
   opacity: 0.7;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ============================================ */
+/* MODAL STYLES                                 */
+/* ============================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-modern {
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 440px;
+  width: 92%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 0 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.modal-close-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.modal-modern-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+  background: #ffffff;
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  background: #fafafa;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-group input {
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #1e293b;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+/* Reset Description */
+.reset-description {
+  color: #64748b;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Reset Message */
+.reset-message {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.reset-message.success {
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.reset-message.error {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.reset-message.info {
+  background: #dbeafe;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary.full-width {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-modern.secondary {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-modern.secondary:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-modern.primary {
+  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  color: white;
+}
+
+.btn-modern.primary:hover {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+/* Reset Confirmation */
+.reset-confirm-content {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.reset-confirm-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.reset-confirm-content h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.reset-confirm-content p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.reset-confirm-note {
+  font-size: 0.8rem !important;
+  color: #94a3b8 !important;
+}
+
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
 @media (max-width: 768px) {
   .login-container {
     padding: 0.5rem;
@@ -704,14 +1216,14 @@ export default {
   
   .brand-panel {
     padding: 0;
-    min-height: 250px;  /* Increased from 200px */
-    max-height: 400px;  /* Increased from 300px */
+    min-height: 250px;
+    max-height: 400px;
   }
   
   .login-banner-image {
-    object-fit: contain;  /* CHANGED from 'cover' to 'contain' */
-    min-height: 250px;   /* Increased from 200px */
-    max-height: 400px;   /* Added to match container */
+    object-fit: contain;
+    min-height: 250px;
+    max-height: 400px;
   }
   
   .banner-fallback {
@@ -753,6 +1265,12 @@ export default {
   .login-card {
     min-height: auto;
   }
+  
+  .login-options {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 480px) {
@@ -781,6 +1299,10 @@ export default {
     font-size: 0.7rem;
     flex-direction: column;
     gap: 0.2rem;
+  }
+  
+  .modal-modern {
+    width: 95%;
   }
 }
 </style>

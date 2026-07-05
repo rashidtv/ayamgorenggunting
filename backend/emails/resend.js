@@ -161,6 +161,89 @@ async function sendPasswordReset(email, username, fullName, tempPassword) {
   return sendEmail({ to: email, subject, html });
 }
 
+/**
+ * Send Password Reset email
+ */
+async function sendPasswordReset(email, username, resetUrl) {
+  const subject = 'Reset Your Password - Chickory Hub';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #F94908;">Reset Your Password</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>We received a request to reset your password for your Chickory Hub account.</p>
+      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0;">Click the button below to reset your password:</p>
+        <div style="text-align: center; margin: 15px 0;">
+          <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background: #F94908; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Reset Password
+          </a>
+        </div>
+        <p style="margin: 0; font-size: 0.8rem; color: #64748b;">This link will expire in 1 hour.</p>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b;">If you didn't request this, please ignore this email or contact support.</p>
+      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
+/**
+ * Send Password Reset email
+ */
+async function sendPasswordResetEmail(email, username, resetUrl) {
+  const subject = 'Reset Your Password - Chickory Hub';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 2rem;">🍗</span>
+        <h1 style="color: #F94908; font-weight: 700; margin: 0;">Chickory Hub</h1>
+      </div>
+      <h2 style="color: #1e293b;">Reset Your Password</h2>
+      <p>Hi <strong>${username}</strong>,</p>
+      <p>We received a request to reset your password for your Chickory Hub account.</p>
+      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 15px 0;">Click the button below to reset your password:</p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background: #F94908; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Reset Password
+        </a>
+        <p style="margin: 15px 0 0 0; font-size: 0.8rem; color: #64748b;">This link will expire in 1 hour.</p>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b;">If you didn't request this, please ignore this email or contact support.</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong style="color: #F94908;">Chickory Hub Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
+/**
+ * Send Password Reset Confirmation email
+ */
+async function sendPasswordResetConfirmation(email) {
+  const subject = 'Your Password Has Been Reset - Chickory Hub';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 2rem;">🍗</span>
+        <h1 style="color: #F94908; font-weight: 700; margin: 0;">Chickory Hub</h1>
+      </div>
+      <h2 style="color: #10b981;">✅ Password Reset Successful</h2>
+      <p>Hi there,</p>
+      <p>Your password has been successfully reset.</p>
+      <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+        <p style="margin: 0; color: #065f46;">If you didn't request this change, please contact support immediately.</p>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b;">You can now log in with your new password.</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong style="color: #F94908;">Chickory Hub Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
 module.exports = {
   sendEmail,
   sendRegistrationReceived,
@@ -168,4 +251,6 @@ module.exports = {
   sendRegistrationRejected,
   sendNewUserCreated,
   sendPasswordReset,
+  sendPasswordResetEmail,      // ← Add this
+  sendPasswordResetConfirmation // ← Add this
 };
