@@ -17,26 +17,12 @@
             <p>All-in-one platform designed specifically for chicken stall owners. Track sales, manage inventory, and grow your business from anywhere.</p>
             <div class="hero-actions">
               <button @click="openRegistration" class="btn-primary btn-lg">
-                Start Free Trial
+                Register Now
                 <span class="btn-arrow">→</span>
               </button>
               <button @click="goToLogin" class="btn-outline btn-lg">
                 🔑 Sign In
               </button>
-            </div>
-            <div class="hero-trust">
-              <div class="trust-item">
-                <span class="trust-icon">⭐</span>
-                <span>Trusted by 50+ stalls</span>
-              </div>
-              <div class="trust-item">
-                <span class="trust-icon">📱</span>
-                <span>PWA enabled</span>
-              </div>
-              <div class="trust-item">
-                <span class="trust-icon">🔒</span>
-                <span>Bank-grade security</span>
-              </div>
             </div>
           </div>
           <div class="hero-visual">
@@ -59,13 +45,31 @@
                   </div>
                 </div>
                 <div class="preview-chart">
-                  <div class="chart-bar" style="height: 60%"></div>
-                  <div class="chart-bar" style="height: 80%"></div>
-                  <div class="chart-bar" style="height: 40%"></div>
-                  <div class="chart-bar" style="height: 90%"></div>
-                  <div class="chart-bar" style="height: 70%"></div>
-                  <div class="chart-bar" style="height: 50%"></div>
-                  <div class="chart-bar" style="height: 85%"></div>
+                  <svg viewBox="0 0 300 60" class="trend-svg">
+                    <polyline
+                      points="0,50 30,45 60,55 90,30 120,40 150,15 180,25 210,10 240,20 270,5 300,35"
+                      fill="none"
+                      stroke="#F94908"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <polygon
+                      points="0,50 30,45 60,55 90,30 120,40 150,15 180,25 210,10 240,20 270,5 300,35 300,60 0,60"
+                      fill="url(#trendGradient)"
+                      opacity="0.2"
+                    />
+                    <defs>
+                      <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#F94908;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#F94908;stop-opacity:0" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="270" cy="5" r="4" fill="#F94908" />
+                    <circle cx="210" cy="10" r="4" fill="#F94908" />
+                    <circle cx="150" cy="15" r="4" fill="#F94908" />
+                    <circle cx="90" cy="30" r="4" fill="#F94908" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -79,24 +83,32 @@
       <div class="container">
         <div class="problem-grid">
           <div class="problem-item">
-            <div class="problem-icon">📋</div>
-            <h3>Manual Record Keeping</h3>
-            <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
+            <span class="problem-icon">📋</span>
+            <div>
+              <h3>Manual Record Keeping</h3>
+              <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
+            </div>
           </div>
           <div class="problem-item">
-            <div class="problem-icon">📦</div>
-            <h3>Inventory Chaos</h3>
-            <p>Know exactly when to restock. Never run out of chicken again.</p>
+            <span class="problem-icon">📦</span>
+            <div>
+              <h3>Inventory Chaos</h3>
+              <p>Know exactly when to restock. Never run out of chicken again.</p>
+            </div>
           </div>
           <div class="problem-item">
-            <div class="problem-icon">📊</div>
-            <h3>No Real Insights</h3>
-            <p>Get real-time analytics and make data-driven decisions for your business.</p>
+            <span class="problem-icon">📊</span>
+            <div>
+              <h3>No Real Insights</h3>
+              <p>Get real-time analytics and make data-driven decisions for your business.</p>
+            </div>
           </div>
           <div class="problem-item">
-            <div class="problem-icon">👥</div>
-            <h3>Multi-stall Complexity</h3>
-            <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
+            <span class="problem-icon">👥</span>
+            <div>
+              <h3>Multi-stall Complexity</h3>
+              <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -162,46 +174,46 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag">Why We're Different</span>
-          <h2>Chickory Hub vs The Rest</h2>
+          <h2>Chickory Hub vs Traditional Methods</h2>
         </div>
         <div class="comparison-table">
           <div class="comparison-row header">
-            <div class="comparison-cell feature">Feature</div>
-            <div class="comparison-cell chickory">🍗 Chickory Hub</div>
-            <div class="comparison-cell competitor">📊 Excel/Spreadsheets</div>
+            <div class="comparison-cell">Feature</div>
+            <div class="comparison-cell chickory">Chickory Hub</div>
+            <div class="comparison-cell competitor">Manual Methods</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Real-time Sales</div>
+            <div class="comparison-cell">Real-time Sales</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ No</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Inventory Auto-Deduct</div>
+            <div class="comparison-cell">Inventory Auto-Deduct</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ Manual</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Multi-Stall Management</div>
+            <div class="comparison-cell">Multi-Stall Management</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ Complex</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Role-Based Access</div>
+            <div class="comparison-cell">Role-Based Access</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ No</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Mobile PWA</div>
+            <div class="comparison-cell">Mobile PWA</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ No</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Analytics & Charts</div>
+            <div class="comparison-cell">Analytics & Charts</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ Manual</div>
           </div>
           <div class="comparison-row">
-            <div class="comparison-cell feature">Low Stock Alerts</div>
+            <div class="comparison-cell">Low Stock Alerts</div>
             <div class="comparison-cell chickory">✅ Yes</div>
             <div class="comparison-cell competitor">❌ No</div>
           </div>
@@ -238,9 +250,8 @@
             </ul>
           </div>
           <button @click="openRegistration" class="btn-primary btn-block">
-            🚀 Start Now
+            🚀 Register Now
           </button>
-          <p class="pricing-note">14-day free trial. No credit card required.</p>
         </div>
       </div>
     </section>
@@ -250,9 +261,9 @@
       <div class="container">
         <div class="cta-content">
           <h2>Ready to Grow Your Chicken Business?</h2>
-          <p>Join 50+ stalls already using Chickory Hub to manage their business better.</p>
+          <p>Join other stall owners who are already managing their business better with Chickory Hub.</p>
           <button @click="openRegistration" class="btn-primary btn-lg">
-            🚀 Get Started Now
+            🚀 Register Now
           </button>
         </div>
       </div>
@@ -262,7 +273,7 @@
     <div v-if="showRegistration" class="modal-overlay" @click.self="closeRegistration">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
-          <h3>🚀 Start Your 14-Day Free Trial</h3>
+          <h3>🚀 Register Your Business</h3>
           <button @click="closeRegistration" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
@@ -300,7 +311,7 @@
               </div>
             </div>
             <button type="submit" class="btn-primary full-width" :disabled="submitting">
-              {{ submitting ? 'Submitting...' : 'Start Free Trial' }}
+              {{ submitting ? 'Submitting...' : 'Register Now' }}
             </button>
             <div class="modal-footer-links">
               <span>Already have an account?</span>
@@ -562,7 +573,7 @@ export default {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
 
 .btn-primary {
@@ -640,24 +651,6 @@ export default {
   transform: translateY(-2px);
 }
 
-.hero-trust {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.trust-item {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.trust-icon {
-  font-size: 0.9rem;
-}
-
 /* Hero Visual */
 .hero-visual {
   display: flex;
@@ -732,20 +725,14 @@ export default {
 }
 
 .preview-chart {
+  height: 60px;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  height: 80px;
-  gap: 0.3rem;
-  padding-top: 0.5rem;
 }
 
-.chart-bar {
-  flex: 1;
-  min-height: 10px;
-  background: linear-gradient(180deg, var(--primary), var(--primary-light));
-  border-radius: 4px 4px 0 0;
-  transition: height 0.5s ease;
+.trend-svg {
+  width: 100%;
+  height: 60px;
 }
 
 /* ============================================ */
@@ -763,27 +750,39 @@ export default {
 }
 
 .problem-item {
-  text-align: center;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
   padding: 1.5rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.problem-item:hover {
+  border-color: var(--primary-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .problem-icon {
-  font-size: 2.2rem;
-  margin-bottom: 0.75rem;
-  display: block;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
 
 .problem-item h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .problem-item p {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
+  margin: 0;
 }
 
 /* ============================================ */
@@ -861,12 +860,12 @@ export default {
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
+  background: var(--background);
 }
 
 .comparison-row {
   display: grid;
   grid-template-columns: 1.5fr 1fr 1fr;
-  background: var(--background);
 }
 
 .comparison-row.header {
@@ -886,7 +885,7 @@ export default {
   border-bottom: 1px solid var(--border-light);
 }
 
-.comparison-cell.feature {
+.comparison-cell:first-child {
   font-weight: 500;
 }
 
@@ -982,12 +981,6 @@ export default {
   padding: 0.4rem 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
-}
-
-.pricing-note {
-  margin-top: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
 }
 
 /* ============================================ */
@@ -1274,10 +1267,6 @@ export default {
     justify-content: center;
   }
   
-  .hero-trust {
-    justify-content: center;
-  }
-  
   .hero-visual {
     order: -1;
   }
@@ -1311,12 +1300,8 @@ export default {
   }
   
   .problem-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
-  }
-  
-  .problem-item {
-    padding: 1rem;
   }
   
   .features-grid {
@@ -1339,7 +1324,7 @@ export default {
     display: none;
   }
   
-  .comparison-cell.feature {
+  .comparison-cell:first-child {
     font-weight: 700;
     border-bottom: 1px solid var(--border-light);
   }
@@ -1379,34 +1364,16 @@ export default {
     font-size: 0.95rem;
   }
   
-  .problem-grid {
-    grid-template-columns: 1fr;
+  .hero-dashboard-preview {
+    padding: 1rem;
   }
   
-  .problem-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    text-align: left;
-    padding: 0.75rem 1rem;
-    background: var(--surface);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-light);
+  .preview-stats {
+    grid-template-columns: 1fr 1fr;
   }
   
-  .problem-icon {
-    font-size: 1.6rem;
-    margin-bottom: 0;
-    flex-shrink: 0;
-  }
-  
-  .problem-item h3 {
-    font-size: 0.9rem;
-    margin-bottom: 0.1rem;
-  }
-  
-  .problem-item p {
-    font-size: 0.8rem;
+  .preview-stat .stat-number {
+    font-size: 1rem;
   }
   
   .features-grid {
@@ -1417,6 +1384,10 @@ export default {
     padding: 1.5rem;
   }
   
+  .problem-item {
+    padding: 1rem;
+  }
+  
   .modal-modern {
     width: 95%;
   }
@@ -1425,27 +1396,8 @@ export default {
     padding: 1rem;
   }
   
-  .preview-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .comparison-cell {
-    font-size: 0.75rem;
-    padding: 0.3rem 0.5rem;
-  }
-  
   .container {
     padding: 0 1rem;
-  }
-  
-  .hero-trust {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .trust-item {
-    font-size: 0.8rem;
   }
 }
 </style>
