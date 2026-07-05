@@ -7,6 +7,38 @@
       :banner-url="systemBanner"
     />
 
+    <!-- ===== HERO SECTION ===== -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <h1>Manage Your Chicken Business<br><span>With Confidence</span></h1>
+          <p>All-in-one platform for chicken stall management. Track sales, inventory, and grow your business.</p>
+          <div class="hero-actions">
+            <button @click="openRegistration" class="btn-primary btn-lg">
+              🚀 Get Started
+            </button>
+            <button @click="goToLogin" class="btn-outline btn-lg">
+              🔑 Login
+            </button>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-number">50+</span>
+              <span class="stat-label">Active Stalls</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">100+</span>
+              <span class="stat-label">Happy Users</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">99.9%</span>
+              <span class="stat-label">Uptime</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== FEATURES ===== -->
     <section class="features-section">
       <div class="container">
@@ -108,6 +140,10 @@
             <button type="submit" class="btn-primary full-width" :disabled="submitting">
               {{ submitting ? 'Submitting...' : 'Submit Registration' }}
             </button>
+            <div class="modal-footer-links">
+              <span>Already have an account?</span>
+              <a href="#" @click.prevent="closeRegistration; goToLogin()">Login here</a>
+            </div>
           </form>
         </div>
       </div>
@@ -135,6 +171,12 @@ export default {
   name: 'LandingPage',
   components: {
     DashboardHeader
+  },
+  props: {
+    showLogin: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
@@ -179,6 +221,9 @@ export default {
         receiptFile: null,
         receiptPreview: null
       }
+    },
+    goToLogin() {
+      this.$emit('show-login')
     },
     handleReceiptUpload(event) {
       const file = event.target.files[0]
@@ -270,6 +315,136 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
+}
+
+/* ============================================ */
+/* HERO SECTION                                 */
+/* ============================================ */
+.hero-section {
+  padding: 4rem 0 3rem;
+  background: linear-gradient(135deg, var(--background), var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-content h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.hero-content h1 span {
+  color: var(--primary);
+}
+
+.hero-content p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.btn-primary.btn-lg {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+}
+
+.btn-primary.full-width {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 2rem;
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.btn-outline.btn-lg {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 /* ============================================ */
@@ -407,39 +582,6 @@ export default {
 }
 
 /* ============================================ */
-/* BUTTONS                                      */
-/* ============================================ */
-.btn-primary {
-  display: inline-block;
-  padding: 0.8rem 2rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  width: 100%;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-}
-
-.btn-primary.full-width {
-  width: 100%;
-  justify-content: center;
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* ============================================ */
 /* MODAL                                        */
 /* ============================================ */
 .modal-overlay {
@@ -541,6 +683,24 @@ export default {
   outline: none;
   border-color: #F94908;
   box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.modal-footer-links {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.modal-footer-links a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-footer-links a:hover {
+  text-decoration: underline;
 }
 
 /* ============================================ */
@@ -651,6 +811,20 @@ export default {
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hero-stats {
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
   .features-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -666,6 +840,14 @@ export default {
 }
 
 @media (max-width: 480px) {
+  .hero-content h1 {
+    font-size: 1.6rem;
+  }
+  
+  .hero-content p {
+    font-size: 0.95rem;
+  }
+  
   .features-grid {
     grid-template-columns: 1fr;
   }
@@ -688,6 +870,10 @@ export default {
   
   .container {
     padding: 0 1rem;
+  }
+  
+  .stat-number {
+    font-size: 1.4rem;
   }
 }
 </style>
