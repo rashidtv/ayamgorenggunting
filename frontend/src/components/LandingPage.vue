@@ -10,59 +10,200 @@
     <!-- ===== HERO SECTION ===== -->
     <section class="hero-section">
       <div class="container">
-        <div class="hero-content">
-          <h1>Manage Your Chicken Business<br><span>With Confidence</span></h1>
-          <p>All-in-one platform for chicken stall management. Track sales, inventory, and grow your business.</p>
-          <div class="hero-actions">
-            <button @click="openRegistration" class="btn-primary btn-lg">
-              🚀 Get Started
-            </button>
-            <button @click="goToLogin" class="btn-outline btn-lg">
-              🔑 Login
-            </button>
+        <div class="hero-grid">
+          <div class="hero-content">
+            <div class="hero-badge">🚀 #1 Chicken Business Platform</div>
+            <h1>Manage Your <br><span>Chicken Business</span><br>Like a Pro</h1>
+            <p>All-in-one platform designed specifically for chicken stall owners. Track sales, manage inventory, and grow your business from anywhere.</p>
+            <div class="hero-actions">
+              <button @click="openRegistration" class="btn-primary btn-lg">
+                Start Free Trial
+                <span class="btn-arrow">→</span>
+              </button>
+              <button @click="goToLogin" class="btn-outline btn-lg">
+                🔑 Sign In
+              </button>
+            </div>
+            <div class="hero-trust">
+              <div class="trust-item">
+                <span class="trust-icon">⭐</span>
+                <span>Trusted by 50+ stalls</span>
+              </div>
+              <div class="trust-item">
+                <span class="trust-icon">📱</span>
+                <span>PWA enabled</span>
+              </div>
+              <div class="trust-item">
+                <span class="trust-icon">🔒</span>
+                <span>Bank-grade security</span>
+              </div>
+            </div>
           </div>
-          <div class="hero-stats">
-            <div class="stat-item">
-              <span class="stat-number">50+</span>
-              <span class="stat-label">Active Stalls</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">100+</span>
-              <span class="stat-label">Happy Users</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">99.9%</span>
-              <span class="stat-label">Uptime</span>
+          <div class="hero-visual">
+            <div class="hero-dashboard-preview">
+              <div class="preview-card">
+                <div class="preview-header">
+                  <span class="preview-dot red"></span>
+                  <span class="preview-dot yellow"></span>
+                  <span class="preview-dot green"></span>
+                  <span class="preview-title">📊 Dashboard</span>
+                </div>
+                <div class="preview-stats">
+                  <div class="preview-stat">
+                    <span class="stat-number">RM 1,463</span>
+                    <span class="stat-label">Revenue</span>
+                  </div>
+                  <div class="preview-stat">
+                    <span class="stat-number">72</span>
+                    <span class="stat-label">Items Sold</span>
+                  </div>
+                </div>
+                <div class="preview-chart">
+                  <div class="chart-bar" style="height: 60%"></div>
+                  <div class="chart-bar" style="height: 80%"></div>
+                  <div class="chart-bar" style="height: 40%"></div>
+                  <div class="chart-bar" style="height: 90%"></div>
+                  <div class="chart-bar" style="height: 70%"></div>
+                  <div class="chart-bar" style="height: 50%"></div>
+                  <div class="chart-bar" style="height: 85%"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===== FEATURES ===== -->
+    <!-- ===== PROBLEM / SOLUTION ===== -->
+    <section class="problem-section">
+      <div class="container">
+        <div class="problem-grid">
+          <div class="problem-item">
+            <div class="problem-icon">📋</div>
+            <h3>Manual Record Keeping</h3>
+            <p>Stop wasting time with spreadsheets and paper. Track everything digitally.</p>
+          </div>
+          <div class="problem-item">
+            <div class="problem-icon">📦</div>
+            <h3>Inventory Chaos</h3>
+            <p>Know exactly when to restock. Never run out of chicken again.</p>
+          </div>
+          <div class="problem-item">
+            <div class="problem-icon">📊</div>
+            <h3>No Real Insights</h3>
+            <p>Get real-time analytics and make data-driven decisions for your business.</p>
+          </div>
+          <div class="problem-item">
+            <div class="problem-icon">👥</div>
+            <h3>Multi-stall Complexity</h3>
+            <p>Manage multiple stalls from one dashboard. Simple, unified, efficient.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== WHY US ===== -->
     <section class="features-section">
       <div class="container">
-        <h2>Why Choose Chickory Hub?</h2>
+        <div class="section-header">
+          <span class="section-tag">Why Chickory Hub</span>
+          <h2>Built for Chicken Business Owners</h2>
+          <p>Everything you need to run your stall efficiently</p>
+        </div>
         <div class="features-grid">
           <div class="feature-card">
-            <div class="feature-icon">📊</div>
-            <h3>Real-time Analytics</h3>
-            <p>Track sales, inventory, and performance in real-time</p>
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">⚡</span>
+            </div>
+            <h3>Real-time Sales</h3>
+            <p>Track sales as they happen. See revenue, items sold, and trends instantly.</p>
+          </div>
+          <div class="feature-card highlight">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">🛒</span>
+            </div>
+            <h3>Smart Inventory</h3>
+            <p>Auto-deduct chicken from inventory when items are sold. Set low-stock alerts.</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🛒</div>
-            <h3>Multi-stall Management</h3>
-            <p>Manage multiple stalls from a single dashboard</p>
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">📱</span>
+            </div>
+            <h3>Works on Any Device</h3>
+            <p>Install as PWA on your phone. Works offline. No app store required.</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">📱</div>
-            <h3>PWA Ready</h3>
-            <p>Access your business from any device, anywhere</p>
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">🔐</span>
+            </div>
+            <h3>Role-Based Access</h3>
+            <p>Stall Admins manage inventory. Cashiers focus on selling. Super Admins oversee all.</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🔒</div>
-            <h3>Secure & Reliable</h3>
-            <p>Enterprise-grade security with role-based access</p>
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">📊</span>
+            </div>
+            <h3>Analytics Dashboard</h3>
+            <p>Visual charts, top-selling items, stall performance. Know your business.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon-wrapper">
+              <span class="feature-icon">👨‍👩‍👧‍👦</span>
+            </div>
+            <h3>Multi-Stall Management</h3>
+            <p>Own multiple stalls? Manage them all from one place with one login.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COMPARISON ===== -->
+    <section class="comparison-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Why We're Different</span>
+          <h2>Chickory Hub vs The Rest</h2>
+        </div>
+        <div class="comparison-table">
+          <div class="comparison-row header">
+            <div class="comparison-cell feature">Feature</div>
+            <div class="comparison-cell chickory">🍗 Chickory Hub</div>
+            <div class="comparison-cell competitor">📊 Excel/Spreadsheets</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Real-time Sales</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ No</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Inventory Auto-Deduct</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ Manual</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Multi-Stall Management</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ Complex</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Role-Based Access</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ No</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Mobile PWA</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ No</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Analytics & Charts</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ Manual</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell feature">Low Stock Alerts</div>
+            <div class="comparison-cell chickory">✅ Yes</div>
+            <div class="comparison-cell competitor">❌ No</div>
           </div>
         </div>
       </div>
@@ -71,16 +212,20 @@
     <!-- ===== PRICING ===== -->
     <section class="pricing-section">
       <div class="container">
-        <h2>Simple Pricing</h2>
+        <div class="section-header">
+          <span class="section-tag">Simple Pricing</span>
+          <h2>One Plan. All Features.</h2>
+          <p>No hidden fees. Cancel anytime.</p>
+        </div>
         <div class="pricing-card">
+          <div class="pricing-badge">🔥 Most Popular</div>
           <div class="pricing-header">
             <h3>Annual Plan</h3>
             <div class="price">
-              <span class="amount">RM70</span>
-              <span class="period">/month</span>
+              <span class="amount">RM940</span>
+              <span class="period">/year</span>
             </div>
-            <div class="price-detail">RM840/year + RM100 setup fee</div>
-            <div class="price-total">Total: RM940 for first year</div>
+            <div class="price-sub">Includes RM100 setup fee</div>
           </div>
           <div class="pricing-features">
             <ul>
@@ -89,9 +234,26 @@
               <li>✅ Unlimited users</li>
               <li>✅ 24/7 support</li>
               <li>✅ Automatic updates</li>
+              <li>✅ No hidden fees</li>
             </ul>
           </div>
-          <button @click="openRegistration" class="btn-primary">Get Started</button>
+          <button @click="openRegistration" class="btn-primary btn-block">
+            🚀 Start Now
+          </button>
+          <p class="pricing-note">14-day free trial. No credit card required.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-content">
+          <h2>Ready to Grow Your Chicken Business?</h2>
+          <p>Join 50+ stalls already using Chickory Hub to manage their business better.</p>
+          <button @click="openRegistration" class="btn-primary btn-lg">
+            🚀 Get Started Now
+          </button>
         </div>
       </div>
     </section>
@@ -100,7 +262,7 @@
     <div v-if="showRegistration" class="modal-overlay" @click.self="closeRegistration">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
-          <h3>Register Your Business</h3>
+          <h3>🚀 Start Your 14-Day Free Trial</h3>
           <button @click="closeRegistration" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
@@ -132,17 +294,17 @@
                 </div>
                 <div v-else class="receipt-placeholder" @click="$refs.receiptInput.click()">
                   <span class="upload-icon">📎</span>
-                  <p>Click to upload payment receipt (PDF or image)</p>
+                  <p>Upload payment receipt (PDF or image)</p>
                   <small>Max size: 5MB</small>
                 </div>
               </div>
             </div>
             <button type="submit" class="btn-primary full-width" :disabled="submitting">
-              {{ submitting ? 'Submitting...' : 'Submit Registration' }}
+              {{ submitting ? 'Submitting...' : 'Start Free Trial' }}
             </button>
             <div class="modal-footer-links">
               <span>Already have an account?</span>
-              <a href="#" @click.prevent="closeRegistration; goToLogin()">Login here</a>
+              <a href="#" @click.prevent="closeRegistration; goToLogin()">Sign in</a>
             </div>
           </form>
         </div>
@@ -165,18 +327,12 @@
 import axios from 'axios'
 import DashboardHeader from './DashboardHeader.vue'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chickoryhub.com/api'
 
 export default {
   name: 'LandingPage',
   components: {
     DashboardHeader
-  },
-  props: {
-    showLogin: {
-      type: Boolean,
-      default: false
-    }
   },
   data() {
     return {
@@ -306,6 +462,7 @@ export default {
 .landing-page {
   min-height: 100vh;
   background: var(--background);
+  overflow-x: hidden;
 }
 
 /* ============================================ */
@@ -318,26 +475,75 @@ export default {
 }
 
 /* ============================================ */
+/* SECTION HEADER                               */
+/* ============================================ */
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.section-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(249, 73, 8, 0.08);
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.section-header h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.section-header p {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+}
+
+/* ============================================ */
 /* HERO SECTION                                 */
 /* ============================================ */
 .hero-section {
-  padding: 4rem 0 3rem;
-  background: linear-gradient(135deg, var(--background), var(--surface));
+  padding: 3rem 0 4rem;
+  background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
   border-bottom: 1px solid var(--border);
 }
 
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+
 .hero-content {
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 600px;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(249, 73, 8, 0.08);
+  padding: 0.25rem 1rem;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
 }
 
 .hero-content h1 {
-  font-size: 2.8rem;
+  font-size: 3rem;
   font-weight: 800;
   color: var(--text);
-  line-height: 1.2;
-  margin-bottom: 1rem;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
 }
 
 .hero-content h1 span {
@@ -347,24 +553,23 @@ export default {
 .hero-content p {
   font-size: 1.1rem;
   color: var(--text-secondary);
+  line-height: 1.7;
   margin-bottom: 2rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 500px;
 }
 
 .hero-actions {
   display: flex;
   gap: 1rem;
-  justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 2rem;
 }
 
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.8rem 2rem;
+  padding: 0.85rem 2rem;
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: white;
   border: none;
@@ -377,12 +582,25 @@ export default {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 8px 24px rgba(249, 73, 8, 0.3);
 }
 
 .btn-primary.btn-lg {
   padding: 1rem 2.5rem;
   font-size: 1.1rem;
+}
+
+.btn-primary .btn-arrow {
+  transition: transform 0.3s ease;
+}
+
+.btn-primary:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+.btn-primary.btn-block {
+  width: 100%;
+  justify-content: center;
 }
 
 .btn-primary.full-width {
@@ -400,7 +618,7 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.8rem 2rem;
+  padding: 0.85rem 2rem;
   background: transparent;
   color: var(--text);
   border: 2px solid var(--border);
@@ -411,40 +629,161 @@ export default {
   transition: var(--transition);
 }
 
+.btn-outline.btn-lg {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+}
+
 .btn-outline:hover {
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-2px);
 }
 
-.btn-outline.btn-lg {
-  padding: 1rem 2.5rem;
-  font-size: 1.1rem;
+.hero-trust {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
-.hero-stats {
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.trust-icon {
+  font-size: 0.9rem;
+}
+
+/* Hero Visual */
+.hero-visual {
   display: flex;
   justify-content: center;
-  gap: 3rem;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border-light);
+  align-items: center;
 }
 
-.stat-item {
+.hero-dashboard-preview {
+  width: 100%;
+  max-width: 500px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.preview-card {
+  width: 100%;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.preview-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.preview-dot.red { background: #ef4444; }
+.preview-dot.yellow { background: #f59e0b; }
+.preview-dot.green { background: #10b981; }
+
+.preview-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+}
+
+.preview-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.preview-stat {
+  background: var(--background);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
   text-align: center;
 }
 
-.stat-number {
+.preview-stat .stat-number {
   display: block;
-  font-size: 1.8rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--text);
 }
 
-.stat-label {
-  font-size: 0.85rem;
+.preview-stat .stat-label {
+  font-size: 0.7rem;
   color: var(--text-secondary);
+}
+
+.preview-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 80px;
+  gap: 0.3rem;
+  padding-top: 0.5rem;
+}
+
+.chart-bar {
+  flex: 1;
+  min-height: 10px;
+  background: linear-gradient(180deg, var(--primary), var(--primary-light));
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+}
+
+/* ============================================ */
+/* PROBLEM SECTION                              */
+/* ============================================ */
+.problem-section {
+  padding: 4rem 0;
+  background: var(--surface);
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.problem-item {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.problem-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.problem-item h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.problem-item p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 /* ============================================ */
@@ -454,18 +793,10 @@ export default {
   padding: 4rem 0;
 }
 
-.features-section h2 {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-  color: var(--text);
-}
-
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
 }
 
 .feature-card {
@@ -479,25 +810,97 @@ export default {
 
 .feature-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.feature-card.highlight {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(249, 73, 8, 0.03), rgba(250, 106, 46, 0.03));
+}
+
+.feature-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(249, 73, 8, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
 }
 
 .feature-icon {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
+  font-size: 1.6rem;
 }
 
 .feature-card h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
   color: var(--text);
+  margin-bottom: 0.5rem;
 }
 
 .feature-card p {
-  color: var(--text-secondary);
   font-size: 0.9rem;
-  line-height: 1.5;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================ */
+/* COMPARISON                                   */
+/* ============================================ */
+.comparison-section {
+  padding: 4rem 0;
+  background: var(--surface);
+}
+
+.comparison-table {
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  background: var(--background);
+}
+
+.comparison-row.header {
+  background: var(--surface);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+}
+
+.comparison-row:nth-child(even) {
+  background: var(--surface);
+}
+
+.comparison-cell {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.comparison-cell.feature {
+  font-weight: 500;
+}
+
+.comparison-cell.chickory {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.comparison-cell.competitor {
+  color: var(--text-secondary);
+}
+
+.comparison-row:last-child .comparison-cell {
+  border-bottom: none;
 }
 
 /* ============================================ */
@@ -505,46 +908,52 @@ export default {
 /* ============================================ */
 .pricing-section {
   padding: 4rem 0;
-  background: var(--surface);
-}
-
-.pricing-section h2 {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-  color: var(--text);
 }
 
 .pricing-card {
-  max-width: 400px;
+  max-width: 420px;
   margin: 0 auto;
-  background: var(--background);
-  padding: 2rem;
-  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 2.5rem;
+  border-radius: var(--radius-lg);
   border: 2px solid var(--border);
   text-align: center;
   transition: var(--transition);
+  position: relative;
 }
 
 .pricing-card:hover {
   border-color: var(--primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 0.2rem 1rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .pricing-header h3 {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
-  margin-bottom: 1rem;
   color: var(--text);
-}
-
-.price {
   margin-bottom: 0.5rem;
 }
 
+.price {
+  margin-bottom: 0.25rem;
+}
+
 .price .amount {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 800;
   color: var(--primary);
 }
@@ -554,15 +963,9 @@ export default {
   color: var(--text-secondary);
 }
 
-.price-detail {
+.price-sub {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.price-total {
-  margin-top: 0.5rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 0.85rem;
 }
 
 .pricing-features {
@@ -576,9 +979,50 @@ export default {
 }
 
 .pricing-features li {
-  padding: 0.5rem 0;
+  padding: 0.4rem 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.pricing-note {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================ */
+/* CTA                                          */
+/* ============================================ */
+.cta-section {
+  padding: 4rem 0;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  text-align: center;
+}
+
+.cta-content h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.cta-content p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-content .btn-primary {
+  background: white;
+  color: var(--primary);
+}
+
+.cta-content .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================ */
@@ -810,9 +1254,51 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
+@media (max-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .hero-content {
+    max-width: 100%;
+  }
+  
+  .hero-content p {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .hero-actions {
+    justify-content: center;
+  }
+  
+  .hero-trust {
+    justify-content: center;
+  }
+  
+  .hero-visual {
+    order: -1;
+  }
+  
+  .hero-dashboard-preview {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .problem-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .hero-content h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
   }
   
   .hero-actions {
@@ -820,47 +1306,114 @@ export default {
     align-items: center;
   }
   
-  .hero-stats {
-    gap: 1.5rem;
-    flex-wrap: wrap;
+  .hero-dashboard-preview {
+    max-width: 100%;
+  }
+  
+  .problem-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .problem-item {
+    padding: 1rem;
   }
   
   .features-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .comparison-row {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+  
+  .comparison-cell {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  .comparison-row.header {
+    display: none;
+  }
+  
+  .comparison-cell.feature {
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-light);
+  }
+  
+  .section-header h2 {
+    font-size: 1.6rem;
   }
   
   .pricing-card {
-    margin: 0 1rem;
+    padding: 1.5rem;
+  }
+  
+  .price .amount {
+    font-size: 2.2rem;
+  }
+  
+  .cta-content h2 {
+    font-size: 1.6rem;
   }
   
   .footer-content {
     flex-direction: column;
     text-align: center;
   }
+  
+  .hero-badge {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
   .hero-content h1 {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
   }
   
   .hero-content p {
     font-size: 0.95rem;
   }
   
-  .features-grid {
+  .problem-grid {
     grid-template-columns: 1fr;
   }
   
-  .features-section {
-    padding: 2rem 0;
+  .problem-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
   }
   
-  .pricing-section {
-    padding: 2rem 0;
+  .problem-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
   }
   
-  .pricing-card {
+  .problem-item h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .problem-item p {
+    font-size: 0.8rem;
+  }
+  
+  .features-grid {
+    max-width: 100%;
+  }
+  
+  .feature-card {
     padding: 1.5rem;
   }
   
@@ -868,12 +1421,31 @@ export default {
     width: 95%;
   }
   
+  .modal-modern-body {
+    padding: 1rem;
+  }
+  
+  .preview-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .comparison-cell {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
   .container {
     padding: 0 1rem;
   }
   
-  .stat-number {
-    font-size: 1.4rem;
+  .hero-trust {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .trust-item {
+    font-size: 0.8rem;
   }
 }
 </style>
