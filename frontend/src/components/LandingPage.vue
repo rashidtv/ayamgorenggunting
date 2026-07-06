@@ -82,52 +82,52 @@
     <section class="all-features-section">
       <div class="container">
         <div class="all-features-grid">
-          <div class="all-feature-card color-1">
+          <div class="all-feature-card">
             <div class="all-feature-icon">⚡</div>
             <h3>Real-time Sales</h3>
             <p>Track revenue and items sold instantly</p>
           </div>
-          <div class="all-feature-card color-2">
+          <div class="all-feature-card">
             <div class="all-feature-icon">🛒</div>
             <h3>Smart Inventory</h3>
             <p>Auto-deduct stock, set low alerts</p>
           </div>
-          <div class="all-feature-card color-3">
+          <div class="all-feature-card">
             <div class="all-feature-icon">📱</div>
             <h3>PWA Works Anywhere</h3>
             <p>Offline capable, no app store</p>
           </div>
-          <div class="all-feature-card color-4">
+          <div class="all-feature-card">
             <div class="all-feature-icon">🔐</div>
             <h3>Role-Based Access</h3>
             <p>Cashiers, Admins, Super Admins</p>
           </div>
-          <div class="all-feature-card color-5">
+          <div class="all-feature-card">
             <div class="all-feature-icon">📊</div>
             <h3>Analytics Dashboard</h3>
             <p>Visual charts & performance</p>
           </div>
-          <div class="all-feature-card color-6">
+          <div class="all-feature-card">
             <div class="all-feature-icon">👨‍👩‍👧‍👦</div>
             <h3>Multi-Stall</h3>
             <p>All stalls, one dashboard</p>
           </div>
-          <div class="all-feature-card color-7">
+          <div class="all-feature-card">
             <div class="all-feature-icon">📋</div>
             <h3>No More Paper</h3>
             <p>Digital record keeping</p>
           </div>
-          <div class="all-feature-card color-8">
+          <div class="all-feature-card">
             <div class="all-feature-icon">📦</div>
             <h3>Never Run Out</h3>
             <p>Smart inventory alerts</p>
           </div>
-          <div class="all-feature-card color-9">
+          <div class="all-feature-card">
             <div class="all-feature-icon">📊</div>
             <h3>Know Your Business</h3>
             <p>Real-time analytics</p>
           </div>
-          <div class="all-feature-card color-10">
+          <div class="all-feature-card">
             <div class="all-feature-icon">👥</div>
             <h3>One Dashboard</h3>
             <p>Manage all stalls</p>
@@ -634,6 +634,7 @@ export default {
   border-color: var(--primary-light);
 }
 
+/* ✅ All icons use the same brand color */
 .all-feature-icon {
   font-size: 2.2rem;
   width: 60px;
@@ -643,19 +644,15 @@ export default {
   align-items: center;
   justify-content: center;
   margin: 0 auto 0.75rem;
+  background: rgba(249, 73, 8, 0.10);
+  color: #F94908;
+  transition: var(--transition);
 }
 
-/* Color Variants */
-.color-1 .all-feature-icon { background: #fef3c7; color: #d97706; }
-.color-2 .all-feature-icon { background: #d1fae5; color: #059669; }
-.color-3 .all-feature-icon { background: #dbeafe; color: #2563eb; }
-.color-4 .all-feature-icon { background: #ede9fe; color: #7c3aed; }
-.color-5 .all-feature-icon { background: #fce7f3; color: #db2777; }
-.color-6 .all-feature-icon { background: #cffafe; color: #0891b2; }
-.color-7 .all-feature-icon { background: #fef3c7; color: #d97706; }
-.color-8 .all-feature-icon { background: #d1fae5; color: #059669; }
-.color-9 .all-feature-icon { background: #dbeafe; color: #2563eb; }
-.color-10 .all-feature-icon { background: #ede9fe; color: #7c3aed; }
+.all-feature-card:hover .all-feature-icon {
+  background: rgba(249, 73, 8, 0.20);
+  transform: scale(1.05);
+}
 
 .all-feature-card h3 {
   font-size: 0.9rem;
