@@ -3754,7 +3754,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3763,13 +3763,13 @@ export default {
 }
 
 .modal-modern {
-  background: var(--surface);
-  border-radius: var(--radius);
-  max-width: 480px;
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 500px;
   width: 92%;
   max-height: 90vh;
   overflow: hidden;
-  animation: fadeIn 0.2s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .modal-lg {

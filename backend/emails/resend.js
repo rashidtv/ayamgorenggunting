@@ -92,18 +92,30 @@ async function sendRegistrationApproved(email, companyName, contactPerson, usern
 /**
  * Send Registration Rejected email
  */
+// backend/emails/resend.js
+// ✅ ONLY this function changes - everything else stays exactly the same
+
 async function sendRegistrationRejected(email, companyName, contactPerson, reason) {
+  // ✅ Safe fallbacks
+  const name = contactPerson || 'Customer';
+  const rejectionReason = reason || 'No reason provided';
+  
   const subject = `Registration Update - ${companyName}`;
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 2rem;">🍗</span>
+        <h1 style="color: #F94908; font-weight: 700; margin: 0;">Chickory Hub</h1>
+      </div>
       <h2 style="color: #ef4444;">Registration Update</h2>
-      <p>Dear ${contactPerson},</p>
+      <p>Dear <strong>${name}</strong>,</p>
       <p>We regret to inform you that your registration request for <strong>${companyName}</strong> has been declined.</p>
       <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;">
-        <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong> ${reason}</p>
+        <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong> ${rejectionReason}</p>
       </div>
       <p>If you have any questions, please contact our support team.</p>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong style="color: #F94908;">Chickory Hub Team</strong></p>
     </div>
   `;
 
