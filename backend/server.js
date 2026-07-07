@@ -1753,7 +1753,7 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Reject registration (Super Admin only)
+// server.js - Reject registration route (FIXED)
 app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   // Only super_super_admin and super_admin can reject
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
@@ -1763,29 +1763,36 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { rejection_reason } = req.body;
   
-  if (!rejection_reason) {
+  // ✅ Validate rejection reason
+  if (!rejection_reason || rejection_reason.trim() === '') {
     return res.status(400).json({ error: 'Rejection reason is required' });
   }
   
   try {
+    // ✅ Update the registration request with rejection reason
     const result = await pool.query(
       `UPDATE registration_requests 
-       SET status = 'rejected', rejection_reason = $1, updated_at = CURRENT_TIMESTAMP 
+       SET status = 'rejected', 
+           rejection_reason = $1, 
+           updated_at = CURRENT_TIMESTAMP 
        WHERE id = $2 AND status = 'pending'
-       RETURNING email, company_name`,
-      [rejection_reason, id]
+       RETURNING email, company_name, contact_person, rejection_reason`,
+      [rejection_reason.trim(), id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Registration request not found or already processed' });
     }
     
-  // Send rejection email
-await sendRegistrationRejected(
-  result.rows[0].email,
-  result.rows[0].company_name,
-  rejection_reason
-);
+    const { email, company_name, contact_person, rejection_reason: savedReason } = result.rows[0];
+    
+    // ✅ Send rejection email with the saved reason
+    await sendRegistrationRejected(
+      email,
+      company_name,
+      contact_person || 'Customer',
+      savedReason || 'No reason provided'
+    );
     
     res.json({ success: true, message: 'Registration rejected' });
   } catch (err) {

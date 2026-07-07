@@ -1965,30 +1965,33 @@ export default {
       this.showRejectModal = true
     },
 
-    async confirmReject() {
-      if (!this.rejectReason.trim()) {
-        this.$emit('show-notification', 'Please provide a rejection reason', 'warning')
-        return
-      }
-      
-      try {
-        const res = await axios.post(`${API_BASE}/register/reject/${this.rejectId}`, {
-          rejection_reason: this.rejectReason
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        
-        if (res.data.success) {
-          this.$emit('show-notification', 'Registration rejected. Email sent.', 'success')
-          this.showRejectModal = false
-          this.rejectReason = ''
-          this.rejectId = null
-          this.loadRegistrations()
-        }
-      } catch (err) {
-        this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error')
-      }
-    },
+    // SuperAdminPanel.vue - Reject function
+async confirmReject() {
+  if (!this.token) return;
+  
+  // ✅ Validate reason
+  if (!this.rejectReason || this.rejectReason.trim() === '') {
+    this.$emit('show-notification', 'Please provide a rejection reason', 'warning');
+    return;
+  }
+  
+  try {
+    const response = await api.post(`/register/reject/${this.rejectId}`, {
+      rejection_reason: this.rejectReason.trim()  // ✅ Send trimmed reason
+    });
+    
+    if (response.data.success) {
+      this.$emit('show-notification', 'Registration rejected. Email sent.', 'success');
+      this.showRejectModal = false;
+      this.rejectReason = '';
+      this.rejectId = null;
+      this.loadRegistrations();
+    }
+  } catch (err) {
+    console.error('Failed to reject registration:', err);
+    this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
+  }
+}
 
     viewReceipt(url) {
       this.viewReceiptUrl = url
