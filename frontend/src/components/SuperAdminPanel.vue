@@ -891,30 +891,66 @@
     <!-- ============================================ -->
     <!-- VIEW RECEIPT MODAL                           -->
     <!-- ============================================ -->
-    <div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>📎 Payment Receipt</h3>
-          <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
+    <!-- SuperAdminPanel.vue - Receipt Modal -->
+<div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>📎 Payment Receipt</h3>
+      <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body" style="text-align: center; padding: 2rem;">
+      <!-- Image Receipt -->
+      <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')">
+        <img 
+          :src="viewReceiptUrl" 
+          alt="Payment Receipt" 
+          style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+          @error="handleReceiptError"
+        />
+        <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+          📸 Image receipt
+        </p>
+      </div>
+      
+      <!-- PDF Receipt -->
+      <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
+        <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
+          <span style="font-size: 3rem;">📄</span>
+          <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
+          <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
+            ⬇️ Download PDF
+          </button>
         </div>
-        <div class="modal-modern-body" style="text-align: center;">
-          <img v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')" 
-               :src="viewReceiptUrl" 
-               alt="Payment Receipt" 
-               style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm);" 
-          />
-          <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('/uploads/')">
-            <a :href="viewReceiptUrl" target="_blank" class="btn-modern primary">
-              📄 Open Receipt
-            </a>
-          </div>
-          <p v-else style="color: var(--text-secondary);">No receipt available</p>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
+      </div>
+      
+      <!-- Regular URL Image -->
+      <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
+        <img 
+          :src="viewReceiptUrl" 
+          alt="Payment Receipt" 
+          style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+          @error="handleReceiptError"
+        />
+        <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+          📎 Receipt from server
+        </p>
+      </div>
+      
+      <!-- No receipt -->
+      <div v-else>
+        <div style="padding: 2rem;">
+          <span style="font-size: 3rem;">📭</span>
+          <p style="margin-top: 0.5rem; color: var(--text-secondary);">No receipt available</p>
+          <p style="font-size: 0.85rem; color: var(--text-tertiary);">The user did not upload a receipt.</p>
         </div>
       </div>
     </div>
+    <div class="modal-modern-footer">
+      <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -1999,38 +2035,52 @@ async confirmReject() {
   }
 },
 
-    // SuperAdminPanel.vue - viewReceipt function
-// SuperAdminPanel.vue - viewReceipt function
+// SuperAdminPanel.vue - Complete viewReceipt function
 viewReceipt(url) {
+  console.log('📎 Viewing receipt:', url);
+  
   if (!url) {
     this.viewReceiptUrl = null;
     this.viewReceiptModal = true;
     return;
   }
   
-  // If it's base64 data (image or PDF)
+  // ✅ Handle base64 data (images and PDFs)
   if (url.startsWith('data:')) {
+    console.log('📎 Base64 receipt detected');
     this.viewReceiptUrl = url;
     this.viewReceiptModal = true;
     return;
   }
   
-  // If it's a file path
+  // ✅ Handle file paths
   if (url.startsWith('/uploads/')) {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     this.viewReceiptUrl = `${baseUrl}${url}`;
+    console.log('📎 File path receipt:', this.viewReceiptUrl);
     this.viewReceiptModal = true;
     return;
   }
   
-  // If it's a full URL
+  // ✅ Handle full URLs
   if (url.startsWith('http')) {
+    console.log('📎 Full URL receipt:', url);
     this.viewReceiptUrl = url;
     this.viewReceiptModal = true;
     return;
   }
   
-  // Fallback
+  // ✅ Handle just a filename
+  if (url.endsWith('.pdf') || url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')) {
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    this.viewReceiptUrl = `${baseUrl}/uploads/${url}`;
+    console.log('📎 Filename receipt:', this.viewReceiptUrl);
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // ✅ Fallback - show whatever we have
+  console.log('📎 Unknown receipt format:', url);
   this.viewReceiptUrl = url;
   this.viewReceiptModal = true;
 },
