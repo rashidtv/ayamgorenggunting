@@ -1991,8 +1991,7 @@ async confirmReject() {
     console.error('Failed to reject registration:', err);
     this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
   }
-}
-
+},
     viewReceipt(url) {
       this.viewReceiptUrl = url
       this.viewReceiptModal = true
