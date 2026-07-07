@@ -858,34 +858,35 @@
     <!-- ============================================ -->
     <!-- REJECT MODAL                                 -->
     <!-- ============================================ -->
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
-      <div class="modal-modern">
-        <div class="modal-modern-header">
-          <h3>❌ Reject Registration</h3>
-          <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-            Please provide a reason for rejecting this registration request.
-          </p>
-          <div class="modal-form-group">
-            <label>Rejection Reason *</label>
-            <textarea 
-              v-model="rejectReason" 
-              rows="4"
-              placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
-              style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
-            ></textarea>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
-            Confirm Rejection
-          </button>
-        </div>
+    <!-- SuperAdminPanel.vue - Reject Modal -->
+<div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
+  <div class="modal-modern">
+    <div class="modal-modern-header">
+      <h3>❌ Reject Registration</h3>
+      <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+        Please provide a reason for rejecting this registration request.
+      </p>
+      <div class="modal-form-group">
+        <label>Rejection Reason *</label>
+        <textarea 
+          v-model="rejectReason" 
+          rows="4"
+          placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
+          style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
+        ></textarea>
       </div>
     </div>
+    <div class="modal-modern-footer">
+      <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
+      <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
+        Confirm Rejection
+      </button>
+    </div>
+  </div>
+</div>
 
     <!-- ============================================ -->
     <!-- VIEW RECEIPT MODAL                           -->
@@ -931,6 +932,7 @@ import {
   MarkPointComponent
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import api from '../config/api.js'
 
 // Register ECharts components
 use([
@@ -1965,11 +1967,10 @@ export default {
       this.showRejectModal = true
     },
 
-    // SuperAdminPanel.vue - Reject function
+// SuperAdminPanel.vue - confirmReject function
 async confirmReject() {
   if (!this.token) return;
   
-  // ✅ Validate reason
   if (!this.rejectReason || this.rejectReason.trim() === '') {
     this.$emit('show-notification', 'Please provide a rejection reason', 'warning');
     return;
@@ -1977,7 +1978,7 @@ async confirmReject() {
   
   try {
     const response = await api.post(`/register/reject/${this.rejectId}`, {
-      rejection_reason: this.rejectReason.trim()  // ✅ Send trimmed reason
+      rejection_reason: this.rejectReason.trim()
     });
     
     if (response.data.success) {
@@ -1992,10 +1993,50 @@ async confirmReject() {
     this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
   }
 },
-    viewReceipt(url) {
-      this.viewReceiptUrl = url
-      this.viewReceiptModal = true
-    },
+    // SuperAdminPanel.vue - viewReceipt function
+viewReceipt(url) {
+  // ✅ Handle different receipt formats
+  if (!url) {
+    this.viewReceiptUrl = null;
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // If it's base64 data
+  if (url.startsWith('data:')) {
+    this.viewReceiptUrl = url;
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // If it's a file path
+  if (url.startsWith('/uploads/')) {
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    this.viewReceiptUrl = `${baseUrl}${url}`;
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // If it's a full URL
+  if (url.startsWith('http')) {
+    this.viewReceiptUrl = url;
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // If it's a PDF filename (just the name)
+  if (url.endsWith('.pdf') || url.includes('application/pdf')) {
+    // Try to construct the full URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    this.viewReceiptUrl = `${baseUrl}/uploads/${url}`;
+    this.viewReceiptModal = true;
+    return;
+  }
+  
+  // Fallback - just show what we have
+  this.viewReceiptUrl = url;
+  this.viewReceiptModal = true;
+},
     
     // =============================================
     // DATA LOADING
