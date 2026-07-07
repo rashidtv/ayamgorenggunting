@@ -913,16 +913,18 @@
       </div>
       
       <!-- PDF Receipt -->
-      <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
-        <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
-          <span style="font-size: 3rem;">📄</span>
-          <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
-          <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
-            ⬇️ Download PDF
-          </button>
-        </div>
-      </div>
+      <!-- SuperAdminPanel.vue - PDF section in receipt modal -->
+<div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
+  <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
+    <span style="font-size: 3rem;">📄</span>
+    <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
+    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
+    <!-- ✅ Make sure this button calls downloadReceipt -->
+    <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
+      ⬇️ Download PDF
+    </button>
+  </div>
+</div>
       
       <!-- Regular URL Image -->
       <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
@@ -2084,6 +2086,75 @@ viewReceipt(url) {
   this.viewReceiptUrl = url;
   this.viewReceiptModal = true;
 },
+
+downloadReceipt() {
+      if (!this.viewReceiptUrl) {
+        this.$emit('show-notification', 'No receipt to download', 'error');
+        return;
+      }
+      
+      try {
+        // Case 1: Base64 PDF data
+        if (this.viewReceiptUrl.startsWith('data:application/pdf')) {
+          const base64Data = this.viewReceiptUrl.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          this.triggerDownload(url, 'receipt-' + Date.now() + '.pdf');
+          return;
+        }
+        
+        // Case 2: Base64 image data
+        if (this.viewReceiptUrl.startsWith('data:image')) {
+          const link = document.createElement('a');
+          link.href = this.viewReceiptUrl;
+          link.download = 'receipt-' + Date.now() + '.jpg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          this.$emit('show-notification', 'Receipt downloaded!', 'success');
+          return;
+        }
+        
+        // Case 3: Regular URL
+        if (this.viewReceiptUrl.startsWith('http')) {
+          const link = document.createElement('a');
+          link.href = this.viewReceiptUrl;
+          link.download = 'receipt-' + Date.now() + '.pdf';
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          this.$emit('show-notification', 'Download started!', 'success');
+          return;
+        }
+        
+        this.$emit('show-notification', 'Unable to download this file type', 'error');
+      } catch (error) {
+        console.error('Download error:', error);
+        this.$emit('show-notification', 'Failed to download receipt', 'error');
+      }
+    },
+
+    // ✅ Helper function - can be placed after downloadReceipt or inside it
+    triggerDownload(url, filename) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      this.$emit('show-notification', 'PDF downloaded successfully!', 'success');
+    },   
+   
     
     // =============================================
     // DATA LOADING
