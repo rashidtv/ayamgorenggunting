@@ -1969,7 +1969,10 @@ export default {
 
 // SuperAdminPanel.vue - confirmReject function
 async confirmReject() {
-  if (!this.token) return;
+  if (!this.token) {
+    this.$emit('show-notification', 'You are not authenticated', 'error');
+    return;
+  }
   
   if (!this.rejectReason || this.rejectReason.trim() === '') {
     this.$emit('show-notification', 'Please provide a rejection reason', 'warning');
@@ -1977,9 +1980,11 @@ async confirmReject() {
   }
   
   try {
-    const response = await api.post(`/register/reject/${this.rejectId}`, {
-      rejection_reason: this.rejectReason.trim()
-    });
+    const response = await axios.post(
+      `${API_BASE}/register/reject/${this.rejectId}`,
+      { rejection_reason: this.rejectReason.trim() },
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
     
     if (response.data.success) {
       this.$emit('show-notification', 'Registration rejected. Email sent.', 'success');
@@ -1993,16 +1998,17 @@ async confirmReject() {
     this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
   }
 },
+
     // SuperAdminPanel.vue - viewReceipt function
+// SuperAdminPanel.vue - viewReceipt function
 viewReceipt(url) {
-  // ✅ Handle different receipt formats
   if (!url) {
     this.viewReceiptUrl = null;
     this.viewReceiptModal = true;
     return;
   }
   
-  // If it's base64 data
+  // If it's base64 data (image or PDF)
   if (url.startsWith('data:')) {
     this.viewReceiptUrl = url;
     this.viewReceiptModal = true;
@@ -2024,16 +2030,7 @@ viewReceipt(url) {
     return;
   }
   
-  // If it's a PDF filename (just the name)
-  if (url.endsWith('.pdf') || url.includes('application/pdf')) {
-    // Try to construct the full URL
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    this.viewReceiptUrl = `${baseUrl}/uploads/${url}`;
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // Fallback - just show what we have
+  // Fallback
   this.viewReceiptUrl = url;
   this.viewReceiptModal = true;
 },
