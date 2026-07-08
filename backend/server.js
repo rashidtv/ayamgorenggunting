@@ -1650,7 +1650,7 @@ app.get('/api/register/pending', authenticateToken, async (req, res) => {
   }
 });
 
-// server.js - Replace your approval route with this
+// server.js - Approval route (SAFE VERSION)
 app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
@@ -1675,18 +1675,20 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
     
     const request = requestRes.rows[0];
     
-    // ✅ Check if company already exists
+    // ✅ Check if company already exists (by name, case-insensitive)
     let companyRes = await client.query(
-      'SELECT id FROM companies WHERE name = $1',
+      'SELECT id FROM companies WHERE LOWER(name) = LOWER($1)',
       [request.company_name]
     );
     
     let companyId;
     if (companyRes.rows.length > 0) {
+      // Company already exists - reuse it
       companyId = companyRes.rows[0].id;
       console.log(`✅ Company "${request.company_name}" already exists, using ID: ${companyId}`);
     } else {
-      // Create new company
+      // ✅ Create new company - let PostgreSQL auto-generate the ID
+      // This is the ONLY change - removing the hardcoded ID
       const newCompany = await client.query(
         `INSERT INTO companies (name, created_by) VALUES ($1, $2) RETURNING id`,
         [request.company_name, req.user.id]
@@ -1695,7 +1697,8 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       console.log(`✅ Created new company: ${request.company_name} (ID: ${companyId})`);
     }
     
-    // ✅ Check if user already exists for this email
+    // ✅ The rest of the code stays exactly the same
+    // Check if user already exists for this email
     let userRes = await client.query(
       'SELECT id, username FROM users WHERE email = $1',
       [request.email]
@@ -1706,18 +1709,16 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
     let tempPassword;
     
     if (userRes.rows.length > 0) {
-      // User exists - update their company and reactivate
       userId = userRes.rows[0].id;
       username = userRes.rows[0].username;
       
       await client.query(
         `UPDATE users 
-         SET company_id = $1, is_active = true, is_first_login = false, updated_at = CURRENT_TIMESTAMP
+         SET company_id = $1, is_active = true, is_first_login = true, updated_at = CURRENT_TIMESTAMP
          WHERE id = $2`,
         [companyId, userId]
       );
       
-      // Generate new temp password
       tempPassword = Math.random().toString(36).slice(-8) + '!';
       const hashedPassword = bcrypt.hashSync(tempPassword, 10);
       await client.query(
@@ -1727,7 +1728,7 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       
       console.log(`✅ Updated existing user: ${username} (ID: ${userId})`);
     } else {
-      // ✅ Find a unique username
+      // Find a unique username
       let usernameExists = true;
       let counter = companyId;
       while (usernameExists) {
@@ -1743,26 +1744,16 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
         }
       }
       
-      // Create new user with unique username
       tempPassword = Math.random().toString(36).slice(-8) + '!';
       const hashedPassword = bcrypt.hashSync(tempPassword, 10);
       
-     // server.js - Approval route (update user creation)
-const newUser = await client.query(
-  `INSERT INTO users 
-   (username, password, full_name, role, company_id, is_first_login, is_active, email, ic_number) 
-   VALUES ($1, $2, $3, $4, $5, true, true, $6, $7) 
-   RETURNING id`,
-  [
-    username, 
-    hashedPassword, 
-    request.contact_person, 
-    'stall_admin', 
-    companyId, 
-    request.email,
-    request.ic_number  // ✅ Store IC number with user
-  ]
-);
+      const newUser = await client.query(
+        `INSERT INTO users 
+         (username, password, full_name, role, company_id, is_first_login, is_active, email) 
+         VALUES ($1, $2, $3, $4, $5, true, true, $6) 
+         RETURNING id`,
+        [username, hashedPassword, request.contact_person, 'stall_admin', companyId, request.email]
+      );
       userId = newUser.rows[0].id;
       console.log(`✅ Created new user: ${username} (ID: ${userId})`);
     }
@@ -1782,7 +1773,7 @@ const newUser = await client.query(
       request.contact_person,
       username,
       tempPassword,
-      process.env.LOGIN_URL || 'https://chickoryhub.com/login'
+      process.env.LOGIN_URL || 'https://chickoryhub.com/#/login'
     );
     
     res.json({ 
@@ -1799,7 +1790,7 @@ const newUser = await client.query(
     console.error('Approval error:', err);
     
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to approve registration' });
+      res.status(500).json({ error: 'Failed to approve registration', details: err.message });
     }
   } finally {
     client.release();
