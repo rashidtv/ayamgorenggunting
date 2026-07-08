@@ -1,16 +1,144 @@
+// backend/emails/resend.js
 const { Resend } = require('resend');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@chickoryhub.com';
 const FROM_NAME = process.env.FROM_NAME || 'Chickory Hub';
 
-/**
- * Send email using Resend
- */
+// ============================================
+// UNIFIED EMAIL TEMPLATE - CLEAN VERSION
+// No header, no banner, just clean content
+// ============================================
+
+function createEmailTemplate({
+  title,
+  greeting,
+  content,
+  highlightBox = null,
+  credentials = null,
+  ctaButton = null,
+  footerMessage = null
+}) {
+  const brandColor = '#F94908';
+  const textColor = '#1e293b';
+  const textSecondary = '#64748b';
+  const bgColor = '#ffffff';
+  const borderColor = '#e2e8f0';
+
+  // Highlight Box
+  let highlightHtml = '';
+  if (highlightBox) {
+    highlightHtml = `
+      <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid ${brandColor};">
+        ${highlightBox}
+      </div>
+    `;
+  }
+
+  // Credentials Box
+  let credentialsHtml = '';
+  if (credentials) {
+    credentialsHtml = `
+      <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="color: ${textColor}; margin-top: 0; font-size: 14px;">🔑 Login Credentials</h3>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Username:</strong> ${credentials.username}</p>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Password:</strong> <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${credentials.password}</span></p>
+        ${credentials.note ? `<p style="color: ${textSecondary}; font-size: 12px; margin-top: 8px;">${credentials.note}</p>` : ''}
+        ${ctaButton ? `<div style="text-align: center; margin-top: 16px;">${ctaButton}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // CTA Button (without credentials)
+  let ctaHtml = '';
+  if (ctaButton && !credentials) {
+    ctaHtml = `
+      <div style="text-align: center; margin: 16px 0;">
+        <a href="${ctaButton.url}" style="display: inline-block; background: ${brandColor}; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          ${ctaButton.text}
+        </a>
+      </div>
+    `;
+  }
+
+  // CTA Button inside credentials (already handled above)
+  const buttonInsideCredentials = (ctaButton && credentials) ? `
+    <div style="text-align: center; margin-top: 16px;">
+      <a href="${ctaButton.url}" style="display: inline-block; background: ${brandColor}; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">
+        ${ctaButton.text}
+      </a>
+    </div>
+  ` : '';
+
+  // Replace the credentials HTML if we have a button inside
+  if (credentials && ctaButton) {
+    credentialsHtml = `
+      <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="color: ${textColor}; margin-top: 0; font-size: 14px;">🔑 Login Credentials</h3>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Username:</strong> ${credentials.username}</p>
+        <p style="margin: 4px 0; font-size: 14px;"><strong>Password:</strong> <span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${credentials.password}</span></p>
+        ${credentials.note ? `<p style="color: ${textSecondary}; font-size: 12px; margin-top: 8px;">${credentials.note}</p>` : ''}
+        ${buttonInsideCredentials}
+      </div>
+    `;
+  }
+
+  const finalFooterMessage = footerMessage || 'If you have any questions, please contact our support team.';
+
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: ${bgColor}; border-radius: 12px;">
+      
+      <!-- Title -->
+      <h2 style="color: ${brandColor}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600; border-bottom: 2px solid ${brandColor}; padding-bottom: 8px;">
+        ${title}
+      </h2>
+
+      <!-- Greeting -->
+      <p style="font-size: 15px; color: ${textColor}; margin: 0 0 8px 0;">
+        ${greeting}
+      </p>
+
+      <!-- Main Content -->
+      <div style="font-size: 15px; color: ${textColor}; line-height: 1.6;">
+        ${content}
+      </div>
+
+      <!-- Highlight Box -->
+      ${highlightHtml}
+
+      <!-- Credentials Box -->
+      ${credentialsHtml}
+
+      <!-- CTA Button (without credentials) -->
+      ${ctaHtml}
+
+      <!-- Footer -->
+      <hr style="border: none; border-top: 1px solid ${borderColor}; margin: 24px 0 16px 0;" />
+      <p style="font-size: 13px; color: ${textSecondary}; text-align: center; margin: 0;">
+        ${finalFooterMessage}
+      </p>
+      <p style="font-size: 13px; color: ${textSecondary}; text-align: center; margin: 4px 0 0 0;">
+        Regards,<br />
+        <strong style="color: ${brandColor};">Chickory Hub Team</strong>
+      </p>
+
+      <!-- Copyright -->
+      <div style="text-align: center; padding-top: 16px; margin-top: 16px; border-top: 1px solid ${borderColor};">
+        <p style="font-size: 11px; color: #94a3b8; margin: 0;">
+          &copy; ${new Date().getFullYear()} Chickory Hub. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  `;
+}
+
+// ============================================
+// SEND EMAIL FUNCTION
+// ============================================
+
 async function sendEmail({ to, subject, html, text }) {
   if (!process.env.RESEND_API_KEY) {
     console.log('⚠️ Resend API key not set. Email not sent.');
@@ -32,236 +160,157 @@ async function sendEmail({ to, subject, html, text }) {
     return response;
   } catch (error) {
     console.error('❌ Email sending failed:', error.message);
-    if (error.response) {
-      console.error('Response:', error.response);
-    }
     return null;
   }
 }
 
-/**
- * Send Registration Received email
- */
+// ============================================
+// REGISTRATION RECEIVED
+// ============================================
+
 async function sendRegistrationReceived(email, companyName, contactPerson) {
-  const subject = 'Registration Received - Chickory Hub';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #F94908;">Thank You for Registering!</h2>
-      <p>Dear ${contactPerson},</p>
+  const html = createEmailTemplate({
+    title: 'Thank You for Registering!',
+    greeting: `Dear ${contactPerson},`,
+    content: `
       <p>We have received your registration request for <strong>${companyName}</strong>.</p>
       <p>Your request is now pending review. You will receive an email once your registration is approved.</p>
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Company:</strong> ${companyName}</p>
-        <p style="margin: 0;"><strong>Contact:</strong> ${contactPerson}</p>
-        <p style="margin: 0;"><strong>Email:</strong> ${email}</p>
-      </div>
-      <p>If you have any questions, please contact our support team.</p>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
+    `,
+    highlightBox: `
+      <p style="margin: 0; font-size: 14px;"><strong>Company:</strong> ${companyName}</p>
+      <p style="margin: 4px 0 0 0; font-size: 14px;"><strong>Contact:</strong> ${contactPerson}</p>
+      <p style="margin: 4px 0 0 0; font-size: 14px;"><strong>Email:</strong> ${email}</p>
+    `,
+    footerMessage: 'We will review your application and get back to you soon.'
+  });
 
-  return sendEmail({ to: email, subject, html });
+  return sendEmail({
+    to: email,
+    subject: 'Registration Received - Chickory Hub',
+    html
+  });
 }
 
-/**
- * Send Registration Approved email with credentials
- */
+// ============================================
+// REGISTRATION APPROVED
+// ============================================
+
 async function sendRegistrationApproved(email, companyName, contactPerson, username, tempPassword, loginUrl) {
-  const subject = `Welcome to Chickory Hub - ${companyName} Approved!`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #10b981;">🎉 Welcome to Chickory Hub!</h2>
-      <p>Dear ${contactPerson},</p>
-      <p>Your company <strong>${companyName}</strong> has been approved!</p>
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">Login Credentials</h3>
-        <p style="margin: 0;"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
-        <p style="margin: 0;"><strong>Username:</strong> ${username}</p>
-        <p style="margin: 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
-      </div>
-      <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-        <p style="margin: 0; color: #92400e;">⚠️ <strong>Important:</strong> You will be required to change your password on first login.</p>
-      </div>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
+  const html = createEmailTemplate({
+    title: '🎉 Welcome to Chickory Hub!',
+    greeting: `Dear ${contactPerson},`,
+    content: `
+      <p>We are excited to inform you that your registration for <strong>${companyName}</strong> has been approved!</p>
+      <p>You can now log in to your account using the credentials below.</p>
+    `,
+    credentials: {
+      username: username,
+      password: tempPassword,
+      note: 'Please change your password after your first login.'
+    },
+    ctaButton: {
+      url: loginUrl || 'https://chickoryhub.com/login',
+      text: '🔑 Login Now'
+    },
+    footerMessage: 'Welcome aboard! We\'re excited to have you.'
+  });
 
-  return sendEmail({ to: email, subject, html });
+  return sendEmail({
+    to: email,
+    subject: '🎉 Welcome to Chickory Hub! Your Registration is Approved',
+    html
+  });
 }
 
-/**
- * Send Registration Rejected email
- */
-// backend/emails/resend.js
-// ✅ ONLY this function changes - everything else stays exactly the same
+// ============================================
+// REGISTRATION REJECTED
+// ============================================
 
-// backend/emails/resend.js
 async function sendRegistrationRejected(email, companyName, contactPerson, reason) {
-  const subject = `Registration Update - ${companyName}`;
-  
-  // ✅ Safe fallbacks
   const name = contactPerson || 'Customer';
   const rejectionReason = reason || 'No reason provided';
-  
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
-      <!-- ✅ REMOVED: Chicken icon and Chickory Hub header -->
-      <h2 style="color: #ef4444;">Registration Update</h2>
-      <p>Dear <strong>${name}</strong>,</p>
+
+  const html = createEmailTemplate({
+    title: 'Registration Update',
+    greeting: `Dear ${name},`,
+    content: `
       <p>We regret to inform you that your registration request for <strong>${companyName}</strong> has been declined.</p>
-      <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;">
-        <p style="margin: 0; color: #991b1b;"><strong>Reason:</strong> ${rejectionReason}</p>
-      </div>
-      <p>If you have any questions, please contact our support team.</p>
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
+    `,
+    highlightBox: `
+      <p style="margin: 0; font-size: 14px; color: #991b1b;">
+        <strong>Reason:</strong> ${rejectionReason}
+      </p>
+    `,
+    footerMessage: 'If you have any questions, please contact our support team.'
+  });
 
-  return sendEmail({ to: email, subject, html });
+  return sendEmail({
+    to: email,
+    subject: `Registration Update - ${companyName}`,
+    html
+  });
 }
 
-/**
- * Send New User Created email
- */
-async function sendNewUserCreated(email, username, fullName, tempPassword, loginUrl) {
-  const subject = 'Welcome to Chickory Hub - Your Account';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #3b82f6;">Welcome to Chickory Hub!</h2>
-      <p>Dear ${fullName},</p>
-      <p>An account has been created for you on Chickory Hub.</p>
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">Login Credentials</h3>
-        <p style="margin: 0;"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
-        <p style="margin: 0;"><strong>Username:</strong> ${username}</p>
-        <p style="margin: 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
-      </div>
-      <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-        <p style="margin: 0; color: #92400e;">⚠️ <strong>Important:</strong> You will be required to change your password on first login.</p>
-      </div>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
+// ============================================
+// PASSWORD RESET
+// ============================================
 
-  return sendEmail({ to: email, subject, html });
-}
-
-/**
- * Send Password Reset email
- */
-async function sendPasswordReset(email, username, fullName, tempPassword) {
-  const subject = 'Your Password Has Been Reset - Chickory Hub';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #f59e0b;">Password Reset</h2>
-      <p>Dear ${fullName},</p>
-      <p>Your password for <strong>${username}</strong> has been reset.</p>
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">New Temporary Password</h3>
-        <p style="margin: 0; font-size: 18px; font-weight: bold;">${tempPassword}</p>
-      </div>
-      <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-        <p style="margin: 0; color: #92400e;">⚠️ <strong>Important:</strong> You will be required to change your password on next login.</p>
-      </div>
-      <p>If you did not request this reset, please contact support immediately.</p>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
-
-  return sendEmail({ to: email, subject, html });
-}
-
-/**
- * Send Password Reset email
- */
-async function sendPasswordReset(email, username, resetUrl) {
-  const subject = 'Reset Your Password - Chickory Hub';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #F94908;">Reset Your Password</h2>
-      <p>Hi <strong>${username}</strong>,</p>
-      <p>We received a request to reset your password for your Chickory Hub account.</p>
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0;">Click the button below to reset your password:</p>
-        <div style="text-align: center; margin: 15px 0;">
-          <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background: #F94908; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Reset Password
-          </a>
-        </div>
-        <p style="margin: 0; font-size: 0.8rem; color: #64748b;">This link will expire in 1 hour.</p>
-      </div>
-      <p style="font-size: 0.85rem; color: #64748b;">If you didn't request this, please ignore this email or contact support.</p>
-      <p>Regards,<br><strong>Chickory Hub Team</strong></p>
-    </div>
-  `;
-
-  return sendEmail({ to: email, subject, html });
-}
-
-/**
- * Send Password Reset email
- */
 async function sendPasswordResetEmail(email, username, resetUrl) {
-  const subject = 'Reset Your Password - Chickory Hub';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 2rem;">🍗</span>
-        <h1 style="color: #F94908; font-weight: 700; margin: 0;">Chickory Hub</h1>
-      </div>
-      <h2 style="color: #1e293b;">Reset Your Password</h2>
-      <p>Hi <strong>${username}</strong>,</p>
+  const html = createEmailTemplate({
+    title: 'Reset Your Password',
+    greeting: `Hi ${username},`,
+    content: `
       <p>We received a request to reset your password for your Chickory Hub account.</p>
-      <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-        <p style="margin: 0 0 15px 0;">Click the button below to reset your password:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background: #F94908; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-          Reset Password
-        </a>
-        <p style="margin: 15px 0 0 0; font-size: 0.8rem; color: #64748b;">This link will expire in 1 hour.</p>
-      </div>
-      <p style="font-size: 0.85rem; color: #64748b;">If you didn't request this, please ignore this email or contact support.</p>
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong style="color: #F94908;">Chickory Hub Team</strong></p>
-    </div>
-  `;
+      <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
+    `,
+    ctaButton: {
+      url: resetUrl,
+      text: '🔑 Reset Password'
+    },
+    footerMessage: 'If you didn\'t request this, please ignore this email or contact support.'
+  });
 
-  return sendEmail({ to: email, subject, html });
+  return sendEmail({
+    to: email,
+    subject: 'Reset Your Password - Chickory Hub',
+    html
+  });
 }
 
-/**
- * Send Password Reset Confirmation email
- */
+// ============================================
+// PASSWORD RESET CONFIRMATION
+// ============================================
+
 async function sendPasswordResetConfirmation(email) {
-  const subject = 'Your Password Has Been Reset - Chickory Hub';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; border-radius: 12px;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 2rem;">🍗</span>
-        <h1 style="color: #F94908; font-weight: 700; margin: 0;">Chickory Hub</h1>
-      </div>
-      <h2 style="color: #10b981;">✅ Password Reset Successful</h2>
-      <p>Hi there,</p>
+  const html = createEmailTemplate({
+    title: '✅ Password Reset Successful',
+    greeting: 'Hi there,',
+    content: `
       <p>Your password has been successfully reset.</p>
-      <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
-        <p style="margin: 0; color: #065f46;">If you didn't request this change, please contact support immediately.</p>
+      <div style="background: #f0fdf4; padding: 12px 16px; border-radius: 8px; border-left: 4px solid #10b981;">
+        <p style="margin: 0; color: #065f46; font-size: 14px;">If you didn't request this change, please contact support immediately.</p>
       </div>
-      <p style="font-size: 0.85rem; color: #64748b;">You can now log in with your new password.</p>
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 0.8rem; color: #94a3b8; text-align: center;">Regards,<br><strong style="color: #F94908;">Chickory Hub Team</strong></p>
-    </div>
-  `;
+      <p style="margin-top: 12px;">You can now log in with your new password.</p>
+    `,
+    footerMessage: 'Your account security is important to us.'
+  });
 
-  return sendEmail({ to: email, subject, html });
+  return sendEmail({
+    to: email,
+    subject: 'Your Password Has Been Reset - Chickory Hub',
+    html
+  });
 }
+
+// ============================================
+// EXPORTS
+// ============================================
 
 module.exports = {
   sendEmail,
   sendRegistrationReceived,
   sendRegistrationApproved,
   sendRegistrationRejected,
-  sendNewUserCreated,
-  sendPasswordReset,
-  sendPasswordResetEmail,      // ← Add this
-  sendPasswordResetConfirmation // ← Add this
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmation
 };
