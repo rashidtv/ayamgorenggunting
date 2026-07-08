@@ -256,6 +256,40 @@ export default {
     },
   },
   methods: {
+    handleUrlRouting() {
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    
+    // ✅ Handle /login from path OR hash
+    if (path === '/login' || hash === '#/login') {
+      this.showLogin = true;
+      return;
+    }
+    
+    // Handle /reset-password
+    if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (token) {
+        this.resetToken = token;
+        this.showResetPassword = true;
+        this.showLogin = false;
+        return;
+      }
+    }
+    
+    // If user is already logged in, stay on dashboard
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      this.showLogin = false;
+      return;
+    }
+    
+    // Default: show landing page
+    this.showLogin = false;
+  }
+},
     // =============================================
     // LOGO MANAGEMENT
     // =============================================

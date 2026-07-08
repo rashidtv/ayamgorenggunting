@@ -6,6 +6,7 @@ dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@chickoryhub.com';
 const FROM_NAME = process.env.FROM_NAME || 'Chickory Hub';
+const LOGIN_URL = process.env.LOGIN_URL || 'https://chickoryhub.com/#/login';
 
 // ============================================
 // UNIFIED EMAIL TEMPLATE - CLEAN VERSION
@@ -208,10 +209,11 @@ async function sendRegistrationApproved(email, companyName, contactPerson, usern
       password: tempPassword,
       note: 'Please change your password after your first login.'
     },
+
     ctaButton: {
-      url: loginUrl || 'https://chickoryhub.com/login',
-      text: '🔑 Login Now'
-    },
+  url: loginUrl || LOGIN_URL,
+  text: '🔑 Login Now'
+},
     footerMessage: 'Welcome aboard! We\'re excited to have you.'
   });
 

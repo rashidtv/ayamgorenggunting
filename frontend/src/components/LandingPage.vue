@@ -198,6 +198,21 @@
               <label>Phone Number *</label>
               <input v-model="regForm.phone" type="tel" required placeholder="012-3456789" />
             </div>
+            <!-- LandingPage.vue - Add this after Phone Number -->
+<div class="form-group">
+  <label>IC Number *</label>
+  <input 
+    v-model="regForm.ic_number" 
+    type="text" 
+    required 
+    placeholder="XXXXXX-XX-XXXX" 
+    maxlength="14"
+    @input="formatICNumber"
+  />
+  <small style="color: var(--text-tertiary); font-size: 0.7rem;">
+    Format: 6 digits - 2 digits - 4 digits (e.g., 880101-10-1234)
+  </small>
+</div>
             <div class="form-group">
               <label>Payment Receipt</label>
               <div class="receipt-upload-area" @dragover.prevent @drop.prevent="handleReceiptDrop">
@@ -259,6 +274,7 @@ export default {
         contact_person: '',
         email: '',
         phone: '',
+        ic_number: '',  // ✅ New field
         receiptFile: null,
         receiptPreview: null
       }
@@ -268,6 +284,29 @@ export default {
     this.fetchBanner()
   },
   methods: {
+    // LandingPage.vue - methods
+formatICNumber(event) {
+  let value = event.target.value.replace(/\D/g, '');
+  
+  // Format as XXXXXX-XX-XXXX
+  if (value.length > 6) {
+    value = value.substring(0, 6) + '-' + value.substring(6);
+  }
+  if (value.length > 9) {
+    value = value.substring(0, 9) + '-' + value.substring(9);
+  }
+  if (value.length > 14) {
+    value = value.substring(0, 14);
+  }
+  
+  this.regForm.ic_number = value;
+},
+
+validateICNumber(ic) {
+  // ✅ Format: 6 digits - 2 digits - 4 digits
+  const regex = /^\d{6}-\d{2}-\d{4}$/;
+  return regex.test(ic);
+},
     async fetchBanner() {
       try {
         const response = await axios.get(`${API_BASE}/system/banner`)
@@ -334,41 +373,50 @@ export default {
       this.regForm.receiptFile = null
       this.regForm.receiptPreview = null
     },
-    async submitRegistration() {
-      this.submitting = true
-      
-      try {
-        let receiptBase64 = null
-        if (this.regForm.receiptFile) {
-          const reader = new FileReader()
-          receiptBase64 = await new Promise((resolve) => {
-            reader.onload = (e) => resolve(e.target.result)
-            reader.readAsDataURL(this.regForm.receiptFile)
-          })
-        }
-        
-        const payload = {
-          company_name: this.regForm.company_name,
-          contact_person: this.regForm.contact_person,
-          email: this.regForm.email,
-          phone: this.regForm.phone,
-          payment_receipt: receiptBase64
-        }
-        
-        const response = await axios.post(`${API_BASE}/register/request`, payload)
-        
-        if (response.data.success) {
-          this.$emit('show-notification', 'Registration submitted successfully! Please wait for approval.', 'success')
-          this.closeRegistration()
-        }
-      } catch (err) {
-        console.error('Registration error:', err)
-        const errorMsg = err.response?.data?.error || 'Failed to submit registration. Please try again.'
-        this.$emit('show-notification', errorMsg, 'error')
-      } finally {
-        this.submitting = false
-      }
+    // LandingPage.vue - submitRegistration
+async submitRegistration() {
+  this.submitting = true;
+  
+  // ✅ Validate IC number
+  if (!this.validateICNumber(this.regForm.ic_number)) {
+    this.$emit('show-notification', 'Please enter a valid IC number (format: XXXXXX-XX-XXXX)', 'error');
+    this.submitting = false;
+    return;
+  }
+  
+  try {
+    let receiptBase64 = null;
+    if (this.regForm.receiptFile) {
+      const reader = new FileReader();
+      receiptBase64 = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(this.regForm.receiptFile);
+      });
     }
+    
+    const payload = {
+      company_name: this.regForm.company_name,
+      contact_person: this.regForm.contact_person,
+      email: this.regForm.email,
+      phone: this.regForm.phone,
+      ic_number: this.regForm.ic_number,  // ✅ New field
+      payment_receipt: receiptBase64
+    };
+    
+    const response = await axios.post(`${API_BASE}/register/request`, payload);
+    
+    if (response.data.success) {
+      this.$emit('show-notification', 'Registration submitted successfully! Please wait for approval.', 'success');
+      this.closeRegistration();
+    }
+  } catch (err) {
+    console.error('Registration error:', err);
+    const errorMsg = err.response?.data?.error || 'Failed to submit registration. Please try again.';
+    this.$emit('show-notification', errorMsg, 'error');
+  } finally {
+    this.submitting = false;
+  }
+}
   }
 }
 </script>

@@ -1543,44 +1543,87 @@ app.delete('/api/system/banner', authenticateToken, async (req, res) => {
 // REGISTRATION ROUTES
 // =============================================
 
-// Submit registration request (public - no auth required)
+// server.js - Registration request route
 app.post('/api/register/request', async (req, res) => {
-  const { company_name, contact_person, email, phone, payment_receipt } = req.body;
+  const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
   
-  // Validate required fields
-  if (!company_name || !contact_person || !email || !phone) {
+  // ✅ Validate required fields
+  if (!company_name || !contact_person || !email || !phone || !ic_number) {
     return res.status(400).json({ error: 'All fields are required' });
   }
   
-  // Validate email format
+  // ✅ Validate IC number format
+  const icRegex = /^\d{6}-\d{2}-\d{4}$/;
+  if (!icRegex.test(ic_number)) {
+    return res.status(400).json({ error: 'Invalid IC number format. Use: XXXXXX-XX-XXXX' });
+  }
+  
+  // ✅ Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
   
   try {
-    // Check if email already registered
-    const existing = await pool.query(
-      'SELECT id FROM registration_requests WHERE email = $1 AND status = $2',
-      [email, 'pending']
+    // ✅ Check if IC number already registered
+    const icCheck = await pool.query(
+      'SELECT id, status FROM registration_requests WHERE ic_number = $1',
+      [ic_number]
     );
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'A registration with this email is already pending' });
+    if (icCheck.rows.length > 0) {
+      const status = icCheck.rows[0].status;
+      if (status === 'pending') {
+        return res.status(400).json({ error: 'This IC number is already pending approval.' });
+      } else if (status === 'approved') {
+        return res.status(400).json({ error: 'This IC number is already registered. Please login.' });
+      }
+      // If rejected, allow resubmission
     }
     
-    // Insert registration request
+    // ✅ Check if email already registered
+    const emailCheck = await pool.query(
+      'SELECT id, status FROM registration_requests WHERE email = $1',
+      [email]
+    );
+    if (emailCheck.rows.length > 0) {
+      const status = emailCheck.rows[0].status;
+      if (status === 'pending') {
+        return res.status(400).json({ error: 'This email is already pending approval.' });
+      } else if (status === 'approved') {
+        return res.status(400).json({ error: 'This email is already registered. Please login.' });
+      }
+    }
+    
+    // ✅ Check if company name already exists (case-insensitive)
+    const companyCheck = await pool.query(
+      'SELECT id FROM companies WHERE LOWER(name) = LOWER($1)',
+      [company_name]
+    );
+    if (companyCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'This company already exists. Please contact support.' });
+    }
+    
+    // ✅ Insert registration request
     const result = await pool.query(
-      `INSERT INTO registration_requests (company_name, contact_person, email, phone, payment_receipt)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [company_name, contact_person, email, phone, payment_receipt]
+      `INSERT INTO registration_requests 
+       (company_name, contact_person, email, phone, ic_number, payment_receipt)
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id, company_name, contact_person, email`,
+      [company_name, contact_person, email, phone, ic_number, payment_receipt || null]
     );
     
-    // Send confirmation email
-      await sendRegistrationReceived(email, company_name, contact_person);
+    const request = result.rows[0];
+    
+    // Send email
+    await sendRegistrationReceived(
+      request.email,
+      request.company_name,
+      request.contact_person
+    );
     
     res.json({ 
       success: true, 
-      id: result.rows[0].id,
+      id: request.id,
       message: 'Registration submitted successfully! Please wait for approval.' 
     });
   } catch (err) {
@@ -1704,12 +1747,22 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       tempPassword = Math.random().toString(36).slice(-8) + '!';
       const hashedPassword = bcrypt.hashSync(tempPassword, 10);
       
-      const newUser = await client.query(
-        `INSERT INTO users (username, password, full_name, role, company_id, is_first_login, is_active, email) 
-         VALUES ($1, $2, $3, $4, $5, true, true, $6) 
-         RETURNING id`,
-        [username, hashedPassword, request.contact_person, 'stall_admin', companyId, request.email]
-      );
+     // server.js - Approval route (update user creation)
+const newUser = await client.query(
+  `INSERT INTO users 
+   (username, password, full_name, role, company_id, is_first_login, is_active, email, ic_number) 
+   VALUES ($1, $2, $3, $4, $5, true, true, $6, $7) 
+   RETURNING id`,
+  [
+    username, 
+    hashedPassword, 
+    request.contact_person, 
+    'stall_admin', 
+    companyId, 
+    request.email,
+    request.ic_number  // ✅ Store IC number with user
+  ]
+);
       userId = newUser.rows[0].id;
       console.log(`✅ Created new user: ${username} (ID: ${userId})`);
     }
