@@ -256,17 +256,18 @@ export default {
     },
   },
   methods: {
-    handleUrlRouting() {
+  // =============================================
+  // ROUTING HANDLING
+  // =============================================
+  handleUrlRouting() {
     const path = window.location.pathname;
     const hash = window.location.hash;
     
-    // ✅ Handle /login from path OR hash
     if (path === '/login' || hash === '#/login') {
       this.showLogin = true;
       return;
     }
     
-    // Handle /reset-password
     if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
@@ -278,7 +279,6 @@ export default {
       }
     }
     
-    // If user is already logged in, stay on dashboard
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
     if (storedUser && storedToken) {
@@ -286,360 +286,360 @@ export default {
       return;
     }
     
-    // Default: show landing page
     this.showLogin = false;
-  }
-},
-    // =============================================
-    // LOGO MANAGEMENT
-    // =============================================
-    openLogoUpload() {
-      this.logoUploadModal = true
-    },
-    handleLogoUpload(event) {
-      const file = event.target.files[0]
-      if (file) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
+  },
+
+  // =============================================
+  // LOGO MANAGEMENT
+  // =============================================
+  openLogoUpload() {
+    this.logoUploadModal = true
+  },
+  handleLogoUpload(event) {
+    const file = event.target.files[0]
+    if (file) {
+      this.tempLogoFile = file
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.tempLogoPreview = e.target.result
       }
-    },
-    handleLogoDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
+      reader.readAsDataURL(file)
+    }
+  },
+  handleLogoDrop(event) {
+    const file = event.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      this.tempLogoFile = file
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.tempLogoPreview = e.target.result
       }
-    },
-    saveLogo() {
-      if (this.tempLogoPreview) {
-        this.companyLogo = this.tempLogoPreview
-        localStorage.setItem('companyLogo', this.tempLogoPreview)
-        this.logoUploadModal = false
-        this.showNotification('Logo updated successfully!', 'success')
+      reader.readAsDataURL(file)
+    }
+  },
+  saveLogo() {
+    if (this.tempLogoPreview) {
+      this.companyLogo = this.tempLogoPreview
+      localStorage.setItem('companyLogo', this.tempLogoPreview)
+      this.logoUploadModal = false
+      this.showNotification('Logo updated successfully!', 'success')
+    }
+  },
+
+  // =============================================
+  // BANNER MANAGEMENT
+  // =============================================
+  async fetchBanner() {
+    try {
+      const response = await axios.get(`${API_BASE}/system/banner`)
+      if (response.data.bannerUrl) {
+        this.systemBanner = response.data.bannerUrl
+        localStorage.setItem('systemBanner', response.data.bannerUrl)
       }
-    },
+    } catch (err) {
+      console.log('No system banner found')
+    }
+  },
 
-    // =============================================
-    // BANNER MANAGEMENT
-    // =============================================
-    async fetchBanner() {
-      try {
-        const response = await axios.get(`${API_BASE}/system/banner`)
-        if (response.data.bannerUrl) {
-          this.systemBanner = response.data.bannerUrl
-          localStorage.setItem('systemBanner', response.data.bannerUrl)
-        }
-      } catch (err) {
-        console.log('No system banner found')
-      }
-    },
+  // =============================================
+  // AUTHENTICATION
+  // =============================================
+  handleLoginSuccess(responseData) {
+    console.log('🔵 handleLoginSuccess called with:', responseData);
+    
+    const userData = responseData?.user;
+    const authToken = responseData?.token;
+    
+    if (!userData || !authToken) {
+      console.error('❌ Invalid login response:', responseData);
+      this.showNotification('Login failed. Please try again.', 'error');
+      return;
+    }
 
-    // =============================================
-    // AUTHENTICATION
-    // =============================================
-    handleLoginSuccess(responseData) {
-      console.log('🔵 handleLoginSuccess called with:', responseData);
-      
-      const userData = responseData?.user;
-      const authToken = responseData?.token;
-      
-      if (!userData || !authToken) {
-        console.error('❌ Invalid login response:', responseData);
-        this.showNotification('Login failed. Please try again.', 'error');
-        return;
-      }
+    console.log('✅ User data extracted:', userData);
+    console.log('✅ Token extracted:', authToken);
+    
+    this.loading = true;
+    const authStore = useAuthStore();
 
-      console.log('✅ User data extracted:', userData);
-      console.log('✅ Token extracted:', authToken);
-      
-      this.loading = true;
-      const authStore = useAuthStore();
+    const safeUserData = {
+      ...userData,
+      stall_id: userData.stall_id || null,
+      assigned_stalls: userData.assigned_stalls || [],
+    };
 
-      const safeUserData = {
-        ...userData,
-        stall_id: userData.stall_id || null,
-        assigned_stalls: userData.assigned_stalls || [],
-      };
+    authStore.setUser(safeUserData, authToken);
 
-      authStore.setUser(safeUserData, authToken);
-
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.user = safeUserData;
-          this.token = authToken;
-          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          localStorage.setItem('user', JSON.stringify(safeUserData));
-          localStorage.setItem('token', authToken);
-          localStorage.setItem('darkMode', this.darkMode);
-          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
-          this.loading = false;
-          this.showLogin = false; // Close login after success
-          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
-          this.updateLastUpdateTime();
-          this.fetchBanner();
-        }, 500);
-      });
-    },
-
-    logout() {
-      const authStore = useAuthStore();
-      authStore.logout();
-      this.showNotification('Signing out...', 'info');
-
+    this.$nextTick(() => {
       setTimeout(() => {
-        this.user = null;
-        this.token = null;
-        this.activeStallId = null;
-        this.showLogin = false; // Show landing page
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.showNotification('Signed out successfully', 'success');
-      }, 600);
-    },
+        this.user = safeUserData;
+        this.token = authToken;
+        this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
+        localStorage.setItem('user', JSON.stringify(safeUserData));
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('darkMode', this.darkMode);
+        console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
+        this.loading = false;
+        this.showLogin = false;
+        this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
+        this.updateLastUpdateTime();
+        this.fetchBanner();
+      }, 500);
+    });
+  },
 
-    // =============================================
-    // NOTIFICATIONS
-    // =============================================
-    showNotification(message, type = 'info') {
-      if (!this.notificationsEnabled) {
-        console.log(`[🔕 Notification disabled] ${type}: ${message}`);
-        return;
+  logout() {
+    const authStore = useAuthStore();
+    authStore.logout();
+    this.showNotification('Signing out...', 'info');
+
+    setTimeout(() => {
+      this.user = null;
+      this.token = null;
+      this.activeStallId = null;
+      this.showLogin = false;
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      this.showNotification('Signed out successfully', 'success');
+    }, 600);
+  },
+
+  // =============================================
+  // NOTIFICATIONS
+  // =============================================
+  showNotification(message, type = 'info') {
+    if (!this.notificationsEnabled) {
+      console.log(`[🔕 Notification disabled] ${type}: ${message}`);
+      return;
+    }
+    
+    const notification = {
+      message,
+      type,
+      id: Date.now() + Math.random(),
+      progress: 100,
+    };
+    this.notifications.push(notification);
+
+    const progressInterval = setInterval(() => {
+      const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
+      if (noteIndex !== -1) {
+        this.notifications[noteIndex].progress -= 2;
       }
-      
+    }, 100);
+
+    setTimeout(() => {
+      clearInterval(progressInterval);
+      const index = this.notifications.findIndex((n) => n.id === notification.id);
+      if (index !== -1) {
+        this.notifications.splice(index, 1);
+      }
+    }, 5000);
+  },
+
+  toggleNotifications() {
+    this.notificationsEnabled = !this.notificationsEnabled;
+    localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
+    
+    if (this.notificationsEnabled) {
+      this.showNotification('🔔 Notifications enabled', 'success');
+    } else {
+      const tempEnabled = this.notificationsEnabled;
+      this.notificationsEnabled = true;
       const notification = {
-        message,
-        type,
+        message: '🔕 Notifications disabled',
+        type: 'info',
         id: Date.now() + Math.random(),
         progress: 100,
       };
       this.notifications.push(notification);
-
-      const progressInterval = setInterval(() => {
-        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
-        if (noteIndex !== -1) {
-          this.notifications[noteIndex].progress -= 2;
-        }
-      }, 100);
-
+      
       setTimeout(() => {
-        clearInterval(progressInterval);
         const index = this.notifications.findIndex((n) => n.id === notification.id);
         if (index !== -1) {
           this.notifications.splice(index, 1);
         }
-      }, 5000);
-    },
-
-    toggleNotifications() {
-      this.notificationsEnabled = !this.notificationsEnabled;
-      localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
+      }, 3000);
       
-      if (this.notificationsEnabled) {
-        this.showNotification('🔔 Notifications enabled', 'success');
-      } else {
-        const tempEnabled = this.notificationsEnabled;
-        this.notificationsEnabled = true;
-        const notification = {
-          message: '🔕 Notifications disabled',
-          type: 'info',
-          id: Date.now() + Math.random(),
-          progress: 100,
-        };
-        this.notifications.push(notification);
-        
-        setTimeout(() => {
-          const index = this.notifications.findIndex((n) => n.id === notification.id);
-          if (index !== -1) {
-            this.notifications.splice(index, 1);
-          }
-        }, 3000);
-        
-        this.notificationsEnabled = tempEnabled;
-      }
-    },
+      this.notificationsEnabled = tempEnabled;
+    }
+  },
 
-    removeNotification(index) {
-      this.notifications.splice(index, 1);
-    },
+  removeNotification(index) {
+    this.notifications.splice(index, 1);
+  },
 
-    getNotificationTitle(type) {
-      const titles = {
-        success: 'Success',
-        error: 'Error',
-        warning: 'Warning',
-        info: 'Information',
-      };
-      return titles[type] || 'Notification';
-    },
+  getNotificationTitle(type) {
+    const titles = {
+      success: 'Success',
+      error: 'Error',
+      warning: 'Warning',
+      info: 'Information',
+    };
+    return titles[type] || 'Notification';
+  },
 
-    // =============================================
-    // THEME
-    // =============================================
-    toggleDarkMode() {
-      this.darkMode = !this.darkMode;
-      localStorage.setItem('darkMode', this.darkMode);
-      this.applyTheme();
-      this.showNotification(
-        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
-        'info'
-      );
-    },
+  // =============================================
+  // THEME
+  // =============================================
+  toggleDarkMode() {
+    this.darkMode = !this.darkMode;
+    localStorage.setItem('darkMode', this.darkMode);
+    this.applyTheme();
+    this.showNotification(
+      this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
+      'info'
+    );
+  },
 
-    applyTheme() {
-      if (this.darkMode) {
-        document.documentElement.classList.add('dark-theme');
-      } else {
-        document.documentElement.classList.remove('dark-theme');
-      }
-    },
+  applyTheme() {
+    if (this.darkMode) {
+      document.documentElement.classList.add('dark-theme');
+    } else {
+      document.documentElement.classList.remove('dark-theme');
+    }
+  },
 
-    updateLastUpdateTime() {
-      const now = new Date();
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    },
+  updateLastUpdateTime() {
+    const now = new Date();
+    this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  },
 
-    // =============================================
-    // PWA
-    // =============================================
-    initializePWA() {
-      this.isPWA =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
+  // =============================================
+  // PWA
+  // =============================================
+  initializePWA() {
+    this.isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
 
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        this.deferredPrompt = e;
-        setTimeout(() => {
-          this.showInstallPrompt = true;
-        }, 3000);
-      });
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      setTimeout(() => {
+        this.showInstallPrompt = true;
+      }, 3000);
+    });
 
-      window.addEventListener('appinstalled', () => {
-        this.showInstallPrompt = false;
-        this.deferredPrompt = null;
-        this.isPWA = true;
-        this.showNotification('App installed successfully!', 'success');
-      });
-    },
-
-    async installPWA() {
-      if (this.deferredPrompt) {
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          this.showInstallPrompt = false;
-        }
-        this.deferredPrompt = null;
-      }
-    },
-
-    dismissInstall() {
+    window.addEventListener('appinstalled', () => {
       this.showInstallPrompt = false;
-      localStorage.setItem('installPromptDismissed', Date.now().toString());
-    },
+      this.deferredPrompt = null;
+      this.isPWA = true;
+      this.showNotification('App installed successfully!', 'success');
+    });
+  },
 
-    // =============================================
-    // NETWORK
-    // =============================================
-    checkNetworkStatus() {
-      this.isOnline = navigator.onLine;
-
-      window.addEventListener('online', () => {
-        this.isOnline = true;
-        this.showNotification('Connection restored', 'success');
-      });
-
-      window.addEventListener('offline', () => {
-        this.isOnline = false;
-        this.showNotification('Working in offline mode', 'warning');
-      });
-    },
-
-    // =============================================
-    // INIT
-    // =============================================
-    initializeApp() {
-      const storedDarkMode = localStorage.getItem('darkMode');
-      if (storedDarkMode === 'true') {
-        this.darkMode = true;
+  async installPWA() {
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      const { outcome } = await this.deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        this.showInstallPrompt = false;
       }
-      this.applyTheme();
+      this.deferredPrompt = null;
+    }
+  },
 
-      const savedNotifications = localStorage.getItem('notificationsEnabled');
-      if (savedNotifications !== null) {
-        this.notificationsEnabled = JSON.parse(savedNotifications);
-      }
+  dismissInstall() {
+    this.showInstallPrompt = false;
+    localStorage.setItem('installPromptDismissed', Date.now().toString());
+  },
 
-      const savedLogo = localStorage.getItem('companyLogo');
-      if (savedLogo) {
-        this.companyLogo = savedLogo;
-      }
+  // =============================================
+  // NETWORK
+  // =============================================
+  checkNetworkStatus() {
+    this.isOnline = navigator.onLine;
 
-      const savedBanner = localStorage.getItem('systemBanner');
-      if (savedBanner) {
-        this.systemBanner = savedBanner;
-      }
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.showNotification('Connection restored', 'success');
+    });
 
-      setInterval(() => {
-        this.updateLastUpdateTime();
-      }, 60000);
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      this.showNotification('Working in offline mode', 'warning');
+    });
+  },
 
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
+  // =============================================
+  // INIT
+  // =============================================
+  initializeApp() {
+    const storedDarkMode = localStorage.getItem('darkMode');
+    if (storedDarkMode === 'true') {
+      this.darkMode = true;
+    }
+    this.applyTheme();
 
-      if (storedUser && storedToken) {
-        this.loading = true;
-        try {
-          const userData = JSON.parse(storedUser);
-          if (userData && typeof userData === 'object') {
-            const safeUserData = {
-              ...userData,
-              stall_id: userData.stall_id || null,
-              assigned_stalls: userData.assigned_stalls || [],
-            };
-            this.user = safeUserData;
-            this.token = storedToken;
-            const authStore = useAuthStore();
-            authStore.setUser(safeUserData, storedToken);
-            this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          } else {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-          }
-        } catch (error) {
-          console.error('Failed to parse user data:', error);
+    const savedNotifications = localStorage.getItem('notificationsEnabled');
+    if (savedNotifications !== null) {
+      this.notificationsEnabled = JSON.parse(savedNotifications);
+    }
+
+    const savedLogo = localStorage.getItem('companyLogo');
+    if (savedLogo) {
+      this.companyLogo = savedLogo;
+    }
+
+    const savedBanner = localStorage.getItem('systemBanner');
+    if (savedBanner) {
+      this.systemBanner = savedBanner;
+    }
+
+    setInterval(() => {
+      this.updateLastUpdateTime();
+    }, 60000);
+
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+
+    if (storedUser && storedToken) {
+      this.loading = true;
+      try {
+        const userData = JSON.parse(storedUser);
+        if (userData && typeof userData === 'object') {
+          const safeUserData = {
+            ...userData,
+            stall_id: userData.stall_id || null,
+            assigned_stalls: userData.assigned_stalls || [],
+          };
+          this.user = safeUserData;
+          this.token = storedToken;
+          const authStore = useAuthStore();
+          authStore.setUser(safeUserData, storedToken);
+          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
+        } else {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
-        } finally {
-          this.loading = false;
-          if (this.user) {
-            this.showNotification('Welcome back!', 'success');
-            this.updateLastUpdateTime();
-            this.fetchBanner();
-          }
+        }
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      } finally {
+        this.loading = false;
+        if (this.user) {
+          this.showNotification('Welcome back!', 'success');
+          this.updateLastUpdateTime();
+          this.fetchBanner();
         }
       }
-    },
+    }
   },
-  mounted() {
-    this.initializeApp();
-    this.initializePWA();
-    this.checkNetworkStatus();
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      this.showNotification('Something went wrong. Please try again.', 'error');
-    });
+},  // ← This is the ONLY closing brace for methods
+
+mounted() {
+  this.initializeApp();
+  this.initializePWA();
+  this.checkNetworkStatus();
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    this.showNotification('Something went wrong. Please try again.', 'error');
+  });
   },
 };
 </script>
