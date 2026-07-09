@@ -45,6 +45,7 @@
       <Login 
         v-else
         @login-success="handleLoginSuccess"
+        @show-first-login-reset="showFirstLoginReset = true"
         @show-landing="showLogin = false"
         :company-logo="companyLogo"
       />
@@ -268,7 +269,6 @@ export default {
     },
   },
   
-  // ✅ mounted() is OUTSIDE methods, but INSIDE export default
   mounted() {
     this.initializeApp();
     this.initializePWA();
@@ -279,7 +279,6 @@ export default {
       this.showLogin = false;
     }
     
-    // ✅ Call handleUrlRouting on mount
     this.handleUrlRouting();
     
     window.addEventListener('unhandledrejection', (event) => {
@@ -290,6 +289,14 @@ export default {
   
   methods: {
     // =============================================
+    // FIRST LOGIN RESET
+    // =============================================
+    handleResetComplete() {
+      this.showFirstLoginReset = false;
+      this.showLogin = true;
+    },
+
+    // =============================================
     // ROUTING HANDLING
     // =============================================
     handleUrlRouting() {
@@ -299,14 +306,12 @@ export default {
       console.log('📍 Path:', path);
       console.log('📍 Hash:', hash);
       
-      // ✅ Handle /login from path OR hash
       if (path === '/login' || hash === '#/login') {
         this.showLogin = true;
         console.log('🔐 Login page detected, showing login');
         return;
       }
       
-      // Handle /reset-password
       if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
@@ -317,13 +322,7 @@ export default {
           return;
         }
       }
-
-      handleResetComplete() {  // ✅ ADD THIS
-      this.showFirstLoginReset = false;
-      this.showLogin = true;
-    },
       
-      // If user is already logged in, stay on dashboard
       const storedUser = localStorage.getItem('user');
       const storedToken = localStorage.getItem('token');
       if (storedUser && storedToken) {
@@ -331,7 +330,6 @@ export default {
         return;
       }
       
-      // Default: show landing page
       this.showLogin = false;
     },
 
@@ -676,11 +674,12 @@ export default {
         }
       }
     },
-  }  // ✅ Only ONE closing brace for methods
-}  // ✅ Closing brace for export default
+  }
+}
 </script>
 
 <style>
+/* All your existing styles remain exactly the same */
 /* ===== ROOT VARIABLES - Keep existing ===== */
 :root {
   --primary: #F94908;
