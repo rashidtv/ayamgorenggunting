@@ -9,6 +9,11 @@
       v-if="showFirstLoginReset"
       @reset-complete="handleResetComplete"
     />
+    <ResetPassword 
+      v-else-if="showResetPassword && resetToken"
+      :token="resetToken"
+      @reset-complete="showResetPassword = false"
+    />
     <!-- PWA Install Prompt -->
     <div v-if="showInstallPrompt" class="pwa-install-prompt">
       <div class="install-content">

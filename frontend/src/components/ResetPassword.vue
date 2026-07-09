@@ -1,8 +1,8 @@
 <template>
-  <div class="reset-password-container">
-    <div class="reset-password-card">
-      <div class="reset-password-header">
-        <h2>🔐 Reset Your Password</h2>
+  <div class="reset-overlay">
+    <div class="reset-modal">
+      <div class="reset-modal-header">
+        <h2>Reset Your Password</h2>
         <p>Enter your new password below.</p>
       </div>
 
@@ -14,7 +14,7 @@
 
       <!-- Invalid Token State -->
       <div v-else-if="!isValidToken" class="error-state">
-        <div class="error-icon">❌</div>
+        <div class="error-icon">⚠️</div>
         <h3>Invalid or Expired Link</h3>
         <p>{{ error || 'The password reset link is invalid or has expired.' }}</p>
         <button @click="goToLogin" class="btn-primary">Back to Login</button>
@@ -96,7 +96,6 @@ export default {
   },
   methods: {
     extractTokenFromUrl() {
-      // If token prop is empty, try to get from URL hash
       if (!this.resetToken) {
         const hash = window.location.hash;
         if (hash.includes('?')) {
@@ -105,7 +104,6 @@ export default {
           if (urlToken) {
             this.resetToken = urlToken;
             console.log('✅ Token extracted from URL:', this.resetToken);
-            // Emit to parent so App.vue can update its state
             this.$emit('token-received', this.resetToken);
           }
         }
@@ -140,17 +138,17 @@ export default {
       this.success = '';
 
       if (this.newPassword !== this.confirmPassword) {
-        this.error = '❌ Passwords do not match';
+        this.error = 'Passwords do not match';
         return;
       }
 
       if (!/^[a-zA-Z0-9]+$/.test(this.newPassword)) {
-        this.error = '❌ Password must contain only letters and numbers';
+        this.error = 'Password must contain only letters and numbers';
         return;
       }
 
       if (this.newPassword.length < 8) {
-        this.error = '❌ Password must be at least 8 characters long';
+        this.error = 'Password must be at least 8 characters long';
         return;
       }
 
@@ -170,7 +168,7 @@ export default {
         }, 2000);
 
       } catch (err) {
-        this.error = err.response?.data?.error || '❌ Failed to reset password. Please try again.';
+        this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
         console.error('Reset error:', err);
       } finally {
         this.loading = false;
@@ -185,39 +183,46 @@ export default {
 </script>
 
 <style scoped>
-.reset-password-container {
-  min-height: 100vh;
+.reset-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 9999;
   padding: 20px;
+  animation: fadeIn 0.3s ease;
 }
 
-.reset-password-card {
+.reset-modal {
   background: white;
+  border-radius: 12px;
   padding: 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
 }
 
-.reset-password-header {
+.reset-modal-header {
   text-align: center;
   margin-bottom: 2rem;
 }
 
-.reset-password-header h2 {
+.reset-modal-header h2 {
   color: #1e293b;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
-.reset-password-header p {
+.reset-modal-header p {
   color: #64748b;
-  font-size: 0.95rem;
+  margin: 0.25rem 0;
 }
 
 .loading-state {
@@ -246,7 +251,7 @@ export default {
 }
 
 .error-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin-bottom: 1rem;
 }
 
@@ -356,8 +361,24 @@ export default {
   font-size: 0.9rem;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 480px) {
-  .reset-password-card {
+  .reset-modal {
     padding: 1.5rem;
     margin: 10px;
   }
