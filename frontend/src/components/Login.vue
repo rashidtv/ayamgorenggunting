@@ -266,58 +266,75 @@ export default {
     // LOGIN
     // =============================================
     async login() {
-      if (!this.username || !this.password) {
-        this.error = 'Please enter username and password'
-        return
+  if (!this.username || !this.password) {
+    this.error = 'Please enter username and password'
+    return
+  }
+  
+  this.loading = true
+  this.error = ''
+  
+  try {
+    const response = await axios.post(`${API_BASE}/login`, {
+      username: this.username,
+      password: this.password
+    }, { timeout: 10000 })
+    
+    console.log('📤 Full login response:', response)
+    console.log('📤 Response data:', response.data)
+    console.log('📤 User:', response.data?.user)
+    console.log('📤 Token:', response.data?.token)
+    
+    // ✅ ADD THIS - Check for first login requirement
+    if (response.data && response.data.requiresReset) {
+      console.log('🔄 First login detected, redirecting to reset...')
+      sessionStorage.setItem('needsPasswordReset', 'true')
+      sessionStorage.setItem('resetUserId', response.data.userId)
+      sessionStorage.setItem('resetUser', JSON.stringify({
+        username: response.data.username,
+        full_name: response.data.full_name,
+        email: response.data.email
+      }))
+      
+      this.$emit('show-first-login-reset')
+      this.loading = false
+      return
+    }
+    
+    // ✅ EXISTING CODE - Normal login flow (unchanged)
+    if (response.data && response.data.user && response.data.token) {
+      // Handle "Remember Me"
+      if (this.rememberMe) {
+        localStorage.setItem('rememberMe', 'true')
+        localStorage.setItem('username', this.username)
+      } else {
+        localStorage.removeItem('rememberMe')
+        localStorage.removeItem('username')
       }
       
-      this.loading = true
-      this.error = ''
-      
-      try {
-        const response = await axios.post(`${API_BASE}/login`, {
-          username: this.username,
-          password: this.password
-        }, { timeout: 10000 })
-        
-        console.log('📤 Full login response:', response)
-        console.log('📤 Response data:', response.data)
-        console.log('📤 User:', response.data?.user)
-        console.log('📤 Token:', response.data?.token)
-        
-        if (response.data && response.data.user && response.data.token) {
-          // Handle "Remember Me"
-          if (this.rememberMe) {
-            localStorage.setItem('rememberMe', 'true')
-            localStorage.setItem('username', this.username)
-          } else {
-            localStorage.removeItem('rememberMe')
-            localStorage.removeItem('username')
-          }
-          
-          this.$emit('login-success', response.data)
-        } else {
-          console.error('❌ Invalid login response structure:', response.data)
-          this.error = 'Invalid server response. Please try again.'
-          this.loading = false
-        }
-        
-      } catch (error) {
-        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-          this.error = 'Cannot connect to server. Please check if backend is running.'
-        } else if (error.response?.status === 401) {
-          this.error = 'Invalid username or password'
-        } else {
-          this.error = 'Login failed. Please try again.'
-        }
-        console.error('❌ Login error:', error)
-        this.loading = false
-      } finally {
-        if (this.loading) {
-          this.loading = false
-        }
-      }
-    },
+      this.$emit('login-success', response.data)
+    } else {
+      console.error('❌ Invalid login response structure:', response.data)
+      this.error = 'Invalid server response. Please try again.'
+      this.loading = false
+    }
+    
+  } catch (error) {
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+      this.error = 'Cannot connect to server. Please check if backend is running.'
+    } else if (error.response?.status === 401) {
+      this.error = 'Invalid username or password'
+    } else {
+      this.error = 'Login failed. Please try again.'
+    }
+    console.error('❌ Login error:', error)
+    this.loading = false
+  } finally {
+    if (this.loading) {
+      this.loading = false
+    }
+  }
+},
 
     // =============================================
     // NAVIGATION

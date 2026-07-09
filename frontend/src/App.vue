@@ -4,6 +4,11 @@
     'stall-theme': user?.role === 'user',
     'dark-mode': darkMode
   }">
+
+    <FirstLoginReset 
+      v-if="showFirstLoginReset"
+      @reset-complete="handleResetComplete"
+    />
     <!-- PWA Install Prompt -->
     <div v-if="showInstallPrompt" class="pwa-install-prompt">
       <div class="install-content">
@@ -176,6 +181,7 @@
 import axios from 'axios'
 import Login from './components/Login.vue';
 import LandingPage from './components/LandingPage.vue';
+import FirstLoginReset from './components/FirstLoginReset.vue';
 import ResetPassword from './components/ResetPassword.vue';
 import StallView from './components/StallView.vue';
 import SuperAdminPanel from './components/SuperAdminPanel.vue';
@@ -194,6 +200,7 @@ export default {
     StallView,
     SuperAdminPanel,
     SuperSuperAdminPanel,
+    FirstLoginReset,
     StallAdminPanel,
     DashboardHeader,
   },
@@ -204,6 +211,7 @@ export default {
       notifications: [],
       darkMode: false,
       loading: false,
+      showFirstLoginReset: false,
       lastUpdateTime: 'Just now',
       isPWA: false,
       showInstallPrompt: false,
@@ -265,6 +273,11 @@ export default {
     this.initializeApp();
     this.initializePWA();
     this.checkNetworkStatus();
+
+    if (sessionStorage.getItem('needsPasswordReset')) {
+      this.showFirstLoginReset = true;
+      this.showLogin = false;
+    }
     
     // ✅ Call handleUrlRouting on mount
     this.handleUrlRouting();
@@ -304,6 +317,11 @@ export default {
           return;
         }
       }
+
+      handleResetComplete() {  // ✅ ADD THIS
+      this.showFirstLoginReset = false;
+      this.showLogin = true;
+    },
       
       // If user is already logged in, stay on dashboard
       const storedUser = localStorage.getItem('user');

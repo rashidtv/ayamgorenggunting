@@ -183,8 +183,6 @@ const authenticateToken = async (req, res, next) => {
   });
 };
 
-// ==================== AUTH ROUTES ====================
-
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -195,6 +193,18 @@ app.post('/api/login', async (req, res) => {
     const valid = bcrypt.compareSync(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
+    // ✅ ADD THIS - First login check
+    if (user.is_first_login === true) {
+      return res.json({
+        requiresReset: true,
+        userId: user.id,
+        username: user.username,
+        full_name: user.full_name || user.username,
+        email: user.email || ''
+      });
+    }
+
+    // ✅ EXISTING CODE - Token generation (unchanged)
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET || 'fallback_secret',
@@ -217,6 +227,43 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// ==================== FIRST LOGIN RESET ====================
+app.post('/api/auth/first-login-reset', async (req, res) => {
+  const { userId, currentPassword, newPassword } = req.body;
+  
+  // Validate new password
+  if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain only letters and numbers' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  }
+  
+  try {
+    const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const user = userRes.rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Verify current password
+    const valid = bcrypt.compareSync(currentPassword, user.password);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    
+    // Hash new password
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    
+    // Update password and set is_first_login to false
+    await pool.query(
+      'UPDATE users SET password = $1, is_first_login = false WHERE id = $2',
+      [hashedPassword, userId]
+    );
+    
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('First login reset error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
