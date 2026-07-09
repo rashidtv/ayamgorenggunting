@@ -1999,6 +1999,7 @@ app.post('/api/auth/validate-reset-token', async (req, res) => {
  * POST /api/auth/reset-password
  * Reset password using token
  */
+// ==================== PASSWORD RESET (FROM EMAIL) ====================
 app.post('/api/auth/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   
@@ -2006,15 +2007,19 @@ app.post('/api/auth/reset-password', async (req, res) => {
     return res.status(400).json({ error: 'Token and new password are required' });
   }
   
+  // Validate new password
+  if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain only letters and numbers' });
+  }
   if (newPassword.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
   }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     
-    // Get token
+    // Get token from database
     const tokenRes = await client.query(
       `SELECT * FROM password_reset_tokens 
        WHERE token = $1 AND used = false AND expires_at > NOW()`,
@@ -2045,8 +2050,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
     
     await client.query('COMMIT');
     
+    // Get user email for confirmation
+    const userRes = await client.query('SELECT email FROM users WHERE id = $1', [resetToken.user_id]);
+    const userEmail = userRes.rows[0]?.email;
+    
     // Send confirmation email
-    await sendPasswordResetConfirmation(email);
+    if (userEmail) {
+      await sendPasswordResetConfirmation(userEmail);
+    }
     
     res.json({ success: true, message: 'Password reset successfully' });
     

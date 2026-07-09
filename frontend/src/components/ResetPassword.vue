@@ -54,6 +54,11 @@
 
         <div v-if="error" class="error-message">{{ error }}</div>
         <div v-if="success" class="success-message">{{ success }}</div>
+        
+        <!-- ✅ ADDED: Close button for error state -->
+        <button v-if="error" @click="goToLogin" class="btn-secondary" style="margin-top: 10px;">
+          Back to Login
+        </button>
       </form>
     </div>
   </div>
@@ -162,14 +167,17 @@ export default {
 
         this.success = '✅ Password reset successful! Redirecting to login...';
         
+        // ✅ Send email confirmation (handled by backend)
+        // ✅ Redirect to login after 2 seconds
         setTimeout(() => {
           window.location.hash = '#/login';
           window.location.reload();
         }, 2000);
 
       } catch (err) {
-        this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
         console.error('Reset error:', err);
+        this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
+        // ✅ Don't auto-close on error - let user click Back to Login
       } finally {
         this.loading = false;
       }
@@ -328,15 +336,22 @@ export default {
   transform: none;
 }
 
-.btn-primary.outline {
+.btn-secondary {
+  width: 100%;
+  padding: 0.875rem;
   background: transparent;
-  color: #F94908;
-  border: 2px solid #F94908;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.btn-primary.outline:hover:not(:disabled) {
-  background: #F94908;
-  color: white;
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .error-message {
