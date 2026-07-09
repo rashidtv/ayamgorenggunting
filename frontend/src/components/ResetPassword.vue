@@ -55,7 +55,7 @@
         <div v-if="error" class="error-message">{{ error }}</div>
         <div v-if="success" class="success-message">{{ success }}</div>
         
-        <!-- ✅ ADDED: Close button for error state -->
+        <!-- Back to Login button when error occurs -->
         <button v-if="error" @click="goToLogin" class="btn-secondary" style="margin-top: 10px;">
           Back to Login
         </button>
@@ -167,8 +167,10 @@ export default {
 
         this.success = '✅ Password reset successful! Redirecting to login...';
         
-        // ✅ Send email confirmation (handled by backend)
-        // ✅ Redirect to login after 2 seconds
+        // Emit reset complete event to parent
+        this.$emit('reset-complete');
+        
+        // Redirect to login after 2 seconds
         setTimeout(() => {
           window.location.hash = '#/login';
           window.location.reload();
@@ -177,13 +179,14 @@ export default {
       } catch (err) {
         console.error('Reset error:', err);
         this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
-        // ✅ Don't auto-close on error - let user click Back to Login
       } finally {
         this.loading = false;
       }
     },
 
     goToLogin() {
+      // Emit close event to parent
+      this.$emit('close');
       window.location.hash = '#/login';
     }
   }

@@ -50,7 +50,8 @@
         <ResetPassword 
           v-if="showResetPassword && resetToken"
           :token="resetToken"
-          @reset-complete="showResetPassword = false"
+          @reset-complete="handleResetComplete"
+          @close="showResetPassword = false"
         />
       </div>
     </template>
