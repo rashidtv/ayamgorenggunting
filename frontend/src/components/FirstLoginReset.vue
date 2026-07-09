@@ -1,13 +1,13 @@
 <template>
-  <div class="reset-container">
-    <div class="reset-box">
-      <div class="reset-header">
-        <h2>🔐 First Login</h2>
+  <div class="reset-overlay">
+    <div class="reset-modal">
+      <div class="reset-modal-header">
+        <h2>First Login</h2>
         <p>Welcome, <strong>{{ userInfo.full_name || userInfo.username }}</strong>!</p>
         <p class="sub-text">Please set your new password to continue.</p>
       </div>
       
-      <form @submit.prevent="handleReset">
+      <form @submit.prevent="handleReset" class="reset-form">
         <div class="form-group">
           <label for="currentPassword">Temporary Password</label>
           <input
@@ -45,9 +45,9 @@
           />
         </div>
         
-        <button type="submit" :disabled="loading" class="btn-primary">
+        <button type="submit" :disabled="loading" class="btn-reset">
           <span v-if="loading">⏳ Resetting...</span>
-          <span v-else>✅ Reset Password</span>
+          <span v-else>Reset Password</span>
         </button>
         
         <div v-if="error" class="error-message">{{ error }}</div>
@@ -87,18 +87,21 @@ export default {
       this.error = '';
       this.success = '';
       
+      // Validate passwords match
       if (this.newPassword !== this.confirmPassword) {
-        this.error = '❌ Passwords do not match';
+        this.error = 'Passwords do not match';
         return;
       }
       
+      // Validate alphanumeric
       if (!/^[a-zA-Z0-9]+$/.test(this.newPassword)) {
-        this.error = '❌ Password must contain only letters and numbers';
+        this.error = 'Password must contain only letters and numbers';
         return;
       }
       
+      // Validate length
       if (this.newPassword.length < 8) {
-        this.error = '❌ Password must be at least 8 characters long';
+        this.error = 'Password must be at least 8 characters long';
         return;
       }
       
@@ -113,16 +116,19 @@ export default {
         
         this.success = '✅ Password reset successful! Redirecting to login...';
         
+        // Clear session data
         sessionStorage.removeItem('needsPasswordReset');
         sessionStorage.removeItem('resetUserId');
         sessionStorage.removeItem('resetUser');
         
+        // Redirect after 2 seconds
         setTimeout(() => {
           window.location.hash = '#/login';
+          window.location.reload(); // Force reload to clear state
         }, 2000);
         
       } catch (err) {
-        this.error = err.response?.data?.error || '❌ Failed to reset password. Please try again.';
+        this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
         console.error('Reset error:', err);
       } finally {
         this.loading = false;
@@ -130,6 +136,7 @@ export default {
     }
   },
   mounted() {
+    // Check if user is supposed to be here
     if (!sessionStorage.getItem('needsPasswordReset') || !sessionStorage.getItem('resetUserId')) {
       window.location.hash = '#/login';
     }
@@ -138,51 +145,59 @@ export default {
 </script>
 
 <style scoped>
-.reset-container {
-  min-height: 100vh;
+.reset-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 9999;
   padding: 20px;
+  animation: fadeIn 0.3s ease;
 }
 
-.reset-box {
+.reset-modal {
   background: white;
+  border-radius: 12px;
   padding: 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
 }
 
-.reset-header {
+.reset-modal-header {
   text-align: center;
   margin-bottom: 2rem;
 }
 
-.reset-header h2 {
+.reset-modal-header h2 {
   color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
-  font-size: 1.75rem;
 }
 
-.reset-header p {
+.reset-modal-header p {
   color: #64748b;
   margin: 0.25rem 0;
 }
 
-.reset-header .sub-text {
+.reset-modal-header .sub-text {
   font-size: 0.9rem;
   color: #94a3b8;
   margin-top: 0.5rem;
 }
 
-.form-group {
+.reset-form .form-group {
   margin-bottom: 1.25rem;
 }
 
-.form-group label {
+.reset-form .form-group label {
   display: block;
   margin-bottom: 0.375rem;
   font-weight: 500;
@@ -190,7 +205,7 @@ export default {
   font-size: 0.9rem;
 }
 
-.form-group input {
+.reset-form .form-group input {
   width: 100%;
   padding: 0.75rem;
   border: 2px solid #e2e8f0;
@@ -198,26 +213,27 @@ export default {
   font-size: 1rem;
   transition: all 0.2s;
   background: #f8fafc;
+  color: #1e293b;
 }
 
-.form-group input:focus {
+.reset-form .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #F94908;
   background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
 }
 
-.form-group small {
+.reset-form .form-group small {
   display: block;
   margin-top: 0.375rem;
   color: #94a3b8;
   font-size: 0.8rem;
 }
 
-.btn-primary {
+.btn-reset {
   width: 100%;
   padding: 0.875rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #F94908;
   color: white;
   border: none;
   border-radius: 8px;
@@ -228,12 +244,13 @@ export default {
   margin-top: 0.5rem;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+.btn-reset:hover:not(:disabled) {
+  background: #d63d07;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
 }
 
-.btn-primary:disabled {
+.btn-reset:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
@@ -247,6 +264,7 @@ export default {
   border-radius: 8px;
   border: 1px solid #fecaca;
   text-align: center;
+  font-size: 0.9rem;
 }
 
 .success-message {
@@ -257,11 +275,29 @@ export default {
   border-radius: 8px;
   border: 1px solid #bbf7d0;
   text-align: center;
+  font-size: 0.9rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 480px) {
-  .reset-box {
+  .reset-modal {
     padding: 1.5rem;
+    margin: 10px;
   }
 }
 </style>

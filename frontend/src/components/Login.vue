@@ -285,21 +285,22 @@ export default {
     console.log('📤 User:', response.data?.user)
     console.log('📤 Token:', response.data?.token)
     
-    // ✅ ADD THIS - Check for first login requirement
-    if (response.data && response.data.requiresReset) {
-      console.log('🔄 First login detected, redirecting to reset...')
-      sessionStorage.setItem('needsPasswordReset', 'true')
-      sessionStorage.setItem('resetUserId', response.data.userId)
-      sessionStorage.setItem('resetUser', JSON.stringify({
-        username: response.data.username,
-        full_name: response.data.full_name,
-        email: response.data.email
-      }))
-      
-      this.$emit('show-first-login-reset')
-      this.loading = false
-      return
-    }
+   // In Login.vue - inside the login() method
+  if (response.data && response.data.requiresReset) {
+  console.log('🔄 First login detected, redirecting to reset...')
+  sessionStorage.setItem('needsPasswordReset', 'true')
+  sessionStorage.setItem('resetUserId', response.data.userId)
+  sessionStorage.setItem('resetUser', JSON.stringify({
+    username: response.data.username,
+    full_name: response.data.full_name,
+    email: response.data.email
+  }))
+  
+  // ✅ FIX: Use window.location for reliable redirect
+  window.location.hash = '#/first-login-reset'
+  this.loading = false
+  return
+}
     
     // ✅ EXISTING CODE - Normal login flow (unchanged)
     if (response.data && response.data.user && response.data.token) {
