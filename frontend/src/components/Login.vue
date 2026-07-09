@@ -285,8 +285,8 @@ export default {
     console.log('📤 User:', response.data?.user)
     console.log('📤 Token:', response.data?.token)
     
-   // In Login.vue - inside the login() method
-  if (response.data && response.data.requiresReset) {
+  // In Login.vue - inside the login() method
+if (response.data && response.data.requiresReset) {
   console.log('🔄 First login detected, redirecting to reset...')
   sessionStorage.setItem('needsPasswordReset', 'true')
   sessionStorage.setItem('resetUserId', response.data.userId)
@@ -296,7 +296,8 @@ export default {
     email: response.data.email
   }))
   
-  // ✅ FIX: Use window.location for reliable redirect
+  // ✅ FIX: Use both hash change and emit
+  this.$emit('show-first-login-reset')
   window.location.hash = '#/first-login-reset'
   this.loading = false
   return

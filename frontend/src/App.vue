@@ -274,10 +274,21 @@ export default {
     this.initializePWA();
     this.checkNetworkStatus();
 
+     // ✅ ADD THIS - Check if on first-login-reset page
+  if (window.location.hash === '#/first-login-reset') {
     if (sessionStorage.getItem('needsPasswordReset')) {
       this.showFirstLoginReset = true;
       this.showLogin = false;
+    } else {
+      window.location.hash = '#/login';
     }
+  }
+
+  // ✅ ADD THIS - Check if needs reset (from session)
+  if (sessionStorage.getItem('needsPasswordReset')) {
+    this.showFirstLoginReset = true;
+    this.showLogin = false;
+  }
     
     this.handleUrlRouting();
     
@@ -285,6 +296,7 @@ export default {
       console.error('Unhandled promise rejection:', event.reason);
       this.showNotification('Something went wrong. Please try again.', 'error');
     });
+    window.addEventListener('hashchange', this.handleUrlRouting);
   },
   
   methods: {
@@ -300,38 +312,54 @@ export default {
     // ROUTING HANDLING
     // =============================================
     handleUrlRouting() {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      
-      console.log('📍 Path:', path);
-      console.log('📍 Hash:', hash);
-      
-      if (path === '/login' || hash === '#/login') {
-        this.showLogin = true;
-        console.log('🔐 Login page detected, showing login');
-        return;
-      }
-      
-      if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        if (token) {
-          this.resetToken = token;
-          this.showResetPassword = true;
-          this.showLogin = false;
-          return;
-        }
-      }
-      
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
-      if (storedUser && storedToken) {
-        this.showLogin = false;
-        return;
-      }
-      
+  const path = window.location.pathname;
+  const hash = window.location.hash;
+  
+  console.log('📍 Path:', path);
+  console.log('📍 Hash:', hash);
+  
+  // ✅ ADD THIS - Handle first-login-reset route
+  if (hash === '#/first-login-reset') {
+    console.log('🔄 First login reset page detected');
+    if (sessionStorage.getItem('needsPasswordReset')) {
+      this.showFirstLoginReset = true;
       this.showLogin = false;
-    },
+      return;
+    } else {
+      // If no reset needed, redirect to login
+      window.location.hash = '#/login';
+      return;
+    }
+  }
+  
+  // Handle /login from path OR hash
+  if (path === '/login' || hash === '#/login') {
+    this.showLogin = true;
+    console.log('🔐 Login page detected, showing login');
+    return;
+  }
+  
+  // Handle /reset-password
+  if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      this.resetToken = token;
+      this.showResetPassword = true;
+      this.showLogin = false;
+      return;
+    }
+  }
+  
+  const storedUser = localStorage.getItem('user');
+  const storedToken = localStorage.getItem('token');
+  if (storedUser && storedToken) {
+    this.showLogin = false;
+    return;
+  }
+  
+  this.showLogin = false;
+},
 
     // =============================================
     // LOGO MANAGEMENT
