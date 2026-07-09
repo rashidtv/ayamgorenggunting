@@ -207,70 +207,20 @@
 
 <script>
 import axios from 'axios'
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
+import API_BASE from '../config/api.js'
 
 export default {
   name: 'Login',
-  props: {
-    companyLogo: {
-      type: String,
-      default: null
-    }
-  },
   data() {
     return {
-      // Login
       username: '',
       password: '',
-      rememberMe: false,
-      error: '',
       loading: false,
-      bannerImage: localStorage.getItem('systemBanner') || null,
-      
-      // Forgot Password
-      showForgotPassword: false,
-      resetEmail: '',
-      resetLoading: false,
-      resetMessage: '',
-      resetMessageType: 'info',
-      showResetConfirm: false
-    }
-  },
-  mounted() {
-    this.fetchBanner()
-    
-    // Auto-fill username if "Remember Me" was checked
-    if (localStorage.getItem('rememberMe') === 'true') {
-      this.username = localStorage.getItem('username') || ''
-      this.rememberMe = true
+      error: ''
     }
   },
   methods: {
-    // =============================================
-    // BANNER
-    // =============================================
-    async fetchBanner() {
-      try {
-        const response = await axios.get(`${API_BASE}/system/banner`)
-        if (response.data.bannerUrl) {
-          this.bannerImage = response.data.bannerUrl
-          localStorage.setItem('systemBanner', response.data.bannerUrl)
-        }
-      } catch (err) {
-        console.log('No system banner found, using default')
-      }
-    },
-
-    // =============================================
-    // LOGIN
-    // =============================================
-    async login() {
-      if (!this.username || !this.password) {
-        this.error = 'Please enter username and password'
-        return
-      }
-      
+    async handleLogin() {
       this.loading = true
       this.error = ''
       
@@ -278,121 +228,44 @@ export default {
         const response = await axios.post(`${API_BASE}/login`, {
           username: this.username,
           password: this.password
-        }, { timeout: 10000 })
-        
-        console.log('📤 Full login response:', response)
-        console.log('📤 Response data:', response.data)
-        console.log('📤 User:', response.data?.user)
-        console.log('📤 Token:', response.data?.token)
-        
-        if (response.data && response.data.user && response.data.token) {
-          // Handle "Remember Me"
-          if (this.rememberMe) {
-            localStorage.setItem('rememberMe', 'true')
-            localStorage.setItem('username', this.username)
-          } else {
-            localStorage.removeItem('rememberMe')
-            localStorage.removeItem('username')
-          }
-          
-          this.$emit('login-success', response.data)
-        } else {
-          console.error('❌ Invalid login response structure:', response.data)
-          this.error = 'Invalid server response. Please try again.'
-          this.loading = false
-        }
-        
-      } catch (error) {
-        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-          this.error = 'Cannot connect to server. Please check if backend is running.'
-        } else if (error.response?.status === 401) {
-          this.error = 'Invalid username or password'
-        } else {
-          this.error = 'Login failed. Please try again.'
-        }
-        console.error('❌ Login error:', error)
-        this.loading = false
-      } finally {
-        if (this.loading) {
-          this.loading = false
-        }
-      }
-    },
-
-    // =============================================
-    // NAVIGATION
-    // =============================================
-    goHome() {
-      this.$emit('show-landing')
-    },
-
-    // =============================================
-    // FORGOT PASSWORD
-    // =============================================
-    openForgotPassword() {
-      this.showForgotPassword = true
-      this.resetEmail = ''
-      this.resetMessage = ''
-      this.resetMessageType = 'info'
-    },
-    
-    closeForgotPassword() {
-      this.showForgotPassword = false
-      this.resetEmail = ''
-      this.resetMessage = ''
-      this.resetLoading = false
-    },
-    
-    closeResetConfirm() {
-      this.showResetConfirm = false
-      this.closeForgotPassword()
-    },
-    
-    async requestPasswordReset() {
-      // Validate email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!this.resetEmail) {
-        this.resetMessage = 'Please enter your email address'
-        this.resetMessageType = 'error'
-        return
-      }
-      if (!emailRegex.test(this.resetEmail)) {
-        this.resetMessage = 'Please enter a valid email address'
-        this.resetMessageType = 'error'
-        return
-      }
-      
-      this.resetLoading = true
-      this.resetMessage = ''
-      
-      try {
-        const response = await axios.post(`${API_BASE}/auth/forgot-password`, {
-          email: this.resetEmail
         })
         
-        // Close forgot password modal and show confirmation
-        this.closeForgotPassword()
-        this.showResetConfirm = true
+        const data = response.data
         
-        this.$emit('show-notification', 'Password reset link sent to your email!', 'success')
+        // Check for first login requirement
+        if (data.requiresReset) {
+          sessionStorage.setItem('needsPasswordReset', 'true')
+          sessionStorage.setItem('resetUserId', data.userId)
+          sessionStorage.setItem('resetUser', JSON.stringify({
+            username: data.username,
+            full_name: data.full_name,
+            email: data.email
+          }))
+          
+          this.$router.push('/first-login-reset')
+          return
+        }
+        
+        // Normal login flow
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+        
+        sessionStorage.removeItem('needsPasswordReset')
+        sessionStorage.removeItem('resetUserId')
+        sessionStorage.removeItem('resetUser')
+        
+        this.$router.push('/dashboard')
         
       } catch (error) {
-        console.error('Reset error:', error)
-        
-        // Handle different error cases
-        if (error.response?.status === 404) {
-          this.resetMessage = 'No account found with this email address'
-          this.resetMessageType = 'error'
-        } else if (error.response?.data?.error) {
-          this.resetMessage = error.response.data.error
-          this.resetMessageType = 'error'
-        } else {
-          this.resetMessage = 'Failed to send reset link. Please try again later.'
-          this.resetMessageType = 'error'
-        }
+        this.error = error.response?.data?.error || 'Login failed. Please try again.'
+        console.error('Login error:', error)
       } finally {
-        this.resetLoading = false
+        this.loading = false
       }
+    },
+    
+    goToLanding() {
+      this.$router.push('/')
     }
   }
 }

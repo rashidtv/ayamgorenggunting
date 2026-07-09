@@ -4,497 +4,102 @@
     'stall-theme': user?.role === 'user',
     'dark-mode': darkMode
   }">
-    <!-- PWA Install Prompt -->
-    <div v-if="showInstallPrompt" class="pwa-install-prompt">
-      <div class="install-content">
-        <div class="install-info">
-          <div class="install-icon">🍗</div>
-          <div class="install-text">
-            <h3>Install Chickory Hub</h3>
-            <p>Get the app experience on your device</p>
+    <!-- Notifications -->
+    <div class="notifications-container">
+      <transition-group name="notification-slide">
+        <div v-for="(notification, index) in notifications" :key="notification.id"
+          :class="['notification', `notification-${notification.type}`]">
+          <div class="notification-icon">
+            <span v-if="notification.type === 'success'">✅</span>
+            <span v-else-if="notification.type === 'error'">❌</span>
+            <span v-else-if="notification.type === 'warning'">⚠️</span>
+            <span v-else>ℹ️</span>
           </div>
+          <div class="notification-content">
+            <div class="notification-title">{{ getNotificationTitle(notification.type) }}</div>
+            <div class="notification-message">{{ notification.message }}</div>
+          </div>
+          <button @click="removeNotification(index)" class="notification-close">
+            <span>×</span>
+          </button>
+          <div class="notification-progress" :style="{ width: notification.progress + '%' }"></div>
         </div>
-        <div class="install-actions">
-          <button @click="dismissInstall" class="btn btn-outline">Later</button>
-          <button @click="installPWA" class="btn btn-primary">Install</button>
-        </div>
-      </div>
+      </transition-group>
     </div>
 
-    <!-- ===== PUBLIC PAGES ===== -->
-    <template v-if="!user">
-
-    <ResetPassword 
-      v-if="showResetPassword && resetToken"
-      :token="resetToken"
-      @reset-complete="showResetPassword = false"
-    />
-      <!-- Landing Page -->
-      <LandingPage 
-        v-if="!showLogin"
-        @show-login="showLogin = true"
-        @show-notification="showNotification"
-      />
-      
-      <!-- Login Page -->
-      <Login 
-        v-else
-        @login-success="handleLoginSuccess"
-        @show-landing="showLogin = false"
-        :company-logo="companyLogo"
-      />
-    </template>
-
-    <!-- ===== AUTHENTICATED APP ===== -->
-    <div v-else class="app-layout">
-      <!-- Logo Upload Modal -->
-      <div v-if="logoUploadModal" class="modal-overlay" @click.self="logoUploadModal=false">
-        <div class="modal-modern">
-          <div class="modal-modern-header">
-            <h3>Upload Company Logo</h3>
-            <button @click="logoUploadModal=false" class="modal-close-btn">✕</button>
-          </div>
-          <div class="modal-modern-body">
-            <div class="logo-upload-area" @dragover.prevent @drop.prevent="handleLogoDrop">
-              <input type="file" ref="logoInput" accept="image/*" @change="handleLogoUpload" style="display:none" />
-              <button @click="$refs.logoInput.click()" class="btn-modern primary">
-                📁 Choose Image
-              </button>
-              <p class="upload-hint">Drag & drop or click to upload (PNG, JPG, SVG)</p>
-            </div>
-            <div v-if="tempLogoPreview" class="logo-preview">
-              <img :src="tempLogoPreview" alt="Logo preview" />
-            </div>
-          </div>
-          <div class="modal-modern-footer">
-            <button @click="logoUploadModal=false" class="btn-modern secondary">Cancel</button>
-            <button @click="saveLogo" class="btn-modern primary">Save Logo</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== GLOBAL HEADER ===== -->
-      <DashboardHeader 
-        :role-text="userRoleText"
-        :dark-mode="darkMode"
-        :notifications-enabled="notificationsEnabled"
-        :banner-url="systemBanner"
-        @toggle-dark-mode="toggleDarkMode"
-        @toggle-notifications="toggleNotifications"
-        @logout="logout"
-      />
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <div class="content-wrapper">
-          <div v-if="loading" class="loading-state">
-            <div class="loading-spinner"><div class="spinner-ring"></div></div>
-            <p>Loading your dashboard...</p>
-          </div>
-          <div v-else class="dashboard-container">
-            <template v-if="user && user.role">
-              <!-- Super Super Admin -->
-              <SuperSuperAdminPanel
-                v-if="user.role === 'super_super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              
-              <!-- Super Admin -->
-              <SuperAdminPanel
-                v-else-if="user.role === 'super_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-                :company-logo="companyLogo"
-              />
-              
-              <!-- Stall Admin -->
-              <StallAdminPanel
-                v-else-if="user.role === 'stall_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
-              
-              <!-- Cashier -->
-              <StallView
-                v-else-if="user.role === 'cashier' && isValidStallId"
-                :key="stallIdForView"
-                :stallId="stallIdForView"
-                :token="token || ''"
-                :role="user.role"
-                @show-notification="showNotification"
-              />
-            </template>
-          </div>
-        </div>
-      </main>
-
-      <!-- Notifications -->
-      <div class="notifications-container">
-        <transition-group name="notification-slide">
-          <div v-for="(notification, index) in notifications" :key="notification.id"
-            :class="['notification', `notification-${notification.type}`]">
-            <div class="notification-icon">
-              <span v-if="notification.type === 'success'">✅</span>
-              <span v-else-if="notification.type === 'error'">❌</span>
-              <span v-else-if="notification.type === 'warning'">⚠️</span>
-              <span v-else>ℹ️</span>
-            </div>
-            <div class="notification-content">
-              <div class="notification-title">{{ getNotificationTitle(notification.type) }}</div>
-              <div class="notification-message">{{ notification.message }}</div>
-            </div>
-            <button @click="removeNotification(index)" class="notification-close">
-              <span>×</span>
-            </button>
-            <div class="notification-progress" :style="{ width: notification.progress + '%' }"></div>
-          </div>
-        </transition-group>
-      </div>
-
-      <!-- Footer -->
-      <footer class="app-footer">
-        <div class="footer-content">
-          <div class="footer-brand">
-            <span class="footer-logo">🍗 Chickory Hub</span>
-            <span class="footer-version">v2.0</span>
-          </div>
-          <div class="footer-info">
-            <span class="status-indicator" :class="{ online: isOnline }">
-              <span class="status-dot"></span>
-              {{ isOnline ? 'System Online' : 'Offline Mode' }}
-            </span>
-            <span class="last-sync">Last updated: {{ lastUpdateTime }}</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+    <!-- Router View -->
+    <router-view @show-notification="showNotification" />
   </div>
 </template>
 
 <script>
-import axios from 'axios'
-import Login from './components/Login.vue';
-import LandingPage from './components/LandingPage.vue';
-import ResetPassword from './components/ResetPassword.vue';
-import StallView from './components/StallView.vue';
-import SuperAdminPanel from './components/SuperAdminPanel.vue';
-import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
-import StallAdminPanel from './components/StallAdminPanel.vue';
-import DashboardHeader from './components/DashboardHeader.vue';
-import { useAuthStore } from './stores/auth';
-import API_BASE from './config/api.js';
+import { useAuthStore } from './stores/auth'
 
 export default {
   name: 'App',
-  components: {
-    Login,
-    LandingPage,
-    ResetPassword,
-    StallView,
-    SuperAdminPanel,
-    SuperSuperAdminPanel,
-    StallAdminPanel,
-    DashboardHeader,
-  },
   data() {
     return {
-      user: null,
-      token: null,
       notifications: [],
-      darkMode: false,
-      loading: false,
-      lastUpdateTime: 'Just now',
-      isPWA: false,
-      showInstallPrompt: false,
-      deferredPrompt: null,
-      isOnline: true,
-      activeStallId: null,
-      notificationsEnabled: true,
-      companyLogo: localStorage.getItem('companyLogo') || null,
-      logoUploadModal: false,
-      tempLogoPreview: null,
-      tempLogoFile: null,
-      systemBanner: localStorage.getItem('systemBanner') || null,
-      showLogin: false,
-      showResetPassword: false,
-      resetToken: null,
-    };
+      darkMode: false
+    }
   },
   computed: {
-    authStore() {
-      return useAuthStore();
-    },
-    userRoleText() {
-      if (!this.user) return 'Guest';
-      const roleMap = {
-        'super_super_admin': 'Super Super Admin',
-        'super_admin': 'Super Admin',
-        'stall_admin': 'Stall Admin',
-        'cashier': 'Cashier'
-      };
-      return roleMap[this.user.role] || this.user.role || 'User';
-    },
-    stallIdForView() {
-      if (!this.user) return '';
-      if (this.user.role === 'super_super_admin' || this.user.role === 'super_admin' || this.user.role === 'stall_admin') {
-        return '';
-      }
-      const stallId = this.activeStallId || this.user.stall_id;
-      return stallId ? String(stallId) : '';
-    },
-    isValidStallId() {
-      const id = this.stallIdForView;
-      return id !== '' && id !== null && id !== undefined;
-    },
+    user() {
+      const authStore = useAuthStore()
+      return authStore.user
+    }
   },
-  watch: {
-    user: {
-      handler(newUser) {
-        if (newUser) {
-          const authStore = useAuthStore();
-          this.activeStallId = authStore.activeStallId || newUser.stall_id || null;
-        }
-      },
-      immediate: true,
-    },
-  },
-  
-  // ✅ mounted() is OUTSIDE methods, but INSIDE export default
   mounted() {
-    this.initializeApp();
-    this.initializePWA();
-    this.checkNetworkStatus();
-    
-    // ✅ Call handleUrlRouting on mount
-    this.handleUrlRouting();
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      this.showNotification('Something went wrong. Please try again.', 'error');
-    });
+    this.initializeApp()
   },
-  
   methods: {
-    // =============================================
-    // ROUTING HANDLING
-    // =============================================
-    handleUrlRouting() {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      
-      console.log('📍 Path:', path);
-      console.log('📍 Hash:', hash);
-      
-      // ✅ Handle /login from path OR hash
-      if (path === '/login' || hash === '#/login') {
-        this.showLogin = true;
-        console.log('🔐 Login page detected, showing login');
-        return;
+    initializeApp() {
+      // Dark mode
+      const storedDarkMode = localStorage.getItem('darkMode')
+      if (storedDarkMode === 'true') {
+        this.darkMode = true
+        document.documentElement.classList.add('dark-theme')
       }
       
-      // Handle /reset-password
-      if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        if (token) {
-          this.resetToken = token;
-          this.showResetPassword = true;
-          this.showLogin = false;
-          return;
-        }
-      }
-      
-      // If user is already logged in, stay on dashboard
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
-      if (storedUser && storedToken) {
-        this.showLogin = false;
-        return;
-      }
-      
-      // Default: show landing page
-      this.showLogin = false;
+      // Check for hash-based navigation (backward compatibility)
+      this.handleLegacyHashRouting()
     },
-
-    // =============================================
-    // LOGO MANAGEMENT
-    // =============================================
-    openLogoUpload() {
-      this.logoUploadModal = true
-    },
-    handleLogoUpload(event) {
-      const file = event.target.files[0]
-      if (file) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
+    
+    handleLegacyHashRouting() {
+      // Support old hash-based links
+      const hash = window.location.hash
+      if (hash) {
+        console.log('📍 Legacy hash detected:', hash)
       }
     },
-    handleLogoDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        this.tempLogoFile = file
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.tempLogoPreview = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    },
-    saveLogo() {
-      if (this.tempLogoPreview) {
-        this.companyLogo = this.tempLogoPreview
-        localStorage.setItem('companyLogo', this.tempLogoPreview)
-        this.logoUploadModal = false
-        this.showNotification('Logo updated successfully!', 'success')
-      }
-    },
-
-    // =============================================
-    // BANNER MANAGEMENT
-    // =============================================
-    async fetchBanner() {
-      try {
-        const response = await axios.get(`${API_BASE}/system/banner`)
-        if (response.data.bannerUrl) {
-          this.systemBanner = response.data.bannerUrl
-          localStorage.setItem('systemBanner', response.data.bannerUrl)
-        }
-      } catch (err) {
-        console.log('No system banner found')
-      }
-    },
-
-    // =============================================
-    // AUTHENTICATION
-    // =============================================
-    handleLoginSuccess(responseData) {
-      console.log('🔵 handleLoginSuccess called with:', responseData);
-      
-      const userData = responseData?.user;
-      const authToken = responseData?.token;
-      
-      if (!userData || !authToken) {
-        console.error('❌ Invalid login response:', responseData);
-        this.showNotification('Login failed. Please try again.', 'error');
-        return;
-      }
-
-      console.log('✅ User data extracted:', userData);
-      console.log('✅ Token extracted:', authToken);
-      
-      this.loading = true;
-      const authStore = useAuthStore();
-
-      const safeUserData = {
-        ...userData,
-        stall_id: userData.stall_id || null,
-        assigned_stalls: userData.assigned_stalls || [],
-      };
-
-      authStore.setUser(safeUserData, authToken);
-
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.user = safeUserData;
-          this.token = authToken;
-          this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          localStorage.setItem('user', JSON.stringify(safeUserData));
-          localStorage.setItem('token', authToken);
-          localStorage.setItem('darkMode', this.darkMode);
-          console.log('✅ User saved to localStorage:', localStorage.getItem('user'));
-          this.loading = false;
-          this.showLogin = false;
-          this.showNotification(`Welcome back, ${safeUserData.username}!`, 'success');
-          this.updateLastUpdateTime();
-          this.fetchBanner();
-        }, 500);
-      });
-    },
-
-    logout() {
-      const authStore = useAuthStore();
-      authStore.logout();
-      this.showNotification('Signing out...', 'info');
-
-      setTimeout(() => {
-        this.user = null;
-        this.token = null;
-        this.activeStallId = null;
-        this.showLogin = false;
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.showNotification('Signed out successfully', 'success');
-      }, 600);
-    },
-
-    // =============================================
-    // NOTIFICATIONS
-    // =============================================
+    
     showNotification(message, type = 'info') {
-      if (!this.notificationsEnabled) {
-        console.log(`[🔕 Notification disabled] ${type}: ${message}`);
-        return;
-      }
-      
       const notification = {
         message,
         type,
         id: Date.now() + Math.random(),
         progress: 100,
-      };
-      this.notifications.push(notification);
+      }
+      this.notifications.push(notification)
 
       const progressInterval = setInterval(() => {
-        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
+        const noteIndex = this.notifications.findIndex((n) => n.id === notification.id)
         if (noteIndex !== -1) {
-          this.notifications[noteIndex].progress -= 2;
+          this.notifications[noteIndex].progress -= 2
         }
-      }, 100);
+      }, 100)
 
       setTimeout(() => {
-        clearInterval(progressInterval);
-        const index = this.notifications.findIndex((n) => n.id === notification.id);
+        clearInterval(progressInterval)
+        const index = this.notifications.findIndex((n) => n.id === notification.id)
         if (index !== -1) {
-          this.notifications.splice(index, 1);
+          this.notifications.splice(index, 1)
         }
-      }, 5000);
-    },
-
-    toggleNotifications() {
-      this.notificationsEnabled = !this.notificationsEnabled;
-      localStorage.setItem('notificationsEnabled', JSON.stringify(this.notificationsEnabled));
-      
-      if (this.notificationsEnabled) {
-        this.showNotification('🔔 Notifications enabled', 'success');
-      } else {
-        const tempEnabled = this.notificationsEnabled;
-        this.notificationsEnabled = true;
-        const notification = {
-          message: '🔕 Notifications disabled',
-          type: 'info',
-          id: Date.now() + Math.random(),
-          progress: 100,
-        };
-        this.notifications.push(notification);
-        
-        setTimeout(() => {
-          const index = this.notifications.findIndex((n) => n.id === notification.id);
-          if (index !== -1) {
-            this.notifications.splice(index, 1);
-          }
-        }, 3000);
-        
-        this.notificationsEnabled = tempEnabled;
-      }
+      }, 5000)
     },
 
     removeNotification(index) {
-      this.notifications.splice(index, 1);
+      this.notifications.splice(index, 1)
     },
 
     getNotificationTitle(type) {
@@ -503,167 +108,15 @@ export default {
         error: 'Error',
         warning: 'Warning',
         info: 'Information',
-      };
-      return titles[type] || 'Notification';
-    },
-
-    // =============================================
-    // THEME
-    // =============================================
-    toggleDarkMode() {
-      this.darkMode = !this.darkMode;
-      localStorage.setItem('darkMode', this.darkMode);
-      this.applyTheme();
-      this.showNotification(
-        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
-        'info'
-      );
-    },
-
-    applyTheme() {
-      if (this.darkMode) {
-        document.documentElement.classList.add('dark-theme');
-      } else {
-        document.documentElement.classList.remove('dark-theme');
       }
-    },
-
-    updateLastUpdateTime() {
-      const now = new Date();
-      this.lastUpdateTime = now.toLocaleTimeString('en-MY', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    },
-
-    // =============================================
-    // PWA
-    // =============================================
-    initializePWA() {
-      this.isPWA =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        this.deferredPrompt = e;
-        setTimeout(() => {
-          this.showInstallPrompt = true;
-        }, 3000);
-      });
-
-      window.addEventListener('appinstalled', () => {
-        this.showInstallPrompt = false;
-        this.deferredPrompt = null;
-        this.isPWA = true;
-        this.showNotification('App installed successfully!', 'success');
-      });
-    },
-
-    async installPWA() {
-      if (this.deferredPrompt) {
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          this.showInstallPrompt = false;
-        }
-        this.deferredPrompt = null;
-      }
-    },
-
-    dismissInstall() {
-      this.showInstallPrompt = false;
-      localStorage.setItem('installPromptDismissed', Date.now().toString());
-    },
-
-    // =============================================
-    // NETWORK
-    // =============================================
-    checkNetworkStatus() {
-      this.isOnline = navigator.onLine;
-
-      window.addEventListener('online', () => {
-        this.isOnline = true;
-        this.showNotification('Connection restored', 'success');
-      });
-
-      window.addEventListener('offline', () => {
-        this.isOnline = false;
-        this.showNotification('Working in offline mode', 'warning');
-      });
-    },
-
-    // =============================================
-    // INIT
-    // =============================================
-    initializeApp() {
-      const storedDarkMode = localStorage.getItem('darkMode');
-      if (storedDarkMode === 'true') {
-        this.darkMode = true;
-      }
-      this.applyTheme();
-
-      const savedNotifications = localStorage.getItem('notificationsEnabled');
-      if (savedNotifications !== null) {
-        this.notificationsEnabled = JSON.parse(savedNotifications);
-      }
-
-      const savedLogo = localStorage.getItem('companyLogo');
-      if (savedLogo) {
-        this.companyLogo = savedLogo;
-      }
-
-      const savedBanner = localStorage.getItem('systemBanner');
-      if (savedBanner) {
-        this.systemBanner = savedBanner;
-      }
-
-      setInterval(() => {
-        this.updateLastUpdateTime();
-      }, 60000);
-
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
-
-      if (storedUser && storedToken) {
-        this.loading = true;
-        try {
-          const userData = JSON.parse(storedUser);
-          if (userData && typeof userData === 'object') {
-            const safeUserData = {
-              ...userData,
-              stall_id: userData.stall_id || null,
-              assigned_stalls: userData.assigned_stalls || [],
-            };
-            this.user = safeUserData;
-            this.token = storedToken;
-            const authStore = useAuthStore();
-            authStore.setUser(safeUserData, storedToken);
-            this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
-          } else {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-          }
-        } catch (error) {
-          console.error('Failed to parse user data:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-        } finally {
-          this.loading = false;
-          if (this.user) {
-            this.showNotification('Welcome back!', 'success');
-            this.updateLastUpdateTime();
-            this.fetchBanner();
-          }
-        }
-      }
-    },
-  }  // ✅ Only ONE closing brace for methods
-}  // ✅ Closing brace for export default
+      return titles[type] || 'Notification'
+    }
+  }
+}
 </script>
 
 <style>
-/* ===== ROOT VARIABLES - Keep existing ===== */
+/* ===== ROOT VARIABLES ===== */
 :root {
   --primary: #F94908;
   --primary-dark: #d63d07;
@@ -736,196 +189,10 @@ body {
   transition: var(--transition-slow);
 }
 
-.app-layout * {
-  transition: var(--transition);
-}
-
-/* ===== LAYOUT ===== */
-.app-layout {
+#app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* ===== LOGO UPLOAD MODAL ===== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-modern {
-  background: var(--surface);
-  border-radius: var(--radius);
-  max-width: 480px;
-  width: 92%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: fadeIn 0.2s ease;
-}
-
-.modal-modern-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-modern-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0 0.25rem;
-}
-
-.modal-close-btn:hover {
-  color: var(--text);
-}
-
-.modal-modern-body {
-  padding: 1.25rem;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.logo-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.logo-upload-area .btn-modern {
-  margin-bottom: 0.5rem;
-}
-
-.btn-modern {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.8rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-modern.primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-}
-
-.btn-modern.primary:hover {
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
-  transform: translateY(-1px);
-}
-
-.btn-modern.secondary {
-  background: var(--background);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-
-.btn-modern.secondary:hover {
-  background: var(--surface-elevated);
-  color: var(--text);
-}
-
-.upload-hint {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-}
-
-.logo-preview {
-  text-align: center;
-  margin-top: 0.5rem;
-}
-
-.logo-preview img {
-  max-width: 120px;
-  max-height: 120px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.modal-modern-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-/* ===== MAIN CONTENT ===== */
-.main-content {
-  flex: 1;
-  padding: var(--space-lg);
-}
-
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.dashboard-container {
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ===== LOADING ===== */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-xl);
-  color: var(--text-secondary);
-}
-
-.loading-spinner {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space);
-}
-
-.spinner-ring {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 3px solid transparent;
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* ===== NOTIFICATIONS ===== */
@@ -955,32 +222,19 @@ body {
   animation: slideInRight 0.3s ease-out;
 }
 
-.notification-success {
-  border-left-color: var(--success);
-}
-
-.notification-error {
-  border-left-color: var(--error);
-}
-
-.notification-warning {
-  border-left-color: var(--warning);
-}
-
-.notification-info {
-  border-left-color: var(--info);
-}
+.notification-success { border-left-color: var(--success); }
+.notification-error { border-left-color: var(--error); }
+.notification-warning { border-left-color: var(--warning); }
+.notification-info { border-left-color: var(--info); }
 
 .notification-slide-enter-active,
 .notification-slide-leave-active {
   transition: all 0.3s ease;
 }
-
 .notification-slide-enter-from {
   opacity: 0;
   transform: translateX(100%);
 }
-
 .notification-slide-leave-to {
   opacity: 0;
   transform: translateX(100%);
@@ -1032,166 +286,26 @@ body {
   transition: width 0.1s linear;
 }
 
-/* ===== FOOTER ===== */
-.app-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: var(--space) 0;
-  margin-top: auto;
-}
-
-.footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.footer-logo {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.footer-version {
-  background: var(--background);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 500;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--error);
-}
-
-.status-indicator.online .status-dot {
-  background: var(--success);
-}
-
-.last-sync {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: var(--font-size-xs);
-}
-
-/* ===== PWA ===== */
-.pwa-install-prompt {
-  position: fixed;
-  bottom: var(--space);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 10000;
-  max-width: 400px;
-  width: 90%;
-  animation: slideUp 0.3s ease-out;
-}
-
-.install-content {
-  padding: var(--space);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space);
-}
-
-.install-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.install-icon {
-  font-size: 2rem;
-  background: var(--primary-gradient);
-  color: white;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.install-text h3 {
-  font-size: var(--font-size);
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: var(--space-xs);
-}
-
-.install-text p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.install-actions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .main-content {
-    padding: var(--space);
-  }
-
-  .footer-content {
-    flex-direction: column;
-    gap: var(--space);
-    text-align: center;
-  }
-
   .notifications-container {
     left: var(--space);
     right: var(--space);
     max-width: none;
   }
-
   .notification {
     min-width: auto;
-  }
-}
-
-/* ===== PRINT ===== */
-@media print {
-  .app-header,
-  .notifications-container,
-  .app-footer,
-  .pwa-install-prompt {
-    display: none !important;
-  }
-
-  .main-content {
-    padding: 0;
   }
 }
 
