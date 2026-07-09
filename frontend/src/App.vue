@@ -270,12 +270,12 @@ export default {
   },
   
   mounted() {
-    this.initializeApp();
-    this.initializePWA();
-    this.checkNetworkStatus();
+  this.initializeApp();
+  this.initializePWA();
+  this.checkNetworkStatus();
 
-     // ✅ ADD THIS - Check if on first-login-reset page
-  if (window.location.hash === '#/first-login-reset') {
+  // ✅ Check for first-login-reset
+  if (window.location.hash === '#/first-login-reset' || window.location.hash.startsWith('#/first-login-reset')) {
     if (sessionStorage.getItem('needsPasswordReset')) {
       this.showFirstLoginReset = true;
       this.showLogin = false;
@@ -284,20 +284,35 @@ export default {
     }
   }
 
-  // ✅ ADD THIS - Check if needs reset (from session)
+  // ✅ Check for reset-password
+  if (window.location.hash.startsWith('#/reset-password')) {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const token = params.get('token');
+    if (token) {
+      this.resetToken = token;
+      this.showResetPassword = true;
+      this.showLogin = false;
+      this.showFirstLoginReset = false;
+      console.log('✅ Reset token found on mount:', token);
+    }
+  }
+
+  // ✅ Check session for reset
   if (sessionStorage.getItem('needsPasswordReset')) {
     this.showFirstLoginReset = true;
     this.showLogin = false;
   }
-    
-    this.handleUrlRouting();
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      this.showNotification('Something went wrong. Please try again.', 'error');
-    });
-    window.addEventListener('hashchange', this.handleUrlRouting);
-  },
+  
+  this.handleUrlRouting();
+  
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    this.showNotification('Something went wrong. Please try again.', 'error');
+  });
+  
+  // ✅ Listen for hash changes
+  window.addEventListener('hashchange', this.handleUrlRouting);
+},
   
   methods: {
     // =============================================
@@ -311,44 +326,50 @@ export default {
     // =============================================
     // ROUTING HANDLING
     // =============================================
-    handleUrlRouting() {
+ handleUrlRouting() {
   const path = window.location.pathname;
   const hash = window.location.hash;
   
   console.log('📍 Path:', path);
   console.log('📍 Hash:', hash);
   
-  // ✅ ADD THIS - Handle first-login-reset route
-  if (hash === '#/first-login-reset') {
+  // ✅ Handle first-login-reset
+  if (hash === '#/first-login-reset' || hash.startsWith('#/first-login-reset')) {
     console.log('🔄 First login reset page detected');
     if (sessionStorage.getItem('needsPasswordReset')) {
       this.showFirstLoginReset = true;
       this.showLogin = false;
       return;
     } else {
-      // If no reset needed, redirect to login
       window.location.hash = '#/login';
       return;
+    }
+  }
+  
+  // ✅ FIX: Handle reset-password - check if hash starts with #/reset-password
+  if (hash.startsWith('#/reset-password')) {
+    console.log('🔑 Reset password page detected');
+    // Extract token from hash
+    const params = new URLSearchParams(hash.split('?')[1] || '');
+    const token = params.get('token');
+    if (token) {
+      this.resetToken = token;
+      this.showResetPassword = true;
+      this.showLogin = false;
+      this.showFirstLoginReset = false;
+      console.log('✅ Reset token found:', token);
+      return;
+    } else {
+      console.log('❌ No token found in reset link');
     }
   }
   
   // Handle /login from path OR hash
   if (path === '/login' || hash === '#/login') {
     this.showLogin = true;
+    this.showFirstLoginReset = false;
     console.log('🔐 Login page detected, showing login');
     return;
-  }
-  
-  // Handle /reset-password
-  if (path.startsWith('/reset-password') || hash.startsWith('#/reset-password')) {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (token) {
-      this.resetToken = token;
-      this.showResetPassword = true;
-      this.showLogin = false;
-      return;
-    }
   }
   
   const storedUser = localStorage.getItem('user');
@@ -358,7 +379,10 @@ export default {
     return;
   }
   
+  // Default: show landing page
   this.showLogin = false;
+  this.showFirstLoginReset = false;
+  this.showResetPassword = false;
 },
 
     // =============================================

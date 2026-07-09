@@ -1,280 +1,365 @@
 <template>
-  <div class="reset-container">
-    <div class="reset-card">
-      <div class="reset-header">
-        <div class="reset-logo">🍗 Chickory Hub</div>
-        <h2>Set New Password</h2>
-        <p>Create a new password for your account</p>
+  <div class="reset-password-container">
+    <div class="reset-password-card">
+      <div class="reset-password-header">
+        <h2>🔐 Reset Your Password</h2>
+        <p>Enter your new password below.</p>
       </div>
-      
-      <form @submit.prevent="handleReset" class="reset-form">
+
+      <!-- Token Validation State -->
+      <div v-if="!tokenValidated" class="loading-state">
+        <div class="spinner"></div>
+        <p>Validating your reset link...</p>
+      </div>
+
+      <!-- Invalid Token State -->
+      <div v-else-if="!isValidToken" class="error-state">
+        <div class="error-icon">❌</div>
+        <h3>Invalid or Expired Link</h3>
+        <p>{{ error || 'The password reset link is invalid or has expired.' }}</p>
+        <button @click="goToLogin" class="btn-primary">Back to Login</button>
+      </div>
+
+      <!-- Reset Form -->
+      <form v-else @submit.prevent="handleReset" class="reset-form">
         <div class="form-group">
-          <label>New Password</label>
-          <input 
-            v-model="newPassword" 
-            type="password" 
+          <label for="newPassword">New Password</label>
+          <input
+            type="password"
+            id="newPassword"
+            v-model="newPassword"
+            required
             placeholder="Enter new password"
-            required
-            minlength="8"
+            autocomplete="new-password"
           />
-          <small>Password must be at least 8 characters</small>
+          <small>⚠️ Must be alphanumeric only (letters and numbers) and at least 8 characters</small>
         </div>
-        
+
         <div class="form-group">
-          <label>Confirm Password</label>
-          <input 
-            v-model="confirmPassword" 
-            type="password" 
-            placeholder="Confirm new password"
+          <label for="confirmPassword">Confirm Password</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            v-model="confirmPassword"
             required
+            placeholder="Confirm new password"
+            autocomplete="new-password"
           />
         </div>
-        
-        <div v-if="errorMessage" class="error-message">
-          ❌ {{ errorMessage }}
-        </div>
-        
-        <div v-if="successMessage" class="success-message">
-          ✅ {{ successMessage }}
-        </div>
-        
-        <button type="submit" class="btn-primary" :disabled="loading">
-          {{ loading ? 'Updating...' : 'Update Password' }}
+
+        <button type="submit" :disabled="loading" class="btn-primary">
+          <span v-if="loading">⏳ Resetting...</span>
+          <span v-else>Reset Password</span>
         </button>
+
+        <div v-if="error" class="error-message">{{ error }}</div>
+        <div v-if="success" class="success-message">{{ success }}</div>
       </form>
-      
-      <div class="reset-footer">
-        <a href="#" @click.prevent="goToLogin">← Back to Login</a>
-      </div>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios'
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chickoryhub.com/api'
+import axios from 'axios';
+import API_BASE from '../config/api.js';
 
 export default {
   name: 'ResetPassword',
   props: {
-    token: { type: String, required: true }
+    token: {
+      type: String,
+      default: ''
+    }
   },
   data() {
     return {
       newPassword: '',
       confirmPassword: '',
       loading: false,
-      errorMessage: '',
-      successMessage: '',
-      tokenValid: false
-    }
+      error: '',
+      success: '',
+      isValidToken: false,
+      tokenValidated: false,
+      resetToken: this.token || ''
+    };
   },
   mounted() {
-    this.validateToken()
+    console.log('🔑 ResetPassword mounted with token prop:', this.token);
+    this.extractTokenFromUrl();
+    if (this.resetToken) {
+      this.validateToken();
+    } else {
+      this.error = 'Missing reset token. Please use the link from your email.';
+      this.tokenValidated = true;
+      this.isValidToken = false;
+    }
   },
   methods: {
+    extractTokenFromUrl() {
+      // If token prop is empty, try to get from URL hash
+      if (!this.resetToken) {
+        const hash = window.location.hash;
+        if (hash.includes('?')) {
+          const params = new URLSearchParams(hash.split('?')[1]);
+          const urlToken = params.get('token');
+          if (urlToken) {
+            this.resetToken = urlToken;
+            console.log('✅ Token extracted from URL:', this.resetToken);
+            // Emit to parent so App.vue can update its state
+            this.$emit('token-received', this.resetToken);
+          }
+        }
+      }
+    },
+
     async validateToken() {
       try {
+        console.log('🔍 Validating token:', this.resetToken);
         const response = await axios.post(`${API_BASE}/auth/validate-reset-token`, {
-          token: this.token
-        })
-        this.tokenValid = response.data.valid
-        if (!this.tokenValid) {
-          this.errorMessage = 'Invalid or expired reset link. Please request a new one.'
+          token: this.resetToken
+        });
+        
+        if (response.data.valid) {
+          this.isValidToken = true;
+          console.log('✅ Token is valid');
+        } else {
+          this.error = 'Invalid or expired token. Please request a new password reset.';
+          this.isValidToken = false;
         }
       } catch (error) {
-        this.errorMessage = 'Invalid or expired reset link. Please request a new one.'
-        this.tokenValid = false
+        console.error('Token validation error:', error);
+        this.error = error.response?.data?.error || 'Failed to validate token. Please try again.';
+        this.isValidToken = false;
+      } finally {
+        this.tokenValidated = true;
       }
     },
+
     async handleReset() {
-      if (!this.tokenValid) {
-        this.errorMessage = 'Invalid or expired reset link'
-        return
-      }
-      
-      if (this.newPassword.length < 8) {
-        this.errorMessage = 'Password must be at least 8 characters'
-        return
-      }
-      
+      this.error = '';
+      this.success = '';
+
       if (this.newPassword !== this.confirmPassword) {
-        this.errorMessage = 'Passwords do not match'
-        return
+        this.error = '❌ Passwords do not match';
+        return;
       }
-      
-      this.loading = true
-      this.errorMessage = ''
-      
+
+      if (!/^[a-zA-Z0-9]+$/.test(this.newPassword)) {
+        this.error = '❌ Password must contain only letters and numbers';
+        return;
+      }
+
+      if (this.newPassword.length < 8) {
+        this.error = '❌ Password must be at least 8 characters long';
+        return;
+      }
+
+      this.loading = true;
+
       try {
-        await axios.post(`${API_BASE}/auth/reset-password`, {
-          token: this.token,
+        const response = await axios.post(`${API_BASE}/auth/reset-password`, {
+          token: this.resetToken,
           newPassword: this.newPassword
-        })
-        
-        this.successMessage = 'Password reset successfully! Redirecting to login...'
-        this.$emit('reset-complete')
+        });
+
+        this.success = '✅ Password reset successful! Redirecting to login...';
         
         setTimeout(() => {
-          this.goToLogin()
-        }, 3000)
-        
-      } catch (error) {
-        console.error('Reset error:', error)
-        this.errorMessage = error.response?.data?.error || 'Failed to reset password'
+          window.location.hash = '#/login';
+          window.location.reload();
+        }, 2000);
+
+      } catch (err) {
+        this.error = err.response?.data?.error || '❌ Failed to reset password. Please try again.';
+        console.error('Reset error:', err);
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
+
     goToLogin() {
-      window.location.href = '/'
+      window.location.hash = '#/login';
     }
   }
-}
+};
 </script>
 
 <style scoped>
-.reset-container {
+.reset-password-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
-  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
-.reset-card {
-  background: #ffffff;
-  border-radius: 16px;
+.reset-password-card {
+  background: white;
   padding: 2.5rem;
-  max-width: 400px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-width: 420px;
 }
 
-.reset-header {
+.reset-password-header {
   text-align: center;
   margin-bottom: 2rem;
 }
 
-.reset-logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #F94908;
+.reset-password-header h2 {
+  color: #1e293b;
+  font-size: 1.75rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
-.reset-header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 0.25rem;
+.reset-password-header p {
+  color: #64748b;
+  font-size: 0.95rem;
 }
 
-.reset-header p {
+.loading-state {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #F94908;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-state {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.error-state h3 {
+  color: #dc2626;
+  margin-bottom: 0.5rem;
+}
+
+.error-state p {
   color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+.reset-form .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.reset-form .form-group label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  color: #334155;
   font-size: 0.9rem;
 }
 
-.reset-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #475569;
-}
-
-.form-group input {
-  padding: 0.6rem 0.8rem;
-  border: 1.5px solid #e2e8f0;
+.reset-form .form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 0.95rem;
-  background: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: #f8fafc;
   color: #1e293b;
-  transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.reset-form .form-group input:focus {
   outline: none;
   border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
 }
 
-.form-group small {
-  font-size: 0.75rem;
+.reset-form .form-group small {
+  display: block;
+  margin-top: 0.375rem;
   color: #94a3b8;
-}
-
-.error-message {
-  color: #ef4444;
-  font-size: 0.85rem;
-  padding: 0.5rem;
-  background: rgba(239, 68, 68, 0.08);
-  border-radius: 6px;
-  text-align: center;
-}
-
-.success-message {
-  color: #10b981;
-  font-size: 0.85rem;
-  padding: 0.5rem;
-  background: rgba(16, 185, 129, 0.08);
-  border-radius: 6px;
-  text-align: center;
+  font-size: 0.8rem;
 }
 
 .btn-primary {
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #F94908, #fa6a2e);
+  width: 100%;
+  padding: 0.875rem;
+  background: #F94908;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
   margin-top: 0.5rem;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
+  background: #d63d07;
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
+  transform: none;
 }
 
-.reset-footer {
-  margin-top: 1.5rem;
-  text-align: center;
-}
-
-.reset-footer a {
-  color: #64748b;
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-
-.reset-footer a:hover {
+.btn-primary.outline {
+  background: transparent;
   color: #F94908;
+  border: 2px solid #F94908;
+}
+
+.btn-primary.outline:hover:not(:disabled) {
+  background: #F94908;
+  color: white;
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.success-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  color: #16a34a;
+  border-radius: 8px;
+  border: 1px solid #bbf7d0;
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 480px) {
-  .reset-card {
+  .reset-password-card {
     padding: 1.5rem;
+    margin: 10px;
   }
 }
 </style>
