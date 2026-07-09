@@ -257,7 +257,21 @@ async function sendRegistrationRejected(email, companyName, contactPerson, reaso
 // PASSWORD RESET
 // ============================================
 
-async function sendPasswordResetEmail(email, username, resetUrl) {
+async function sendPasswordResetEmail(email, username, resetTokenOrUrl) {
+  // Check if it's already a full URL or just a token
+  let resetUrl;
+  if (resetTokenOrUrl.startsWith('http://') || resetTokenOrUrl.startsWith('https://')) {
+    // It's a full URL, but we need to add the hash
+    // Convert: https://chickoryhub.com/reset-password?token=xxx
+    // To:      https://chickoryhub.com/#/reset-password?token=xxx
+    const url = new URL(resetTokenOrUrl);
+    resetUrl = `${url.origin}/#${url.pathname}${url.search}`;
+  } else {
+    // It's just a token
+    const baseUrl = process.env.APP_URL || 'https://chickoryhub.com';
+    resetUrl = `${baseUrl}/#/reset-password?token=${resetTokenOrUrl}`;
+  }
+  
   const html = createEmailTemplate({
     title: 'Reset Your Password',
     greeting: `Hi ${username},`,
