@@ -2009,20 +2009,15 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
 });
 
 // ============================================
-// GET REJECTION HISTORY
+// GET REJECTION HISTORY (PUBLIC - for email links)
 // ============================================
 
-app.get('/api/register/rejection-history/:id', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can view history
-  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  
+app.get('/api/register/rejection-history/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
     const result = await pool.query(
-      'SELECT rejection_count, rejection_history, last_rejection_date FROM registration_requests WHERE id = $1',
+      'SELECT rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE id = $1 OR email = $1',
       [id]
     );
     
@@ -2041,7 +2036,14 @@ app.get('/api/register/rejection-history/:id', authenticateToken, async (req, re
       rejection_history: history,
       last_rejection_date: data.last_rejection_date,
       max_attempts: 3,
-      attempts_remaining: 3 - (data.rejection_count || 0)
+      attempts_remaining: 3 - (data.rejection_count || 0),
+      original_data: {
+        company_name: data.company_name,
+        contact_person: data.contact_person,
+        email: data.email,
+        phone: data.phone,
+        ic_number: data.ic_number
+      }
     });
   } catch (err) {
     console.error('Get rejection history error:', err);

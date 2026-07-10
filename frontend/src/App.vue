@@ -14,6 +14,7 @@
     <!-- Resubmit Registration -->
     <ResubmitRegistration 
       v-if="showResubmitRegistration"
+      @close="showResubmitRegistration = false"
     />
 
     <!-- PWA Install Prompt -->
@@ -377,12 +378,12 @@ export default {
     }
   }
   
-// ✅ Handle resubmit-registration
-  if (hash.startsWith('#/resubmit-registration')) {
-    console.log('📝 Resubmit registration page detected');
-    this.showResubmitRegistration = true;
-    this.showLogin = false;
-    return;
+ // ✅ Handle resubmit-registration
+      if (hash.startsWith('#/resubmit-registration')) {
+        console.log('📝 Resubmit registration page detected');
+        this.showResubmitRegistration = true;
+        this.showLogin = false;
+        return;
       }
 
   // Handle /login from path OR hash
