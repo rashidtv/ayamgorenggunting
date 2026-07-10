@@ -185,10 +185,10 @@ export default {
     },
 
     goToLogin() {
-      // Emit close event to parent
-      this.$emit('close');
-      window.location.hash = '#/login';
-    }
+    // Emit close event to parent
+    this.$emit('close');
+    window.location.hash = '#/login';
+  }
   }
 };
 </script>

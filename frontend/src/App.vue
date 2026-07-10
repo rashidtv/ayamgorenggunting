@@ -5,6 +5,7 @@
     'dark-mode': darkMode
   }">
 
+    <!-- ===== FIRST LOGIN RESET - HIGHEST PRIORITY ===== -->
     <FirstLoginReset 
       v-if="showFirstLoginReset"
       @reset-complete="handleResetComplete"
@@ -37,7 +38,7 @@
       />
       
       <!-- Login Page with Reset Overlay -->
-      <div v-else class="login-page-wrapper">
+      <div v-else class="login-page-wrapper" style="position: relative; min-height: 100vh;">
         <!-- Login Page -->
         <Login 
           @login-success="handleLoginSuccess"
@@ -289,16 +290,16 @@ export default {
     }
   }
 
-  // ✅ Check for reset-password
+  // ✅ FIX: Check for reset-password
   if (window.location.hash.startsWith('#/reset-password')) {
     const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
     const token = params.get('token');
     if (token) {
       this.resetToken = token;
       this.showResetPassword = true;
-      this.showLogin = false;
+      this.showLogin = true;  // ✅ CRITICAL: Show login page
       this.showFirstLoginReset = false;
-      console.log('✅ Reset token found on mount:', token);
+      console.log('✅ Reset token found on mount, showing login with overlay');
     }
   }
 
@@ -351,18 +352,17 @@ export default {
     }
   }
   
-  // ✅ FIX: Handle reset-password - check if hash starts with #/reset-password
+  // ✅ FIX: Handle reset-password - MUST show login page
   if (hash.startsWith('#/reset-password')) {
     console.log('🔑 Reset password page detected');
-    // Extract token from hash
     const params = new URLSearchParams(hash.split('?')[1] || '');
     const token = params.get('token');
     if (token) {
       this.resetToken = token;
       this.showResetPassword = true;
-      this.showLogin = false;
+      this.showLogin = true;  // ✅ CRITICAL: Show login page
       this.showFirstLoginReset = false;
-      console.log('✅ Reset token found:', token);
+      console.log('✅ Reset token found, showing login with overlay');
       return;
     } else {
       console.log('❌ No token found in reset link');
