@@ -258,9 +258,11 @@ async function sendRegistrationRejected(email, companyName, contactPerson, reaso
 // ============================================
 
 async function sendPasswordResetEmail(email, username, resetToken) {
-  // Use hash-based routing for reset link
+  // resetToken should be just the token string, not a full URL
   const baseUrl = process.env.APP_URL || 'https://chickoryhub.com';
   const resetUrl = `${baseUrl}/#/reset-password?token=${resetToken}`;
+  
+  console.log('📧 Sending reset link:', resetUrl); // Debug log
   
   const html = createEmailTemplate({
     title: 'Reset Your Password',
@@ -271,7 +273,7 @@ async function sendPasswordResetEmail(email, username, resetToken) {
     `,
     ctaButton: {
       url: resetUrl,
-      text: '🔑 Reset Password'
+      text: 'Reset Password'
     },
     footerMessage: 'If you didn\'t request this, please ignore this email or contact support.'
   });

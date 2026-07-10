@@ -1947,7 +1947,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const resetUrl = `${process.env.APP_URL || 'https://chickoryhub.com'}/reset-password?token=${token}`;
     
     // Send email with reset link
-    await sendPasswordResetEmail(user.email, user.username, resetUrl);
+    await sendPasswordResetEmail(user.email, user.username, token);
     
     console.log(`🔑 Password reset link sent to ${user.email}`);
     
