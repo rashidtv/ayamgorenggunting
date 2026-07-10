@@ -89,8 +89,9 @@ export default {
     };
   },
   mounted() {
-    console.log('🔑 ResetPassword mounted with token prop:', this.token);
+    console.log('🔑 ResetPassword mounted');
     this.extractTokenFromUrl();
+    
     if (this.resetToken) {
       this.validateToken();
     } else {
@@ -101,36 +102,69 @@ export default {
   },
   methods: {
     extractTokenFromUrl() {
-      if (!this.resetToken) {
-        const hash = window.location.hash;
-        if (hash.includes('?')) {
-          const params = new URLSearchParams(hash.split('?')[1]);
-          const urlToken = params.get('token');
-          if (urlToken) {
-            this.resetToken = urlToken;
-            console.log('✅ Token extracted from URL:', this.resetToken);
-            this.$emit('token-received', this.resetToken);
-          }
+      // If token already provided via props, use it
+      if (this.resetToken) {
+        console.log('✅ Token from props:', this.resetToken);
+        return;
+      }
+      
+      // Method 1: Check URL hash directly
+      const hash = window.location.hash;
+      console.log('📍 Full hash:', hash);
+      
+      // Method 2: Extract using regex (most reliable)
+      const match = hash.match(/[?&]token=([^&]+)/);
+      if (match) {
+        this.resetToken = match[1];
+        console.log('✅ Token from regex:', this.resetToken);
+        return;
+      }
+      
+      // Method 3: Using URLSearchParams
+      if (hash.includes('?')) {
+        const params = new URLSearchParams(hash.split('?')[1]);
+        const urlToken = params.get('token');
+        if (urlToken) {
+          this.resetToken = urlToken;
+          console.log('✅ Token from URLSearchParams:', this.resetToken);
+          return;
         }
       }
+      
+      // Method 4: Check if token is in the URL path (fallback)
+      if (window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const urlToken = params.get('token');
+        if (urlToken) {
+          this.resetToken = urlToken;
+          console.log('✅ Token from search params:', this.resetToken);
+          return;
+        }
+      }
+      
+      console.log('❌ No token found in URL');
     },
 
     async validateToken() {
       try {
         console.log('🔍 Validating token:', this.resetToken);
+        
         const response = await axios.post(`${API_BASE}/auth/validate-reset-token`, {
           token: this.resetToken
         });
+        
+        console.log('🔍 Validation response:', response.data);
         
         if (response.data.valid) {
           this.isValidToken = true;
           console.log('✅ Token is valid');
         } else {
-          this.error = 'Invalid or expired token. Please request a new password reset.';
+          this.error = response.data.error || 'Invalid or expired token. Please request a new password reset.';
           this.isValidToken = false;
         }
       } catch (error) {
-        console.error('Token validation error:', error);
+        console.error('❌ Token validation error:', error);
+        console.error('❌ Error response:', error.response?.data);
         this.error = error.response?.data?.error || 'Failed to validate token. Please try again.';
         this.isValidToken = false;
       } finally {
@@ -165,6 +199,7 @@ export default {
           newPassword: this.newPassword
         });
 
+        console.log('✅ Reset response:', response.data);
         this.success = '✅ Password reset successful! Redirecting to login...';
         
         // Emit reset complete event to parent
@@ -177,7 +212,8 @@ export default {
         }, 2000);
 
       } catch (err) {
-        console.error('Reset error:', err);
+        console.error('❌ Reset error:', err);
+        console.error('❌ Error response:', err.response?.data);
         this.error = err.response?.data?.error || 'Failed to reset password. Please try again.';
       } finally {
         this.loading = false;
@@ -185,10 +221,10 @@ export default {
     },
 
     goToLogin() {
-    // Emit close event to parent
-    this.$emit('close');
-    window.location.hash = '#/login';
-  }
+      // Emit close event to parent
+      this.$emit('close');
+      window.location.hash = '#/login';
+    }
   }
 };
 </script>

@@ -1962,14 +1962,14 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-/**
- * POST /api/auth/validate-reset-token
- * Validate password reset token
- */
 app.post('/api/auth/validate-reset-token', async (req, res) => {
   const { token } = req.body;
   
+  console.log('🔍 Validating token:', token);
+  console.log('🔍 Token length:', token?.length);
+  
   if (!token) {
+    console.log('❌ No token provided');
     return res.status(400).json({ error: 'Token is required' });
   }
 
@@ -1980,7 +1980,20 @@ app.post('/api/auth/validate-reset-token', async (req, res) => {
       [token]
     );
     
+    console.log('🔍 Query result rows:', result.rows.length);
+    console.log('🔍 Current time:', new Date().toISOString());
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Token found:', {
+        id: result.rows[0].id,
+        user_id: result.rows[0].user_id,
+        expires_at: result.rows[0].expires_at,
+        used: result.rows[0].used
+      });
+    }
+    
     if (result.rows.length === 0) {
+      console.log('❌ No valid token found');
       return res.status(400).json({ 
         valid: false, 
         error: 'Invalid or expired token' 
@@ -1990,7 +2003,7 @@ app.post('/api/auth/validate-reset-token', async (req, res) => {
     res.json({ valid: true });
     
   } catch (err) {
-    console.error('Validate token error:', err);
+    console.error('❌ Validate token error:', err);
     res.status(500).json({ error: 'Failed to validate token' });
   }
 });
