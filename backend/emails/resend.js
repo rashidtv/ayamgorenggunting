@@ -225,23 +225,59 @@ async function sendRegistrationApproved(email, companyName, contactPerson, usern
 }
 
 // ============================================
-// REGISTRATION REJECTED
+// REGISTRATION REJECTED (WITH RESUBMIT INFO)
 // ============================================
 
-async function sendRegistrationRejected(email, companyName, contactPerson, reason) {
+async function sendRegistrationRejected(email, companyName, contactPerson, reason, rejectionCount = 1) {
   const name = contactPerson || 'Customer';
-  const rejectionReason = reason || 'No reason provided';
-
+  const maxAttempts = 3;
+  const attemptsLeft = maxAttempts - rejectionCount;
+  const canResubmit = attemptsLeft > 0;
+  
+  let resubmitMessage = '';
+  if (canResubmit) {
+    resubmitMessage = `
+      <div style="background: #fef3c7; padding: 12px 16px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 16px 0;">
+        <p style="margin: 0; color: #92400e; font-weight: 600;">
+          📝 You have ${attemptsLeft} attempt(s) remaining to resubmit your registration.
+        </p>
+        <p style="margin: 4px 0 0 0; color: #92400e; font-size: 14px;">
+          Please correct the issues mentioned above and resubmit your application.
+        </p>
+        <p style="margin: 4px 0 0 0; color: #92400e; font-size: 14px;">
+          <a href="${process.env.APP_URL || 'https://chickoryhub.com'}/#/resubmit-registration?id=${email}" 
+             style="color: #F94908; font-weight: 600; text-decoration: underline;">
+            Click here to resubmit
+          </a>
+        </p>
+      </div>
+    `;
+  } else {
+    resubmitMessage = `
+      <div style="background: #fef2f2; padding: 12px 16px; border-radius: 8px; border-left: 4px solid #dc2626; margin: 16px 0;">
+        <p style="margin: 0; color: #991b1b; font-weight: 600;">
+          ⚠️ You have reached the maximum number of attempts (${maxAttempts}).
+        </p>
+        <p style="margin: 4px 0 0 0; color: #991b1b; font-size: 14px;">
+          Please contact our support team for further assistance.
+        </p>
+        <p style="margin: 4px 0 0 0; color: #991b1b; font-size: 14px;">
+          Support: support@chickoryhub.com
+        </p>
+      </div>
+    `;
+  }
+  
   const html = createEmailTemplate({
     title: 'Registration Update',
     greeting: `Dear ${name},`,
     content: `
       <p>We regret to inform you that your registration request for <strong>${companyName}</strong> has been declined.</p>
-    `,
-    highlightBox: `
-      <p style="margin: 0; font-size: 14px; color: #991b1b;">
-        <strong>Reason:</strong> ${rejectionReason}
-      </p>
+      <div style="background: #fef2f2; padding: 12px 16px; border-radius: 8px; border-left: 4px solid #dc2626; margin: 16px 0;">
+        <p style="margin: 0; color: #991b1b; font-weight: 600;">Reason (Attempt ${rejectionCount} of ${maxAttempts}):</p>
+        <p style="margin: 4px 0 0 0; color: #991b1b;">${reason}</p>
+      </div>
+      ${resubmitMessage}
     `,
     footerMessage: 'If you have any questions, please contact our support team.'
   });

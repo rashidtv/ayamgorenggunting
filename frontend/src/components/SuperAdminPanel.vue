@@ -595,9 +595,15 @@
                     </a>
                   </div>
                   <div v-if="reg.status === 'rejected'" class="registration-reason">
-                    <span class="rejection-label">❌ Rejection reason:</span>
-                    <span class="rejection-text">{{ reg.rejection_reason }}</span>
-                  </div>
+  <span class="rejection-label">❌ Rejection reason:</span>
+  <span class="rejection-text">{{ reg.rejection_reason }}</span>
+  <!-- ✅ ADD REJECTION HISTORY -->
+  <div v-if="reg.rejection_count > 1" class="rejection-history-link">
+    <button @click="viewRejectionHistory(reg.id)" class="btn-link">
+      View all {{ reg.rejection_count }} rejection(s)
+    </button>
+  </div>
+</div>
                 </div>
                 
                 <div v-if="reg.status === 'pending'" class="registration-actions">
@@ -888,6 +894,39 @@
   </div>
 </div>
 
+<!-- ============================================ -->
+<!-- REJECTION HISTORY MODAL                     -->
+<!-- ============================================ -->
+<div v-if="showHistoryModal" class="modal-overlay" @click.self="showHistoryModal = false">
+  <div class="modal-modern">
+    <div class="modal-modern-header">
+      <h3>📋 Rejection History</h3>
+      <button @click="showHistoryModal = false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div v-if="rejectionHistory.length === 0" class="empty-state-modern">
+        <span>📭</span>
+        <p>No rejection history for this registration.</p>
+      </div>
+      <div v-for="(item, index) in rejectionHistory" :key="index" class="history-item">
+        <div class="history-header">
+          <span class="attempt-badge">Attempt {{ item.attempt }}</span>
+          <span class="history-date">{{ formatDate(item.rejected_at) }}</span>
+        </div>
+        <div class="history-reason">
+          <strong>Reason:</strong> {{ item.reason }}
+        </div>
+        <div class="history-rejected-by">
+          <strong>Rejected by:</strong> {{ item.rejected_by }}
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="showHistoryModal = false" class="btn-modern secondary">Close</button>
+    </div>
+  </div>
+</div>
+
     <!-- ============================================ -->
     <!-- VIEW RECEIPT MODAL                           -->
     <!-- ============================================ -->
@@ -1016,6 +1055,8 @@ export default {
       // Data
       dropdownOpen: false,
       periodDropdownOpen: false,
+      showHistoryModal: false,
+      rejectionHistory: [],
       stalls: [],
       users: [],
       lowStock: [],
@@ -1249,6 +1290,35 @@ export default {
       }
     },
     
+    // =============================================
+// REJECTION HISTORY
+// =============================================
+async viewRejectionHistory(requestId) {
+  try {
+    const response = await axios.get(
+      `${API_BASE}/register/rejection-history/${requestId}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    this.rejectionHistory = response.data.rejection_history || [];
+    this.showHistoryModal = true;
+  } catch (error) {
+    console.error('Error fetching rejection history:', error);
+    this.$emit('show-notification', 'Failed to load rejection history', 'error');
+  }
+},
+
+formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-MY', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+},
+
     // =============================================
     // FORMATTING
     // =============================================
@@ -4628,4 +4698,66 @@ downloadReceipt() {
     font-size: 0.8rem;
   }
 }
+
+/* ============================================ */
+/* REJECTION HISTORY                            */
+/* ============================================ */
+.history-item {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid #F94908;
+}
+
+.history-item:last-child {
+  margin-bottom: 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.attempt-badge {
+  background: #F94908;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.history-date {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.history-reason,
+.history-rejected-by {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin: 0.125rem 0;
+}
+
+.rejection-history-link {
+  margin-top: 0.25rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #F94908;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.btn-link:hover {
+  color: #d63d07;
+}
+
 </style>

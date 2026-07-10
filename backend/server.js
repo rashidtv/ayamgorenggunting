@@ -1844,7 +1844,10 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// server.js - Reject registration route (FIXED)
+// ============================================
+// REJECT REGISTRATION (WITH HISTORY)
+// ============================================
+
 app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   // Only super_super_admin and super_admin can reject
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
@@ -1854,41 +1857,237 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { rejection_reason } = req.body;
   
-  // ✅ Validate rejection reason
+  // Validate rejection reason
   if (!rejection_reason || rejection_reason.trim() === '') {
     return res.status(400).json({ error: 'Rejection reason is required' });
   }
   
   try {
-    // ✅ Update the registration request with rejection reason
+    // Get current rejection count and history
+    const currentRes = await pool.query(
+      'SELECT rejection_count, rejection_history FROM registration_requests WHERE id = $1 AND status = $2',
+      [id, 'pending']
+    );
+    
+    if (currentRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Registration request not found or already processed' });
+    }
+    
+    const current = currentRes.rows[0];
+    const newCount = (current.rejection_count || 0) + 1;
+    
+    // Build new rejection history entry
+    const rejectionEntry = {
+      attempt: newCount,
+      reason: rejection_reason.trim(),
+      rejected_by: req.user.username,
+      rejected_by_id: req.user.id,
+      rejected_at: new Date().toISOString()
+    };
+    
+    // Update history
+    let history = current.rejection_history || [];
+    if (typeof history === 'string') {
+      history = JSON.parse(history);
+    }
+    history.push(rejectionEntry);
+    
+    // Update the registration request
     const result = await pool.query(
       `UPDATE registration_requests 
        SET status = 'rejected', 
-           rejection_reason = $1, 
-           updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2 AND status = 'pending'
-       RETURNING email, company_name, contact_person, rejection_reason`,
-      [rejection_reason.trim(), id]
+           rejection_reason = $1,
+           rejection_count = $2,
+           rejection_history = $3,
+           last_rejection_date = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4 AND status = 'pending'
+       RETURNING email, company_name, contact_person, rejection_reason, rejection_count`,
+      [rejection_reason.trim(), newCount, JSON.stringify(history), id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Registration request not found or already processed' });
     }
     
-    const { email, company_name, contact_person, rejection_reason: savedReason } = result.rows[0];
+    const { email, company_name, contact_person, rejection_reason: savedReason, rejection_count } = result.rows[0];
     
-    // ✅ Send rejection email with the saved reason
+    // Send rejection email
     await sendRegistrationRejected(
       email,
       company_name,
       contact_person || 'Customer',
-      savedReason || 'No reason provided'
+      savedReason || 'No reason provided',
+      rejection_count
     );
     
-    res.json({ success: true, message: 'Registration rejected' });
+    res.json({ 
+      success: true, 
+      message: 'Registration rejected',
+      rejection_count: rejection_count,
+      can_resubmit: rejection_count < 3
+    });
   } catch (err) {
     console.error('Rejection error:', err);
     res.status(500).json({ error: 'Failed to reject registration' });
+  }
+});
+
+// ============================================
+// RESUBMIT REGISTRATION
+// ============================================
+
+app.post('/api/register/resubmit/:id', async (req, res) => {
+  const { id } = req.params;
+  const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
+  
+  try {
+    // Get current registration request
+    const currentRes = await pool.query(
+      'SELECT * FROM registration_requests WHERE id = $1 AND status = $2',
+      [id, 'rejected']
+    );
+    
+    if (currentRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Registration request not found or not rejected' });
+    }
+    
+    const current = currentRes.rows[0];
+    
+    // Check if max resubmit attempts reached
+    if (current.rejection_count >= 3) {
+      return res.status(400).json({ 
+        error: 'Maximum resubmit attempts reached. Please contact support.' 
+      });
+    }
+    
+    // Validate required fields
+    if (!company_name || !contact_person || !email || !phone || !ic_number) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    // Validate IC number format
+    const icRegex = /^\d{6}-\d{2}-\d{4}$/;
+    if (!icRegex.test(ic_number)) {
+      return res.status(400).json({ error: 'Invalid IC number format. Use: XXXXXX-XX-XXXX' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Update the registration request
+    await pool.query(
+      `UPDATE registration_requests 
+       SET company_name = $1,
+           contact_person = $2,
+           email = $3,
+           phone = $4,
+           ic_number = $5,
+           payment_receipt = COALESCE($6, payment_receipt),
+           status = 'pending',
+           rejection_reason = NULL,
+           resubmitted_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7`,
+      [company_name, contact_person, email, phone, ic_number, payment_receipt || null, id]
+    );
+    
+    // Send confirmation email
+    await sendRegistrationReceived(email, company_name, contact_person);
+    
+    res.json({ 
+      success: true, 
+      message: 'Registration resubmitted successfully! Please wait for approval.' 
+    });
+  } catch (err) {
+    console.error('Resubmit error:', err);
+    res.status(500).json({ error: 'Failed to resubmit registration' });
+  }
+});
+
+// ============================================
+// GET REJECTION HISTORY
+// ============================================
+
+app.get('/api/register/rejection-history/:id', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can view history
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT rejection_count, rejection_history, last_rejection_date FROM registration_requests WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Registration request not found' });
+    }
+    
+    const data = result.rows[0];
+    let history = data.rejection_history || [];
+    if (typeof history === 'string') {
+      history = JSON.parse(history);
+    }
+    
+    res.json({
+      rejection_count: data.rejection_count || 0,
+      rejection_history: history,
+      last_rejection_date: data.last_rejection_date,
+      max_attempts: 3,
+      attempts_remaining: 3 - (data.rejection_count || 0)
+    });
+  } catch (err) {
+    console.error('Get rejection history error:', err);
+    res.status(500).json({ error: 'Failed to get rejection history' });
+  }
+});
+
+// ============================================
+// AUTO-DELETE REJECTED REGISTRATIONS (30 days)
+// ============================================
+
+app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
+  // Only super_super_admin can trigger cleanup
+  if (req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // First, get the items to be deleted (for logging)
+    const itemsToDelete = await pool.query(
+      'SELECT id, company_name, email, updated_at FROM registration_requests WHERE status = $1 AND updated_at < $2',
+      ['rejected', thirtyDaysAgo.toISOString()]
+    );
+    
+    console.log(`🗑️ Found ${itemsToDelete.rows.length} registrations to delete`);
+    
+    // Delete the items
+    const result = await pool.query(
+      `DELETE FROM registration_requests 
+       WHERE status = 'rejected' 
+       AND updated_at < $1
+       RETURNING id, company_name, email`,
+      [thirtyDaysAgo.toISOString()]
+    );
+    
+    res.json({ 
+      success: true, 
+      deleted_count: result.rows.length,
+      deleted_items: result.rows
+    });
+  } catch (err) {
+    console.error('Cleanup error:', err);
+    res.status(500).json({ error: 'Failed to cleanup registrations' });
   }
 });
 

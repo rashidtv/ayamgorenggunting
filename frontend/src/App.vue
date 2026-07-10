@@ -11,6 +11,11 @@
       @reset-complete="handleResetComplete"
     />
     
+    <!-- Resubmit Registration -->
+    <ResubmitRegistration 
+      v-if="showResubmitRegistration"
+    />
+
     <!-- PWA Install Prompt -->
     <div v-if="showInstallPrompt" class="pwa-install-prompt">
       <div class="install-content">
@@ -190,6 +195,7 @@ import Login from './components/Login.vue';
 import LandingPage from './components/LandingPage.vue';
 import FirstLoginReset from './components/FirstLoginReset.vue';
 import ResetPassword from './components/ResetPassword.vue';
+import ResubmitRegistration from './components/ResubmitRegistration.vue';
 import StallView from './components/StallView.vue';
 import SuperAdminPanel from './components/SuperAdminPanel.vue';
 import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
@@ -208,6 +214,7 @@ export default {
     SuperAdminPanel,
     SuperSuperAdminPanel,
     FirstLoginReset,
+    ResubmitRegistration,
     StallAdminPanel,
     DashboardHeader,
   },
@@ -225,6 +232,7 @@ export default {
       deferredPrompt: null,
       isOnline: true,
       activeStallId: null,
+      showResubmitRegistration: false,
       notificationsEnabled: true,
       companyLogo: localStorage.getItem('companyLogo') || null,
       logoUploadModal: false,
@@ -369,6 +377,14 @@ export default {
     }
   }
   
+// ✅ Handle resubmit-registration
+  if (hash.startsWith('#/resubmit-registration')) {
+    console.log('📝 Resubmit registration page detected');
+    this.showResubmitRegistration = true;
+    this.showLogin = false;
+    return;
+      }
+
   // Handle /login from path OR hash
   if (path === '/login' || hash === '#/login') {
     this.showLogin = true;
