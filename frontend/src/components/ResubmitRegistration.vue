@@ -177,38 +177,70 @@
       </div>
     </div>
     
-    <!-- ✅ Receipt View Modal -->
-    <div v-if="showReceiptModal" class="receipt-modal-overlay" @click.self="showReceiptModal = false">
-      <div class="receipt-modal">
-        <div class="receipt-modal-header">
-          <h3>📎 Payment Receipt</h3>
-          <button @click="showReceiptModal = false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="receipt-modal-body">
-          <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')" class="receipt-image-container">
-            <img :src="viewReceiptUrl" alt="Payment Receipt" class="receipt-image" />
-          </div>
-          <div v-else-if="viewReceiptUrl && viewReceiptUrl.includes('.pdf')" class="receipt-pdf-container">
-            <div class="pdf-placeholder">
-              <span class="pdf-icon">📄</span>
-              <p>PDF Receipt</p>
-              <button @click="downloadReceipt" class="btn-primary" style="margin-top: 0.5rem;">
-                ⬇️ Download PDF
-              </button>
-            </div>
-          </div>
-          <div v-else-if="viewReceiptUrl" class="receipt-url-container">
-            <p>Receipt URL: <a :href="viewReceiptUrl" target="_blank">{{ viewReceiptUrl }}</a></p>
-          </div>
-          <div v-else class="receipt-empty">
-            <p>No receipt available to view.</p>
-          </div>
-        </div>
-        <div class="receipt-modal-footer">
-          <button @click="showReceiptModal = false" class="btn-secondary">Close</button>
+    <!-- Receipt View Modal -->
+<div v-if="showReceiptModal" class="receipt-modal-overlay" @click.self="showReceiptModal = false">
+  <div class="receipt-modal">
+    <div class="receipt-modal-header">
+      <h3>📎 Payment Receipt</h3>
+      <button @click="showReceiptModal = false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="receipt-modal-body">
+      <!-- Image Receipt -->
+      <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')" class="receipt-image-container">
+        <img :src="viewReceiptUrl" alt="Payment Receipt" class="receipt-image" />
+        <div class="receipt-actions-bar">
+          <button @click="downloadReceipt" class="btn-download">⬇️ Download</button>
         </div>
       </div>
+      
+      <!-- PDF Receipt - Enhanced -->
+      <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.startsWith('data:application/pdf'))" class="receipt-pdf-container">
+        <!-- PDF Viewer -->
+        <div v-if="viewReceiptUrl.startsWith('data:application/pdf')" class="pdf-viewer">
+          <embed 
+            :src="viewReceiptUrl" 
+            type="application/pdf" 
+            class="pdf-embed"
+            width="100%"
+            height="500px"
+          />
+        </div>
+        <div v-else class="pdf-placeholder">
+          <span class="pdf-icon">📄</span>
+          <p>PDF Receipt</p>
+          <div class="pdf-actions">
+            <button @click="viewPdfInline" class="btn-primary" style="margin-right: 0.5rem;">
+              👁️ View PDF
+            </button>
+            <button @click="downloadReceipt" class="btn-primary">
+              ⬇️ Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Regular URL Image -->
+      <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')" class="receipt-url-container">
+        <div class="receipt-actions-bar">
+          <button @click="downloadReceipt" class="btn-download">⬇️ Download</button>
+          <a :href="viewReceiptUrl" target="_blank" class="btn-download">🔗 Open in New Tab</a>
+        </div>
+        <div class="receipt-image-container">
+          <img :src="viewReceiptUrl" alt="Payment Receipt" class="receipt-image" />
+        </div>
+      </div>
+      
+      <!-- No receipt -->
+      <div v-else class="receipt-empty">
+        <span class="empty-icon">📭</span>
+        <p>No receipt available to view.</p>
+      </div>
     </div>
+    <div class="receipt-modal-footer">
+      <button @click="showReceiptModal = false" class="btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -247,17 +279,37 @@ export default {
     };
   },
   computed: {
-    isFormValid() {
-      const hasReceipt = this.existingReceipt || this.form.payment_receipt;
-      return this.isDataLoaded &&
+  isFormValid() {
+    // ✅ All fields must be filled AND either have a receipt or a new file selected
+    const hasReceipt = this.existingReceipt || this.form.payment_receipt;
+    
+    // Log for debugging
+    console.log('🔍 Form validation:', {
+      isDataLoaded: this.isDataLoaded,
+      company_name: !!this.form.company_name?.trim(),
+      contact_person: !!this.form.contact_person?.trim(),
+      email: !!this.form.email?.trim(),
+      phone: !!this.form.phone?.trim(),
+      ic_number: !!this.form.ic_number?.trim(),
+      hasReceipt: hasReceipt,
+      result: this.isDataLoaded &&
         this.form.company_name?.trim() &&
         this.form.contact_person?.trim() &&
         this.form.email?.trim() &&
         this.form.phone?.trim() &&
         this.form.ic_number?.trim() &&
-        hasReceipt;
-    }
-  },
+        hasReceipt
+    });
+    
+    return this.isDataLoaded &&
+      this.form.company_name?.trim() &&
+      this.form.contact_person?.trim() &&
+      this.form.email?.trim() &&
+      this.form.phone?.trim() &&
+      this.form.ic_number?.trim() &&
+      hasReceipt;
+  }
+},
   mounted() {
     this.extractRequestId();
     if (this.requestId) {
@@ -278,6 +330,55 @@ export default {
       }
     },
 
+    // ✅ View existing receipt - opens modal
+viewExistingReceipt() {
+  if (this.existingReceipt) {
+    this.viewReceiptUrl = this.existingReceipt;
+    this.showReceiptModal = true;
+    console.log('📎 Viewing receipt:', this.existingReceipt.substring(0, 100) + '...');
+    
+    // If it's a PDF, we might need to handle it differently
+    if (this.existingReceipt.includes('.pdf') || this.existingReceipt.startsWith('data:application/pdf')) {
+      console.log('📄 PDF receipt detected');
+    }
+  } else {
+    this.$emit('show-notification', 'No receipt available to view.', 'warning');
+  }
+},
+
+// ✅ View PDF inline
+viewPdfInline() {
+  if (this.viewReceiptUrl) {
+    // Open in new tab for better PDF viewing
+    window.open(this.viewReceiptUrl, '_blank');
+  }
+},
+
+// ✅ Download receipt
+downloadReceipt() {
+  if (this.viewReceiptUrl) {
+    let filename = 'receipt-' + Date.now();
+    
+    // Determine file extension
+    if (this.viewReceiptUrl.includes('.pdf')) {
+      filename += '.pdf';
+    } else if (this.viewReceiptUrl.includes('.jpg') || this.viewReceiptUrl.includes('.jpeg')) {
+      filename += '.jpg';
+    } else if (this.viewReceiptUrl.includes('.png')) {
+      filename += '.png';
+    } else {
+      filename += '.pdf'; // default
+    }
+    
+    const link = document.createElement('a');
+    link.href = this.viewReceiptUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.$emit('show-notification', 'Download started!', 'success');
+  }
+}
     async loadRegistrationData() {
       this.loading = true;
       this.error = '';
@@ -382,85 +483,87 @@ export default {
     },
 
     async handleResubmit() {
-      this.submitError = '';
-      this.submitSuccess = '';
+  this.submitError = '';
+  this.submitSuccess = '';
 
-      // Validate IC format
-      const icRegex = /^\d{6}-\d{2}-\d{4}$/;
-      if (!icRegex.test(this.form.ic_number)) {
-        this.submitError = 'Invalid IC number format. Use: XXXXXX-XX-XXXX';
-        return;
+  // Validate IC format
+  const icRegex = /^\d{6}-\d{2}-\d{4}$/;
+  if (!icRegex.test(this.form.ic_number)) {
+    this.submitError = 'Invalid IC number format. Use: XXXXXX-XX-XXXX';
+    return;
+  }
+
+  // Validate email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(this.form.email)) {
+    this.submitError = 'Invalid email format.';
+    return;
+  }
+
+  // Check if there's a receipt (either existing or new)
+  if (!this.existingReceipt && !this.form.payment_receipt) {
+    this.submitError = 'Payment receipt is required. Please upload a receipt.';
+    return;
+  }
+
+  // Check if all fields are filled
+  if (!this.isFormValid) {
+    this.submitError = 'Please fill in all required fields.';
+    return;
+  }
+
+  this.submitting = true;
+
+  try {
+    // ✅ Build form data
+    const formData = new FormData();
+    formData.append('company_name', this.form.company_name);
+    formData.append('contact_person', this.form.contact_person);
+    formData.append('email', this.form.email);
+    formData.append('phone', this.form.phone);
+    formData.append('ic_number', this.form.ic_number);
+    
+    // ✅ Handle receipt properly
+    if (this.form.payment_receipt) {
+      // User uploaded a new file - send as file
+      formData.append('payment_receipt', this.form.payment_receipt);
+    } else if (this.existingReceipt) {
+      // User kept existing receipt - send as string
+      // The backend will handle it as a string
+      formData.append('payment_receipt', this.existingReceipt);
+    }
+
+    const response = await axios.post(
+      `${API_BASE}/register/resubmit/${this.requestId}`,
+      formData,
+      { 
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        } 
       }
+    );
 
-      // Validate email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.form.email)) {
-        this.submitError = 'Invalid email format.';
-        return;
+    if (response.data.success) {
+      this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
+      
+      // Clear form
+      this.form.payment_receipt = null;
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = '';
       }
-
-      // Check if there's a receipt (either existing or new)
-      if (!this.existingReceipt && !this.form.payment_receipt) {
-        this.submitError = 'Payment receipt is required. Please upload a receipt.';
-        return;
-      }
-
-      // Check if all fields are filled
-      if (!this.isFormValid) {
-        this.submitError = 'Please fill in all required fields.';
-        return;
-      }
-
-      this.submitting = true;
-
-      try {
-        const formData = new FormData();
-        formData.append('company_name', this.form.company_name);
-        formData.append('contact_person', this.form.contact_person);
-        formData.append('email', this.form.email);
-        formData.append('phone', this.form.phone);
-        formData.append('ic_number', this.form.ic_number);
-        
-        // ✅ Send the receipt - either new file or existing
-        if (this.form.payment_receipt) {
-          // If user uploaded a new file, use it
-          formData.append('payment_receipt', this.form.payment_receipt);
-        } else if (this.existingReceipt) {
-          // If user kept the existing receipt, send it as a string
-          formData.append('payment_receipt', this.existingReceipt);
-        }
-
-        const response = await axios.post(
-          `${API_BASE}/register/resubmit/${this.requestId}`,
-          formData,
-          { 
-            headers: { 
-              'Content-Type': 'multipart/form-data'
-            } 
-          }
-        );
-
-        if (response.data.success) {
-          this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
-          
-          // Clear form
-          this.form.payment_receipt = null;
-          if (this.$refs.fileInput) {
-            this.$refs.fileInput.value = '';
-          }
-          
-          // Close after 3 seconds
-          setTimeout(() => {
-            this.closeModal();
-          }, 3000);
-        }
-      } catch (error) {
-        console.error('Resubmit error:', error);
-        this.submitError = error.response?.data?.error || 'Failed to resubmit. Please try again.';
-      } finally {
-        this.submitting = false;
-      }
-    },
+      
+      // Close after 3 seconds
+      setTimeout(() => {
+        this.closeModal();
+      }, 3000);
+    }
+  } catch (error) {
+    console.error('Resubmit error:', error);
+    this.submitError = error.response?.data?.error || 'Failed to resubmit. Please try again.';
+  } finally {
+    this.submitting = false;
+  }
+},
 
     formatDate(dateString) {
       if (!dateString) return 'N/A';
@@ -992,5 +1095,62 @@ export default {
     max-width: 95%;
     margin: 10px;
   }
+}
+
+/* PDF Viewer */
+.pdf-viewer {
+  width: 100%;
+  height: 500px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.pdf-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.pdf-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.receipt-actions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn-download {
+  padding: 0.5rem 1rem;
+  background: #F94908;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.btn-download:hover {
+  background: #d63d07;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
 }
 </style>

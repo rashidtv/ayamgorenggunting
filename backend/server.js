@@ -1987,22 +1987,23 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Handle payment_receipt - it can be a base64 string or a file path
-    let finalReceipt = payment_receipt;
+    // ✅ Handle payment_receipt - it can be:
+    // 1. A file (multer will handle this)
+    // 2. A base64 string (from existing receipt)
+    // 3. A file path (from existing receipt)
+    let finalReceipt = current.payment_receipt;
     
-    // If payment_receipt is a base64 image, check if it's valid
-    if (payment_receipt && payment_receipt.startsWith('data:image')) {
-      // Keep as is - it's already a base64 string
-      finalReceipt = payment_receipt;
-    } else if (payment_receipt && payment_receipt.startsWith('/uploads/')) {
-      // It's a file path - keep as is
-      finalReceipt = payment_receipt;
-    } else if (payment_receipt && payment_receipt.startsWith('http')) {
-      // It's a URL - keep as is
-      finalReceipt = payment_receipt;
-    } else if (!payment_receipt) {
-      // No receipt provided - use existing
-      finalReceipt = current.payment_receipt;
+    if (payment_receipt) {
+      // If it's a base64 string or a URL/path, use it directly
+      if (payment_receipt.startsWith('data:') || 
+          payment_receipt.startsWith('/uploads/') || 
+          payment_receipt.startsWith('http')) {
+        finalReceipt = payment_receipt;
+      } else {
+        // If it's a file object (multer), it will be handled separately
+        // For now, keep existing receipt
+        finalReceipt = current.payment_receipt;
+      }
     }
     
     // ✅ Update the registration request
