@@ -1,6 +1,9 @@
 <template>
   <div class="resubmit-overlay" @click.self="closeModal">
     <div class="resubmit-modal">
+      <!-- ✅ Close Button - Restored -->
+      <button class="modal-close-btn" @click="closeModal">✕</button>
+      
       <div class="resubmit-modal-header">
         <h2>📝 Resubmit Registration</h2>
         <p v-if="rejectionCount > 0" class="attempt-info">
@@ -116,26 +119,34 @@
 
         <div class="form-group">
           <label for="payment_receipt">Payment Receipt *</label>
-          <input
-            type="file"
-            id="payment_receipt"
-            @change="handleFileUpload"
-            accept=".jpg,.jpeg,.png,.pdf"
-            :disabled="submitting"
-            required
-          />
-          <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
           
           <!-- ✅ Show existing receipt if available -->
           <div v-if="existingReceipt" class="existing-receipt">
-            <span class="receipt-label">📎 Current receipt:</span>
-            <a href="#" @click.prevent="viewExistingReceipt" class="receipt-link">
-              View existing receipt
-            </a>
-            <button @click="removeExistingReceipt" class="remove-receipt-btn" title="Remove existing receipt">
-              ✕
-            </button>
+            <div class="receipt-info">
+              <span class="receipt-label">📎 Current receipt:</span>
+              <span class="receipt-filename">{{ getReceiptFileName(existingReceipt) }}</span>
+            </div>
+            <div class="receipt-actions">
+              <button @click.prevent="viewExistingReceipt" class="receipt-link" type="button">
+                View
+              </button>
+              <button @click="removeExistingReceipt" class="remove-receipt-btn" type="button" title="Remove existing receipt">
+                ✕
+              </button>
+            </div>
           </div>
+          
+          <!-- File upload -->
+          <input
+            type="file"
+            id="payment_receipt"
+            ref="fileInput"
+            @change="handleFileUpload"
+            accept=".jpg,.jpeg,.png,.pdf"
+            :disabled="submitting"
+            :required="!existingReceipt"
+          />
+          <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
           
           <div v-if="form.payment_receipt" class="file-name">
             📎 New file selected: {{ form.payment_receipt.name }}
@@ -262,6 +273,7 @@ export default {
         this.canResubmit = this.attemptsLeft > 0;
         
         console.log('📊 Rejection data loaded:', data);
+        console.log('📎 Existing receipt:', this.existingReceipt);
       } catch (error) {
         console.error('Error loading registration data:', error);
         
@@ -277,6 +289,13 @@ export default {
       }
     },
 
+    getReceiptFileName(receiptPath) {
+      if (!receiptPath) return 'No receipt';
+      // Extract filename from path
+      const parts = receiptPath.split('/');
+      return parts[parts.length - 1] || receiptPath;
+    },
+
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
@@ -288,9 +307,6 @@ export default {
         }
         this.form.payment_receipt = file;
         this.submitError = '';
-        
-        // ✅ If a new file is selected, keep the existing receipt reference but mark that we have a new file
-        // The form will use the new file when submitting
       }
     },
 
@@ -357,14 +373,18 @@ export default {
           // If user uploaded a new file, use it
           formData.append('payment_receipt', this.form.payment_receipt);
         } else if (this.existingReceipt) {
-          // If user kept the existing receipt, send the URL/path
+          // If user kept the existing receipt, send the URL/path as a string
           formData.append('payment_receipt', this.existingReceipt);
         }
 
         const response = await axios.post(
           `${API_BASE}/register/resubmit/${this.requestId}`,
           formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
+          { 
+            headers: { 
+              'Content-Type': 'multipart/form-data'
+            } 
+          }
         );
 
         if (response.data.success) {
@@ -442,11 +462,31 @@ export default {
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+/* ✅ Close Button */
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  color: #1e293b;
 }
 
 .resubmit-modal-header {
   text-align: center;
   margin-bottom: 2rem;
+  padding-right: 2rem;
 }
 
 .resubmit-modal-header h2 {
@@ -619,15 +659,22 @@ export default {
   font-size: 0.8rem;
 }
 
+/* ✅ Existing Receipt Display */
 .existing-receipt {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background: #f0fdf4;
   border-radius: 6px;
   border: 1px solid #bbf7d0;
+  margin-bottom: 0.5rem;
+}
+
+.receipt-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .receipt-label {
@@ -635,10 +682,25 @@ export default {
   color: #16a34a;
 }
 
+.receipt-filename {
+  font-size: 0.85rem;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.receipt-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .receipt-link {
   color: #F94908;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 500;
+  background: none;
+  border: none;
   text-decoration: underline;
 }
 
@@ -778,6 +840,12 @@ export default {
   .resubmit-modal {
     padding: 1.5rem;
     margin: 10px;
+  }
+  
+  .existing-receipt {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }
 </style>

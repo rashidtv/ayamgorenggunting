@@ -1987,25 +1987,30 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Check if payment_receipt is provided (now mandatory)
+    // ✅ Check if payment_receipt is provided (mandatory)
+    // payment_receipt can be a file path (string) or a base64 data URL
     if (!payment_receipt) {
       return res.status(400).json({ error: 'Payment receipt is required for resubmission' });
     }
     
+    // ✅ If payment_receipt is a base64 string, save it (handled by middleware)
+    // If it's a string path, keep it as is
+    
     // Update the registration request
-    await pool.query(
+    const updateResult = await pool.query(
       `UPDATE registration_requests 
        SET company_name = $1,
            contact_person = $2,
            email = $3,
            phone = $4,
            ic_number = $5,
-           payment_receipt = COALESCE($6, payment_receipt),
+           payment_receipt = $6,
            status = 'pending',
            rejection_reason = NULL,
            resubmitted_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7`,
+       WHERE id = $7
+       RETURNING *`,
       [company_name, contact_person, email, phone, ic_number, payment_receipt, requestId]
     );
     
@@ -2033,15 +2038,13 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
     // ✅ Try to find by ID first (numeric), then by email
     let result;
     if (!isNaN(parseInt(id))) {
-      // It's a numeric ID
       result = await pool.query(
-        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE id = $1',
+        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number, payment_receipt FROM registration_requests WHERE id = $1',
         [parseInt(id)]
       );
     } else {
-      // It's an email address
       result = await pool.query(
-        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE email = $1',
+        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number, payment_receipt FROM registration_requests WHERE email = $1',
         [id]
       );
     }
@@ -2070,7 +2073,8 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
         contact_person: data.contact_person || '',
         email: data.email || '',
         phone: data.phone || '',
-        ic_number: data.ic_number || ''
+        ic_number: data.ic_number || '',
+        payment_receipt: data.payment_receipt || null
       }
     });
   } catch (err) {
