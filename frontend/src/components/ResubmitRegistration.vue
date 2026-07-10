@@ -1,7 +1,7 @@
 <template>
   <div class="resubmit-overlay" @click.self="closeModal">
     <div class="resubmit-modal">
-      <!-- ✅ Close Button - Restored -->
+      <!-- Close Button -->
       <button class="modal-close-btn" @click="closeModal">✕</button>
       
       <div class="resubmit-modal-header">
@@ -120,7 +120,7 @@
         <div class="form-group">
           <label for="payment_receipt">Payment Receipt *</label>
           
-          <!-- ✅ Show existing receipt if available -->
+          <!-- Show existing receipt if available -->
           <div v-if="existingReceipt" class="existing-receipt">
             <div class="receipt-info">
               <span class="receipt-label">📎 Current receipt:</span>
@@ -144,7 +144,6 @@
             @change="handleFileUpload"
             accept=".jpg,.jpeg,.png,.pdf"
             :disabled="submitting"
-            :required="!existingReceipt"
           />
           <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
           
@@ -174,6 +173,39 @@
         <div class="error-actions">
           <button @click="closeModal" class="btn-secondary">Close</button>
           <button @click="goToHome" class="btn-primary">Go to Home</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ✅ Receipt View Modal -->
+    <div v-if="showReceiptModal" class="receipt-modal-overlay" @click.self="showReceiptModal = false">
+      <div class="receipt-modal">
+        <div class="receipt-modal-header">
+          <h3>📎 Payment Receipt</h3>
+          <button @click="showReceiptModal = false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="receipt-modal-body">
+          <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')" class="receipt-image-container">
+            <img :src="viewReceiptUrl" alt="Payment Receipt" class="receipt-image" />
+          </div>
+          <div v-else-if="viewReceiptUrl && viewReceiptUrl.includes('.pdf')" class="receipt-pdf-container">
+            <div class="pdf-placeholder">
+              <span class="pdf-icon">📄</span>
+              <p>PDF Receipt</p>
+              <button @click="downloadReceipt" class="btn-primary" style="margin-top: 0.5rem;">
+                ⬇️ Download PDF
+              </button>
+            </div>
+          </div>
+          <div v-else-if="viewReceiptUrl" class="receipt-url-container">
+            <p>Receipt URL: <a :href="viewReceiptUrl" target="_blank">{{ viewReceiptUrl }}</a></p>
+          </div>
+          <div v-else class="receipt-empty">
+            <p>No receipt available to view.</p>
+          </div>
+        </div>
+        <div class="receipt-modal-footer">
+          <button @click="showReceiptModal = false" class="btn-secondary">Close</button>
         </div>
       </div>
     </div>
@@ -208,12 +240,14 @@ export default {
       submitSuccess: '',
       requestId: null,
       isDataLoaded: false,
-      receiptFileRemoved: false
+      receiptFileRemoved: false,
+      // ✅ Receipt view modal
+      showReceiptModal: false,
+      viewReceiptUrl: null
     };
   },
   computed: {
     isFormValid() {
-      // ✅ All fields must be filled AND either have a receipt or a new file selected
       const hasReceipt = this.existingReceipt || this.form.payment_receipt;
       return this.isDataLoaded &&
         this.form.company_name?.trim() &&
@@ -262,7 +296,7 @@ export default {
           this.form.phone = data.original_data.phone || '';
           this.form.ic_number = data.original_data.ic_number || '';
           
-          // ✅ Store existing receipt
+          // Store existing receipt
           this.existingReceipt = data.original_data.payment_receipt || null;
           this.isDataLoaded = true;
         }
@@ -273,7 +307,7 @@ export default {
         this.canResubmit = this.attemptsLeft > 0;
         
         console.log('📊 Rejection data loaded:', data);
-        console.log('📎 Existing receipt:', this.existingReceipt);
+        console.log('📎 Existing receipt:', this.existingReceipt ? 'Yes' : 'No');
       } catch (error) {
         console.error('Error loading registration data:', error);
         
@@ -291,9 +325,35 @@ export default {
 
     getReceiptFileName(receiptPath) {
       if (!receiptPath) return 'No receipt';
-      // Extract filename from path
+      if (receiptPath.startsWith('data:image')) {
+        return 'Image receipt';
+      }
       const parts = receiptPath.split('/');
-      return parts[parts.length - 1] || receiptPath;
+      return parts[parts.length - 1] || 'Receipt';
+    },
+
+    // ✅ View existing receipt - opens modal
+    viewExistingReceipt() {
+      if (this.existingReceipt) {
+        this.viewReceiptUrl = this.existingReceipt;
+        this.showReceiptModal = true;
+        console.log('📎 Viewing receipt:', this.existingReceipt.substring(0, 100) + '...');
+      } else {
+        this.$emit('show-notification', 'No receipt available to view.', 'warning');
+      }
+    },
+
+    // ✅ Download receipt
+    downloadReceipt() {
+      if (this.viewReceiptUrl) {
+        const link = document.createElement('a');
+        link.href = this.viewReceiptUrl;
+        link.download = 'receipt-' + Date.now() + '.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        this.$emit('show-notification', 'Download started!', 'success');
+      }
     },
 
     handleFileUpload(event) {
@@ -307,13 +367,6 @@ export default {
         }
         this.form.payment_receipt = file;
         this.submitError = '';
-      }
-    },
-
-    viewExistingReceipt() {
-      if (this.existingReceipt) {
-        // Emit event to view receipt
-        this.$emit('view-receipt', this.existingReceipt);
       }
     },
 
@@ -346,7 +399,7 @@ export default {
         return;
       }
 
-      // ✅ Check if there's a receipt (either existing or new)
+      // Check if there's a receipt (either existing or new)
       if (!this.existingReceipt && !this.form.payment_receipt) {
         this.submitError = 'Payment receipt is required. Please upload a receipt.';
         return;
@@ -373,7 +426,7 @@ export default {
           // If user uploaded a new file, use it
           formData.append('payment_receipt', this.form.payment_receipt);
         } else if (this.existingReceipt) {
-          // If user kept the existing receipt, send the URL/path as a string
+          // If user kept the existing receipt, send it as a string
           formData.append('payment_receipt', this.existingReceipt);
         }
 
@@ -465,7 +518,6 @@ export default {
   position: relative;
 }
 
-/* ✅ Close Button */
 .modal-close-btn {
   position: absolute;
   top: 12px;
@@ -475,7 +527,7 @@ export default {
   font-size: 1.5rem;
   cursor: pointer;
   color: #94a3b8;
-  transition: var(--transition);
+  transition: all 0.2s;
   z-index: 10;
 }
 
@@ -659,7 +711,6 @@ export default {
   font-size: 0.8rem;
 }
 
-/* ✅ Existing Receipt Display */
 .existing-receipt {
   display: flex;
   justify-content: space-between;
@@ -820,6 +871,95 @@ export default {
   margin: 0.25rem 0;
 }
 
+/* ✅ Receipt View Modal */
+.receipt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.receipt-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+.receipt-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.receipt-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.receipt-modal-body {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.receipt-image-container {
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.receipt-image {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.receipt-pdf-container {
+  padding: 2rem;
+}
+
+.pdf-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdf-icon {
+  font-size: 4rem;
+}
+
+.receipt-modal-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.receipt-empty {
+  padding: 2rem;
+  color: #94a3b8;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -846,6 +986,11 @@ export default {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+  
+  .receipt-modal {
+    max-width: 95%;
+    margin: 10px;
   }
 }
 </style>

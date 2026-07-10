@@ -1987,16 +1987,25 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Check if payment_receipt is provided (mandatory)
-    // payment_receipt can be a file path (string) or a base64 data URL
-    if (!payment_receipt) {
-      return res.status(400).json({ error: 'Payment receipt is required for resubmission' });
+    // ✅ Handle payment_receipt - it can be a base64 string or a file path
+    let finalReceipt = payment_receipt;
+    
+    // If payment_receipt is a base64 image, check if it's valid
+    if (payment_receipt && payment_receipt.startsWith('data:image')) {
+      // Keep as is - it's already a base64 string
+      finalReceipt = payment_receipt;
+    } else if (payment_receipt && payment_receipt.startsWith('/uploads/')) {
+      // It's a file path - keep as is
+      finalReceipt = payment_receipt;
+    } else if (payment_receipt && payment_receipt.startsWith('http')) {
+      // It's a URL - keep as is
+      finalReceipt = payment_receipt;
+    } else if (!payment_receipt) {
+      // No receipt provided - use existing
+      finalReceipt = current.payment_receipt;
     }
     
-    // ✅ If payment_receipt is a base64 string, save it (handled by middleware)
-    // If it's a string path, keep it as is
-    
-    // Update the registration request
+    // ✅ Update the registration request
     const updateResult = await pool.query(
       `UPDATE registration_requests 
        SET company_name = $1,
@@ -2011,7 +2020,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $7
        RETURNING *`,
-      [company_name, contact_person, email, phone, ic_number, payment_receipt, requestId]
+      [company_name, contact_person, email, phone, ic_number, finalReceipt, requestId]
     );
     
     // Send confirmation email
