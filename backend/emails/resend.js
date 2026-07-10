@@ -254,23 +254,13 @@ async function sendRegistrationRejected(email, companyName, contactPerson, reaso
 }
 
 // ============================================
-// PASSWORD RESET
+// PASSWORD RESET (Send Reset Link)
 // ============================================
 
-async function sendPasswordResetEmail(email, username, resetTokenOrUrl) {
-  // Check if it's already a full URL or just a token
-  let resetUrl;
-  if (resetTokenOrUrl.startsWith('http://') || resetTokenOrUrl.startsWith('https://')) {
-    // It's a full URL, but we need to add the hash
-    // Convert: https://chickoryhub.com/reset-password?token=xxx
-    // To:      https://chickoryhub.com/#/reset-password?token=xxx
-    const url = new URL(resetTokenOrUrl);
-    resetUrl = `${url.origin}/#${url.pathname}${url.search}`;
-  } else {
-    // It's just a token
-    const baseUrl = process.env.APP_URL || 'https://chickoryhub.com';
-    resetUrl = `${baseUrl}/#/reset-password?token=${resetTokenOrUrl}`;
-  }
+async function sendPasswordResetEmail(email, username, resetToken) {
+  // Use hash-based routing for reset link
+  const baseUrl = process.env.APP_URL || 'https://chickoryhub.com';
+  const resetUrl = `${baseUrl}/#/reset-password?token=${resetToken}`;
   
   const html = createEmailTemplate({
     title: 'Reset Your Password',
@@ -294,12 +284,14 @@ async function sendPasswordResetEmail(email, username, resetTokenOrUrl) {
 }
 
 // ============================================
-// PASSWORD RESET CONFIRMATION
+// PASSWORD RESET CONFIRMATION (After Reset)
 // ============================================
 
 async function sendPasswordResetConfirmation(email) {
+  const loginUrl = process.env.LOGIN_URL || 'https://chickoryhub.com/#/login';
+  
   const html = createEmailTemplate({
-    title: '✅ Password Reset Successful',
+    title: 'Password Reset Successful',
     greeting: 'Hi there,',
     content: `
       <p>Your password has been successfully reset.</p>
@@ -308,6 +300,10 @@ async function sendPasswordResetConfirmation(email) {
       </div>
       <p style="margin-top: 12px;">You can now log in with your new password.</p>
     `,
+    ctaButton: {
+      url: loginUrl,
+      text: '🔑 Login Now'
+    },
     footerMessage: 'Your account security is important to us.'
   });
 
