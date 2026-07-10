@@ -1,6 +1,9 @@
 <template>
-  <div class="resubmit-overlay">
+  <div class="resubmit-overlay" @click.self="closeModal">
     <div class="resubmit-modal">
+      <!-- Close Button -->
+      <button class="modal-close-btn" @click="closeModal">✕</button>
+      
       <div class="resubmit-modal-header">
         <h2>📝 Resubmit Registration</h2>
         <p v-if="rejectionCount > 0" class="attempt-info">
@@ -17,15 +20,18 @@
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Loading registration data...</p>
+        <p>Loading your registration data...</p>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error && !loading" class="error-state">
+      <div v-else-if="error" class="error-state">
         <div class="error-icon">⚠️</div>
-        <h3>Something Went Wrong</h3>
+        <h3>Unable to Load Registration</h3>
         <p>{{ error }}</p>
-        <button @click="goToLogin" class="btn-primary">Back to Login</button>
+        <div class="error-actions">
+          <button @click="closeModal" class="btn-secondary">Close</button>
+          <button @click="goToHome" class="btn-primary">Go to Home</button>
+        </div>
       </div>
 
       <!-- Rejection History -->
@@ -46,7 +52,7 @@
       </div>
 
       <!-- Resubmit Form -->
-      <form v-if="canResubmit && !loading" @submit.prevent="handleResubmit" class="resubmit-form">
+      <form v-if="canResubmit && !loading && !error" @submit.prevent="handleResubmit" class="resubmit-form">
         <div class="form-group">
           <label for="company_name">Company Name *</label>
           <input
@@ -55,6 +61,7 @@
             v-model="form.company_name"
             required
             placeholder="Enter company name"
+            :disabled="submitting"
           />
         </div>
 
@@ -66,6 +73,7 @@
             v-model="form.contact_person"
             required
             placeholder="Enter contact person name"
+            :disabled="submitting"
           />
         </div>
 
@@ -77,7 +85,9 @@
             v-model="form.email"
             required
             placeholder="Enter email address"
+            :disabled="true"
           />
+          <small>Email cannot be changed</small>
         </div>
 
         <div class="form-group">
@@ -88,6 +98,7 @@
             v-model="form.phone"
             required
             placeholder="Enter phone number"
+            :disabled="submitting"
           />
         </div>
 
@@ -100,6 +111,7 @@
             required
             placeholder="XXXXXX-XX-XXXX"
             pattern="\d{6}-\d{2}-\d{4}"
+            :disabled="submitting"
           />
           <small>Format: XXXXXX-XX-XXXX (e.g., 900101-10-1234)</small>
         </div>
@@ -111,6 +123,7 @@
             id="payment_receipt"
             @change="handleFileUpload"
             accept=".jpg,.jpeg,.png,.pdf"
+            :disabled="submitting"
           />
           <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
           <div v-if="form.payment_receipt" class="file-name">
@@ -118,7 +131,7 @@
           </div>
         </div>
 
-        <button type="submit" :disabled="submitting" class="btn-primary">
+        <button type="submit" :disabled="submitting || !isFormValid" class="btn-primary">
           <span v-if="submitting">⏳ Submitting...</span>
           <span v-else>Submit Resubmission</span>
         </button>
@@ -128,7 +141,7 @@
       </form>
 
       <!-- Max Attempts Reached -->
-      <div v-else-if="!canResubmit && !loading" class="max-attempts">
+      <div v-else-if="!canResubmit && !loading && !error" class="max-attempts">
         <div class="error-icon">⚠️</div>
         <h3>Maximum Attempts Reached</h3>
         <p>You have reached the maximum number of resubmission attempts (3).</p>
@@ -136,7 +149,10 @@
         <div class="support-info">
           <p><strong>Email:</strong> support@chickoryhub.com</p>
         </div>
-        <button @click="goToLogin" class="btn-primary">Back to Login</button>
+        <div class="error-actions">
+          <button @click="closeModal" class="btn-secondary">Close</button>
+          <button @click="goToHome" class="btn-primary">Go to Home</button>
+        </div>
       </div>
     </div>
   </div>
@@ -167,8 +183,19 @@ export default {
       error: '',
       submitError: '',
       submitSuccess: '',
-      requestId: null
+      requestId: null,
+      isDataLoaded: false
     };
+  },
+  computed: {
+    isFormValid() {
+      return this.isDataLoaded &&
+        this.form.company_name?.trim() &&
+        this.form.contact_person?.trim() &&
+        this.form.email?.trim() &&
+        this.form.phone?.trim() &&
+        this.form.ic_number?.trim();
+    }
   },
   mounted() {
     this.extractRequestId();
@@ -185,13 +212,8 @@ export default {
       const params = new URLSearchParams(hash.split('?')[1] || '');
       const id = params.get('id');
       if (id) {
-        this.requestId = id;
+        this.requestId = decodeURIComponent(id);
         console.log('📝 Request ID:', this.requestId);
-        
-        // Try to get email from the ID
-        if (this.requestId.includes('@')) {
-          this.form.email = this.requestId;
-        }
       }
     },
 
@@ -200,53 +222,37 @@ export default {
       this.error = '';
       
       try {
-        // ✅ Try without authentication first (for email links)
-        let response;
-        try {
-          response = await axios.get(
-            `${API_BASE}/register/rejection-history/${this.requestId}`
-          );
-        } catch (authError) {
-          if (authError.response?.status === 401) {
-            // ✅ If unauthorized, try with stored token
-            const token = localStorage.getItem('token');
-            if (token) {
-              response = await axios.get(
-                `${API_BASE}/register/rejection-history/${this.requestId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-            } else {
-              throw new Error('Please login to view your registration status.');
-            }
-          } else {
-            throw authError;
-          }
-        }
+        const response = await axios.get(
+          `${API_BASE}/register/rejection-history/${encodeURIComponent(this.requestId)}`
+        );
         
         const data = response.data;
-        this.rejectionHistory = data.rejection_history || [];
-        this.rejectionCount = data.rejection_count || 0;
-        this.attemptsLeft = data.attempts_remaining || 0;
-        this.canResubmit = this.attemptsLeft > 0;
         
-        // ✅ Load the original registration data if available
         if (data.original_data) {
           this.form.company_name = data.original_data.company_name || '';
           this.form.contact_person = data.original_data.contact_person || '';
           this.form.email = data.original_data.email || this.requestId || '';
           this.form.phone = data.original_data.phone || '';
           this.form.ic_number = data.original_data.ic_number || '';
-        } else {
-          // Fallback: use email from the request ID
-          if (this.requestId.includes('@')) {
-            this.form.email = this.requestId;
-          }
+          this.isDataLoaded = true;
         }
+        
+        this.rejectionHistory = data.rejection_history || [];
+        this.rejectionCount = data.rejection_count || 0;
+        this.attemptsLeft = data.attempts_remaining || 0;
+        this.canResubmit = this.attemptsLeft > 0;
         
         console.log('📊 Rejection data loaded:', data);
       } catch (error) {
         console.error('Error loading registration data:', error);
-        this.error = error.message || 'Failed to load registration data. Please try again.';
+        
+        if (error.response?.status === 404) {
+          this.error = 'Registration not found. The link may have expired.';
+        } else if (error.response?.status === 500) {
+          this.error = 'Unable to load registration data. Please try again later.';
+        } else {
+          this.error = error.response?.data?.error || 'Failed to load registration data. Please try again.';
+        }
       } finally {
         this.loading = false;
       }
@@ -284,6 +290,12 @@ export default {
         return;
       }
 
+      // Check if all fields are filled
+      if (!this.isFormValid) {
+        this.submitError = 'Please fill in all required fields.';
+        return;
+      }
+
       this.submitting = true;
 
       try {
@@ -306,15 +318,15 @@ export default {
         if (response.data.success) {
           this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
           
-          // Clear form
+          // Clear file input
           this.form.payment_receipt = null;
           if (this.$refs.fileInput) {
             this.$refs.fileInput.value = '';
           }
           
-          // Redirect to login after 3 seconds
+          // Close after 3 seconds
           setTimeout(() => {
-            window.location.hash = '#/login';
+            this.closeModal();
           }, 3000);
         }
       } catch (error) {
@@ -337,8 +349,17 @@ export default {
       });
     },
 
-    goToLogin() {
-      window.location.hash = '#/login';
+    closeModal() {
+      this.$emit('close');
+      // If there's a hash, remove it
+      if (window.location.hash.startsWith('#/resubmit-registration')) {
+        window.location.hash = '#/';
+      }
+    },
+
+    goToHome() {
+      this.closeModal();
+      window.location.hash = '#/';
     }
   }
 };
@@ -370,11 +391,30 @@ export default {
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  position: relative;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  color: #1e293b;
 }
 
 .resubmit-modal-header {
   text-align: center;
   margin-bottom: 2rem;
+  padding-right: 2rem;
 }
 
 .resubmit-modal-header h2 {
@@ -437,6 +477,13 @@ export default {
 .error-state p {
   color: #64748b;
   margin-bottom: 1.5rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .rejection-history {
@@ -523,6 +570,11 @@ export default {
   box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.1);
 }
 
+.resubmit-form .form-group input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
 .resubmit-form .form-group small {
   display: block;
   margin-top: 0.375rem;
@@ -557,9 +609,26 @@ export default {
 }
 
 .btn-primary:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-secondary {
+  padding: 0.875rem 2rem;
+  background: transparent;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .error-message {

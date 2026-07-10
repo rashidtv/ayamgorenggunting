@@ -2016,13 +2016,26 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    const result = await pool.query(
-      'SELECT rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE id = $1 OR email = $1',
-      [id]
-    );
+    // ✅ Try to find by ID first (numeric), then by email
+    let result;
+    if (!isNaN(parseInt(id))) {
+      // It's a numeric ID
+      result = await pool.query(
+        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE id = $1',
+        [parseInt(id)]
+      );
+    } else {
+      // It's an email address
+      result = await pool.query(
+        'SELECT id, rejection_count, rejection_history, last_rejection_date, company_name, contact_person, email, phone, ic_number FROM registration_requests WHERE email = $1',
+        [id]
+      );
+    }
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Registration request not found' });
+      return res.status(404).json({ 
+        error: 'Registration request not found. Please check your email link.' 
+      });
     }
     
     const data = result.rows[0];
@@ -2032,22 +2045,25 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
     }
     
     res.json({
+      id: data.id,
       rejection_count: data.rejection_count || 0,
       rejection_history: history,
       last_rejection_date: data.last_rejection_date,
       max_attempts: 3,
       attempts_remaining: 3 - (data.rejection_count || 0),
       original_data: {
-        company_name: data.company_name,
-        contact_person: data.contact_person,
-        email: data.email,
-        phone: data.phone,
-        ic_number: data.ic_number
+        company_name: data.company_name || '',
+        contact_person: data.contact_person || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        ic_number: data.ic_number || ''
       }
     });
   } catch (err) {
     console.error('Get rejection history error:', err);
-    res.status(500).json({ error: 'Failed to get rejection history' });
+    res.status(500).json({ 
+      error: 'Unable to load registration data. Please try again later.' 
+    });
   }
 });
 
