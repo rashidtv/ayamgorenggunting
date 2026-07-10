@@ -1,9 +1,6 @@
 <template>
   <div class="resubmit-overlay" @click.self="closeModal">
     <div class="resubmit-modal">
-      <!-- Close Button -->
-      <button class="modal-close-btn" @click="closeModal">✕</button>
-      
       <div class="resubmit-modal-header">
         <h2>📝 Resubmit Registration</h2>
         <p v-if="rejectionCount > 0" class="attempt-info">
@@ -86,6 +83,7 @@
             required
             placeholder="Enter email address"
             :disabled="true"
+            class="disabled-field"
           />
           <small>Email cannot be changed</small>
         </div>
@@ -117,17 +115,30 @@
         </div>
 
         <div class="form-group">
-          <label for="payment_receipt">Payment Receipt (Optional)</label>
+          <label for="payment_receipt">Payment Receipt *</label>
           <input
             type="file"
             id="payment_receipt"
             @change="handleFileUpload"
             accept=".jpg,.jpeg,.png,.pdf"
             :disabled="submitting"
+            required
           />
           <small>Accepted formats: JPG, PNG, PDF (Max 5MB)</small>
+          
+          <!-- ✅ Show existing receipt if available -->
+          <div v-if="existingReceipt" class="existing-receipt">
+            <span class="receipt-label">📎 Current receipt:</span>
+            <a href="#" @click.prevent="viewExistingReceipt" class="receipt-link">
+              View existing receipt
+            </a>
+            <button @click="removeExistingReceipt" class="remove-receipt-btn" title="Remove existing receipt">
+              ✕
+            </button>
+          </div>
+          
           <div v-if="form.payment_receipt" class="file-name">
-            📎 {{ form.payment_receipt.name || form.payment_receipt }}
+            📎 New file selected: {{ form.payment_receipt.name }}
           </div>
         </div>
 
@@ -174,6 +185,7 @@ export default {
         ic_number: '',
         payment_receipt: null
       },
+      existingReceipt: null,
       rejectionHistory: [],
       rejectionCount: 0,
       attemptsLeft: 3,
@@ -184,17 +196,21 @@ export default {
       submitError: '',
       submitSuccess: '',
       requestId: null,
-      isDataLoaded: false
+      isDataLoaded: false,
+      receiptFileRemoved: false
     };
   },
   computed: {
     isFormValid() {
+      // ✅ All fields must be filled AND either have a receipt or a new file selected
+      const hasReceipt = this.existingReceipt || this.form.payment_receipt;
       return this.isDataLoaded &&
         this.form.company_name?.trim() &&
         this.form.contact_person?.trim() &&
         this.form.email?.trim() &&
         this.form.phone?.trim() &&
-        this.form.ic_number?.trim();
+        this.form.ic_number?.trim() &&
+        hasReceipt;
     }
   },
   mounted() {
@@ -234,6 +250,9 @@ export default {
           this.form.email = data.original_data.email || this.requestId || '';
           this.form.phone = data.original_data.phone || '';
           this.form.ic_number = data.original_data.ic_number || '';
+          
+          // ✅ Store existing receipt
+          this.existingReceipt = data.original_data.payment_receipt || null;
           this.isDataLoaded = true;
         }
         
@@ -269,6 +288,27 @@ export default {
         }
         this.form.payment_receipt = file;
         this.submitError = '';
+        
+        // ✅ If a new file is selected, keep the existing receipt reference but mark that we have a new file
+        // The form will use the new file when submitting
+      }
+    },
+
+    viewExistingReceipt() {
+      if (this.existingReceipt) {
+        // Emit event to view receipt
+        this.$emit('view-receipt', this.existingReceipt);
+      }
+    },
+
+    removeExistingReceipt() {
+      if (confirm('Remove the existing receipt? You will need to upload a new one.')) {
+        this.existingReceipt = null;
+        this.receiptFileRemoved = true;
+        this.form.payment_receipt = null;
+        if (this.$refs.fileInput) {
+          this.$refs.fileInput.value = '';
+        }
       }
     },
 
@@ -290,6 +330,12 @@ export default {
         return;
       }
 
+      // ✅ Check if there's a receipt (either existing or new)
+      if (!this.existingReceipt && !this.form.payment_receipt) {
+        this.submitError = 'Payment receipt is required. Please upload a receipt.';
+        return;
+      }
+
       // Check if all fields are filled
       if (!this.isFormValid) {
         this.submitError = 'Please fill in all required fields.';
@@ -305,8 +351,14 @@ export default {
         formData.append('email', this.form.email);
         formData.append('phone', this.form.phone);
         formData.append('ic_number', this.form.ic_number);
+        
+        // ✅ Send the receipt - either new file or existing
         if (this.form.payment_receipt) {
+          // If user uploaded a new file, use it
           formData.append('payment_receipt', this.form.payment_receipt);
+        } else if (this.existingReceipt) {
+          // If user kept the existing receipt, send the URL/path
+          formData.append('payment_receipt', this.existingReceipt);
         }
 
         const response = await axios.post(
@@ -318,7 +370,7 @@ export default {
         if (response.data.success) {
           this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
           
-          // Clear file input
+          // Clear form
           this.form.payment_receipt = null;
           if (this.$refs.fileInput) {
             this.$refs.fileInput.value = '';
@@ -351,7 +403,6 @@ export default {
 
     closeModal() {
       this.$emit('close');
-      // If there's a hash, remove it
       if (window.location.hash.startsWith('#/resubmit-registration')) {
         window.location.hash = '#/';
       }
@@ -391,30 +442,11 @@ export default {
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
-  position: relative;
-}
-
-.modal-close-btn {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: var(--transition);
-  z-index: 10;
-}
-
-.modal-close-btn:hover {
-  color: #1e293b;
 }
 
 .resubmit-modal-header {
   text-align: center;
   margin-bottom: 2rem;
-  padding-right: 2rem;
 }
 
 .resubmit-modal-header h2 {
@@ -575,11 +607,56 @@ export default {
   cursor: not-allowed;
 }
 
+.resubmit-form .form-group .disabled-field {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .resubmit-form .form-group small {
   display: block;
   margin-top: 0.375rem;
   color: #94a3b8;
   font-size: 0.8rem;
+}
+
+.existing-receipt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+}
+
+.receipt-label {
+  font-size: 0.85rem;
+  color: #16a34a;
+}
+
+.receipt-link {
+  color: #F94908;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.receipt-link:hover {
+  color: #d63d07;
+}
+
+.remove-receipt-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #dc2626;
+  font-size: 1rem;
+  padding: 0 0.25rem;
+}
+
+.remove-receipt-btn:hover {
+  color: #991b1b;
 }
 
 .file-name {

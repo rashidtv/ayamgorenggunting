@@ -1942,17 +1942,26 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
   const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
   
   try {
-    // Get current registration request
-    const currentRes = await pool.query(
-      'SELECT * FROM registration_requests WHERE id = $1 AND status = $2',
-      [id, 'rejected']
-    );
+    // Get current registration request (by ID or email)
+    let currentRes;
+    if (!isNaN(parseInt(id))) {
+      currentRes = await pool.query(
+        'SELECT * FROM registration_requests WHERE id = $1 AND status = $2',
+        [parseInt(id), 'rejected']
+      );
+    } else {
+      currentRes = await pool.query(
+        'SELECT * FROM registration_requests WHERE email = $1 AND status = $2',
+        [id, 'rejected']
+      );
+    }
     
     if (currentRes.rows.length === 0) {
       return res.status(404).json({ error: 'Registration request not found or not rejected' });
     }
     
     const current = currentRes.rows[0];
+    const requestId = current.id;
     
     // Check if max resubmit attempts reached
     if (current.rejection_count >= 3) {
@@ -1978,6 +1987,11 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
+    // ✅ Check if payment_receipt is provided (now mandatory)
+    if (!payment_receipt) {
+      return res.status(400).json({ error: 'Payment receipt is required for resubmission' });
+    }
+    
     // Update the registration request
     await pool.query(
       `UPDATE registration_requests 
@@ -1992,7 +2006,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
            resubmitted_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $7`,
-      [company_name, contact_person, email, phone, ic_number, payment_receipt || null, id]
+      [company_name, contact_person, email, phone, ic_number, payment_receipt, requestId]
     );
     
     // Send confirmation email
@@ -2004,7 +2018,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
     });
   } catch (err) {
     console.error('Resubmit error:', err);
-    res.status(500).json({ error: 'Failed to resubmit registration' });
+    res.status(500).json({ error: 'Failed to resubmit registration. Please try again.' });
   }
 });
 
