@@ -61,8 +61,6 @@ pool.on('error', (err) => {
 });
 
 // ============ FILE UPLOAD CONFIGURATION ============
-const path = require('path');
-const fs = require('fs');
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
