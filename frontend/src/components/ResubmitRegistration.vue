@@ -177,7 +177,7 @@
       </div>
     </div>
     
-    <!-- ✅ Receipt View Modal -->
+    <!-- Receipt View Modal -->
     <div v-if="showReceiptModal" class="receipt-modal-overlay" @click.self="showReceiptModal = false">
       <div class="receipt-modal">
         <div class="receipt-modal-header">
@@ -193,9 +193,8 @@
             </div>
           </div>
           
-          <!-- PDF Receipt - Enhanced -->
+          <!-- PDF Receipt -->
           <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.startsWith('data:application/pdf'))" class="receipt-pdf-container">
-            <!-- PDF Viewer -->
             <div v-if="viewReceiptUrl.startsWith('data:application/pdf')" class="pdf-viewer">
               <embed 
                 :src="viewReceiptUrl" 
@@ -272,14 +271,12 @@ export default {
       submitSuccess: '',
       requestId: null,
       isDataLoaded: false,
-      receiptFileRemoved: false,
       showReceiptModal: false,
       viewReceiptUrl: null
     };
   },
   computed: {
     isFormValid() {
-      // ✅ All fields must be filled AND either have a receipt or a new file selected
       const hasReceipt = this.existingReceipt || this.form.payment_receipt;
       
       return this.isDataLoaded &&
@@ -328,8 +325,6 @@ export default {
           this.form.email = data.original_data.email || this.requestId || '';
           this.form.phone = data.original_data.phone || '';
           this.form.ic_number = data.original_data.ic_number || '';
-          
-          // ✅ Store existing receipt
           this.existingReceipt = data.original_data.payment_receipt || null;
           this.isDataLoaded = true;
         }
@@ -339,8 +334,7 @@ export default {
         this.attemptsLeft = data.attempts_remaining || 0;
         this.canResubmit = this.attemptsLeft > 0;
         
-        console.log('📊 Rejection data loaded:', data);
-        console.log('📎 Existing receipt:', this.existingReceipt ? 'Yes' : 'No');
+        console.log('📊 Rejection data loaded');
       } catch (error) {
         console.error('Error loading registration data:', error);
         
@@ -365,33 +359,24 @@ export default {
       return parts[parts.length - 1] || 'Receipt';
     },
 
-    // ✅ View existing receipt - opens modal
     viewExistingReceipt() {
       if (this.existingReceipt) {
         this.viewReceiptUrl = this.existingReceipt;
         this.showReceiptModal = true;
-        console.log('📎 Viewing receipt:', this.existingReceipt.substring(0, 100) + '...');
-        
-        if (this.existingReceipt.includes('.pdf') || this.existingReceipt.startsWith('data:application/pdf')) {
-          console.log('📄 PDF receipt detected');
-        }
       } else {
         this.$emit('show-notification', 'No receipt available to view.', 'warning');
       }
     },
 
-    // ✅ View PDF inline
     viewPdfInline() {
       if (this.viewReceiptUrl) {
         window.open(this.viewReceiptUrl, '_blank');
       }
     },
 
-    // ✅ Download receipt
     downloadReceipt() {
       if (this.viewReceiptUrl) {
         let filename = 'receipt-' + Date.now();
-        
         if (this.viewReceiptUrl.includes('.pdf')) {
           filename += '.pdf';
         } else if (this.viewReceiptUrl.includes('.jpg') || this.viewReceiptUrl.includes('.jpeg')) {
@@ -415,7 +400,7 @@ export default {
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
           this.submitError = 'File size exceeds 5MB limit. Please choose a smaller file.';
           event.target.value = '';
@@ -429,7 +414,6 @@ export default {
     removeExistingReceipt() {
       if (confirm('Remove the existing receipt? You will need to upload a new one.')) {
         this.existingReceipt = null;
-        this.receiptFileRemoved = true;
         this.form.payment_receipt = null;
         if (this.$refs.fileInput) {
           this.$refs.fileInput.value = '';
@@ -441,18 +425,21 @@ export default {
       this.submitError = '';
       this.submitSuccess = '';
 
+      // Validate IC format
       const icRegex = /^\d{6}-\d{2}-\d{4}$/;
       if (!icRegex.test(this.form.ic_number)) {
         this.submitError = 'Invalid IC number format. Use: XXXXXX-XX-XXXX';
         return;
       }
 
+      // Validate email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(this.form.email)) {
         this.submitError = 'Invalid email format.';
         return;
       }
 
+      // Check receipt
       if (!this.existingReceipt && !this.form.payment_receipt) {
         this.submitError = 'Payment receipt is required. Please upload a receipt.';
         return;
@@ -466,43 +453,50 @@ export default {
       this.submitting = true;
 
       try {
-    const formData = new FormData();
-    formData.append('company_name', this.form.company_name);
-    formData.append('contact_person', this.form.contact_person);
-    formData.append('email', this.form.email);
-    formData.append('phone', this.form.phone);
-    formData.append('ic_number', this.form.ic_number);
-        
-           // ✅ Handle receipt properly
-    if (this.form.payment_receipt) {
-      // User uploaded a new file - send as file
-      formData.append('payment_receipt', this.form.payment_receipt);
-    } else if (this.existingReceipt) {
-      // User kept existing receipt - send as string
-      formData.append('payment_receipt', this.existingReceipt);
-    }
+        // ✅ Build payload
+        const payload = {
+          company_name: this.form.company_name,
+          contact_person: this.form.contact_person,
+          email: this.form.email,
+          phone: this.form.phone,
+          ic_number: this.form.ic_number
+        };
 
-    const response = await axios.post(
-      `${API_BASE}/register/resubmit/${this.requestId}`,
-      formData,
-      { 
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        } 
-      }
-    );
-
-        if (response.data.success) {
-          this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
+        // ✅ Determine if we have a new file
+        if (this.form.payment_receipt) {
+          // New file - use FormData
+          const formData = new FormData();
+          formData.append('company_name', this.form.company_name);
+          formData.append('contact_person', this.form.contact_person);
+          formData.append('email', this.form.email);
+          formData.append('phone', this.form.phone);
+          formData.append('ic_number', this.form.ic_number);
+          formData.append('payment_receipt', this.form.payment_receipt);
           
-          this.form.payment_receipt = null;
-          if (this.$refs.fileInput) {
-            this.$refs.fileInput.value = '';
+          const response = await axios.post(
+            `${API_BASE}/register/resubmit/${this.requestId}`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+          );
+          
+          if (response.data.success) {
+            this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
+            setTimeout(() => this.closeModal(), 3000);
           }
+        } else {
+          // ✅ Keeping existing receipt - send as JSON
+          payload.payment_receipt = this.existingReceipt;
           
-          setTimeout(() => {
-            this.closeModal();
-          }, 3000);
+          const response = await axios.post(
+            `${API_BASE}/register/resubmit/${this.requestId}`,
+            payload,
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          
+          if (response.data.success) {
+            this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
+            setTimeout(() => this.closeModal(), 3000);
+          }
         }
       } catch (error) {
         console.error('Resubmit error:', error);
@@ -540,6 +534,7 @@ export default {
 </script>
 
 <style scoped>
+/* All styles remain the same as before */
 .resubmit-overlay {
   position: fixed;
   top: 0;
@@ -921,7 +916,7 @@ export default {
   margin: 0.25rem 0;
 }
 
-/* ✅ Receipt View Modal */
+/* Receipt View Modal */
 .receipt-modal-overlay {
   position: fixed;
   top: 0;

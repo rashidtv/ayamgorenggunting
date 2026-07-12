@@ -1934,11 +1934,13 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// RESUBMIT REGISTRATION
+// RESUBMIT REGISTRATION - PERMANENT FIX
 // ============================================
 
 app.post('/api/register/resubmit/:id', async (req, res) => {
   const { id } = req.params;
+  
+  // ✅ Get fields from body (works for both JSON and FormData)
   const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
   
   try {
@@ -1970,7 +1972,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       });
     }
     
-    // Validate required fields
+    // ✅ Validate required fields
     if (!company_name || !contact_person || !email || !phone || !ic_number) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -1987,27 +1989,33 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Handle payment_receipt - it can be:
-    // 1. A file (multer will handle this)
-    // 2. A base64 string (from existing receipt)
-    // 3. A file path (from existing receipt)
+    // ✅ Handle payment_receipt - accept both string and file
     let finalReceipt = current.payment_receipt;
     
     if (payment_receipt) {
-      // If it's a base64 string or a URL/path, use it directly
+      // Check if it's a valid receipt (base64, URL, or path)
       if (payment_receipt.startsWith('data:') || 
           payment_receipt.startsWith('/uploads/') || 
-          payment_receipt.startsWith('http')) {
+          payment_receipt.startsWith('http') ||
+          payment_receipt.length > 100) {
         finalReceipt = payment_receipt;
+        console.log('✅ Using provided receipt (string format)');
       } else {
-        // If it's a file object (multer), it will be handled separately
-        // For now, keep existing receipt
-        finalReceipt = current.payment_receipt;
+        // It might be a file path or other format
+        finalReceipt = payment_receipt;
+        console.log('✅ Using provided receipt (other format)');
       }
+    } else {
+      console.log('✅ Keeping existing receipt');
+    }
+    
+    // ✅ Ensure we have a receipt
+    if (!finalReceipt) {
+      return res.status(400).json({ error: 'Payment receipt is required' });
     }
     
     // ✅ Update the registration request
-    const updateResult = await pool.query(
+    await pool.query(
       `UPDATE registration_requests 
        SET company_name = $1,
            contact_person = $2,
@@ -2019,8 +2027,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
            rejection_reason = NULL,
            resubmitted_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7
-       RETURNING *`,
+       WHERE id = $7`,
       [company_name, contact_person, email, phone, ic_number, finalReceipt, requestId]
     );
     
