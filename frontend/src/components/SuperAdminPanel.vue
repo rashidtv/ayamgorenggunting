@@ -595,15 +595,14 @@
                     </a>
                   </div>
                   <div v-if="reg.status === 'rejected'" class="registration-reason">
-  <span class="rejection-label">❌ Rejection reason:</span>
-  <span class="rejection-text">{{ reg.rejection_reason }}</span>
-  <!-- ✅ ADD REJECTION HISTORY -->
-  <div v-if="reg.rejection_count > 1" class="rejection-history-link">
-    <button @click="viewRejectionHistory(reg.id)" class="btn-link">
-      View all {{ reg.rejection_count }} rejection(s)
-    </button>
-  </div>
-</div>
+                    <span class="rejection-label">❌ Rejection reason:</span>
+                    <span class="rejection-text">{{ reg.rejection_reason }}</span>
+                    <div v-if="reg.rejection_count > 1" class="rejection-history-link">
+                      <button @click="viewRejectionHistory(reg.id)" class="btn-link">
+                        View all {{ reg.rejection_count }} rejection(s)
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 
                 <div v-if="reg.status === 'pending'" class="registration-actions">
@@ -619,115 +618,112 @@
           </div>
         </div>
       </div>
-    </div>
 
-<!-- ===== COMPANIES TAB ===== -->
-<div v-if="activeTab === 'companies'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🏢 Company Management</h3>
-        <span class="card-subtitle">{{ filteredCompanies.length }} companies</span>
-      </div>
-      <button @click="loadCompanies" class="btn-modern secondary small">
-        ⟳ Refresh
-      </button>
-    </div>
-    <div class="card-modern-body">
-      <div class="filter-bar">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="companySearch" 
-            placeholder="Search companies..." 
-            class="filter-input"
-          />
-        </div>
-      </div>
-
-      <div v-if="loadingCompanies" class="loading-state small">
-        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-        <p>Loading companies...</p>
-      </div>
-
-      <div v-else-if="filteredCompanies.length === 0" class="empty-state-modern">
-        <span>🏢</span>
-        <p>No companies found</p>
-      </div>
-
-      <div v-else class="companies-list">
-        <div v-for="company in filteredCompanies" :key="company.id" class="company-item">
-          <div class="company-header" @click="toggleCompanyDetails(company.id)">
-            <div class="company-info">
-              <span class="company-name">{{ company.name }}</span>
-              <span class="company-code">{{ company.code || 'N/A' }}</span>
-              <span :class="['status-tag', company.is_active !== false ? 'active' : 'inactive']">
-                {{ company.is_active !== false ? 'Active' : 'Inactive' }}
-              </span>
+      <!-- ===== COMPANIES TAB ===== -->
+      <div v-if="activeTab === 'companies'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏢 Company Management</h3>
+              <span class="card-subtitle">{{ filteredCompanies.length }} companies</span>
             </div>
-            <div class="company-stats">
-              <span class="stat-badge">👥 {{ company.user_count || 0 }} users</span>
-              <span class="stat-badge">🏪 {{ company.stall_count || 0 }} stalls</span>
-              <span class="company-toggle">{{ expandedCompany === company.id ? '−' : '+' }}</span>
-            </div>
+            <button @click="loadCompanies" class="btn-modern secondary small">
+              ⟳ Refresh
+            </button>
           </div>
-
-          <div v-if="expandedCompany === company.id" class="company-details">
-            <!-- Company Details -->
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">Company Code</span>
-                <span class="detail-value">{{ company.code || '-' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Created</span>
-                <span class="detail-value">{{ formatDate(company.created_at) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Status</span>
-                <span class="detail-value">
-                  <span :class="['status-badge', company.is_active !== false ? 'excellent' : 'poor']">
-                    {{ company.is_active !== false ? 'Active' : 'Inactive' }}
-                  </span>
-                </span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Subscription</span>
-                <span class="detail-value">{{ company.subscription_tier || 'Basic' }}</span>
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="companySearch" 
+                  placeholder="Search companies..." 
+                  class="filter-input"
+                />
               </div>
             </div>
 
-            <!-- Company Users -->
-            <div v-if="company.users && company.users.length > 0" class="company-users">
-              <h4>👥 Users</h4>
-              <div class="users-grid">
-                <div v-for="user in company.users" :key="user.id" class="user-card">
-                  <div class="user-info">
-                    <span class="user-name">{{ user.full_name || user.username }}</span>
-                    <span class="user-username">@{{ user.username }}</span>
+            <div v-if="loadingCompanies" class="loading-state small">
+              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+              <p>Loading companies...</p>
+            </div>
+
+            <div v-else-if="filteredCompanies.length === 0" class="empty-state-modern">
+              <span>🏢</span>
+              <p>No companies found</p>
+            </div>
+
+            <div v-else class="companies-list">
+              <div v-for="company in filteredCompanies" :key="company.id" class="company-item">
+                <div class="company-header" @click="toggleCompanyDetails(company.id)">
+                  <div class="company-info">
+                    <span class="company-name">{{ company.name }}</span>
+                    <span class="company-code">{{ company.code || 'N/A' }}</span>
+                    <span :class="['status-tag', company.is_active !== false ? 'active' : 'inactive']">
+                      {{ company.is_active !== false ? 'Active' : 'Inactive' }}
+                    </span>
                   </div>
-                  <span class="role-tag">{{ user.role }}</span>
-                  <span class="user-stalls">{{ (user.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                  <div class="company-stats">
+                    <span class="stat-badge">👥 {{ company.user_count || 0 }} users</span>
+                    <span class="stat-badge">🏪 {{ company.stall_count || 0 }} stalls</span>
+                    <span class="company-toggle">{{ expandedCompany === company.id ? '−' : '+' }}</span>
+                  </div>
+                </div>
+
+                <div v-if="expandedCompany === company.id" class="company-details">
+                  <div class="detail-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Company Code</span>
+                      <span class="detail-value">{{ company.code || '-' }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Created</span>
+                      <span class="detail-value">{{ formatDate(company.created_at) }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Status</span>
+                      <span class="detail-value">
+                        <span :class="['status-badge', company.is_active !== false ? 'excellent' : 'poor']">
+                          {{ company.is_active !== false ? 'Active' : 'Inactive' }}
+                        </span>
+                      </span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Subscription</span>
+                      <span class="detail-value">{{ company.subscription_tier || 'Basic' }}</span>
+                    </div>
+                  </div>
+
+                  <div v-if="company.users && company.users.length > 0" class="company-users">
+                    <h4>👥 Users</h4>
+                    <div class="users-grid">
+                      <div v-for="user in company.users" :key="user.id" class="user-card">
+                        <div class="user-info">
+                          <span class="user-name">{{ user.full_name || user.username }}</span>
+                          <span class="user-username">@{{ user.username }}</span>
+                        </div>
+                        <span class="role-tag">{{ user.role }}</span>
+                        <span class="user-stalls">{{ (user.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="company.latest_receipt" class="company-receipt">
+                    <h4>📎 Latest Receipt</h4>
+                    <div class="receipt-preview">
+                      <span class="receipt-filename">{{ getReceiptName(company.latest_receipt) }}</span>
+                      <button @click="viewReceipt(company.latest_receipt)" class="btn-modern primary small">
+                        View Receipt
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <!-- Latest Receipt -->
-            <div v-if="company.latest_receipt" class="company-receipt">
-              <h4>📎 Latest Receipt</h4>
-              <div class="receipt-preview">
-                <span class="receipt-filename">{{ getReceiptName(company.latest_receipt) }}</span>
-                <button @click="viewReceipt(company.latest_receipt)" class="btn-modern primary small">
-                  View Receipt
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- ============================================ -->
     <!-- STALL DETAILS MODAL                         -->
@@ -848,7 +844,6 @@
             </div>
           </div>
           
-          <!-- ===== RECIPE SECTION - SIMPLIFIED ===== -->
           <div class="modal-form-group recipe-section">
             <label>Recipe (Ingredients)</label>
             <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
@@ -972,134 +967,130 @@
     <!-- ============================================ -->
     <!-- REJECT MODAL                                 -->
     <!-- ============================================ -->
-    <!-- SuperAdminPanel.vue - Reject Modal -->
-<div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
-  <div class="modal-modern">
-    <div class="modal-modern-header">
-      <h3>❌ Reject Registration</h3>
-      <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-        Please provide a reason for rejecting this registration request.
-      </p>
-      <div class="modal-form-group">
-        <label>Rejection Reason *</label>
-        <textarea 
-          v-model="rejectReason" 
-          rows="4"
-          placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
-          style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
-        ></textarea>
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>❌ Reject Registration</h3>
+          <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            Please provide a reason for rejecting this registration request.
+          </p>
+          <div class="modal-form-group">
+            <label>Rejection Reason *</label>
+            <textarea 
+              v-model="rejectReason" 
+              rows="4"
+              placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
+              style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
+            Confirm Rejection
+          </button>
+        </div>
       </div>
     </div>
-    <div class="modal-modern-footer">
-      <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
-      <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
-        Confirm Rejection
-      </button>
-    </div>
-  </div>
-</div>
 
-<!-- ============================================ -->
-<!-- REJECTION HISTORY MODAL                     -->
-<!-- ============================================ -->
-<div v-if="showHistoryModal" class="modal-overlay" @click.self="showHistoryModal = false">
-  <div class="modal-modern">
-    <div class="modal-modern-header">
-      <h3>📋 Rejection History</h3>
-      <button @click="showHistoryModal = false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <div v-if="rejectionHistory.length === 0" class="empty-state-modern">
-        <span>📭</span>
-        <p>No rejection history for this registration.</p>
+    <!-- ============================================ -->
+    <!-- REJECTION HISTORY MODAL                     -->
+    <!-- ============================================ -->
+    <div v-if="showHistoryModal" class="modal-overlay" @click.self="showHistoryModal = false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>📋 Rejection History</h3>
+          <button @click="showHistoryModal = false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div v-if="rejectionHistory.length === 0" class="empty-state-modern">
+            <span>📭</span>
+            <p>No rejection history for this registration.</p>
+          </div>
+          <div v-for="(item, index) in rejectionHistory" :key="index" class="history-item">
+            <div class="history-header">
+              <span class="attempt-badge">Attempt {{ item.attempt }}</span>
+              <span class="history-date">{{ formatDate(item.rejected_at) }}</span>
+            </div>
+            <div class="history-reason">
+              <strong>Reason:</strong> {{ item.reason }}
+            </div>
+            <div class="history-rejected-by">
+              <strong>Rejected by:</strong> {{ item.rejected_by }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showHistoryModal = false" class="btn-modern secondary">Close</button>
+        </div>
       </div>
-      <div v-for="(item, index) in rejectionHistory" :key="index" class="history-item">
-        <div class="history-header">
-          <span class="attempt-badge">Attempt {{ item.attempt }}</span>
-          <span class="history-date">{{ formatDate(item.rejected_at) }}</span>
-        </div>
-        <div class="history-reason">
-          <strong>Reason:</strong> {{ item.reason }}
-        </div>
-        <div class="history-rejected-by">
-          <strong>Rejected by:</strong> {{ item.rejected_by }}
-        </div>
-      </div>
     </div>
-    <div class="modal-modern-footer">
-      <button @click="showHistoryModal = false" class="btn-modern secondary">Close</button>
-    </div>
-  </div>
-</div>
 
     <!-- ============================================ -->
     <!-- VIEW RECEIPT MODAL                           -->
     <!-- ============================================ -->
-    <!-- SuperAdminPanel.vue - Receipt Modal -->
-<div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>📎 Payment Receipt</h3>
-      <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body" style="text-align: center; padding: 2rem;">
-      <!-- Image Receipt -->
-      <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')">
-        <img 
-          :src="viewReceiptUrl" 
-          alt="Payment Receipt" 
-          style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
-          @error="handleReceiptError"
-        />
-        <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
-          📸 Image receipt
-        </p>
-      </div>
-      
-      <!-- PDF Receipt -->
-      <!-- SuperAdminPanel.vue - PDF section in receipt modal -->
-<div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
-  <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
-    <span style="font-size: 3rem;">📄</span>
-    <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
-    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
-    <!-- ✅ Make sure this button calls downloadReceipt -->
-    <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
-      ⬇️ Download PDF
-    </button>
-  </div>
-</div>
-      
-      <!-- Regular URL Image -->
-      <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
-        <img 
-          :src="viewReceiptUrl" 
-          alt="Payment Receipt" 
-          style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
-          @error="handleReceiptError"
-        />
-        <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
-          📎 Receipt from server
-        </p>
-      </div>
-      
-      <!-- No receipt -->
-      <div v-else>
-        <div style="padding: 2rem;">
-          <span style="font-size: 3rem;">📭</span>
-          <p style="margin-top: 0.5rem; color: var(--text-secondary);">No receipt available</p>
-          <p style="font-size: 0.85rem; color: var(--text-tertiary);">The user did not upload a receipt.</p>
+    <div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>📎 Payment Receipt</h3>
+          <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body" style="text-align: center; padding: 2rem;">
+          <!-- Image Receipt -->
+          <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')">
+            <img 
+              :src="viewReceiptUrl" 
+              alt="Payment Receipt" 
+              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+              @error="handleReceiptError"
+            />
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+              📸 Image receipt
+            </p>
+          </div>
+          
+          <!-- PDF Receipt -->
+          <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
+            <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
+              <span style="font-size: 3rem;">📄</span>
+              <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
+              <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
+                ⬇️ Download PDF
+              </button>
+            </div>
+          </div>
+          
+          <!-- Regular URL Image -->
+          <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
+            <img 
+              :src="viewReceiptUrl" 
+              alt="Payment Receipt" 
+              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+              @error="handleReceiptError"
+            />
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+              📎 Receipt from server
+            </p>
+          </div>
+          
+          <!-- No receipt -->
+          <div v-else>
+            <div style="padding: 2rem;">
+              <span style="font-size: 3rem;">📭</span>
+              <p style="margin-top: 0.5rem; color: var(--text-secondary);">No receipt available</p>
+              <p style="font-size: 0.85rem; color: var(--text-tertiary);">The user did not upload a receipt.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
         </div>
       </div>
     </div>
-    <div class="modal-modern-footer">
-      <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
-    </div>
-  </div>
-</div>
   </div>
 </template>
 
@@ -1270,12 +1261,12 @@ export default {
       })
     },
     filteredCompanies() {
-    return this.companies.filter(company => {
-      const search = this.companySearch.toLowerCase();
-      return company.name.toLowerCase().includes(search) ||
-             (company.code && company.code.toLowerCase().includes(search));
-    });
-  },
+      return this.companies.filter(company => {
+        const search = this.companySearch.toLowerCase();
+        return company.name.toLowerCase().includes(search) ||
+               (company.code && company.code.toLowerCase().includes(search));
+      });
+    },
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
@@ -1411,120 +1402,94 @@ export default {
     },
 
     // =============================================
-// COMPANY MANAGEMENT
-// =============================================
-async loadCompanies() {
-  this.loadingCompanies = true;
-  try {
-    const res = await axios.get(`${API_BASE}/companies`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    });
-    
-    // Get detailed info for each company
-    const companiesWithDetails = await Promise.all(
-      res.data.map(async (company) => {
-        try {
-          // Get users for this company
-          const usersRes = await axios.get(`${API_BASE}/companies/${company.id}/users`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          });
-          
-          // Get stalls for this company
-          const stallsRes = await axios.get(`${API_BASE}/companies/${company.id}/stalls`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          });
-          
-          // Get latest receipt (from registrations)
-          const registrationsRes = await axios.get(`${API_BASE}/register/pending`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          });
-          const companyRegistrations = registrationsRes.data.filter(r => 
-            r.company_name === company.name && r.status === 'approved'
-          );
-          const latestReceipt = companyRegistrations.length > 0 
-            ? companyRegistrations[companyRegistrations.length - 1].payment_receipt 
-            : null;
-          
-          return {
-            ...company,
-            users: usersRes.data || [],
-            stall_count: stallsRes.data?.length || 0,
-            user_count: usersRes.data?.length || 0,
-            latest_receipt: latestReceipt
-          };
-        } catch (err) {
-          console.error(`Error loading details for company ${company.id}:`, err);
-          return {
-            ...company,
-            users: [],
-            stall_count: 0,
-            user_count: 0,
-            latest_receipt: null
-          };
-        }
-      })
-    );
-    
-    this.companies = companiesWithDetails;
-  } catch (err) {
-    console.error('Failed to load companies:', err);
-    this.$emit('show-notification', 'Failed to load companies', 'error');
-  } finally {
-    this.loadingCompanies = false;
-  }
-},
-
-toggleCompanyDetails(companyId) {
-  this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
-},
-
-getReceiptName(receiptPath) {
-  if (!receiptPath) return 'No receipt';
-  if (receiptPath.startsWith('data:image')) {
-    return 'Image receipt';
-  }
-  const parts = receiptPath.split('/');
-  return parts[parts.length - 1] || 'Receipt';
-},
-
-formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-MY', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
-    
+    // COMPANY MANAGEMENT
     // =============================================
-// REJECTION HISTORY
-// =============================================
-async viewRejectionHistory(requestId) {
-  try {
-    const response = await axios.get(
-      `${API_BASE}/register/rejection-history/${requestId}`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    this.rejectionHistory = response.data.rejection_history || [];
-    this.showHistoryModal = true;
-  } catch (error) {
-    console.error('Error fetching rejection history:', error);
-    this.$emit('show-notification', 'Failed to load rejection history', 'error');
-  }
-},
+    async loadCompanies() {
+      this.loadingCompanies = true;
+      try {
+        const res = await axios.get(`${API_BASE}/companies`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+        
+        const companiesWithDetails = await Promise.all(
+          res.data.map(async (company) => {
+            try {
+              const usersRes = await axios.get(`${API_BASE}/companies/${company.id}/users`, {
+                headers: { Authorization: `Bearer ${this.token}` }
+              });
+              
+              const stallsRes = await axios.get(`${API_BASE}/companies/${company.id}/stalls`, {
+                headers: { Authorization: `Bearer ${this.token}` }
+              });
+              
+              const registrationsRes = await axios.get(`${API_BASE}/register/pending`, {
+                headers: { Authorization: `Bearer ${this.token}` }
+              });
+              const companyRegistrations = registrationsRes.data.filter(r => 
+                r.company_name === company.name && r.status === 'approved'
+              );
+              const latestReceipt = companyRegistrations.length > 0 
+                ? companyRegistrations[companyRegistrations.length - 1].payment_receipt 
+                : null;
+              
+              return {
+                ...company,
+                users: usersRes.data || [],
+                stall_count: stallsRes.data?.length || 0,
+                user_count: usersRes.data?.length || 0,
+                latest_receipt: latestReceipt
+              };
+            } catch (err) {
+              console.error(`Error loading details for company ${company.id}:`, err);
+              return {
+                ...company,
+                users: [],
+                stall_count: 0,
+                user_count: 0,
+                latest_receipt: null
+              };
+            }
+          })
+        );
+        
+        this.companies = companiesWithDetails;
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        this.$emit('show-notification', 'Failed to load companies', 'error');
+      } finally {
+        this.loadingCompanies = false;
+      }
+    },
 
-formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleString('en-MY', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-},
+    toggleCompanyDetails(companyId) {
+      this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
+    },
+
+    getReceiptName(receiptPath) {
+      if (!receiptPath) return 'No receipt';
+      if (receiptPath.startsWith('data:image')) {
+        return 'Image receipt';
+      }
+      const parts = receiptPath.split('/');
+      return parts[parts.length - 1] || 'Receipt';
+    },
+
+    // =============================================
+    // REJECTION HISTORY
+    // =============================================
+    async viewRejectionHistory(requestId) {
+      try {
+        const response = await axios.get(
+          `${API_BASE}/register/rejection-history/${requestId}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        this.rejectionHistory = response.data.rejection_history || [];
+        this.showHistoryModal = true;
+      } catch (error) {
+        console.error('Error fetching rejection history:', error);
+        this.$emit('show-notification', 'Failed to load rejection history', 'error');
+      }
+    },
 
     // =============================================
     // FORMATTING
@@ -1554,6 +1519,17 @@ formatDate(dateString) {
         day: 'numeric', 
         month: 'short' 
       })
+    },
+    formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleString('en-MY', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     },
     getPeriodLabel() {
       var p = this.periods.find(p => p.value === this.selectedPeriod)
@@ -2269,7 +2245,7 @@ formatDate(dateString) {
         if (res.data.success) {
           this.$emit('show-notification', 'Registration approved! Welcome email sent.', 'success')
           this.loadRegistrations()
-          this.loadData() // Refresh other data
+          this.loadData()
         }
       } catch (err) {
         this.$emit('show-notification', err.response?.data?.error || 'Failed to approve', 'error')
@@ -2282,96 +2258,88 @@ formatDate(dateString) {
       this.showRejectModal = true
     },
 
-// SuperAdminPanel.vue - confirmReject function
-async confirmReject() {
-  if (!this.token) {
-    this.$emit('show-notification', 'You are not authenticated', 'error');
-    return;
-  }
-  
-  if (!this.rejectReason || this.rejectReason.trim() === '') {
-    this.$emit('show-notification', 'Please provide a rejection reason', 'warning');
-    return;
-  }
-  
-  try {
-    const response = await axios.post(
-      `${API_BASE}/register/reject/${this.rejectId}`,
-      { rejection_reason: this.rejectReason.trim() },
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    if (response.data.success) {
-      this.$emit('show-notification', 'Registration rejected. Email sent.', 'success');
-      this.showRejectModal = false;
-      this.rejectReason = '';
-      this.rejectId = null;
-      this.loadRegistrations();
-    }
-  } catch (err) {
-    console.error('Failed to reject registration:', err);
-    this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
-  }
-},
+    async confirmReject() {
+      if (!this.token) {
+        this.$emit('show-notification', 'You are not authenticated', 'error');
+        return;
+      }
+      
+      if (!this.rejectReason || this.rejectReason.trim() === '') {
+        this.$emit('show-notification', 'Please provide a rejection reason', 'warning');
+        return;
+      }
+      
+      try {
+        const response = await axios.post(
+          `${API_BASE}/register/reject/${this.rejectId}`,
+          { rejection_reason: this.rejectReason.trim() },
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        
+        if (response.data.success) {
+          this.$emit('show-notification', 'Registration rejected. Email sent.', 'success');
+          this.showRejectModal = false;
+          this.rejectReason = '';
+          this.rejectId = null;
+          this.loadRegistrations();
+        }
+      } catch (err) {
+        console.error('Failed to reject registration:', err);
+        this.$emit('show-notification', err.response?.data?.error || 'Failed to reject', 'error');
+      }
+    },
 
-// SuperAdminPanel.vue - Complete viewReceipt function
-viewReceipt(url) {
-  console.log('📎 Viewing receipt:', url);
-  
-  if (!url) {
-    this.viewReceiptUrl = null;
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // ✅ Handle base64 data (images and PDFs)
-  if (url.startsWith('data:')) {
-    console.log('📎 Base64 receipt detected');
-    this.viewReceiptUrl = url;
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // ✅ Handle file paths
-  if (url.startsWith('/uploads/')) {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    this.viewReceiptUrl = `${baseUrl}${url}`;
-    console.log('📎 File path receipt:', this.viewReceiptUrl);
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // ✅ Handle full URLs
-  if (url.startsWith('http')) {
-    console.log('📎 Full URL receipt:', url);
-    this.viewReceiptUrl = url;
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // ✅ Handle just a filename
-  if (url.endsWith('.pdf') || url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')) {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    this.viewReceiptUrl = `${baseUrl}/uploads/${url}`;
-    console.log('📎 Filename receipt:', this.viewReceiptUrl);
-    this.viewReceiptModal = true;
-    return;
-  }
-  
-  // ✅ Fallback - show whatever we have
-  console.log('📎 Unknown receipt format:', url);
-  this.viewReceiptUrl = url;
-  this.viewReceiptModal = true;
-},
+    viewReceipt(url) {
+      console.log('📎 Viewing receipt:', url);
+      
+      if (!url) {
+        this.viewReceiptUrl = null;
+        this.viewReceiptModal = true;
+        return;
+      }
+      
+      if (url.startsWith('data:')) {
+        console.log('📎 Base64 receipt detected');
+        this.viewReceiptUrl = url;
+        this.viewReceiptModal = true;
+        return;
+      }
+      
+      if (url.startsWith('/uploads/')) {
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        this.viewReceiptUrl = `${baseUrl}${url}`;
+        console.log('📎 File path receipt:', this.viewReceiptUrl);
+        this.viewReceiptModal = true;
+        return;
+      }
+      
+      if (url.startsWith('http')) {
+        console.log('📎 Full URL receipt:', url);
+        this.viewReceiptUrl = url;
+        this.viewReceiptModal = true;
+        return;
+      }
+      
+      if (url.endsWith('.pdf') || url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')) {
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        this.viewReceiptUrl = `${baseUrl}/uploads/${url}`;
+        console.log('📎 Filename receipt:', this.viewReceiptUrl);
+        this.viewReceiptModal = true;
+        return;
+      }
+      
+      console.log('📎 Unknown receipt format:', url);
+      this.viewReceiptUrl = url;
+      this.viewReceiptModal = true;
+    },
 
-downloadReceipt() {
+    downloadReceipt() {
       if (!this.viewReceiptUrl) {
         this.$emit('show-notification', 'No receipt to download', 'error');
         return;
       }
       
       try {
-        // Case 1: Base64 PDF data
         if (this.viewReceiptUrl.startsWith('data:application/pdf')) {
           const base64Data = this.viewReceiptUrl.split(',')[1];
           const byteCharacters = atob(base64Data);
@@ -2386,7 +2354,6 @@ downloadReceipt() {
           return;
         }
         
-        // Case 2: Base64 image data
         if (this.viewReceiptUrl.startsWith('data:image')) {
           const link = document.createElement('a');
           link.href = this.viewReceiptUrl;
@@ -2398,7 +2365,6 @@ downloadReceipt() {
           return;
         }
         
-        // Case 3: Regular URL
         if (this.viewReceiptUrl.startsWith('http')) {
           const link = document.createElement('a');
           link.href = this.viewReceiptUrl;
@@ -2418,7 +2384,6 @@ downloadReceipt() {
       }
     },
 
-    // ✅ Helper function - can be placed after downloadReceipt or inside it
     triggerDownload(url, filename) {
       const link = document.createElement('a');
       link.href = url;
@@ -2430,8 +2395,7 @@ downloadReceipt() {
         URL.revokeObjectURL(url);
       }, 1000);
       this.$emit('show-notification', 'PDF downloaded successfully!', 'success');
-    },   
-   
+    },
     
     // =============================================
     // DATA LOADING
@@ -5123,5 +5087,4 @@ downloadReceipt() {
   color: #065f46;
   flex: 1;
 }
-
 </style>
