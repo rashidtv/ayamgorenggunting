@@ -80,7 +80,7 @@
     <div class="stat-card" style="--stat-color: #7c3aed;">
       <div class="stat-icon">👥</div>
       <div class="stat-content">
-        <span class="stat-number">{{ users.length }}</span>
+        <span class="stat-number">{{ users.filter(u => u.role !== 'super_super_admin').length }}</span>
         <span class="stat-label">Total Users</span>
       </div>
       <div class="stat-trend up">+8%</div>
@@ -374,117 +374,116 @@
       </div>
 
       <!-- ===== STALLS TAB ===== -->
-<div v-if="activeTab === 'stalls'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🏪 Stall Management</h3>
-        <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-      </div>
-      <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
-    </div>
-    <div class="card-modern-body">
-      <div class="filter-bar">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="stallSearch" 
-            placeholder="Search stalls..." 
-            class="filter-input"
-          />
-        </div>
-        <select v-model="stallStatusFilter" class="filter-select">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-        <span>🏪</span>
-        <p>No stalls found</p>
-      </div>
-
-      <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-        <div class="list-item-content">
-          <span class="list-item-index">{{ index + 1 }}</span>
-          <div class="list-item-info">
-            <span class="list-item-name">{{ s.name }}</span>
-            <span class="list-item-code">{{ s.code }}</span>
+      <div v-if="activeTab === 'stalls'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏪 Stall Management</h3>
+              <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+            </div>
+            <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
           </div>
-          <!-- ✅ ADD COMPANY NAME -->
-          <span class="list-item-company">{{ s.company_name || '-' }}</span>
-          <!-- ✅ ADD ASSIGNED USERS -->
-          <span class="list-item-users">{{ (s.assigned_users || []).join(', ') || '-' }}</span>
-          <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-            {{ s.is_active ? 'Active' : 'Inactive' }}
-          </span>
-          <div class="list-item-actions">
-            <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
-            <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
-              {{ s.is_active ? '⏸️' : '▶️' }}
-            </button>
-            <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="stallSearch" 
+                  placeholder="Search stalls..." 
+                  class="filter-input"
+                />
+              </div>
+              <select v-model="stallStatusFilter" class="filter-select">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
 
-    
-<!-- ===== USERS TAB ===== -->
-<div v-if="activeTab === 'users'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>👥 User Management</h3>
-        <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
-      </div>
-      <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
-    </div>
-    <div class="card-modern-body">
-      <div class="filter-bar">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="userSearch" 
-            placeholder="Search users..." 
-            class="filter-input"
-          />
-        </div>
-        <select v-model="userRoleFilter" class="filter-select">
-          <option value="all">All Roles</option>
-          <option value="stall_admin">👤 Admin</option>
-          <option value="cashier">💰 Cashier</option>
-        </select>
-      </div>
+            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+              <span>🏪</span>
+              <p>No stalls found</p>
+            </div>
 
-      <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
-        <span>👥</span>
-        <p>No users found</p>
-      </div>
-
-      <div v-for="(u, index) in filteredUsersList" :key="u.id" class="list-item">
-        <div class="list-item-content">
-          <span class="list-item-index">{{ index + 1 }}</span>
-          <div class="list-item-info">
-            <span class="list-item-name">{{ u.username }}</span>
-            <span class="list-item-sub">{{ u.full_name || '-' }}</span>
-          </div>
-          <span class="role-tag">{{ u.role }}</span>
-          <!-- ✅ ADD COMPANY NAME -->
-          <span class="list-item-company">{{ u.company_name || '-' }}</span>
-          <span class="list-item-stalls">{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
-          <div class="list-item-actions">
-            <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
-            <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
+            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+              <div class="list-item-content">
+                <span class="list-item-index">{{ index + 1 }}</span>
+                <div class="list-item-info">
+                  <span class="list-item-name">{{ s.name }}</span>
+                  <span class="list-item-code">{{ s.code }}</span>
+                </div>
+                <!-- ✅ ADDED: Company Name -->
+                <span class="list-item-company">{{ s.company_name || '-' }}</span>
+                <!-- ✅ ADDED: User Count -->
+                <span class="list-item-users">{{ s.user_count || 0 }} users</span>
+                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
+                </span>
+                <div class="list-item-actions">
+                  <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
+                  </button>
+                  <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
+
+      <!-- ===== USERS TAB ===== -->
+      <div v-if="activeTab === 'users'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>👥 User Management</h3>
+              <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
+            </div>
+            <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
+          </div>
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="userSearch" 
+                  placeholder="Search users..." 
+                  class="filter-input"
+                />
+              </div>
+              <select v-model="userRoleFilter" class="filter-select">
+                <option value="all">All Roles</option>
+                <option value="stall_admin">👤 Admin</option>
+                <option value="cashier">💰 Cashier</option>
+              </select>
+            </div>
+
+            <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
+              <span>👥</span>
+              <p>No users found</p>
+            </div>
+
+            <div v-for="(u, index) in filteredUsersList" :key="u.id" class="list-item">
+              <div class="list-item-content">
+                <span class="list-item-index">{{ index + 1 }}</span>
+                <div class="list-item-info">
+                  <span class="list-item-name">{{ u.username }}</span>
+                  <span class="list-item-sub">{{ u.full_name || '-' }}</span>
+                </div>
+                <span class="role-tag">{{ u.role }}</span>
+                <!-- ✅ ADDED: Company Name -->
+                <span class="list-item-company">{{ u.company_name || '-' }}</span>
+                <span class="list-item-stalls">{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                <div class="list-item-actions">
+                  <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ===== MENU MANAGEMENT TAB ===== -->
       <div v-if="activeTab === 'menu'" class="tab-panel">
@@ -1286,26 +1285,31 @@ export default {
       }
       return this.lowStock
     },
+    // ✅ FIXED: Exclude super_super_admin from users list
     filteredStallsList() {
-  return this.stalls.filter(stall => {
-    const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                          stall.code.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                          (stall.company_name && stall.company_name.toLowerCase().includes(this.stallSearch.toLowerCase()));
-    const matchesStatus = this.stallStatusFilter === 'all' || 
-                          (this.stallStatusFilter === 'active' && stall.is_active) ||
-                          (this.stallStatusFilter === 'inactive' && !stall.is_active);
-    return matchesSearch && matchesStatus;
-  })
-},
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                              (stall.company_name && stall.company_name.toLowerCase().includes(this.stallSearch.toLowerCase()));
+        const matchesStatus = this.stallStatusFilter === 'all' || 
+                              (this.stallStatusFilter === 'active' && stall.is_active) ||
+                              (this.stallStatusFilter === 'inactive' && !stall.is_active);
+        return matchesSearch && matchesStatus;
+      })
+    },
+    // ✅ FIXED: Exclude super_super_admin from users list
     filteredUsersList() {
-  return this.users.filter(user => {
-    const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
-                          (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase())) ||
-                          (user.company_name && user.company_name.toLowerCase().includes(this.userSearch.toLowerCase()));
-    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
-    return matchesSearch && matchesRole;
-  })
-},
+      return this.users.filter(user => {
+        // ✅ EXCLUDE super_super_admin from Super Admin view
+        if (user.role === 'super_super_admin') return false;
+        
+        const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
+                              (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase())) ||
+                              (user.company_name && user.company_name.toLowerCase().includes(this.userSearch.toLowerCase()));
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
+        return matchesSearch && matchesRole;
+      })
+    },
     activeTabLabel() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.label : 'Dashboard'
@@ -1416,39 +1420,35 @@ export default {
       });
     },
 
-    // =============================================
-// COMPANY MANAGEMENT - PERMANENT FIX
-// =============================================
-
-async loadCompanies() {
-  this.loadingCompanies = true;
-  try {
-    const res = await axios.get(`${API_BASE}/companies`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    });
-    
-    // ✅ Just use the data from the API - no extra calls that cause 403
-    this.companies = res.data.map(company => ({
-      ...company,
-      // Use existing data from the API
-      user_count: company.user_count || 0,
-      stall_count: company.stall_count || 0,
-      company_name: company.company_name || company.name,
-      contact_person: company.contact_person || '-',
-      email: company.email || '-',
-      phone: company.phone || '-',
-      ic_number: company.ic_number || '-',
-      payment_receipt: company.payment_receipt || null
-    }));
-    
-    console.log('✅ Companies loaded:', this.companies.length);
-  } catch (err) {
-    console.error('Failed to load companies:', err);
-    this.$emit('show-notification', 'Failed to load companies', 'error');
-  } finally {
-    this.loadingCompanies = false;
-  }
-},
+    // ✅ FIXED: Simplified - no 403 errors
+    async loadCompanies() {
+      this.loadingCompanies = true;
+      try {
+        const res = await axios.get(`${API_BASE}/companies`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+        
+        // ✅ Just use the data from the API - no extra calls that cause 403
+        this.companies = res.data.map(company => ({
+          ...company,
+          user_count: company.user_count || 0,
+          stall_count: company.stall_count || 0,
+          company_name: company.company_name || company.name,
+          contact_person: company.contact_person || '-',
+          email: company.email || '-',
+          phone: company.phone || '-',
+          ic_number: company.ic_number || '-',
+          payment_receipt: company.payment_receipt || null
+        }));
+        
+        console.log('✅ Companies loaded:', this.companies.length);
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        this.$emit('show-notification', 'Failed to load companies', 'error');
+      } finally {
+        this.loadingCompanies = false;
+      }
+    },
 
     toggleCompanyDetails(companyId) {
       this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
@@ -2412,45 +2412,49 @@ async loadCompanies() {
         this.$emit('show-notification', err.message, 'error')
       }
     },
+    // ✅ FIXED: Added company_name to stalls with user count
     async loadStalls() {
-  const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
-    headers: { Authorization: `Bearer ${this.token}` } 
-  });
-  
-  // ✅ Add company name and assigned users to each stall
-  this.stalls = res.data.map(stall => {
-    const company = this.companies.find(c => c.id === stall.company_id);
-    // Find users assigned to this stall
-    const assignedUsers = this.users
-      .filter(u => (u.assigned_stalls || []).some(s => s.id === stall.id))
-      .map(u => u.username);
-    
-    return {
-      ...stall,
-      company_name: company?.name || company?.company_name || 'N/A',
-      assigned_users: assignedUsers.length > 0 ? assignedUsers : ['-']
-    };
-  });
-  
-  console.log('✅ Stalls loaded with companies and users:', this.stalls.length);
-},
+      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
+      });
+      
+      // ✅ Add company name and user count to each stall
+      this.stalls = res.data.map(stall => {
+        const company = this.companies.find(c => c.id === stall.company_id);
+        // Count users assigned to this stall
+        const userCount = this.users.filter(u => 
+          (u.assigned_stalls || []).some(s => s.id === stall.id)
+        ).length;
+        
+        return {
+          ...stall,
+          company_name: company?.name || company?.company_name || 'N/A',
+          user_count: userCount
+        };
+      });
+      
+      console.log('✅ Stalls loaded with companies and user counts:', this.stalls.length);
+    },
+    // ✅ FIXED: Added company_name to users and filtered out super_super_admin
     async loadUsers() {
-  const res = await axios.get(`${API_BASE}/companies/1/users`, { 
-    headers: { Authorization: `Bearer ${this.token}` } 
-  });
-  
-  // ✅ Add company name to each user
-  this.users = res.data.map(user => {
-    const company = this.companies.find(c => c.id === user.company_id);
-    return {
-      ...user,
-      company_name: company?.name || company?.company_name || 'N/A',
-      assigned_stalls: user.assigned_stalls || []
-    };
-  });
-  
-  console.log('✅ Users loaded with companies:', this.users.length);
-},
+      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
+        headers: { Authorization: `Bearer ${this.token}` } 
+      });
+      
+      // ✅ Filter out super_super_admin and add company names
+      this.users = res.data
+        .filter(user => user.role !== 'super_super_admin')
+        .map(user => {
+          const company = this.companies.find(c => c.id === user.company_id);
+          return {
+            ...user,
+            company_name: company?.name || company?.company_name || 'N/A',
+            assigned_stalls: user.assigned_stalls || []
+          };
+        });
+      
+      console.log('✅ Users loaded (excluding super_super_admin):', this.users.length);
+    },
     async loadLowStock() {
       const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
         headers: { Authorization: `Bearer ${this.token}` } 
@@ -2921,9 +2925,15 @@ async loadCompanies() {
           fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'stalls') {
           sheet = workbook.addWorksheet('Stalls')
-          sheet.addRow(['Name', 'Code', 'Status'])
+          sheet.addRow(['Name', 'Code', 'Company', 'Users', 'Status'])
           for (const stall of this.filteredStallsList) {
-            sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
+            sheet.addRow([
+              stall.name,
+              stall.code,
+              stall.company_name || '-',
+              stall.user_count || 0,
+              stall.is_active ? 'Active' : 'Inactive'
+            ])
           }
           fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'menu') {
@@ -2952,11 +2962,12 @@ async loadCompanies() {
           fileName = `Chickory_Registrations_${new Date().toISOString().split('T')[0]}.xlsx`
         } else {
           sheet = workbook.addWorksheet('Users')
-          sheet.addRow(['Username', 'Role', 'Stalls'])
+          sheet.addRow(['Username', 'Role', 'Company', 'Stalls'])
           for (const user of this.filteredUsersList) {
             sheet.addRow([
               user.username,
               user.role,
+              user.company_name || '-',
               (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
             ])
           }
@@ -3067,7 +3078,7 @@ async loadCompanies() {
   left: 0;
   right: 0;
   margin-top: 0.25rem;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
@@ -4055,6 +4066,30 @@ async loadCompanies() {
   font-family: monospace;
 }
 
+.list-item-company {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.list-item-users {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: #f0fdf4;
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .list-item-stalls {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -4828,6 +4863,13 @@ async loadCompanies() {
   .registration-actions {
     justify-content: flex-end;
   }
+  
+  .list-item-company,
+  .list-item-users {
+    font-size: 0.6rem;
+    min-width: 60px;
+    padding: 0.05rem 0.3rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -5197,43 +5239,6 @@ async loadCompanies() {
   .companies-table td {
     font-size: 0.6rem;
     padding: 0.2rem 0.3rem;
-  }
-}
-
-/* ============================================ */
-/* LIST ITEM EXTRA COLUMNS                      */
-/* ============================================ */
-.list-item-company {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.05rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid var(--border-light);
-  min-width: 80px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.list-item-users {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  background: #f0fdf4;
-  padding: 0.05rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #bbf7d0;
-  min-width: 80px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .list-item-company,
-  .list-item-users {
-    font-size: 0.6rem;
-    min-width: 60px;
-    padding: 0.05rem 0.3rem;
   }
 }
 </style>
