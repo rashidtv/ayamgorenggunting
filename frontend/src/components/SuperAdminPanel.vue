@@ -1285,31 +1285,31 @@ export default {
       }
       return this.lowStock
     },
-    // ✅ FIXED: Exclude super_super_admin from users list
-    filteredStallsList() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                              (stall.company_name && stall.company_name.toLowerCase().includes(this.stallSearch.toLowerCase()));
-        const matchesStatus = this.stallStatusFilter === 'all' || 
-                              (this.stallStatusFilter === 'active' && stall.is_active) ||
-                              (this.stallStatusFilter === 'inactive' && !stall.is_active);
-        return matchesSearch && matchesStatus;
-      })
-    },
-    // ✅ FIXED: Exclude super_super_admin from users list
+   filteredStallsList() {
+  return this.stalls.filter(stall => {
+    const search = this.stallSearch.toLowerCase();
+    const matchesSearch = stall.name.toLowerCase().includes(search) ||
+                          stall.code.toLowerCase().includes(search) ||
+                          (stall.company_name && stall.company_name.toLowerCase().includes(search));
+    const matchesStatus = this.stallStatusFilter === 'all' || 
+                          (this.stallStatusFilter === 'active' && stall.is_active) ||
+                          (this.stallStatusFilter === 'inactive' && !stall.is_active);
+    return matchesSearch && matchesStatus;
+  })
+},
     filteredUsersList() {
-      return this.users.filter(user => {
-        // ✅ EXCLUDE super_super_admin from Super Admin view
-        if (user.role === 'super_super_admin') return false;
-        
-        const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase())) ||
-                              (user.company_name && user.company_name.toLowerCase().includes(this.userSearch.toLowerCase()));
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
-        return matchesSearch && matchesRole;
-      })
-    },
+  return this.users.filter(user => {
+    // ✅ EXCLUDE super_super_admin
+    if (user.role === 'super_super_admin') return false;
+    
+    const search = this.userSearch.toLowerCase();
+    const matchesSearch = user.username.toLowerCase().includes(search) ||
+                          (user.full_name && user.full_name.toLowerCase().includes(search)) ||
+                          (user.company_name && user.company_name.toLowerCase().includes(search));
+    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
+    return matchesSearch && matchesRole;
+  })
+},
     activeTabLabel() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.label : 'Dashboard'
@@ -1420,35 +1420,37 @@ export default {
       });
     },
 
-    // ✅ FIXED: Simplified - no 403 errors
-    async loadCompanies() {
-      this.loadingCompanies = true;
-      try {
-        const res = await axios.get(`${API_BASE}/companies`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        });
-        
-        // ✅ Just use the data from the API - no extra calls that cause 403
-        this.companies = res.data.map(company => ({
-          ...company,
-          user_count: company.user_count || 0,
-          stall_count: company.stall_count || 0,
-          company_name: company.company_name || company.name,
-          contact_person: company.contact_person || '-',
-          email: company.email || '-',
-          phone: company.phone || '-',
-          ic_number: company.ic_number || '-',
-          payment_receipt: company.payment_receipt || null
-        }));
-        
-        console.log('✅ Companies loaded:', this.companies.length);
-      } catch (err) {
-        console.error('Failed to load companies:', err);
-        this.$emit('show-notification', 'Failed to load companies', 'error');
-      } finally {
-        this.loadingCompanies = false;
-      }
-    },
+    // =============================================
+// COMPANY MANAGEMENT - FIXED
+// =============================================
+
+async loadCompanies() {
+  this.loadingCompanies = true;
+  try {
+    const res = await axios.get(`${API_BASE}/companies`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    
+    // ✅ Use data from API including counts
+    this.companies = res.data.map(company => ({
+      ...company,
+      user_count: company.user_count || 0,
+      stall_count: company.stall_count || 0,
+      contact_person: company.contact_person || '-',
+      email: company.email || '-',
+      phone: company.phone || '-',
+      ic_number: company.ic_number || '-',
+      payment_receipt: company.payment_receipt || null
+    }));
+    
+    console.log('✅ Companies loaded:', this.companies.length);
+  } catch (err) {
+    console.error('Failed to load companies:', err);
+    this.$emit('show-notification', 'Failed to load companies', 'error');
+  } finally {
+    this.loadingCompanies = false;
+  }
+},
 
     toggleCompanyDetails(companyId) {
       this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
@@ -2392,69 +2394,115 @@ export default {
     async refreshAllData() {
       await this.loadData()
     },
-    async loadData() {
-      try {
-        await Promise.all([
-          this.loadStalls(),
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadSalesAnalytics(),
-          this.loadStallPerformance(),
-          this.loadMenuPerformance(),
-          this.loadMenuItems(),
-          this.loadRegistrations(),
-          this.loadCompanies()
-        ])
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
-    // ✅ FIXED: Added company_name to stalls with user count
-    async loadStalls() {
-      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
+    // =============================================
+// LOAD DATA - FIXED
+// =============================================
+
+async loadData() {
+  try {
+    // Load companies first (needed for mapping)
+    await this.loadCompanies();
+    
+    // Then load users and stalls in parallel
+    await Promise.all([
+      this.loadUsers(),
+      this.loadStalls(),
+      this.loadLowStock(),
+      this.loadSalesAnalytics(),
+      this.loadStallPerformance(),
+      this.loadMenuPerformance(),
+      this.loadMenuItems(),
+      this.loadRegistrations()
+    ]);
+    
+    await this.loadAllStallsInventory();
+    this.resetChartNavigation();
+    this.$emit('show-notification', 'Data refreshed', 'success');
+  } catch (err) {
+    console.error('Load data error:', err);
+    this.$emit('show-notification', err.message, 'error');
+  }
+},
+    // =============================================
+// LOAD ALL STALLS - FIXED
+// =============================================
+
+async loadStalls() {
+  try {
+    // ✅ Use the new /api/stalls/all endpoint
+    const res = await axios.get(`${API_BASE}/stalls/all`, { 
+      headers: { Authorization: `Bearer ${this.token}` } 
+    });
+    
+    this.stalls = res.data.map(stall => ({
+      ...stall,
+      company_name: stall.company_name || 'N/A',
+      user_count: stall.user_count || 0
+    }));
+    
+    console.log('✅ All stalls loaded:', this.stalls.length);
+  } catch (err) {
+    console.error('Failed to load all stalls:', err);
+    // Fallback: Try company-specific endpoint
+    try {
+      const fallbackRes = await axios.get(`${API_BASE}/companies/1/stalls`, { 
         headers: { Authorization: `Bearer ${this.token}` } 
       });
-      
-      // ✅ Add company name and user count to each stall
-      this.stalls = res.data.map(stall => {
-        const company = this.companies.find(c => c.id === stall.company_id);
-        // Count users assigned to this stall
-        const userCount = this.users.filter(u => 
-          (u.assigned_stalls || []).some(s => s.id === stall.id)
-        ).length;
-        
-        return {
-          ...stall,
-          company_name: company?.name || company?.company_name || 'N/A',
-          user_count: userCount
-        };
-      });
-      
-      console.log('✅ Stalls loaded with companies and user counts:', this.stalls.length);
-    },
-    // ✅ FIXED: Added company_name to users and filtered out super_super_admin
-    async loadUsers() {
-      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
+      this.stalls = fallbackRes.data.map(stall => ({
+        ...stall,
+        company_name: stall.company_name || 'N/A',
+        user_count: stall.user_count || 0
+      }));
+      console.log('✅ Stalls loaded (fallback):', this.stalls.length);
+    } catch (fallbackErr) {
+      console.error('Failed to load stalls (fallback):', fallbackErr);
+      this.stalls = [];
+    }
+  }
+},
+    // =============================================
+// LOAD ALL USERS - FIXED
+// =============================================
+
+async loadUsers() {
+  try {
+    // ✅ Use the new /api/users/all endpoint
+    const res = await axios.get(`${API_BASE}/users/all`, { 
+      headers: { Authorization: `Bearer ${this.token}` } 
+    });
+    
+    // ✅ Filter out super_super_admin and add company name
+    this.users = res.data
+      .filter(user => user.role !== 'super_super_admin')
+      .map(user => ({
+        ...user,
+        company_name: user.company_name || 'N/A',
+        assigned_stalls: user.assigned_stalls || []
+      }));
+    
+    console.log('✅ All users loaded:', this.users.length);
+  } catch (err) {
+    console.error('Failed to load all users:', err);
+    // Fallback: Try company-specific endpoint
+    try {
+      const fallbackRes = await axios.get(`${API_BASE}/companies/1/users`, { 
         headers: { Authorization: `Bearer ${this.token}` } 
       });
-      
-      // ✅ Filter out super_super_admin and add company names
-      this.users = res.data
+      this.users = fallbackRes.data
         .filter(user => user.role !== 'super_super_admin')
-        .map(user => {
-          const company = this.companies.find(c => c.id === user.company_id);
-          return {
-            ...user,
-            company_name: company?.name || company?.company_name || 'N/A',
-            assigned_stalls: user.assigned_stalls || []
-          };
-        });
-      
-      console.log('✅ Users loaded (excluding super_super_admin):', this.users.length);
-    },
+        .map(user => ({
+          ...user,
+          company_name: user.company_name || 'N/A',
+          assigned_stalls: user.assigned_stalls || []
+        }));
+      console.log('✅ Users loaded (fallback):', this.users.length);
+    } catch (fallbackErr) {
+      console.error('Failed to load users (fallback):', fallbackErr);
+      this.users = [];
+    }
+  }
+},
+
     async loadLowStock() {
       const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
         headers: { Authorization: `Bearer ${this.token}` } 
@@ -2827,34 +2875,40 @@ export default {
       }
       this.stallModal = true
     },
-    async saveStall() {
-      try {
-        if (this.editingStall) {
-          await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
-            name: this.stallForm.name,
-            code: this.stallForm.code,
-            location: this.stallForm.location
-          }, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Stall updated', 'success')
-        } else {
-          await axios.post(`${API_BASE}/companies/1/stalls`, {
-            name: this.stallForm.name,
-            code: this.stallForm.code,
-            location: this.stallForm.location
-          }, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Stall created', 'success')
-        }
-        this.stallModal = false
-        this.loadStalls()
-        await this.loadAllStallsInventory()
-      } catch (err) {
-        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
-      }
-    },
+    // =============================================
+// SAVE STALL - FIXED
+// =============================================
+
+async saveStall() {
+  try {
+    if (this.editingStall) {
+      // ✅ Use the new PUT /api/stalls/:id endpoint
+      await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
+        name: this.stallForm.name,
+        code: this.stallForm.code,
+        location: this.stallForm.location
+      }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      this.$emit('show-notification', 'Stall updated', 'success');
+    } else {
+      await axios.post(`${API_BASE}/companies/1/stalls`, {
+        name: this.stallForm.name,
+        code: this.stallForm.code,
+        location: this.stallForm.location
+      }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      this.$emit('show-notification', 'Stall created', 'success');
+    }
+    this.stallModal = false;
+    this.loadStalls();
+    await this.loadAllStallsInventory();
+  } catch (err) {
+    console.error('Save stall error:', err);
+    this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error');
+  }
+},
     async toggleStallStatus(stall) {
       try {
         await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {

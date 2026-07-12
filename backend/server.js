@@ -682,16 +682,122 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
 // IMPORTANT: Specific company routes MUST come BEFORE generic /api/companies routes
 
 // ==================== COMPANY STALLS ====================
+// ============================================
+// GET COMPANY STALLS
+// ============================================
+
 app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
   const companyId = parseInt(req.params.companyId);
-  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
-  
-  if (!userCanAccessCompany(req.user, companyId) && req.user.role !== 'stall_admin') {
-    return res.status(403).json({ error: 'Forbidden: You do not have permission to access this company' });
+  if (isNaN(companyId)) {
+    return res.status(400).json({ error: 'Invalid company ID' });
   }
-  
-  const result = await pool.query('SELECT * FROM stalls WHERE company_id = $1 ORDER BY name', [companyId]);
-  res.json(result.rows);
+
+  // Super Super Admin and Super Admin can view any company's stalls
+  // Stall Admin can only view their own company's stalls
+  if (req.user.role === 'stall_admin') {
+    const userCheck = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
+    if (userCheck.rows[0]?.company_id !== companyId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        s.*,
+        c.name as company_name,
+        COALESCE(
+          (SELECT COUNT(DISTINCT usa.user_id) 
+           FROM user_stall_assignments usa 
+           WHERE usa.stall_id = s.id),
+          0
+        ) as user_count
+      FROM stalls s
+      LEFT JOIN companies c ON s.company_id = c.id
+      WHERE s.company_id = $1
+      ORDER BY s.name
+    `, [companyId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get company stalls error:', err);
+    res.status(500).json({ error: 'Failed to get stalls' });
+  }
+});
+
+// ============================================
+// GET ALL USERS (Super Admin Only)
+// ============================================
+
+app.get('/api/users/all', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can view all users
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.username,
+        u.full_name,
+        u.role,
+        u.company_id,
+        u.is_active,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
+           FROM user_stall_assignments usa
+           JOIN stalls s ON usa.stall_id = s.id
+           WHERE usa.user_id = u.id),
+          '[]'
+        ) as assigned_stalls,
+        c.name as company_name
+      FROM users u
+      LEFT JOIN companies c ON u.company_id = c.id
+      WHERE u.role != 'super_super_admin'
+      ORDER BY u.username
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get all users error:', err);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
+// ============================================
+// GET ALL STALLS (Super Admin Only)
+// ============================================
+
+app.get('/api/stalls/all', authenticateToken, async (req, res) => {
+  // Only super_super_admin and super_admin can view all stalls
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        s.*,
+        c.name as company_name,
+        COALESCE(
+          (SELECT COUNT(DISTINCT usa.user_id) 
+           FROM user_stall_assignments usa 
+           WHERE usa.stall_id = s.id),
+          0
+        ) as user_count
+      FROM stalls s
+      LEFT JOIN companies c ON s.company_id = c.id
+      ORDER BY c.name, s.name
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get all stalls error:', err);
+    res.status(500).json({ error: 'Failed to get stalls' });
+  }
 });
 
 app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
@@ -706,38 +812,122 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   res.json({ success: true });
 });
 
+// ============================================
+// UPDATE STALL
+// ============================================
+
+app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.id);
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  const { name, code, location, is_active } = req.body;
+
+  try {
+    // Check if stall exists
+    const stallCheck = await pool.query('SELECT * FROM stalls WHERE id = $1', [stallId]);
+    if (stallCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stall not found' });
+    }
+
+    // Check if user has permission (Super Admin or Super Super Admin)
+    if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Build update query dynamically
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramCount++}`);
+      values.push(name);
+    }
+    if (code !== undefined) {
+      updates.push(`code = $${paramCount++}`);
+      values.push(code);
+    }
+    if (location !== undefined) {
+      updates.push(`location = $${paramCount++}`);
+      values.push(location);
+    }
+    if (is_active !== undefined) {
+      updates.push(`is_active = $${paramCount++}`);
+      values.push(is_active);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(stallId);
+    const query = `
+      UPDATE stalls 
+      SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    res.json({ success: true, stall: result.rows[0] });
+  } catch (err) {
+    console.error('Update stall error:', err);
+    res.status(500).json({ error: 'Failed to update stall' });
+  }
+});
 // ==================== COMPANY USERS ====================
+// ============================================
+// GET COMPANY USERS
+// ============================================
+
 app.get('/api/companies/:companyId/users', authenticateToken, async (req, res) => {
   const companyId = parseInt(req.params.companyId);
-  if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
-  
-  if (!userCanAccessCompany(req.user, companyId) && req.user.role !== 'stall_admin') {
-    return res.status(403).json({ error: 'Forbidden: You do not have permission to access this company' });
+  if (isNaN(companyId)) {
+    return res.status(400).json({ error: 'Invalid company ID' });
   }
 
-  let query = `
-    SELECT u.id, u.username, u.full_name, u.role, u.is_active,
-      COALESCE(
-        (SELECT json_agg(json_build_object('id', s.id, 'name', s.name))
-         FROM user_stall_assignments usa
-         JOIN stalls s ON usa.stall_id = s.id
-         WHERE usa.user_id = u.id),
-        '[]'
-      ) as assigned_stalls
-    FROM users u
-    WHERE u.company_id = $1
-  `;
-
+  // Super Super Admin and Super Admin can view any company's users
+  // Stall Admin can only view their own company's users
   if (req.user.role === 'stall_admin') {
-    const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
-    const allowedStallIds = userStalls.rows.map(r => r.stall_id);
-    query += ` AND (u.role = 'cashier' OR EXISTS (SELECT 1 FROM user_stall_assignments usa2 WHERE usa2.user_id = u.id AND usa2.stall_id = ANY($2::int[])))`;
-    const result = await pool.query(query, [companyId, allowedStallIds]);
-    return res.json(result.rows);
+    // Check if user belongs to this company
+    const userCheck = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
+    if (userCheck.rows[0]?.company_id !== companyId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const result = await pool.query(query, [companyId]);
-  res.json(result.rows);
+  try {
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.username,
+        u.full_name,
+        u.role,
+        u.company_id,
+        u.is_active,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
+           FROM user_stall_assignments usa
+           JOIN stalls s ON usa.stall_id = s.id
+           WHERE usa.user_id = u.id),
+          '[]'
+        ) as assigned_stalls,
+        c.name as company_name
+      FROM users u
+      LEFT JOIN companies c ON u.company_id = c.id
+      WHERE u.company_id = $1 AND u.role != 'super_super_admin'
+      ORDER BY u.username
+    `, [companyId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get company users error:', err);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
 });
 
 app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) => {
@@ -792,10 +982,44 @@ app.get('/api/companies/:companyId/low-stock', authenticateToken, async (req, re
 });
 
 // ==================== GENERIC COMPANY ROUTES ====================
+// ============================================
+// GET ALL COMPANIES (WITH COUNTS)
+// ============================================
+
 app.get('/api/companies', authenticateToken, async (req, res) => {
-  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
-  const result = await pool.query('SELECT * FROM companies ORDER BY name');
-  res.json(result.rows);
+  // Only super_super_admin and super_admin can view all companies
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        COALESCE(
+          (SELECT COUNT(*) FROM users WHERE company_id = c.id AND role != 'super_super_admin'),
+          0
+        ) as user_count,
+        COALESCE(
+          (SELECT COUNT(*) FROM stalls WHERE company_id = c.id),
+          0
+        ) as stall_count,
+        rr.contact_person,
+        rr.email,
+        rr.phone,
+        rr.ic_number,
+        rr.payment_receipt,
+        rr.company_name as registration_company_name
+      FROM companies c
+      LEFT JOIN registration_requests rr ON rr.company_name = c.name AND rr.status = 'approved'
+      ORDER BY c.name
+    `);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get companies error:', err);
+    res.status(500).json({ error: 'Failed to get companies' });
+  }
 });
 
 app.post('/api/companies', authenticateToken, async (req, res) => {
