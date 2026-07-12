@@ -466,28 +466,31 @@ export default {
       this.submitting = true;
 
       try {
-        const formData = new FormData();
-        formData.append('company_name', this.form.company_name);
-        formData.append('contact_person', this.form.contact_person);
-        formData.append('email', this.form.email);
-        formData.append('phone', this.form.phone);
-        formData.append('ic_number', this.form.ic_number);
+    const formData = new FormData();
+    formData.append('company_name', this.form.company_name);
+    formData.append('contact_person', this.form.contact_person);
+    formData.append('email', this.form.email);
+    formData.append('phone', this.form.phone);
+    formData.append('ic_number', this.form.ic_number);
         
-        if (this.form.payment_receipt) {
-          formData.append('payment_receipt', this.form.payment_receipt);
-        } else if (this.existingReceipt) {
-          formData.append('payment_receipt', this.existingReceipt);
-        }
+           // ✅ Handle receipt properly
+    if (this.form.payment_receipt) {
+      // User uploaded a new file - send as file
+      formData.append('payment_receipt', this.form.payment_receipt);
+    } else if (this.existingReceipt) {
+      // User kept existing receipt - send as string
+      formData.append('payment_receipt', this.existingReceipt);
+    }
 
-        const response = await axios.post(
-          `${API_BASE}/register/resubmit/${this.requestId}`,
-          formData,
-          { 
-            headers: { 
-              'Content-Type': 'multipart/form-data'
-            } 
-          }
-        );
+    const response = await axios.post(
+      `${API_BASE}/register/resubmit/${this.requestId}`,
+      formData,
+      { 
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        } 
+      }
+    );
 
         if (response.data.success) {
           this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
