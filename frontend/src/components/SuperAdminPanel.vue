@@ -61,44 +61,42 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- STATS CARDS                                  -->
-    <!-- ============================================ -->
-    <div class="stats-grid">
-      <div class="stat-card" style="--stat-color: #2563eb;">
-        <div class="stat-icon">🏪</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ stalls.length }}</span>
-          <span class="stat-label">Total Stalls</span>
-        </div>
-        <div class="stat-trend up">+12%</div>
-      </div>
-      <div class="stat-card" style="--stat-color: #7c3aed;">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ users.length }}</span>
-          <span class="stat-label">Total Users</span>
-        </div>
-        <div class="stat-trend up">+8%</div>
-      </div>
-      <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ lowStock.length }}</span>
-          <span class="stat-label">Low Stock Alerts</span>
-        </div>
-        <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
-          {{ lowStock.length > 0 ? '⚠️' : '✅' }}
-        </div>
-        <div class="stat-hover">Click to view →</div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
     <!-- TAB CONTENT                                 -->
     <!-- ============================================ -->
     <div class="tab-content">
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
+
+      <!-- ✅ MOVED STATS CARDS - Only show on Dashboard -->
+  <div class="stats-grid">
+    <div class="stat-card" style="--stat-color: #2563eb;">
+      <div class="stat-icon">🏪</div>
+      <div class="stat-content">
+        <span class="stat-number">{{ stalls.length }}</span>
+        <span class="stat-label">Total Stalls</span>
+      </div>
+      <div class="stat-trend up">+12%</div>
+    </div>
+    <div class="stat-card" style="--stat-color: #7c3aed;">
+      <div class="stat-icon">👥</div>
+      <div class="stat-content">
+        <span class="stat-number">{{ users.length }}</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+      <div class="stat-trend up">+8%</div>
+    </div>
+    <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-content">
+        <span class="stat-number">{{ lowStock.length }}</span>
+        <span class="stat-label">Low Stock Alerts</span>
+      </div>
+      <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
+        {{ lowStock.length > 0 ? '⚠️' : '✅' }}
+      </div>
+      <div class="stat-hover">Click to view →</div>
+    </div>
+  </div>
         
         <!-- KPI Cards -->
         <div class="kpi-grid">
@@ -619,111 +617,99 @@
         </div>
       </div>
 
-      <!-- ===== COMPANIES TAB ===== -->
-      <div v-if="activeTab === 'companies'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>🏢 Company Management</h3>
-              <span class="card-subtitle">{{ filteredCompanies.length }} companies</span>
-            </div>
-            <button @click="loadCompanies" class="btn-modern secondary small">
-              ⟳ Refresh
-            </button>
-          </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <input 
-                  type="text" 
-                  v-model="companySearch" 
-                  placeholder="Search companies..." 
-                  class="filter-input"
-                />
-              </div>
-            </div>
-
-            <div v-if="loadingCompanies" class="loading-state small">
-              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-              <p>Loading companies...</p>
-            </div>
-
-            <div v-else-if="filteredCompanies.length === 0" class="empty-state-modern">
-              <span>🏢</span>
-              <p>No companies found</p>
-            </div>
-
-            <div v-else class="companies-list">
-              <div v-for="company in filteredCompanies" :key="company.id" class="company-item">
-                <div class="company-header" @click="toggleCompanyDetails(company.id)">
-                  <div class="company-info">
-                    <span class="company-name">{{ company.name }}</span>
-                    <span class="company-code">{{ company.code || 'N/A' }}</span>
-                    <span :class="['status-tag', company.is_active !== false ? 'active' : 'inactive']">
-                      {{ company.is_active !== false ? 'Active' : 'Inactive' }}
-                    </span>
-                  </div>
-                  <div class="company-stats">
-                    <span class="stat-badge">👥 {{ company.user_count || 0 }} users</span>
-                    <span class="stat-badge">🏪 {{ company.stall_count || 0 }} stalls</span>
-                    <span class="company-toggle">{{ expandedCompany === company.id ? '−' : '+' }}</span>
-                  </div>
-                </div>
-
-                <div v-if="expandedCompany === company.id" class="company-details">
-                  <div class="detail-grid">
-                    <div class="detail-item">
-                      <span class="detail-label">Company Code</span>
-                      <span class="detail-value">{{ company.code || '-' }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Created</span>
-                      <span class="detail-value">{{ formatDate(company.created_at) }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Status</span>
-                      <span class="detail-value">
-                        <span :class="['status-badge', company.is_active !== false ? 'excellent' : 'poor']">
-                          {{ company.is_active !== false ? 'Active' : 'Inactive' }}
-                        </span>
-                      </span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Subscription</span>
-                      <span class="detail-value">{{ company.subscription_tier || 'Basic' }}</span>
-                    </div>
-                  </div>
-
-                  <div v-if="company.users && company.users.length > 0" class="company-users">
-                    <h4>👥 Users</h4>
-                    <div class="users-grid">
-                      <div v-for="user in company.users" :key="user.id" class="user-card">
-                        <div class="user-info">
-                          <span class="user-name">{{ user.full_name || user.username }}</span>
-                          <span class="user-username">@{{ user.username }}</span>
-                        </div>
-                        <span class="role-tag">{{ user.role }}</span>
-                        <span class="user-stalls">{{ (user.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="company.latest_receipt" class="company-receipt">
-                    <h4>📎 Latest Receipt</h4>
-                    <div class="receipt-preview">
-                      <span class="receipt-filename">{{ getReceiptName(company.latest_receipt) }}</span>
-                      <button @click="viewReceipt(company.latest_receipt)" class="btn-modern primary small">
-                        View Receipt
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<!-- ===== COMPANIES TAB ===== -->
+<div v-if="activeTab === 'companies'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🏢 Company Management</h3>
+        <span class="card-subtitle">{{ filteredCompanies.length }} companies</span>
+      </div>
+      <button @click="loadCompanies" class="btn-modern secondary small">
+        ⟳ Refresh
+      </button>
+    </div>
+    <div class="card-modern-body">
+      <div class="filter-bar">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="companySearch" 
+            placeholder="Search companies..." 
+            class="filter-input"
+          />
         </div>
       </div>
+
+      <div v-if="loadingCompanies" class="loading-state small">
+        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+        <p>Loading companies...</p>
+      </div>
+
+      <div v-else-if="filteredCompanies.length === 0" class="empty-state-modern">
+        <span>🏢</span>
+        <p>No companies found</p>
+      </div>
+
+      <!-- Flat Table - No Expand/Collapse -->
+      <div v-else class="companies-table-wrapper">
+        <table class="companies-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Contact</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>IC Number</th>
+              <th>Code</th>
+              <th>Status</th>
+              <th>Created / Subscription</th>
+              <th>Users</th>
+              <th>Stalls</th>
+              <th>Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="company in filteredCompanies" :key="company.id">
+              <td><strong>{{ company.company_name || company.name }}</strong></td>
+              <td>{{ company.contact_person || '-' }}</td>
+              <td>{{ company.email || '-' }}</td>
+              <td>{{ company.phone || '-' }}</td>
+              <td>{{ company.ic_number || '-' }}</td>
+              <td><code>{{ company.code || 'N/A' }}</code></td>
+              <td>
+                <span :class="['status-tag', company.is_active !== false ? 'active' : 'inactive']">
+                  {{ company.is_active !== false ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="subscription-info">
+                  <span class="sub-label">Start:</span>
+                  {{ formatDate(company.created_at) }}
+                  <br>
+                  <span class="sub-label">End:</span>
+                  {{ formatSubscriptionEnd(company.created_at) }}
+                </div>
+              </td>
+              <td><span class="count-badge">{{ company.user_count || 0 }}</span></td>
+              <td><span class="count-badge">{{ company.stall_count || 0 }}</span></td>
+              <td>
+                <button 
+                  v-if="company.payment_receipt" 
+                  @click="viewReceipt(company.payment_receipt)" 
+                  class="btn-modern primary small"
+                >
+                  View
+                </button>
+                <span v-else class="text-muted">No receipt</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
+</div>
 
     <!-- ============================================ -->
     <!-- STALL DETAILS MODAL                         -->
@@ -1401,65 +1387,96 @@ export default {
       }
     },
 
-    // =============================================
-    // COMPANY MANAGEMENT
-    // =============================================
-    async loadCompanies() {
-      this.loadingCompanies = true;
-      try {
-        const res = await axios.get(`${API_BASE}/companies`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        });
-        
-        const companiesWithDetails = await Promise.all(
-          res.data.map(async (company) => {
-            try {
-              const usersRes = await axios.get(`${API_BASE}/companies/${company.id}/users`, {
-                headers: { Authorization: `Bearer ${this.token}` }
-              });
-              
-              const stallsRes = await axios.get(`${API_BASE}/companies/${company.id}/stalls`, {
-                headers: { Authorization: `Bearer ${this.token}` }
-              });
-              
-              const registrationsRes = await axios.get(`${API_BASE}/register/pending`, {
-                headers: { Authorization: `Bearer ${this.token}` }
-              });
-              const companyRegistrations = registrationsRes.data.filter(r => 
-                r.company_name === company.name && r.status === 'approved'
-              );
-              const latestReceipt = companyRegistrations.length > 0 
-                ? companyRegistrations[companyRegistrations.length - 1].payment_receipt 
-                : null;
-              
-              return {
-                ...company,
-                users: usersRes.data || [],
-                stall_count: stallsRes.data?.length || 0,
-                user_count: usersRes.data?.length || 0,
-                latest_receipt: latestReceipt
-              };
-            } catch (err) {
-              console.error(`Error loading details for company ${company.id}:`, err);
-              return {
-                ...company,
-                users: [],
-                stall_count: 0,
-                user_count: 0,
-                latest_receipt: null
+// =============================================
+// COMPANY MANAGEMENT
+// =============================================
+
+formatSubscriptionEnd(createdAt) {
+  if (!createdAt) return 'N/A';
+  const startDate = new Date(createdAt);
+  const endDate = new Date(startDate);
+  endDate.setFullYear(endDate.getFullYear() + 1);
+  return endDate.toLocaleDateString('en-MY', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+},
+
+async loadCompanies() {
+  this.loadingCompanies = true;
+  try {
+    const res = await axios.get(`${API_BASE}/companies`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    
+    // ✅ Get user and stall counts for each company
+    const companiesWithCounts = await Promise.all(
+      res.data.map(async (company) => {
+        try {
+          // Get users count for this company
+          const usersRes = await axios.get(`${API_BASE}/companies/${company.id}/users`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          
+          // Get stalls count for this company
+          const stallsRes = await axios.get(`${API_BASE}/companies/${company.id}/stalls`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          
+          // Get registration details (email, phone, IC, receipt)
+          let regDetails = {};
+          try {
+            // Try to find registration by company name
+            const regRes = await axios.get(`${API_BASE}/register/pending`, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            });
+            const reg = regRes.data.find(r => 
+              r.company_name === company.name && r.status === 'approved'
+            );
+            if (reg) {
+              regDetails = {
+                email: reg.email,
+                phone: reg.phone,
+                ic_number: reg.ic_number,
+                payment_receipt: reg.payment_receipt
               };
             }
-          })
-        );
-        
-        this.companies = companiesWithDetails;
-      } catch (err) {
-        console.error('Failed to load companies:', err);
-        this.$emit('show-notification', 'Failed to load companies', 'error');
-      } finally {
-        this.loadingCompanies = false;
-      }
-    },
+          } catch (regErr) {
+            console.warn('Could not fetch registration details for company:', company.id);
+          }
+          
+          return {
+            ...company,
+            user_count: usersRes.data?.length || 0,
+            stall_count: stallsRes.data?.length || 0,
+            ...regDetails
+          };
+        } catch (err) {
+          // If 403, just return basic info
+          console.warn(`Cannot access details for company ${company.id}:`, err.message);
+          return {
+            ...company,
+            user_count: 0,
+            stall_count: 0,
+            email: '-',
+            phone: '-',
+            ic_number: '-',
+            payment_receipt: null
+          };
+        }
+      })
+    );
+    
+    this.companies = companiesWithCounts;
+    console.log('✅ Companies loaded:', this.companies.length);
+  } catch (err) {
+    console.error('Failed to load companies:', err);
+    this.$emit('show-notification', 'Failed to load companies', 'error');
+  } finally {
+    this.loadingCompanies = false;
+  }
+},
 
     toggleCompanyDetails(companyId) {
       this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
@@ -5086,5 +5103,102 @@ export default {
   font-size: 0.85rem;
   color: #065f46;
   flex: 1;
+}
+
+/* ============================================ */
+/* COMPANIES TABLE                              */
+/* ============================================ */
+.companies-table-wrapper {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.companies-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.companies-table thead {
+  background: var(--background);
+  border-bottom: 2px solid var(--border);
+}
+
+.companies-table th {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.companies-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.companies-table tr:hover td {
+  background: var(--background);
+}
+
+.companies-table code {
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.count-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  padding: 0.05rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+.text-muted {
+  color: var(--text-tertiary);
+}
+
+.subscription-info {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.sub-label {
+  color: var(--text-tertiary);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .companies-table {
+    font-size: 0.7rem;
+  }
+  
+  .companies-table th,
+  .companies-table td {
+    padding: 0.3rem 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .companies-table th,
+  .companies-table td {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.3rem;
+  }
 }
 </style>
