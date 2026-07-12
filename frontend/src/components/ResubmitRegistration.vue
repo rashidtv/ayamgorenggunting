@@ -422,89 +422,78 @@ export default {
     },
 
     async handleResubmit() {
-      this.submitError = '';
-      this.submitSuccess = '';
+  this.submitError = '';
+  this.submitSuccess = '';
 
-      // Validate IC format
-      const icRegex = /^\d{6}-\d{2}-\d{4}$/;
-      if (!icRegex.test(this.form.ic_number)) {
-        this.submitError = 'Invalid IC number format. Use: XXXXXX-XX-XXXX';
-        return;
+  // Validate IC format
+  const icRegex = /^\d{6}-\d{2}-\d{4}$/;
+  if (!icRegex.test(this.form.ic_number)) {
+    this.submitError = 'Invalid IC number format. Use: XXXXXX-XX-XXXX';
+    return;
+  }
+
+  // Validate email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(this.form.email)) {
+    this.submitError = 'Invalid email format.';
+    return;
+  }
+
+  // Check receipt
+  if (!this.existingReceipt && !this.form.payment_receipt) {
+    this.submitError = 'Payment receipt is required. Please upload a receipt.';
+    return;
+  }
+
+  if (!this.isFormValid) {
+    this.submitError = 'Please fill in all required fields.';
+    return;
+  }
+
+  this.submitting = true;
+
+  try {
+    // ✅ Always use FormData when there's a file or existing receipt
+    const formData = new FormData();
+    formData.append('company_name', this.form.company_name);
+    formData.append('contact_person', this.form.contact_person);
+    formData.append('email', this.form.email);
+    formData.append('phone', this.form.phone);
+    formData.append('ic_number', this.form.ic_number);
+    
+    // ✅ Handle receipt
+    if (this.form.payment_receipt) {
+      // New file uploaded - append as file
+      formData.append('payment_receipt', this.form.payment_receipt);
+      console.log('📎 Uploading new file:', this.form.payment_receipt.name);
+    } else if (this.existingReceipt) {
+      // Keep existing receipt - send as string
+      formData.append('payment_receipt', this.existingReceipt);
+      console.log('📎 Keeping existing receipt (string)');
+    }
+
+    const response = await axios.post(
+      `${API_BASE}/register/resubmit/${this.requestId}`,
+      formData,
+      { 
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        } 
       }
+    );
 
-      // Validate email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.form.email)) {
-        this.submitError = 'Invalid email format.';
-        return;
-      }
-
-      // Check receipt
-      if (!this.existingReceipt && !this.form.payment_receipt) {
-        this.submitError = 'Payment receipt is required. Please upload a receipt.';
-        return;
-      }
-
-      if (!this.isFormValid) {
-        this.submitError = 'Please fill in all required fields.';
-        return;
-      }
-
-      this.submitting = true;
-
-      try {
-        // ✅ Build payload
-        const payload = {
-          company_name: this.form.company_name,
-          contact_person: this.form.contact_person,
-          email: this.form.email,
-          phone: this.form.phone,
-          ic_number: this.form.ic_number
-        };
-
-        // ✅ Determine if we have a new file
-        if (this.form.payment_receipt) {
-          // New file - use FormData
-          const formData = new FormData();
-          formData.append('company_name', this.form.company_name);
-          formData.append('contact_person', this.form.contact_person);
-          formData.append('email', this.form.email);
-          formData.append('phone', this.form.phone);
-          formData.append('ic_number', this.form.ic_number);
-          formData.append('payment_receipt', this.form.payment_receipt);
-          
-          const response = await axios.post(
-            `${API_BASE}/register/resubmit/${this.requestId}`,
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data' } }
-          );
-          
-          if (response.data.success) {
-            this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
-            setTimeout(() => this.closeModal(), 3000);
-          }
-        } else {
-          // ✅ Keeping existing receipt - send as JSON
-          payload.payment_receipt = this.existingReceipt;
-          
-          const response = await axios.post(
-            `${API_BASE}/register/resubmit/${this.requestId}`,
-            payload,
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-          
-          if (response.data.success) {
-            this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
-            setTimeout(() => this.closeModal(), 3000);
-          }
-        }
-      } catch (error) {
-        console.error('Resubmit error:', error);
-        this.submitError = error.response?.data?.error || 'Failed to resubmit. Please try again.';
-      } finally {
-        this.submitting = false;
-      }
-    },
+    if (response.data.success) {
+      this.submitSuccess = '✅ Registration resubmitted successfully! Please wait for approval.';
+      setTimeout(() => this.closeModal(), 3000);
+    }
+  } catch (error) {
+    console.error('Resubmit error:', error);
+    console.error('Error response:', error.response?.data);
+    this.submitError = error.response?.data?.error || 'Failed to resubmit. Please try again.';
+  } finally {
+    this.submitting = false;
+  }
+},
 
     formatDate(dateString) {
       if (!dateString) return 'N/A';

@@ -61,13 +61,17 @@ pool.on('error', (err) => {
 });
 
 // ============ FILE UPLOAD CONFIGURATION ============
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure multer for image uploads
+// Configure multer for file uploads (including PDF)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -75,7 +79,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, `menu-${unique}${ext}`);
+    cb(null, `receipt-${unique}${ext}`);
   }
 });
 
@@ -85,11 +89,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'];
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif', 'application/pdf'];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only images are allowed (JPEG, PNG, WebP, GIF)'));
+      cb(new Error('Only images and PDF files are allowed'));
     }
   }
 });
@@ -1934,17 +1938,17 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// RESUBMIT REGISTRATION - PERMANENT FIX
+// RESUBMIT REGISTRATION - WITH FILE UPLOAD
 // ============================================
 
-app.post('/api/register/resubmit/:id', async (req, res) => {
+app.post('/api/register/resubmit/:id', upload.single('payment_receipt'), async (req, res) => {
   const { id } = req.params;
   
-  // ✅ Get fields from body (works for both JSON and FormData)
-  const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
+  // Get fields from body
+  const { company_name, contact_person, email, phone, ic_number } = req.body;
   
   try {
-    // Get current registration request (by ID or email)
+    // Get current registration request
     let currentRes;
     if (!isNaN(parseInt(id))) {
       currentRes = await pool.query(
@@ -1972,7 +1976,7 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       });
     }
     
-    // ✅ Validate required fields
+    // Validate required fields
     if (!company_name || !contact_person || !email || !phone || !ic_number) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -1989,24 +1993,18 @@ app.post('/api/register/resubmit/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Handle payment_receipt - accept both string and file
+    // ✅ Handle payment_receipt - check if file was uploaded
     let finalReceipt = current.payment_receipt;
     
-    if (payment_receipt) {
-      // Check if it's a valid receipt (base64, URL, or path)
-      if (payment_receipt.startsWith('data:') || 
-          payment_receipt.startsWith('/uploads/') || 
-          payment_receipt.startsWith('http') ||
-          payment_receipt.length > 100) {
-        finalReceipt = payment_receipt;
-        console.log('✅ Using provided receipt (string format)');
-      } else {
-        // It might be a file path or other format
-        finalReceipt = payment_receipt;
-        console.log('✅ Using provided receipt (other format)');
-      }
-    } else {
-      console.log('✅ Keeping existing receipt');
+    if (req.file) {
+      // New file uploaded - save the path
+      const baseUrl = process.env.BASE_URL || 'https://api.chickoryhub.com';
+      finalReceipt = `${baseUrl}/uploads/${req.file.filename}`;
+      console.log('📎 New receipt uploaded:', req.file.filename);
+    } else if (req.body.payment_receipt) {
+      // String receipt provided (existing receipt)
+      finalReceipt = req.body.payment_receipt;
+      console.log('📎 Using existing receipt (string)');
     }
     
     // ✅ Ensure we have a receipt
@@ -2052,7 +2050,6 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    // ✅ Try to find by ID first (numeric), then by email
     let result;
     if (!isNaN(parseInt(id))) {
       result = await pool.query(
@@ -2067,9 +2064,7 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
     }
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
-        error: 'Registration request not found. Please check your email link.' 
-      });
+      return res.status(404).json({ error: 'Registration request not found' });
     }
     
     const data = result.rows[0];
@@ -2079,7 +2074,6 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
     }
     
     res.json({
-      id: data.id,
       rejection_count: data.rejection_count || 0,
       rejection_history: history,
       last_rejection_date: data.last_rejection_date,
@@ -2096,9 +2090,7 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
     });
   } catch (err) {
     console.error('Get rejection history error:', err);
-    res.status(500).json({ 
-      error: 'Unable to load registration data. Please try again later.' 
-    });
+    res.status(500).json({ error: 'Failed to get rejection history' });
   }
 });
 
