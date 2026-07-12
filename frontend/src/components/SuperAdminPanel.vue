@@ -621,6 +621,114 @@
       </div>
     </div>
 
+<!-- ===== COMPANIES TAB ===== -->
+<div v-if="activeTab === 'companies'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🏢 Company Management</h3>
+        <span class="card-subtitle">{{ filteredCompanies.length }} companies</span>
+      </div>
+      <button @click="loadCompanies" class="btn-modern secondary small">
+        ⟳ Refresh
+      </button>
+    </div>
+    <div class="card-modern-body">
+      <div class="filter-bar">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="companySearch" 
+            placeholder="Search companies..." 
+            class="filter-input"
+          />
+        </div>
+      </div>
+
+      <div v-if="loadingCompanies" class="loading-state small">
+        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+        <p>Loading companies...</p>
+      </div>
+
+      <div v-else-if="filteredCompanies.length === 0" class="empty-state-modern">
+        <span>🏢</span>
+        <p>No companies found</p>
+      </div>
+
+      <div v-else class="companies-list">
+        <div v-for="company in filteredCompanies" :key="company.id" class="company-item">
+          <div class="company-header" @click="toggleCompanyDetails(company.id)">
+            <div class="company-info">
+              <span class="company-name">{{ company.name }}</span>
+              <span class="company-code">{{ company.code || 'N/A' }}</span>
+              <span :class="['status-tag', company.is_active !== false ? 'active' : 'inactive']">
+                {{ company.is_active !== false ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="company-stats">
+              <span class="stat-badge">👥 {{ company.user_count || 0 }} users</span>
+              <span class="stat-badge">🏪 {{ company.stall_count || 0 }} stalls</span>
+              <span class="company-toggle">{{ expandedCompany === company.id ? '−' : '+' }}</span>
+            </div>
+          </div>
+
+          <div v-if="expandedCompany === company.id" class="company-details">
+            <!-- Company Details -->
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Company Code</span>
+                <span class="detail-value">{{ company.code || '-' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Created</span>
+                <span class="detail-value">{{ formatDate(company.created_at) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">
+                  <span :class="['status-badge', company.is_active !== false ? 'excellent' : 'poor']">
+                    {{ company.is_active !== false ? 'Active' : 'Inactive' }}
+                  </span>
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Subscription</span>
+                <span class="detail-value">{{ company.subscription_tier || 'Basic' }}</span>
+              </div>
+            </div>
+
+            <!-- Company Users -->
+            <div v-if="company.users && company.users.length > 0" class="company-users">
+              <h4>👥 Users</h4>
+              <div class="users-grid">
+                <div v-for="user in company.users" :key="user.id" class="user-card">
+                  <div class="user-info">
+                    <span class="user-name">{{ user.full_name || user.username }}</span>
+                    <span class="user-username">@{{ user.username }}</span>
+                  </div>
+                  <span class="role-tag">{{ user.role }}</span>
+                  <span class="user-stalls">{{ (user.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Latest Receipt -->
+            <div v-if="company.latest_receipt" class="company-receipt">
+              <h4>📎 Latest Receipt</h4>
+              <div class="receipt-preview">
+                <span class="receipt-filename">{{ getReceiptName(company.latest_receipt) }}</span>
+                <button @click="viewReceipt(company.latest_receipt)" class="btn-modern primary small">
+                  View Receipt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
     <!-- ============================================ -->
     <!-- STALL DETAILS MODAL                         -->
     <!-- ============================================ -->
@@ -1042,7 +1150,8 @@ export default {
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
         { id: 'menu', label: 'Menu', icon: '📋' },
-        { id: 'registrations', label: 'Registrations', icon: '📝' }
+        { id: 'registrations', label: 'Registrations', icon: '📝' },
+        { id: 'companies', label: 'Companies', icon: '🏢' }
       ],
       
       // Chart settings
@@ -1055,6 +1164,10 @@ export default {
       // Data
       dropdownOpen: false,
       periodDropdownOpen: false,
+      companies: [],
+      loadingCompanies: false,
+      companySearch: '',
+      expandedCompany: null,
       showHistoryModal: false,
       rejectionHistory: [],
       stalls: [],
@@ -1156,6 +1269,13 @@ export default {
         return matchesSearch && matchesCategory
       })
     },
+    filteredCompanies() {
+    return this.companies.filter(company => {
+      const search = this.companySearch.toLowerCase();
+      return company.name.toLowerCase().includes(search) ||
+             (company.code && company.code.toLowerCase().includes(search));
+    });
+  },
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
@@ -1289,6 +1409,93 @@ export default {
         this.periodDropdownOpen = false
       }
     },
+
+    // =============================================
+// COMPANY MANAGEMENT
+// =============================================
+async loadCompanies() {
+  this.loadingCompanies = true;
+  try {
+    const res = await axios.get(`${API_BASE}/companies`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    
+    // Get detailed info for each company
+    const companiesWithDetails = await Promise.all(
+      res.data.map(async (company) => {
+        try {
+          // Get users for this company
+          const usersRes = await axios.get(`${API_BASE}/companies/${company.id}/users`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          
+          // Get stalls for this company
+          const stallsRes = await axios.get(`${API_BASE}/companies/${company.id}/stalls`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          
+          // Get latest receipt (from registrations)
+          const registrationsRes = await axios.get(`${API_BASE}/register/pending`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          const companyRegistrations = registrationsRes.data.filter(r => 
+            r.company_name === company.name && r.status === 'approved'
+          );
+          const latestReceipt = companyRegistrations.length > 0 
+            ? companyRegistrations[companyRegistrations.length - 1].payment_receipt 
+            : null;
+          
+          return {
+            ...company,
+            users: usersRes.data || [],
+            stall_count: stallsRes.data?.length || 0,
+            user_count: usersRes.data?.length || 0,
+            latest_receipt: latestReceipt
+          };
+        } catch (err) {
+          console.error(`Error loading details for company ${company.id}:`, err);
+          return {
+            ...company,
+            users: [],
+            stall_count: 0,
+            user_count: 0,
+            latest_receipt: null
+          };
+        }
+      })
+    );
+    
+    this.companies = companiesWithDetails;
+  } catch (err) {
+    console.error('Failed to load companies:', err);
+    this.$emit('show-notification', 'Failed to load companies', 'error');
+  } finally {
+    this.loadingCompanies = false;
+  }
+},
+
+toggleCompanyDetails(companyId) {
+  this.expandedCompany = this.expandedCompany === companyId ? null : companyId;
+},
+
+getReceiptName(receiptPath) {
+  if (!receiptPath) return 'No receipt';
+  if (receiptPath.startsWith('data:image')) {
+    return 'Image receipt';
+  }
+  const parts = receiptPath.split('/');
+  return parts[parts.length - 1] || 'Receipt';
+},
+
+formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-MY', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
     
     // =============================================
 // REJECTION HISTORY
@@ -2242,7 +2449,8 @@ downloadReceipt() {
           this.loadStallPerformance(),
           this.loadMenuPerformance(),
           this.loadMenuItems(),
-          this.loadRegistrations()
+          this.loadRegistrations(),
+          this.loadCompanies()
         ])
         await this.loadAllStallsInventory()
         this.resetChartNavigation()
@@ -4758,6 +4966,162 @@ downloadReceipt() {
 
 .btn-link:hover {
   color: #d63d07;
+}
+
+/* ============================================ */
+/* COMPANIES                                    */
+/* ============================================ */
+.companies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.company-item {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.company-item:hover {
+  border-color: var(--primary);
+}
+
+.company-header {
+  padding: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: var(--transition);
+}
+
+.company-header:hover {
+  background: rgba(249, 73, 8, 0.04);
+}
+
+.company-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.company-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.company-code {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.company-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stat-badge {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--surface);
+  padding: 0.1rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.company-toggle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-left: 0.25rem;
+}
+
+.company-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.company-users {
+  margin-top: 1rem;
+}
+
+.company-users h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.user-card {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.user-username {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.user-stalls {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+.company-receipt {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.company-receipt h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.receipt-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f0fdf4;
+  border-radius: var(--radius-sm);
+  border: 1px solid #bbf7d0;
+}
+
+.receipt-filename {
+  font-size: 0.85rem;
+  color: #065f46;
+  flex: 1;
 }
 
 </style>
