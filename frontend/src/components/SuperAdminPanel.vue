@@ -5295,4 +5295,29 @@ async saveStall() {
     padding: 0.2rem 0.3rem;
   }
 }
+
+/* ============================================ */
+/* DROPDOWN BACKGROUND FIX                      */
+/* ============================================ */
+.sa-dashboard .dropdown-menu {
+  background: #ffffff !important;
+}
+
+.sa-dashboard .period-menu {
+  background: #ffffff !important;
+}
+
+.sa-dashboard .dropdown-item {
+  background: transparent;
+}
+
+.sa-dashboard .dropdown-item:hover {
+  background: #f8fafc !important;
+}
+
+.sa-dashboard .dropdown-item.active {
+  background: linear-gradient(135deg, #F94908, #fa6a2e) !important;
+  color: white !important;
+}
+
 </style>
