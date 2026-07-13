@@ -275,21 +275,15 @@
       </div>
     </div>
 
-    <!-- ===== FOOTER ===== -->
-    <footer class="landing-footer">
-      <div class="container">
-        <div class="footer-content">
-          <span class="footer-logo">Chickory Hub</span>
-          <span class="footer-text">© 2026 All rights reserved</span>
-        </div>
-      </div>
-    </footer>
+        <!-- ===== FOOTER ===== -->
+    <GlobalFooter />
   </div>
 </template>
 
 <script>
 import axios from 'axios'
 import DashboardHeader from './DashboardHeader.vue'
+import GlobalFooter from './GlobalFooter.vue'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chickoryhub.com/api'
 
@@ -297,6 +291,7 @@ export default {
   name: 'LandingPage',
   components: {
     DashboardHeader
+    GlobalFooter
   },
   data() {
     return {

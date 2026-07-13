@@ -170,22 +170,8 @@
         </transition-group>
       </div>
 
-      <!-- Footer -->
-      <footer class="app-footer">
-        <div class="footer-content">
-          <div class="footer-brand">
-            <span class="footer-logo">🍗 Chickory Hub</span>
-            <span class="footer-version">v2.0</span>
-          </div>
-          <div class="footer-info">
-            <span class="status-indicator" :class="{ online: isOnline }">
-              <span class="status-dot"></span>
-              {{ isOnline ? 'System Online' : 'Offline Mode' }}
-            </span>
-            <span class="last-sync">Last updated: {{ lastUpdateTime }}</span>
-          </div>
-        </div>
-      </footer>
+            <!-- Global Footer -->
+      <GlobalFooter />
     </div>
   </div>
 </template>
@@ -203,6 +189,7 @@ import SuperSuperAdminPanel from './components/SuperSuperAdminPanel.vue';
 import StallAdminPanel from './components/StallAdminPanel.vue';
 import DashboardHeader from './components/DashboardHeader.vue';
 import { useAuthStore } from './stores/auth';
+import GlobalFooter from './components/GlobalFooter.vue';
 import API_BASE from './config/api.js';
 
 export default {
@@ -218,6 +205,7 @@ export default {
     ResubmitRegistration,
     StallAdminPanel,
     DashboardHeader,
+    GlobalFooter,
   },
   data() {
     return {
@@ -1123,72 +1111,6 @@ body {
   transition: width 0.1s linear;
 }
 
-/* ===== FOOTER ===== */
-.app-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: var(--space) 0;
-  margin-top: auto;
-}
-
-.footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.footer-logo {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.footer-version {
-  background: var(--background);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 500;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--error);
-}
-
-.status-indicator.online .status-dot {
-  background: var(--success);
-}
-
-.last-sync {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: var(--font-size-xs);
-}
 
 /* ===== PWA ===== */
 .pwa-install-prompt {
