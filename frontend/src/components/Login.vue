@@ -9,147 +9,85 @@
 
     <!-- ===== LOGIN CONTENT ===== -->
     <main class="login-main">
-      <div class="login-container">
-        <!-- Animated Background -->
-        <div class="background-animation">
-          <div class="floating-shapes">
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-            <div class="shape shape-3"></div>
-            <div class="shape shape-4"></div>
+      <div class="login-content">
+        <div class="login-card">
+          <!-- Back to Home Button -->
+          <div class="login-back">
+            <button @click="goHome" class="back-btn">
+              ← Back to Home
+            </button>
           </div>
-        </div>
 
-        <div class="login-content">
-          <!-- Brand Panel - Now showing banner -->
-          <div class="brand-panel">
-            <div class="brand-content">
-              <!-- BANNER IMAGE - Full width, no text overlay -->
-              <div class="banner-wrapper">
-                <img 
-                  v-if="bannerImage" 
-                  :src="bannerImage" 
-                  alt="Chickory Hub Banner" 
-                  class="login-banner-image"
+          <form @submit.prevent="login" class="login-form">
+            <div class="form-header">
+              <h2 class="form-title">Welcome Back</h2>
+              <p class="form-subtitle">Sign in to your account</p>
+            </div>
+
+            <div class="input-group">
+              <div class="input-field">
+                <div class="input-icon">👤</div>
+                <input 
+                  v-model="username" 
+                  type="text" 
+                  required
+                  placeholder="Enter username"
+                  class="modern-input"
+                  :disabled="loading"
                 />
-                <!-- Fallback if no banner -->
-                <div v-else class="banner-fallback">
-                  <div class="logo-animation">
-                    <div class="logo-icon">🍗</div>
-                    <div class="logo-rings">
-                      <div class="ring ring-1"></div>
-                      <div class="ring ring-2"></div>
-                      <div class="ring ring-3"></div>
-                    </div>
-                  </div>
-                  <h1 class="brand-title">
-                    <span class="brand-text">Chickory</span>
-                    <span class="brand-text">Hub</span>
-                  </h1>
-                  <p class="brand-tagline">Business Intelligence Platform</p>
-                </div>
-              </div>
-              
-              <!-- Feature List - Only show if no banner -->
-              <div v-if="!bannerImage" class="feature-list">
-                <div class="feature-item">
-                  <span class="feature-icon">📊</span>
-                  <span>Real-time Analytics</span>
-                </div>
-                <div class="feature-item">
-                  <span class="feature-icon">🛒</span>
-                  <span>Multi-stall Management</span>
-                </div>
-                <div class="feature-item">
-                  <span class="feature-icon">📱</span>
-                  <span>PWA Ready</span>
-                </div>
+                <div class="input-underline"></div>
               </div>
             </div>
-          </div>
 
-          <!-- Right Panel - Login Form -->
-          <div class="login-panel">
-            <div class="login-card">
-              <!-- Back to Home Button -->
-              <div class="login-back">
-                <button @click="goHome" class="back-btn">
-                  ← Back to Home
-                </button>
+            <div class="input-group">
+              <div class="input-field">
+                <div class="input-icon">🔒</div>
+                <input 
+                  v-model="password" 
+                  type="password" 
+                  required
+                  placeholder="Enter password"
+                  class="modern-input"
+                  :disabled="loading"
+                />
+                <div class="input-underline"></div>
               </div>
-
-              <form @submit.prevent="login" class="login-form">
-                <div class="form-header">
-                  <h2 class="form-title">Welcome Back</h2>
-                  <p class="form-subtitle">Sign in to your account</p>
-                </div>
-
-                <div class="input-group">
-                  <div class="input-field">
-                    <div class="input-icon">👤</div>
-                    <input 
-                      v-model="username" 
-                      type="text" 
-                      required
-                      placeholder="Enter username"
-                      class="modern-input"
-                      :disabled="loading"
-                    />
-                    <div class="input-underline"></div>
-                  </div>
-                </div>
-
-                <div class="input-group">
-                  <div class="input-field">
-                    <div class="input-icon">🔒</div>
-                    <input 
-                      v-model="password" 
-                      type="password" 
-                      required
-                      placeholder="Enter password"
-                      class="modern-input"
-                      :disabled="loading"
-                    />
-                    <div class="input-underline"></div>
-                  </div>
-                </div>
-
-                <!-- Login Options: Remember Me & Forgot Password -->
-                <div class="login-options">
-                  <label class="remember-me">
-                    <input type="checkbox" v-model="rememberMe" />
-                    <span>Remember me</span>
-                  </label>
-                  <a href="#" @click.prevent="openForgotPassword" class="forgot-link">
-                    Forgot password?
-                  </a>
-                </div>
-
-                <!-- Error Message -->
-                <div v-if="error" class="error-message">
-                  ❌ {{ error }}
-                </div>
-
-                <button 
-                  type="submit" 
-                  :disabled="loading" 
-                  class="modern-login-btn"
-                >
-                  <div class="btn-content">
-                    <span v-if="loading" class="btn-loading">
-                      <div class="loading-spinner"></div>
-                      Authenticating...
-                    </span>
-                    <span v-else class="btn-text">
-                      <span class="btn-icon">→</span>
-                      Sign In
-                    </span>
-                  </div>
-                  <div class="btn-shine"></div>
-                </button>
-              </form>
             </div>
-          </div>
+
+            <!-- Login Options -->
+            <div class="login-options">
+              <label class="remember-me">
+                <input type="checkbox" v-model="rememberMe" />
+                <span>Remember me</span>
+              </label>
+              <a href="#" @click.prevent="openForgotPassword" class="forgot-link">
+                Forgot password?
+              </a>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="error" class="error-message">
+              ❌ {{ error }}
+            </div>
+
+            <button 
+              type="submit" 
+              :disabled="loading" 
+              class="modern-login-btn"
+            >
+              <div class="btn-content">
+                <span v-if="loading" class="btn-loading">
+                  <div class="loading-spinner"></div>
+                  Authenticating...
+                </span>
+                <span v-else class="btn-text">
+                  <span class="btn-icon">→</span>
+                  Sign In
+                </span>
+              </div>
+              <div class="btn-shine"></div>
+            </button>
+          </form>
         </div>
       </div>
     </main>
@@ -290,6 +228,7 @@ export default {
         console.log('📤 User:', response.data?.user)
         console.log('📤 Token:', response.data?.token)
         
+        // Check for first login requirement
         if (response.data && response.data.requiresReset) {
           console.log('🔄 First login detected, redirecting to reset...')
           sessionStorage.setItem('needsPasswordReset', 'true')
@@ -306,6 +245,7 @@ export default {
           return
         }
         
+        // Normal login flow
         if (response.data && response.data.user && response.data.token) {
           if (this.rememberMe) {
             localStorage.setItem('rememberMe', 'true')
@@ -414,7 +354,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: var(--background, #f8fafc);
 }
 
 /* ===== MAIN CONTENT ===== */
@@ -423,293 +363,36 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  position: relative;
+  padding: 2rem 1rem;
 }
 
-.login-container {
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 1200px;
-  position: relative;
-}
-
-/* ===== ANIMATED BACKGROUND ===== */
-.background-animation {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  border-radius: 20px;
-}
-
-.floating-shapes {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.shape {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(249, 73, 8, 0.05);
-  animation: float 6s ease-in-out infinite;
-}
-
-.shape-1 {
-  width: 120px;
-  height: 120px;
-  top: 10%;
-  left: 5%;
-  animation-delay: 0s;
-}
-
-.shape-2 {
-  width: 80px;
-  height: 80px;
-  top: 60%;
-  right: 5%;
-  animation-delay: 2s;
-}
-
-.shape-3 {
-  width: 60px;
-  height: 60px;
-  bottom: 20%;
-  left: 10%;
-  animation-delay: 4s;
-}
-
-.shape-4 {
-  width: 90px;
-  height: 90px;
-  top: 20%;
-  right: 10%;
-  animation-delay: 1s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(180deg); }
-}
-
-/* ===== LOGIN CONTENT ===== */
 .login-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  max-width: 1200px;
   width: 100%;
-  min-height: 500px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  position: relative;
-  z-index: 2;
-}
-
-/* ===== BRAND PANEL ===== */
-.brand-panel {
-  background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  overflow: hidden;
-}
-
-.brand-content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.banner-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.login-banner-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-/* ===== FALLBACK (NO BANNER) ===== */
-.banner-fallback {
-  text-align: center;
-  padding: 2rem;
-  width: 100%;
-}
-
-.logo-animation {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 1.5rem;
-}
-
-.logo-icon {
-  font-size: 3.5rem;
-  position: relative;
-  z-index: 3;
-  animation: bounce 2s ease-in-out infinite;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.logo-rings {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  animation: pulse 3s ease-in-out infinite;
-}
-
-.ring-1 {
-  width: 80px;
-  height: 80px;
-  animation-delay: 0s;
-}
-
-.ring-2 {
-  width: 95px;
-  height: 95px;
-  animation-delay: 1s;
-}
-
-.ring-3 {
-  width: 110px;
-  height: 110px;
-  animation-delay: 2s;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.05); }
-}
-
-.brand-title {
-  font-size: 2.8rem;
-  font-weight: 800;
-  margin-bottom: 0.25rem;
-  line-height: 1.1;
-  color: white;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
-  animation: textFadeIn 1.2s ease-out;
-}
-
-.brand-title .brand-text {
-  display: inline-block;
-  animation: shimmer 3s ease-in-out infinite;
-  background: linear-gradient(to right, #ffffff, #ffedd5, #ffffff);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-@keyframes shimmer {
-  0% { background-position: 0% center; }
-  50% { background-position: 200% center; }
-  100% { background-position: 0% center; }
-}
-
-.brand-tagline {
-  font-size: 0.95rem;
-  font-weight: 500;
-  opacity: 0.9;
-  margin-bottom: 2rem;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.feature-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  opacity: 0.9;
-  justify-content: center;
-  color: white;
-}
-
-.feature-icon {
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-/* ===== LOGIN PANEL ===== */
-.login-panel {
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: auto;
-  background: #ffffff;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .login-card {
-  width: 100%;
-  max-width: 400px;
-  min-height: 400px;
-  display: flex;
-  flex-direction: column;
+  background: var(--surface, #ffffff);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border, #e2e8f0);
 }
 
+/* Back to Home */
 .login-back {
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .back-btn {
   background: none;
   border: none;
   color: var(--text-secondary, #64748b);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   cursor: pointer;
   padding: 0.25rem 0;
-  transition: all 0.3s ease;
+  transition: var(--transition, all 0.3s ease);
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -719,8 +402,8 @@ export default {
   color: #F94908;
 }
 
+/* Login Form */
 .login-form {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -731,18 +414,18 @@ export default {
 }
 
 .form-title {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text, #1e293b);
   margin-bottom: 0.25rem;
 }
 
 .form-subtitle {
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   font-size: 0.9rem;
 }
 
-/* ===== INPUT FIELDS ===== */
+/* Input Fields */
 .input-group {
   margin-bottom: 1rem;
 }
@@ -757,17 +440,17 @@ export default {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1rem;
-  color: #94a3b8;
+  color: var(--text-tertiary, #94a3b8);
   z-index: 2;
 }
 
 .modern-input {
   width: 100%;
-  padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-  border: 2px solid #e2e8f0;
+  padding: 0.8rem 0.8rem 0.8rem 2.75rem;
+  border: 2px solid var(--border, #e2e8f0);
   border-radius: 10px;
   font-size: 0.9rem;
-  background: #ffffff;
+  background: var(--surface, #ffffff);
   transition: all 0.3s ease;
 }
 
@@ -787,12 +470,12 @@ export default {
   display: none;
 }
 
-/* ===== LOGIN OPTIONS ===== */
+/* Login Options */
 .login-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .remember-me {
@@ -800,7 +483,7 @@ export default {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   cursor: pointer;
 }
 
@@ -823,6 +506,7 @@ export default {
   text-decoration: underline;
 }
 
+/* Error Message */
 .error-message {
   color: #ef4444;
   font-size: 0.85rem;
@@ -830,16 +514,16 @@ export default {
   background: rgba(239, 68, 68, 0.08);
   border-radius: 6px;
   text-align: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-/* ===== LOGIN BUTTON ===== */
+/* Login Button */
 .modern-login-btn {
   width: 100%;
   background: linear-gradient(135deg, #F94908, #fa6a2e);
   color: white;
   border: none;
-  padding: 1rem;
+  padding: 0.9rem;
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -898,14 +582,22 @@ export default {
   animation: spin 1s linear infinite;
 }
 
+.btn-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  font-size: 1rem;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* ============================================ */
-/* MODALS                                       */
-/* ============================================ */
+/* ===== MODALS ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1141,43 +833,13 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
-@media (max-width: 768px) {
-  .login-content {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    margin: 0;
-  }
-  
-  .brand-panel {
-    padding: 0;
-    min-height: 250px;
-    max-height: 300px;
-  }
-  
-  .login-banner-image {
-    object-fit: contain;
-    min-height: 250px;
-    max-height: 300px;
-  }
-  
-  .brand-title {
-    font-size: 2.2rem;
-  }
-  
-  .brand-tagline {
-    font-size: 0.8rem;
-  }
-  
-  .feature-list {
-    display: none;
-  }
-  
-  .login-panel {
-    padding: 1.5rem;
-  }
-  
+@media (max-width: 480px) {
   .login-card {
-    min-height: auto;
+    padding: 1.5rem 1.25rem;
+  }
+  
+  .form-title {
+    font-size: 1.3rem;
   }
   
   .login-options {
@@ -1186,47 +848,8 @@ export default {
     align-items: flex-start;
   }
   
-  .background-animation {
-    border-radius: 0;
-  }
-  
-  .login-container {
-    min-height: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .brand-panel {
-    min-height: 180px;
-    max-height: 220px;
-  }
-  
-  .login-banner-image {
-    min-height: 180px;
-  }
-  
-  .brand-title {
-    font-size: 1.8rem;
-  }
-  
-  .brand-tagline {
-    font-size: 0.75rem;
-  }
-  
-  .form-title {
-    font-size: 1.4rem;
-  }
-  
-  .login-panel {
+  .login-main {
     padding: 1rem;
-  }
-  
-  .login-card {
-    padding: 0;
-  }
-  
-  .modal-modern {
-    width: 95%;
   }
 }
 </style>
