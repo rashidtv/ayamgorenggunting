@@ -137,7 +137,6 @@
     </section>
 
     <!-- ===== PRICING ===== -->
-    <!-- ===== PRICING ===== -->
 <section class="pricing-section">
   <div class="container">
     <div class="pricing-header">
@@ -163,9 +162,8 @@
           <li>✅ Priority support</li>
         </ul>
         <button @click="openRegistration" class="btn-primary btn-block">
-          Start Free Trial
+          Register Now
         </button>
-        <p class="plan-note">No credit card required. Cancel anytime.</p>
       </div>
     </div>
   </div>
