@@ -12,8 +12,7 @@
       <div class="container">
         <div class="hero-grid">
           <div class="hero-content">
-            <div class="hero-badge">🚀 #1 Chicken Business Platform</div>
-            <h1>Manage Your <br><span>Chicken Business</span><br>Like a Pro</h1>
+                        <h1>Manage Your <br><span>Chicken Business</span><br>Like a Pro</h1>
             <p>All-in-one platform for chicken stall owners. Track sales, manage inventory, and grow your business from anywhere.</p>
             <div class="hero-actions">
               <button @click="openRegistration" class="btn-primary btn-lg">
