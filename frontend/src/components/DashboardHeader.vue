@@ -15,7 +15,7 @@
         </button>
         <span class="user-badge">{{ roleText }}</span>
         <button @click="logout" class="logout-btn" title="Sign Out">
-          <span class="btn-icon">↩</span>
+          <span class="logout-text">Logout</span>
         </button>
       </div>
     </div>
@@ -120,29 +120,25 @@ export default {
 }
 
 .logout-btn {
-  color: var(--error);
-  background: transparent;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
-  font-size: 0.9rem;
   transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
 .logout-btn:hover {
   background: var(--error);
   color: white;
   border-color: var(--error);
-}
-
-.btn-icon {
-  font-size: 0.9rem;
 }
 
 /* ============================================ */
@@ -166,6 +162,9 @@ export default {
   border-radius: 8px;
 }
 
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
 @media (max-width: 1024px) {
   .dashboard-banner {
     max-height: 180px;
@@ -173,34 +172,13 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .dashboard-banner {
-    max-height: 140px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-banner {
-    max-height: 90px;
-  }
-}
-
-/* ============================================ */
-/* RESPONSIVE                                   */
-/* ============================================ */
-@media (max-width: 768px) {
   .top-controls-row {
     justify-content: center;
   }
   
   .user-controls {
     justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .control-btn {
-    padding: 0.25rem 0.3rem;
-    font-size: 0.75rem;
+    gap: 0.25rem;
   }
   
   .user-badge {
@@ -209,8 +187,38 @@ export default {
   }
   
   .logout-btn {
-    padding: 0.25rem 0.4rem;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.5rem;
+  }
+  
+  .control-btn {
+    padding: 0.2rem 0.3rem;
     font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-banner {
+    max-height: 90px;
+  }
+  
+  .user-controls {
+    gap: 0.2rem;
+  }
+  
+  .user-badge {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .logout-btn {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .control-btn {
+    padding: 0.15rem 0.25rem;
+    font-size: 0.65rem;
   }
 }
 </style>
