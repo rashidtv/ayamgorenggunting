@@ -181,6 +181,31 @@
           <button @click="closeRegistration" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
+          <!-- ✅ ERROR MESSAGE - Shows when registration fails -->
+          <div v-if="registrationError" class="registration-error">
+            <span class="error-icon">❌</span>
+            <div>
+              <strong>Registration Failed</strong>
+              <p>{{ registrationError }}</p>
+              <p v-if="registrationError.includes('already registered')" class="error-hint">
+                <a href="#" @click.prevent="closeRegistration; goToLogin()">Click here to login</a>
+              </p>
+              <p v-if="registrationError.includes('contact support')" class="error-hint">
+                Email: <a href="mailto:support@chickoryhub.com">support@chickoryhub.com</a>
+              </p>
+            </div>
+          </div>
+
+          <!-- ✅ SUCCESS MESSAGE - Shows when registration succeeds -->
+          <div v-if="registrationSuccess" class="registration-success">
+            <span class="success-icon">✅</span>
+            <div>
+              <strong>Registration Submitted!</strong>
+              <p>{{ registrationSuccess }}</p>
+              <p class="success-hint">You will receive an email once your registration is reviewed.</p>
+            </div>
+          </div>
+
           <form @submit.prevent="submitRegistration">
             <div class="form-group">
               <label>Company Name *</label>
@@ -198,22 +223,21 @@
               <label>Phone Number *</label>
               <input v-model="regForm.phone" type="tel" required placeholder="012-3456789" />
             </div>
-            <!-- LandingPage.vue - Add this after Phone Number -->
-<div class="form-group">
-  <label>IC Number *</label>
-  <input 
-    v-model="regForm.ic_number" 
-    type="text" 
-    required 
-    placeholder="XXXXXX-XX-XXXX" 
-    maxlength="14"
-    @input="formatICNumber"
-    :class="{ 'input-error': regForm.ic_number && !validateICNumber(regForm.ic_number) }"
-  />
-  <small style="color: var(--text-tertiary); font-size: 0.7rem;">
-    Format: 6 digits - 2 digits - 4 digits (e.g., 880101-10-1234)
-  </small>
-</div>
+            <div class="form-group">
+              <label>IC Number *</label>
+              <input 
+                v-model="regForm.ic_number" 
+                type="text" 
+                required 
+                placeholder="XXXXXX-XX-XXXX" 
+                maxlength="14"
+                @input="formatICNumber"
+                :class="{ 'input-error': regForm.ic_number && !validateICNumber(regForm.ic_number) }"
+              />
+              <small style="color: var(--text-tertiary); font-size: 0.7rem;">
+                Format: 6 digits - 2 digits - 4 digits (e.g., 880101-10-1234)
+              </small>
+            </div>
             <div class="form-group">
               <label>Payment Receipt</label>
               <div class="receipt-upload-area" @dragover.prevent @drop.prevent="handleReceiptDrop">
@@ -270,12 +294,14 @@ export default {
       systemBanner: localStorage.getItem('systemBanner') || null,
       showRegistration: false,
       submitting: false,
+      registrationError: '',
+      registrationSuccess: '',
       regForm: {
         company_name: '',
         contact_person: '',
         email: '',
         phone: '',
-        ic_number: '',  // ✅ New field
+        ic_number: '',
         receiptFile: null,
         receiptPreview: null
       }
@@ -285,30 +311,28 @@ export default {
     this.fetchBanner()
   },
   methods: {
-    // LandingPage.vue - methods
-formatICNumber(event) {
-    let value = event.target.value.replace(/\D/g, '');
-    
-    // Format as XXXXXX-XX-XXXX
-    if (value.length > 6) {
-      value = value.substring(0, 6) + '-' + value.substring(6);
-    }
-    if (value.length > 9) {
-      value = value.substring(0, 9) + '-' + value.substring(9);
-    }
-    if (value.length > 14) {
-      value = value.substring(0, 14);
-    }
-    
-    this.regForm.ic_number = value;
-  },
+    formatICNumber(event) {
+      let value = event.target.value.replace(/\D/g, '');
+      
+      // Format as XXXXXX-XX-XXXX
+      if (value.length > 6) {
+        value = value.substring(0, 6) + '-' + value.substring(6);
+      }
+      if (value.length > 9) {
+        value = value.substring(0, 9) + '-' + value.substring(9);
+      }
+      if (value.length > 14) {
+        value = value.substring(0, 14);
+      }
+      
+      this.regForm.ic_number = value;
+    },
 
-// LandingPage.vue - validateICNumber
-validateICNumber(ic) {
-  // ✅ Format: 6 digits - 2 digits - 4 digits
-  const regex = /^\d{6}-\d{2}-\d{4}$/;
-  return regex.test(ic);
-},
+    validateICNumber(ic) {
+      const regex = /^\d{6}-\d{2}-\d{4}$/;
+      return regex.test(ic);
+    },
+
     async fetchBanner() {
       try {
         const response = await axios.get(`${API_BASE}/system/banner`)
@@ -320,42 +344,56 @@ validateICNumber(ic) {
         console.log('No system banner found')
       }
     },
+
     openRegistration() {
       this.showRegistration = true
+      // Clear previous messages
+      this.registrationError = ''
+      this.registrationSuccess = ''
     },
+
     closeRegistration() {
       this.showRegistration = false
+      this.registrationError = ''
+      this.registrationSuccess = ''
       this.regForm = {
         company_name: '',
         contact_person: '',
         email: '',
         phone: '',
+        ic_number: '',
         receiptFile: null,
         receiptPreview: null
       }
     },
+
     goToLogin() {
       this.$emit('show-login')
     },
+
     handleReceiptUpload(event) {
       const file = event.target.files[0]
       if (file) {
         this.processReceiptFile(file)
       }
     },
+
     handleReceiptDrop(event) {
       const file = event.dataTransfer.files[0]
       if (file) {
         this.processReceiptFile(file)
       }
     },
+
     processReceiptFile(file) {
       if (file.size > 5 * 1024 * 1024) {
+        this.registrationError = 'File too large. Maximum size is 5MB.'
         this.$emit('show-notification', 'File too large. Maximum size is 5MB.', 'error')
         return
       }
       
       this.regForm.receiptFile = file
+      this.registrationError = ''
       
       if (file.type.startsWith('image/')) {
         const reader = new FileReader()
@@ -371,112 +409,118 @@ validateICNumber(ic) {
         this.$refs.receiptInput.value = ''
       }
     },
+
     removeReceipt() {
       this.regForm.receiptFile = null
       this.regForm.receiptPreview = null
     },
-// LandingPage.vue - submitRegistration - PERMANENT FIX
-async submitRegistration() {
-  this.submitting = true;
-  
-  // ✅ Validate IC number
-  if (!this.validateICNumber(this.regForm.ic_number)) {
-    this.$emit('show-notification', 'Please enter a valid IC number (format: XXXXXX-XX-XXXX)', 'error');
-    this.submitting = false;
-    return;
-  }
-  
-  // ✅ Validate company name
-  if (!this.regForm.company_name.trim()) {
-    this.$emit('show-notification', 'Please enter your company name', 'error');
-    this.submitting = false;
-    return;
-  }
-  
-  // ✅ Validate contact person
-  if (!this.regForm.contact_person.trim()) {
-    this.$emit('show-notification', 'Please enter the contact person name', 'error');
-    this.submitting = false;
-    return;
-  }
-  
-  // ✅ Validate email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(this.regForm.email)) {
-    this.$emit('show-notification', 'Please enter a valid email address', 'error');
-    this.submitting = false;
-    return;
-  }
-  
-  // ✅ Validate phone
-  if (!this.regForm.phone.trim()) {
-    this.$emit('show-notification', 'Please enter your phone number', 'error');
-    this.submitting = false;
-    return;
-  }
-  
-  try {
-    let receiptBase64 = null;
-    if (this.regForm.receiptFile) {
-      const reader = new FileReader();
-      receiptBase64 = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(this.regForm.receiptFile);
-      });
-    }
-    
-    const payload = {
-      company_name: this.regForm.company_name.trim(),
-      contact_person: this.regForm.contact_person.trim(),
-      email: this.regForm.email.trim().toLowerCase(),
-      phone: this.regForm.phone.trim(),
-      ic_number: this.regForm.ic_number,
-      payment_receipt: receiptBase64
-    };
-    
-    console.log('📤 Sending registration payload:', { ...payload, payment_receipt: payload.payment_receipt ? 'Present' : 'None' });
-    
-    const response = await axios.post(`${API_BASE}/register/request`, payload, {
-      timeout: 30000 // 30 second timeout
-    });
-    
-    console.log('📥 Registration response:', response.data);
-    
-    if (response.data.success) {
-      this.$emit('show-notification', '✅ Registration submitted successfully! Please wait for approval.', 'success');
-      this.closeRegistration();
-    } else {
-      this.$emit('show-notification', response.data.message || 'Registration submitted, but please wait for approval.', 'info');
-      this.closeRegistration();
-    }
-  } catch (err) {
-    console.error('❌ Registration error:', err);
-    console.error('❌ Error response:', err.response);
-    console.error('❌ Error data:', err.response?.data);
-    
-    // ✅ Get the specific error message from backend
-    let errorMsg = 'Registration failed. Please try again.';
-    
-    if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
-      errorMsg = 'Network error. Please check your internet connection and try again.';
-    } else if (err.response) {
-      // Backend responded with an error
-      if (err.response.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.response.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response.status === 400) {
-        errorMsg = 'Invalid request. Please check your input and try again.';
-      } else if (err.response.status === 500) {
-        errorMsg = 'Server error. Please try again later or contact support.';
+
+    async submitRegistration() {
+      this.submitting = true
+      this.registrationError = ''
+      this.registrationSuccess = ''
+      
+      // ✅ Validate IC number
+      if (!this.validateICNumber(this.regForm.ic_number)) {
+        this.registrationError = 'Please enter a valid IC number (format: XXXXXX-XX-XXXX)'
+        this.submitting = false
+        return
+      }
+      
+      // ✅ Validate company name
+      if (!this.regForm.company_name.trim()) {
+        this.registrationError = 'Please enter your company name'
+        this.submitting = false
+        return
+      }
+      
+      // ✅ Validate contact person
+      if (!this.regForm.contact_person.trim()) {
+        this.registrationError = 'Please enter the contact person name'
+        this.submitting = false
+        return
+      }
+      
+      // ✅ Validate email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(this.regForm.email)) {
+        this.registrationError = 'Please enter a valid email address'
+        this.submitting = false
+        return
+      }
+      
+      // ✅ Validate phone
+      if (!this.regForm.phone.trim()) {
+        this.registrationError = 'Please enter your phone number'
+        this.submitting = false
+        return
+      }
+      
+      try {
+        let receiptBase64 = null
+        if (this.regForm.receiptFile) {
+          const reader = new FileReader()
+          receiptBase64 = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result)
+            reader.readAsDataURL(this.regForm.receiptFile)
+          })
+        }
+        
+        const payload = {
+          company_name: this.regForm.company_name.trim(),
+          contact_person: this.regForm.contact_person.trim(),
+          email: this.regForm.email.trim().toLowerCase(),
+          phone: this.regForm.phone.trim(),
+          ic_number: this.regForm.ic_number,
+          payment_receipt: receiptBase64
+        }
+        
+        console.log('📤 Sending registration payload:', { ...payload, payment_receipt: payload.payment_receipt ? 'Present' : 'None' })
+        
+        const response = await axios.post(`${API_BASE}/register/request`, payload, {
+          timeout: 30000
+        })
+        
+        console.log('📥 Registration response:', response.data)
+        
+        if (response.data.success) {
+          this.registrationSuccess = 'Registration submitted successfully! Please wait for approval.'
+          this.$emit('show-notification', '✅ Registration submitted successfully! Please wait for approval.', 'success')
+          
+          // ✅ Close modal after delay
+          setTimeout(() => {
+            this.closeRegistration()
+          }, 3000)
+        }
+      } catch (err) {
+        console.error('❌ Registration error:', err)
+        console.error('❌ Error response:', err.response)
+        console.error('❌ Error data:', err.response?.data)
+        
+        // ✅ Get the specific error message from backend
+        let errorMsg = 'Registration failed. Please try again.'
+        
+        if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+          errorMsg = 'Network error. Please check your internet connection and try again.'
+        } else if (err.response) {
+          // Backend responded with an error
+          if (err.response.data?.error) {
+            errorMsg = err.response.data.error
+          } else if (err.response.data?.message) {
+            errorMsg = err.response.data.message
+          } else if (err.response.status === 400) {
+            errorMsg = 'Invalid request. Please check your input and try again.'
+          } else if (err.response.status === 500) {
+            errorMsg = 'Server error. Please try again later or contact support.'
+          }
+        }
+        
+        this.registrationError = errorMsg
+        this.$emit('show-notification', errorMsg, 'error')
+      } finally {
+        this.submitting = false
       }
     }
-    
-    this.$emit('show-notification', errorMsg, 'error');
-  } finally {
-    this.submitting = false;
-  }
-},
   }
 }
 </script>
@@ -742,7 +786,6 @@ async submitRegistration() {
   border-color: var(--primary-light);
 }
 
-/* ✅ All icons use the same brand color */
 .all-feature-icon {
   font-size: 2.2rem;
   width: 60px;
@@ -990,6 +1033,16 @@ async submitRegistration() {
   box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
 }
 
+.input-error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
 .modal-footer-links {
   text-align: center;
   margin-top: 1rem;
@@ -1083,6 +1136,86 @@ async submitRegistration() {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ============================================ */
+/* REGISTRATION MESSAGES                        */
+/* ============================================ */
+.registration-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  color: #991b1b;
+}
+
+.registration-error .error-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.registration-error strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.registration-error p {
+  margin: 0.1rem 0;
+  font-size: 0.85rem;
+}
+
+.registration-error .error-hint {
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.registration-error .error-hint a {
+  color: #F94908;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.registration-error .error-hint a:hover {
+  color: #d63d07;
+}
+
+.registration-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  color: #166534;
+}
+
+.registration-success .success-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.registration-success strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.registration-success p {
+  margin: 0.1rem 0;
+  font-size: 0.85rem;
+}
+
+.registration-success .success-hint {
+  font-size: 0.8rem;
+  color: #15803d;
 }
 
 /* ============================================ */
@@ -1237,16 +1370,4 @@ async submitRegistration() {
     font-size: 1.5rem;
   }
 }
-
-/* LandingPage.vue - Add error styles */
-.input-error {
-  border-color: #ef4444 !important;
-  background: #fef2f2 !important;
-}
-
-.input-error:focus {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-}
-
 </style>
