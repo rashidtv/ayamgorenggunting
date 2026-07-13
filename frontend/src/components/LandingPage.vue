@@ -208,6 +208,7 @@
     placeholder="XXXXXX-XX-XXXX" 
     maxlength="14"
     @input="formatICNumber"
+    :class="{ 'input-error': regForm.ic_number && !validateICNumber(regForm.ic_number) }"
   />
   <small style="color: var(--text-tertiary); font-size: 0.7rem;">
     Format: 6 digits - 2 digits - 4 digits (e.g., 880101-10-1234)
@@ -245,7 +246,7 @@
     <footer class="landing-footer">
       <div class="container">
         <div class="footer-content">
-          <span class="footer-logo">🍗 Chickory Hub</span>
+          <span class="footer-logo">Chickory Hub</span>
           <span class="footer-text">© 2026 All rights reserved</span>
         </div>
       </div>
@@ -286,22 +287,23 @@ export default {
   methods: {
     // LandingPage.vue - methods
 formatICNumber(event) {
-  let value = event.target.value.replace(/\D/g, '');
-  
-  // Format as XXXXXX-XX-XXXX
-  if (value.length > 6) {
-    value = value.substring(0, 6) + '-' + value.substring(6);
-  }
-  if (value.length > 9) {
-    value = value.substring(0, 9) + '-' + value.substring(9);
-  }
-  if (value.length > 14) {
-    value = value.substring(0, 14);
-  }
-  
-  this.regForm.ic_number = value;
-},
+    let value = event.target.value.replace(/\D/g, '');
+    
+    // Format as XXXXXX-XX-XXXX
+    if (value.length > 6) {
+      value = value.substring(0, 6) + '-' + value.substring(6);
+    }
+    if (value.length > 9) {
+      value = value.substring(0, 9) + '-' + value.substring(9);
+    }
+    if (value.length > 14) {
+      value = value.substring(0, 14);
+    }
+    
+    this.regForm.ic_number = value;
+  },
 
+// LandingPage.vue - validateICNumber
 validateICNumber(ic) {
   // ✅ Format: 6 digits - 2 digits - 4 digits
   const regex = /^\d{6}-\d{2}-\d{4}$/;
@@ -373,13 +375,42 @@ validateICNumber(ic) {
       this.regForm.receiptFile = null
       this.regForm.receiptPreview = null
     },
-    // LandingPage.vue - submitRegistration
+// LandingPage.vue - submitRegistration - PERMANENT FIX
 async submitRegistration() {
   this.submitting = true;
   
   // ✅ Validate IC number
   if (!this.validateICNumber(this.regForm.ic_number)) {
     this.$emit('show-notification', 'Please enter a valid IC number (format: XXXXXX-XX-XXXX)', 'error');
+    this.submitting = false;
+    return;
+  }
+  
+  // ✅ Validate company name
+  if (!this.regForm.company_name.trim()) {
+    this.$emit('show-notification', 'Please enter your company name', 'error');
+    this.submitting = false;
+    return;
+  }
+  
+  // ✅ Validate contact person
+  if (!this.regForm.contact_person.trim()) {
+    this.$emit('show-notification', 'Please enter the contact person name', 'error');
+    this.submitting = false;
+    return;
+  }
+  
+  // ✅ Validate email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(this.regForm.email)) {
+    this.$emit('show-notification', 'Please enter a valid email address', 'error');
+    this.submitting = false;
+    return;
+  }
+  
+  // ✅ Validate phone
+  if (!this.regForm.phone.trim()) {
+    this.$emit('show-notification', 'Please enter your phone number', 'error');
     this.submitting = false;
     return;
   }
@@ -395,28 +426,57 @@ async submitRegistration() {
     }
     
     const payload = {
-      company_name: this.regForm.company_name,
-      contact_person: this.regForm.contact_person,
-      email: this.regForm.email,
-      phone: this.regForm.phone,
-      ic_number: this.regForm.ic_number,  // ✅ New field
+      company_name: this.regForm.company_name.trim(),
+      contact_person: this.regForm.contact_person.trim(),
+      email: this.regForm.email.trim().toLowerCase(),
+      phone: this.regForm.phone.trim(),
+      ic_number: this.regForm.ic_number,
       payment_receipt: receiptBase64
     };
     
-    const response = await axios.post(`${API_BASE}/register/request`, payload);
+    console.log('📤 Sending registration payload:', { ...payload, payment_receipt: payload.payment_receipt ? 'Present' : 'None' });
+    
+    const response = await axios.post(`${API_BASE}/register/request`, payload, {
+      timeout: 30000 // 30 second timeout
+    });
+    
+    console.log('📥 Registration response:', response.data);
     
     if (response.data.success) {
-      this.$emit('show-notification', 'Registration submitted successfully! Please wait for approval.', 'success');
+      this.$emit('show-notification', '✅ Registration submitted successfully! Please wait for approval.', 'success');
+      this.closeRegistration();
+    } else {
+      this.$emit('show-notification', response.data.message || 'Registration submitted, but please wait for approval.', 'info');
       this.closeRegistration();
     }
   } catch (err) {
-    console.error('Registration error:', err);
-    const errorMsg = err.response?.data?.error || 'Failed to submit registration. Please try again.';
+    console.error('❌ Registration error:', err);
+    console.error('❌ Error response:', err.response);
+    console.error('❌ Error data:', err.response?.data);
+    
+    // ✅ Get the specific error message from backend
+    let errorMsg = 'Registration failed. Please try again.';
+    
+    if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+      errorMsg = 'Network error. Please check your internet connection and try again.';
+    } else if (err.response) {
+      // Backend responded with an error
+      if (err.response.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err.response.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response.status === 400) {
+        errorMsg = 'Invalid request. Please check your input and try again.';
+      } else if (err.response.status === 500) {
+        errorMsg = 'Server error. Please try again later or contact support.';
+      }
+    }
+    
     this.$emit('show-notification', errorMsg, 'error');
   } finally {
     this.submitting = false;
   }
-}
+},
   }
 }
 </script>
@@ -1177,4 +1237,16 @@ async submitRegistration() {
     font-size: 1.5rem;
   }
 }
+
+/* LandingPage.vue - Add error styles */
+.input-error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
 </style>
