@@ -1,153 +1,161 @@
 <template>
-  <div class="login-container">
-    <!-- Animated Background -->
-    <div class="background-animation">
-      <div class="floating-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-        <div class="shape shape-4"></div>
-      </div>
-    </div>
+  <div class="login-page">
+    <!-- ===== HEADER WITH BANNER ===== -->
+    <DashboardHeader 
+      :is-public="true"
+      role-text="Chickory Hub"
+      :banner-url="bannerImage"
+    />
 
-    <div class="login-content">
-      <!-- Brand Panel - Now showing banner -->
-      <div class="brand-panel">
-        <div class="brand-content">
-          <!-- BANNER IMAGE - Full width, no text overlay -->
-          <div class="banner-wrapper">
-            <img 
-              v-if="bannerImage" 
-              :src="bannerImage" 
-              alt="Chickory Hub Banner" 
-              class="login-banner-image"
-            />
-            <!-- Fallback if no banner -->
-            <div v-else class="banner-fallback">
-              <div class="logo-animation">
-                <div class="logo-icon">🍗</div>
-                <div class="logo-rings">
-                  <div class="ring ring-1"></div>
-                  <div class="ring ring-2"></div>
-                  <div class="ring ring-3"></div>
+    <!-- ===== LOGIN CONTENT ===== -->
+    <main class="login-main">
+      <div class="login-container">
+        <!-- Animated Background -->
+        <div class="background-animation">
+          <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+          </div>
+        </div>
+
+        <div class="login-content">
+          <!-- Brand Panel - Now showing banner -->
+          <div class="brand-panel">
+            <div class="brand-content">
+              <!-- BANNER IMAGE - Full width, no text overlay -->
+              <div class="banner-wrapper">
+                <img 
+                  v-if="bannerImage" 
+                  :src="bannerImage" 
+                  alt="Chickory Hub Banner" 
+                  class="login-banner-image"
+                />
+                <!-- Fallback if no banner -->
+                <div v-else class="banner-fallback">
+                  <div class="logo-animation">
+                    <div class="logo-icon">🍗</div>
+                    <div class="logo-rings">
+                      <div class="ring ring-1"></div>
+                      <div class="ring ring-2"></div>
+                      <div class="ring ring-3"></div>
+                    </div>
+                  </div>
+                  <h1 class="brand-title">
+                    <span class="brand-text">Chickory</span>
+                    <span class="brand-text">Hub</span>
+                  </h1>
+                  <p class="brand-tagline">Business Intelligence Platform</p>
                 </div>
               </div>
-              <h1 class="brand-title">
-                <span class="brand-text">Chickory</span>
-                <span class="brand-text">Hub</span>
-              </h1>
-              <p class="brand-tagline">Business Intelligence Platform</p>
+              
+              <!-- Feature List - Only show if no banner -->
+              <div v-if="!bannerImage" class="feature-list">
+                <div class="feature-item">
+                  <span class="feature-icon">📊</span>
+                  <span>Real-time Analytics</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">🛒</span>
+                  <span>Multi-stall Management</span>
+                </div>
+                <div class="feature-item">
+                  <span class="feature-icon">📱</span>
+                  <span>PWA Ready</span>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <!-- Feature List - Only show if no banner -->
-          <div v-if="!bannerImage" class="feature-list">
-            <div class="feature-item">
-              <span class="feature-icon">📊</span>
-              <span>Real-time Analytics</span>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">🛒</span>
-              <span>Multi-stall Management</span>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">📱</span>
-              <span>PWA Ready</span>
+
+          <!-- Right Panel - Login Form -->
+          <div class="login-panel">
+            <div class="login-card">
+              <!-- Back to Home Button -->
+              <div class="login-back">
+                <button @click="goHome" class="back-btn">
+                  ← Back to Home
+                </button>
+              </div>
+
+              <form @submit.prevent="login" class="login-form">
+                <div class="form-header">
+                  <h2 class="form-title">Welcome Back</h2>
+                  <p class="form-subtitle">Sign in to your account</p>
+                </div>
+
+                <div class="input-group">
+                  <div class="input-field">
+                    <div class="input-icon">👤</div>
+                    <input 
+                      v-model="username" 
+                      type="text" 
+                      required
+                      placeholder="Enter username"
+                      class="modern-input"
+                      :disabled="loading"
+                    />
+                    <div class="input-underline"></div>
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <div class="input-field">
+                    <div class="input-icon">🔒</div>
+                    <input 
+                      v-model="password" 
+                      type="password" 
+                      required
+                      placeholder="Enter password"
+                      class="modern-input"
+                      :disabled="loading"
+                    />
+                    <div class="input-underline"></div>
+                  </div>
+                </div>
+
+                <!-- Login Options: Remember Me & Forgot Password -->
+                <div class="login-options">
+                  <label class="remember-me">
+                    <input type="checkbox" v-model="rememberMe" />
+                    <span>Remember me</span>
+                  </label>
+                  <a href="#" @click.prevent="openForgotPassword" class="forgot-link">
+                    Forgot password?
+                  </a>
+                </div>
+
+                <!-- Error Message -->
+                <div v-if="error" class="error-message">
+                  ❌ {{ error }}
+                </div>
+
+                <button 
+                  type="submit" 
+                  :disabled="loading" 
+                  class="modern-login-btn"
+                >
+                  <div class="btn-content">
+                    <span v-if="loading" class="btn-loading">
+                      <div class="loading-spinner"></div>
+                      Authenticating...
+                    </span>
+                    <span v-else class="btn-text">
+                      <span class="btn-icon">→</span>
+                      Sign In
+                    </span>
+                  </div>
+                  <div class="btn-shine"></div>
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- Right Panel - Login Form -->
-      <div class="login-panel">
-        <div class="login-card">
-          <!-- Back to Home Button -->
-          <div class="login-back">
-            <button @click="goHome" class="back-btn">
-              ← Back to Home
-            </button>
-          </div>
-
-          <form @submit.prevent="login" class="login-form">
-            <div class="form-header">
-              <h2 class="form-title">Welcome Back</h2>
-              <p class="form-subtitle">Sign in to your account</p>
-            </div>
-
-            <div class="input-group">
-              <div class="input-field">
-                <div class="input-icon">👤</div>
-                <input 
-                  v-model="username" 
-                  type="text" 
-                  required
-                  placeholder="Enter username"
-                  class="modern-input"
-                  :disabled="loading"
-                />
-                <div class="input-underline"></div>
-              </div>
-            </div>
-
-            <div class="input-group">
-              <div class="input-field">
-                <div class="input-icon">🔒</div>
-                <input 
-                  v-model="password" 
-                  type="password" 
-                  required
-                  placeholder="Enter password"
-                  class="modern-input"
-                  :disabled="loading"
-                />
-                <div class="input-underline"></div>
-              </div>
-            </div>
-
-            <!-- Login Options: Remember Me & Forgot Password -->
-            <div class="login-options">
-              <label class="remember-me">
-                <input type="checkbox" v-model="rememberMe" />
-                <span>Remember me</span>
-              </label>
-              <a href="#" @click.prevent="openForgotPassword" class="forgot-link">
-                Forgot password?
-              </a>
-            </div>
-
-            <!-- Error Message -->
-            <div v-if="error" class="error-message">
-              ❌ {{ error }}
-            </div>
-
-            <button 
-              type="submit" 
-              :disabled="loading" 
-              class="modern-login-btn"
-            >
-              <div class="btn-content">
-                <span v-if="loading" class="btn-loading">
-                  <div class="loading-spinner"></div>
-                  Authenticating...
-                </span>
-                <span v-else class="btn-text">
-                  <span class="btn-icon">→</span>
-                  Sign In
-                </span>
-              </div>
-              <div class="btn-shine"></div>
-            </button>
-          </form>
-
-          <!-- Footer -->
-          <div class="login-footer">
-            <span class="footer-icon">🍗</span>
-            <span class="footer-text">Chickory Hub —</span>
-            <span class="footer-text">Business Intelligence</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- ===== FOOTER ===== -->
+    <GlobalFooter />
 
     <!-- ===== FORGOT PASSWORD MODAL ===== -->
     <div v-if="showForgotPassword" class="modal-overlay" @click.self="closeForgotPassword">
@@ -207,11 +215,17 @@
 
 <script>
 import axios from 'axios'
+import DashboardHeader from './DashboardHeader.vue'
+import GlobalFooter from './GlobalFooter.vue'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
 
 export default {
   name: 'Login',
+  components: {
+    DashboardHeader,
+    GlobalFooter
+  },
   props: {
     companyLogo: {
       type: String,
@@ -220,7 +234,6 @@ export default {
   },
   data() {
     return {
-      // Login
       username: '',
       password: '',
       rememberMe: false,
@@ -228,7 +241,6 @@ export default {
       loading: false,
       bannerImage: localStorage.getItem('systemBanner') || null,
       
-      // Forgot Password
       showForgotPassword: false,
       resetEmail: '',
       resetLoading: false,
@@ -240,16 +252,12 @@ export default {
   mounted() {
     this.fetchBanner()
     
-    // Auto-fill username if "Remember Me" was checked
     if (localStorage.getItem('rememberMe') === 'true') {
       this.username = localStorage.getItem('username') || ''
       this.rememberMe = true
     }
   },
   methods: {
-    // =============================================
-    // BANNER
-    // =============================================
     async fetchBanner() {
       try {
         const response = await axios.get(`${API_BASE}/system/banner`)
@@ -262,92 +270,79 @@ export default {
       }
     },
 
-    // =============================================
-    // LOGIN
-    // =============================================
     async login() {
-  if (!this.username || !this.password) {
-    this.error = 'Please enter username and password'
-    return
-  }
-  
-  this.loading = true
-  this.error = ''
-  
-  try {
-    const response = await axios.post(`${API_BASE}/login`, {
-      username: this.username,
-      password: this.password
-    }, { timeout: 10000 })
-    
-    console.log('📤 Full login response:', response)
-    console.log('📤 Response data:', response.data)
-    console.log('📤 User:', response.data?.user)
-    console.log('📤 Token:', response.data?.token)
-    
-  // In Login.vue - inside the login() method
-if (response.data && response.data.requiresReset) {
-  console.log('🔄 First login detected, redirecting to reset...')
-  sessionStorage.setItem('needsPasswordReset', 'true')
-  sessionStorage.setItem('resetUserId', response.data.userId)
-  sessionStorage.setItem('resetUser', JSON.stringify({
-    username: response.data.username,
-    full_name: response.data.full_name,
-    email: response.data.email
-  }))
-  
-  // ✅ FIX: Use both hash change and emit
-  this.$emit('show-first-login-reset')
-  window.location.hash = '#/first-login-reset'
-  this.loading = false
-  return
-}
-    
-    // ✅ EXISTING CODE - Normal login flow (unchanged)
-    if (response.data && response.data.user && response.data.token) {
-      // Handle "Remember Me"
-      if (this.rememberMe) {
-        localStorage.setItem('rememberMe', 'true')
-        localStorage.setItem('username', this.username)
-      } else {
-        localStorage.removeItem('rememberMe')
-        localStorage.removeItem('username')
+      if (!this.username || !this.password) {
+        this.error = 'Please enter username and password'
+        return
       }
       
-      this.$emit('login-success', response.data)
-    } else {
-      console.error('❌ Invalid login response structure:', response.data)
-      this.error = 'Invalid server response. Please try again.'
-      this.loading = false
-    }
-    
-  } catch (error) {
-    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
-      this.error = 'Cannot connect to server. Please check if backend is running.'
-    } else if (error.response?.status === 401) {
-      this.error = 'Invalid username or password'
-    } else {
-      this.error = 'Login failed. Please try again.'
-    }
-    console.error('❌ Login error:', error)
-    this.loading = false
-  } finally {
-    if (this.loading) {
-      this.loading = false
-    }
-  }
-},
+      this.loading = true
+      this.error = ''
+      
+      try {
+        const response = await axios.post(`${API_BASE}/login`, {
+          username: this.username,
+          password: this.password
+        }, { timeout: 10000 })
+        
+        console.log('📤 Full login response:', response)
+        console.log('📤 Response data:', response.data)
+        console.log('📤 User:', response.data?.user)
+        console.log('📤 Token:', response.data?.token)
+        
+        if (response.data && response.data.requiresReset) {
+          console.log('🔄 First login detected, redirecting to reset...')
+          sessionStorage.setItem('needsPasswordReset', 'true')
+          sessionStorage.setItem('resetUserId', response.data.userId)
+          sessionStorage.setItem('resetUser', JSON.stringify({
+            username: response.data.username,
+            full_name: response.data.full_name,
+            email: response.data.email
+          }))
+          
+          this.$emit('show-first-login-reset')
+          window.location.hash = '#/first-login-reset'
+          this.loading = false
+          return
+        }
+        
+        if (response.data && response.data.user && response.data.token) {
+          if (this.rememberMe) {
+            localStorage.setItem('rememberMe', 'true')
+            localStorage.setItem('username', this.username)
+          } else {
+            localStorage.removeItem('rememberMe')
+            localStorage.removeItem('username')
+          }
+          
+          this.$emit('login-success', response.data)
+        } else {
+          console.error('❌ Invalid login response structure:', response.data)
+          this.error = 'Invalid server response. Please try again.'
+          this.loading = false
+        }
+        
+      } catch (error) {
+        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+          this.error = 'Cannot connect to server. Please check if backend is running.'
+        } else if (error.response?.status === 401) {
+          this.error = 'Invalid username or password'
+        } else {
+          this.error = 'Login failed. Please try again.'
+        }
+        console.error('❌ Login error:', error)
+        this.loading = false
+      } finally {
+        if (this.loading) {
+          this.loading = false
+        }
+      }
+    },
 
-    // =============================================
-    // NAVIGATION
-    // =============================================
     goHome() {
       this.$emit('show-landing')
     },
 
-    // =============================================
-    // FORGOT PASSWORD
-    // =============================================
     openForgotPassword() {
       this.showForgotPassword = true
       this.resetEmail = ''
@@ -368,7 +363,6 @@ if (response.data && response.data.requiresReset) {
     },
     
     async requestPasswordReset() {
-      // Validate email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!this.resetEmail) {
         this.resetMessage = 'Please enter your email address'
@@ -389,7 +383,6 @@ if (response.data && response.data.requiresReset) {
           email: this.resetEmail
         })
         
-        // Close forgot password modal and show confirmation
         this.closeForgotPassword()
         this.showResetConfirm = true
         
@@ -398,7 +391,6 @@ if (response.data && response.data.requiresReset) {
       } catch (error) {
         console.error('Reset error:', error)
         
-        // Handle different error cases
         if (error.response?.status === 404) {
           this.resetMessage = 'No account found with this email address'
           this.resetMessageType = 'error'
@@ -418,18 +410,34 @@ if (response.data && response.data.requiresReset) {
 </script>
 
 <style scoped>
-.login-container {
+.login-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+/* ===== MAIN CONTENT ===== */
+.login-main {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
-  position: relative;
-  overflow: hidden;
   padding: 1rem;
+  position: relative;
 }
 
-/* Animated Background */
+.login-container {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+}
+
+/* ===== ANIMATED BACKGROUND ===== */
 .background-animation {
   position: absolute;
   top: 0;
@@ -437,6 +445,7 @@ if (response.data && response.data.requiresReset) {
   right: 0;
   bottom: 0;
   overflow: hidden;
+  border-radius: 20px;
 }
 
 .floating-shapes {
@@ -448,7 +457,7 @@ if (response.data && response.data.requiresReset) {
 .shape {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(249, 73, 8, 0.05);
   animation: float 6s ease-in-out infinite;
 }
 
@@ -489,40 +498,31 @@ if (response.data && response.data.requiresReset) {
   50% { transform: translateY(-15px) rotate(180deg); }
 }
 
-/* Layout */
+/* ===== LOGIN CONTENT ===== */
 .login-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   max-width: 1200px;
   width: 100%;
-  min-height: 600px;
+  min-height: 500px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   position: relative;
+  z-index: 2;
 }
 
-/* ===== BRAND PANEL - BANNER DISPLAY ===== */
+/* ===== BRAND PANEL ===== */
 .brand-panel {
-  background: #ffffff;
+  background: linear-gradient(135deg, #F94908 0%, #fa6a2e 50%, #f97316 100%);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 400px;
   overflow: hidden;
-}
-
-.brand-panel::before,
-.brand-panel::after {
-  display: none;
-}
-
-@keyframes glowPulse {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.5); opacity: 0.6; }
 }
 
 .brand-content {
@@ -536,7 +536,6 @@ if (response.data && response.data.requiresReset) {
   padding: 0;
 }
 
-/* ===== BANNER WRAPPER ===== */
 .banner-wrapper {
   width: 100%;
   height: 100%;
@@ -635,11 +634,6 @@ if (response.data && response.data.requiresReset) {
   animation: textFadeIn 1.2s ease-out;
 }
 
-@keyframes textFadeIn {
-  0% { opacity: 0; transform: translateY(-20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
 .brand-title .brand-text {
   display: inline-block;
   animation: shimmer 3s ease-in-out infinite;
@@ -663,7 +657,6 @@ if (response.data && response.data.requiresReset) {
   margin-bottom: 2rem;
   letter-spacing: 1px;
   color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
 }
 
 .feature-list {
@@ -694,20 +687,19 @@ if (response.data && response.data.requiresReset) {
   align-items: center;
   justify-content: center;
   overflow-y: auto;
+  background: #ffffff;
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  min-height: 450px;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
 
-/* Back to Home */
 .login-back {
   margin-bottom: 0.5rem;
-  flex-shrink: 0;
 }
 
 .back-btn {
@@ -717,7 +709,7 @@ if (response.data && response.data.requiresReset) {
   font-size: 0.8rem;
   cursor: pointer;
   padding: 0.25rem 0;
-  transition: var(--transition, all 0.3s ease);
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -727,7 +719,6 @@ if (response.data && response.data.requiresReset) {
   color: #F94908;
 }
 
-/* Login Form */
 .login-form {
   flex: 1;
   display: flex;
@@ -737,25 +728,23 @@ if (response.data && response.data.requiresReset) {
 .form-header {
   text-align: center;
   margin-bottom: 1.5rem;
-  flex-shrink: 0;
 }
 
 .form-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text, #1e293b);
+  color: #1e293b;
   margin-bottom: 0.25rem;
 }
 
 .form-subtitle {
-  color: var(--text-secondary, #64748b);
+  color: #64748b;
   font-size: 0.9rem;
 }
 
-/* Input Fields */
+/* ===== INPUT FIELDS ===== */
 .input-group {
   margin-bottom: 1rem;
-  flex-shrink: 0;
 }
 
 .input-field {
@@ -768,20 +757,18 @@ if (response.data && response.data.requiresReset) {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1rem;
-  color: var(--text-tertiary, #94a3b8);
+  color: #94a3b8;
   z-index: 2;
 }
 
 .modern-input {
   width: 100%;
   padding: 0.875rem 0.875rem 0.875rem 2.75rem;
-  border: 2px solid var(--border, #e2e8f0);
+  border: 2px solid #e2e8f0;
   border-radius: 10px;
   font-size: 0.9rem;
-  background: var(--surface, #ffffff);
+  background: #ffffff;
   transition: all 0.3s ease;
-  position: relative;
-  z-index: 1;
 }
 
 .modern-input:focus {
@@ -797,27 +784,15 @@ if (response.data && response.data.requiresReset) {
 }
 
 .input-underline {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #F94908;
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
+  display: none;
 }
 
-.modern-input:focus + .input-underline {
-  transform: scaleX(1);
-}
-
-/* Login Options */
+/* ===== LOGIN OPTIONS ===== */
 .login-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  flex-shrink: 0;
 }
 
 .remember-me {
@@ -825,7 +800,7 @@ if (response.data && response.data.requiresReset) {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: var(--text-secondary, #64748b);
+  color: #64748b;
   cursor: pointer;
 }
 
@@ -834,10 +809,6 @@ if (response.data && response.data.requiresReset) {
   height: 16px;
   cursor: pointer;
   accent-color: #F94908;
-}
-
-.remember-me span {
-  font-size: 0.85rem;
 }
 
 .forgot-link {
@@ -852,18 +823,17 @@ if (response.data && response.data.requiresReset) {
   text-decoration: underline;
 }
 
-/* Error Message */
 .error-message {
   color: #ef4444;
   font-size: 0.85rem;
   padding: 0.5rem;
   background: rgba(239, 68, 68, 0.08);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: 6px;
   text-align: center;
   margin-bottom: 0.75rem;
 }
 
-/* Login Button */
+/* ===== LOGIN BUTTON ===== */
 .modern-login-btn {
   width: 100%;
   background: linear-gradient(135deg, #F94908, #fa6a2e);
@@ -877,8 +847,6 @@ if (response.data && response.data.requiresReset) {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-  margin-top: auto;
-  flex-shrink: 0;
 }
 
 .modern-login-btn:hover:not(:disabled) {
@@ -898,12 +866,7 @@ if (response.data && response.data.requiresReset) {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
   transition: left 0.5s ease;
 }
 
@@ -935,52 +898,13 @@ if (response.data && response.data.requiresReset) {
   animation: spin 1s linear infinite;
 }
 
-.btn-text {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  font-size: 1rem;
-}
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* ===== LOGIN FOOTER ===== */
-.login-footer {
-  text-align: center;
-  padding-top: 1.5rem;
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--border, #e2e8f0);
-  font-size: 0.8rem;
-  color: var(--text-secondary, #64748b);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.footer-icon {
-  font-size: 1rem;
-}
-
-.footer-text {
-  font-weight: 400;
-  letter-spacing: 0.3px;
-}
-
-.footer-text:last-child {
-  font-weight: 300;
-  opacity: 0.7;
-}
-
 /* ============================================ */
-/* MODAL STYLES                                 */
+/* MODALS                                       */
 /* ============================================ */
 .modal-overlay {
   position: fixed;
@@ -988,7 +912,7 @@ if (response.data && response.data.requiresReset) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1003,7 +927,7 @@ if (response.data && response.data.requiresReset) {
   width: 92%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 
 .modal-modern-header {
@@ -1083,17 +1007,15 @@ if (response.data && response.data.requiresReset) {
 .form-group input:focus {
   outline: none;
   border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+  box-shadow: 0 0 0 3px rgba(249,73,8,0.08);
 }
 
-/* Reset Description */
 .reset-description {
   color: #64748b;
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
 
-/* Reset Message */
 .reset-message {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
@@ -1119,7 +1041,6 @@ if (response.data && response.data.requiresReset) {
   border: 1px solid #bfdbfe;
 }
 
-/* Buttons */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -1142,7 +1063,7 @@ if (response.data && response.data.requiresReset) {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 4px 12px rgba(249,73,8,0.3);
 }
 
 .btn-primary:disabled {
@@ -1185,7 +1106,7 @@ if (response.data && response.data.requiresReset) {
 }
 
 .btn-modern.primary:hover {
-  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  box-shadow: 0 4px 12px rgba(249,73,8,0.3);
 }
 
 /* Reset Confirmation */
@@ -1221,14 +1142,8 @@ if (response.data && response.data.requiresReset) {
 /* RESPONSIVE                                   */
 /* ============================================ */
 @media (max-width: 768px) {
-  .login-container {
-    padding: 0.5rem;
-    align-items: stretch;
-  }
-  
   .login-content {
     grid-template-columns: 1fr;
-    height: auto;
     min-height: auto;
     margin: 0;
   }
@@ -1236,32 +1151,14 @@ if (response.data && response.data.requiresReset) {
   .brand-panel {
     padding: 0;
     min-height: 250px;
-    max-height: 400px;
+    max-height: 300px;
   }
   
   .login-banner-image {
     object-fit: contain;
     min-height: 250px;
-    max-height: 400px;
+    max-height: 300px;
   }
-  
-  .banner-fallback {
-    padding: 1.5rem;
-  }
-  
-  .logo-animation {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 1rem;
-  }
-  
-  .logo-icon {
-    font-size: 2.5rem;
-  }
-  
-  .ring-1 { width: 55px; height: 55px; }
-  .ring-2 { width: 65px; height: 65px; }
-  .ring-3 { width: 75px; height: 75px; }
   
   .brand-title {
     font-size: 2.2rem;
@@ -1269,7 +1166,6 @@ if (response.data && response.data.requiresReset) {
   
   .brand-tagline {
     font-size: 0.8rem;
-    margin-bottom: 1.5rem;
   }
   
   .feature-list {
@@ -1278,7 +1174,6 @@ if (response.data && response.data.requiresReset) {
   
   .login-panel {
     padding: 1.5rem;
-    min-height: 400px;
   }
   
   .login-card {
@@ -1290,16 +1185,24 @@ if (response.data && response.data.requiresReset) {
     gap: 0.5rem;
     align-items: flex-start;
   }
+  
+  .background-animation {
+    border-radius: 0;
+  }
+  
+  .login-container {
+    min-height: auto;
+  }
 }
 
 @media (max-width: 480px) {
   .brand-panel {
-    min-height: 150px;
+    min-height: 180px;
     max-height: 220px;
   }
   
   .login-banner-image {
-    min-height: 150px;
+    min-height: 180px;
   }
   
   .brand-title {
@@ -1314,10 +1217,12 @@ if (response.data && response.data.requiresReset) {
     font-size: 1.4rem;
   }
   
-  .login-footer {
-    font-size: 0.7rem;
-    flex-direction: column;
-    gap: 0.2rem;
+  .login-panel {
+    padding: 1rem;
+  }
+  
+  .login-card {
+    padding: 0;
   }
   
   .modal-modern {
