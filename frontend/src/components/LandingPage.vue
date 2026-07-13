@@ -290,7 +290,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chickoryhub.com/ap
 export default {
   name: 'LandingPage',
   components: {
-    DashboardHeader
+    DashboardHeader,
     GlobalFooter
   },
   data() {
@@ -1245,32 +1245,6 @@ export default {
   color: #15803d;
 }
 
-/* ============================================ */
-/* FOOTER                                       */
-/* ============================================ */
-.landing-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 1.5rem 0;
-}
-
-.footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.footer-logo {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.footer-text {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
 
 /* ============================================ */
 /* RESPONSIVE                                   */
