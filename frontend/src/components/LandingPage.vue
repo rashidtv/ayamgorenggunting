@@ -137,28 +137,39 @@
     </section>
 
     <!-- ===== PRICING ===== -->
-    <section class="pricing-section">
-      <div class="container">
-        <div class="pricing-card">
-          <div class="pricing-badge">🔥 Popular</div>
-          <h3>Annual Plan</h3>
+    <!-- ===== PRICING ===== -->
+<section class="pricing-section">
+  <div class="container">
+    <div class="pricing-header">
+      <h2>One Plan. All Features.</h2>
+      <p>Everything you need to run your chicken business.</p>
+    </div>
+    <div class="pricing-grid single">
+      <div class="pricing-card featured">
+        <div class="pricing-card-header">
+          <h3>Chickory Hub Standard</h3>
           <div class="price">
             <span class="amount">RM940</span>
             <span class="period">/year</span>
           </div>
-          <div class="price-sub">Includes RM100 setup fee for life</div>
-          <ul class="pricing-list">
-            <li>✅ All features</li>
-            <li>✅ Unlimited stalls</li>
-            <li>✅ Unlimited users</li>
-            <li>✅ 24/7 support</li>
-          </ul>
-          <button @click="openRegistration" class="btn-primary btn-block">
-            Register Now
-          </button>
+          <p class="price-sub">Includes RM100 setup fee (one-time)</p>
         </div>
+        <ul class="pricing-list">
+          <li>✅ Complete dashboard & analytics</li>
+          <li>✅ Smart inventory management</li>
+          <li>✅ Real-time sales tracking</li>
+          <li>✅ Role-based access control</li>
+          <li>✅ Free updates & improvements</li>
+          <li>✅ Priority support</li>
+        </ul>
+        <button @click="openRegistration" class="btn-primary btn-block">
+          Start Free Trial
+        </button>
+        <p class="plan-note">No credit card required. Cancel anytime.</p>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
     <!-- ===== CTA ===== -->
     <section class="cta-section">
@@ -631,11 +642,6 @@ export default {
   transform: translateX(4px);
 }
 
-.btn-primary.btn-block {
-  width: 100%;
-  justify-content: center;
-}
-
 .btn-primary.full-width {
   width: 100%;
   justify-content: center;
@@ -819,67 +825,84 @@ export default {
 }
 
 /* ============================================ */
-/* PRICING                                      */
+/* PRICING - SINGLE PLAN                        */
 /* ============================================ */
 .pricing-section {
   padding: 4rem 0;
   background: var(--background);
 }
 
-.pricing-card {
-  max-width: 380px;
+.pricing-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.pricing-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.pricing-header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.pricing-grid.single {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 500px;
   margin: 0 auto;
+}
+
+.pricing-card {
   background: var(--surface);
-  padding: 2rem;
+  padding: 2.5rem;
   border-radius: var(--radius-lg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   text-align: center;
   transition: var(--transition);
   position: relative;
 }
 
 .pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.pricing-card.featured {
   border-color: var(--primary);
   box-shadow: var(--shadow-md);
 }
 
-.pricing-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
-  padding: 0.15rem 1rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
+.pricing-card.featured:hover {
+  box-shadow: var(--shadow-lg);
 }
 
-.pricing-card h3 {
-  font-size: 1.1rem;
+.pricing-card-header h3 {
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 0.5rem;
 }
 
-.price {
+.pricing-card-header .price {
   margin-bottom: 0.25rem;
 }
 
-.price .amount {
+.pricing-card-header .amount {
   font-size: 2.8rem;
   font-weight: 800;
   color: var(--primary);
 }
 
-.price .period {
+.pricing-card-header .period {
   font-size: 0.95rem;
   color: var(--text-secondary);
 }
 
-.price-sub {
+.pricing-card-header .price-sub {
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
@@ -892,9 +915,20 @@ export default {
 }
 
 .pricing-list li {
-  padding: 0.3rem 0;
+  padding: 0.4rem 0;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+}
+
+.plan-note {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-top: 0.75rem;
+}
+
+.btn-primary.btn-block {
+  width: 100%;
+  justify-content: center;
 }
 
 /* ============================================ */
@@ -1279,6 +1313,35 @@ export default {
   
   .all-features-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pricing-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .pricing-card {
+    padding: 1.5rem;
+  }
+  
+  .pricing-card-header .amount {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing-card {
+    padding: 1.25rem;
+  }
+  
+  .pricing-card-header .amount {
+    font-size: 1.8rem;
+  }
+  
+  .pricing-list li {
+    font-size: 0.8rem;
   }
 }
 
