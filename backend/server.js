@@ -1579,6 +1579,208 @@ app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== ORDERS ROUTES ====================
+
+/**
+ * POST /api/orders
+ * Create a new order with multiple items
+ */
+app.post('/api/orders', authenticateToken, async (req, res) => {
+  const { stallId, items, total, itemCount } = req.body;
+  
+  // Validate required fields
+  if (!stallId) {
+    return res.status(400).json({ error: 'Stall ID is required' });
+  }
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'At least one item is required' });
+  }
+  if (total === undefined || total <= 0) {
+    return res.status(400).json({ error: 'Valid total amount is required' });
+  }
+
+  const targetStallId = parseInt(stallId);
+  if (isNaN(targetStallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, targetStallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Generate unique order number
+    const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    // Create the order
+    const orderResult = await client.query(
+      `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status)
+       VALUES ($1, $2, $3, $4, 'completed')
+       RETURNING id, order_number, total_amount, item_count`,
+      [targetStallId, orderNumber, total, itemCount || items.length]
+    );
+    
+    const order = orderResult.rows[0];
+
+    // Record individual sales linked to this order
+    for (const item of items) {
+      const quantity = item.quantity || 1;
+      for (let i = 0; i < quantity; i++) {
+        await client.query(
+          `INSERT INTO sales (stall_id, item_name, price, order_id)
+           VALUES ($1, $2, $3, $4)`,
+          [targetStallId, item.itemName, item.price, order.id]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      orderId: order.id,
+      orderNumber: order.order_number,
+      total: parseFloat(order.total_amount),
+      itemCount: parseInt(order.item_count),
+      message: 'Order created successfully'
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Order creation error:', err);
+    res.status(500).json({ 
+      error: 'Failed to create order', 
+      details: err.message 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * GET /api/orders/stall/:stallId
+ * Get all orders for a specific stall
+ */
+app.get('/api/orders/stall/:stallId', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        o.*,
+        COALESCE(
+          (SELECT json_agg(json_build_object('item_name', s.item_name, 'price', s.price))
+           FROM sales s
+           WHERE s.order_id = o.id),
+          '[]'
+        ) as items
+       FROM orders o
+       WHERE o.stall_id = $1
+       ORDER BY o.created_at DESC
+       LIMIT 100`,
+      [stallId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get orders error:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+/**
+ * GET /api/orders/:orderId
+ * Get a specific order by ID
+ */
+app.get('/api/orders/:orderId', authenticateToken, async (req, res) => {
+  const orderId = parseInt(req.params.orderId);
+  if (isNaN(orderId)) {
+    return res.status(400).json({ error: 'Invalid order ID' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        o.*,
+        s.name as stall_name,
+        COALESCE(
+          (SELECT json_agg(json_build_object('item_name', s2.item_name, 'price', s2.price, 'created_at', s2.created_at))
+           FROM sales s2
+           WHERE s2.order_id = o.id),
+          '[]'
+        ) as items
+       FROM orders o
+       LEFT JOIN stalls s ON o.stall_id = s.id
+       WHERE o.id = $1`,
+      [orderId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Check if user has access to this stall
+    const order = result.rows[0];
+    const allowed = await userCanAccessStall(req.user.id, order.stall_id);
+    if (!allowed && req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    console.error('Get order error:', err);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
+/**
+ * GET /api/orders/today/:stallId
+ * Get today's orders for a stall (including grouped total)
+ */
+app.get('/api/orders/today/:stallId', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        COUNT(*) as order_count,
+        COALESCE(SUM(total_amount), 0) as total_revenue,
+        COALESCE(SUM(item_count), 0) as total_items
+       FROM orders
+       WHERE stall_id = $1 AND DATE(created_at) = CURRENT_DATE
+       AND status = 'completed'`,
+      [stallId]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Today orders error:', err);
+    res.status(500).json({ error: 'Failed to fetch today orders' });
+  }
+});
+
 // ==================== MATERIALS ====================
 // Get all available materials – Allow any authenticated user
 app.get('/api/materials', authenticateToken, async (req, res) => {

@@ -1,5 +1,5 @@
 <template>
-  <div class="stall-view">
+  <div class="stall-view" :class="{ 'with-cart': cartItems.length > 0 }">
     <!-- Connection Status -->
     <div v-if="connectionError" class="connection-banner error">
       <div class="banner-content">
@@ -47,90 +47,119 @@
       </div>
     </div>
 
-    <!-- Quick Sales Menu -->
-    <div class="section">
-      <div class="section-header">
-        <div class="section-title">
-          <h2>Quick Sales</h2>
-          <p>Tap to sell items instantly</p>
-        </div>
-        <!-- REMOVED: last-updated and refresh button -->
-      </div>
-
-      <!-- DYNAMIC MENU FROM DATABASE -->
-      <div v-if="menuItems.length > 0" class="menu-grid">
-        <div 
-          v-for="item in menuItems" 
-          :key="item.item_name"
-          class="menu-item-wrapper"
-        >
-          <div class="menu-item" :class="{ 'has-quantity': item.quantity > 0 }">
-            <div class="item-image-wrapper">
-              <img 
-                v-if="item.image && item.image.startsWith('data:image')" 
-                :src="item.image" 
-                :alt="item.item_name"
-                class="item-image"
-              />
-              <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
-            </div>
-            <div class="item-info">
-              <div class="item-name">{{ item.item_name }}</div>
-              <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
-              <!-- RECIPE INDICATOR -->
-              <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
-                <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
-                <span class="recipe-detail" v-for="r in item.recipe" :key="r.material_name">
-                  {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
-                </span>
-              </div>
-              <div v-else class="item-recipe-info no-recipe">
-                <span class="recipe-badge">✅ No ingredients needed</span>
-              </div>
-            </div>
-            <div class="item-action">
-              <div class="item-price">{{ formatCurrency(item.price) }}</div>
-              <div class="quantity-controls">
-                <button 
-                  @click="adjustQuantity(item, -1)" 
-                  class="qty-btn"
-                  :disabled="loading || connectionError || !activeStallId || (menuQuantities[item.item_name] || 0) <= 0"
-                >
-                  −
-                </button>
-                <span class="qty-display">{{ menuQuantities[item.item_name] || 0 }}</span>
-                <button 
-                  @click="adjustQuantity(item, 1)" 
-                  class="qty-btn"
-                  :disabled="loading || connectionError || !activeStallId"
-                >
-                  +
-                </button>
-              </div>
-              <button 
-                @click="sellItemWithQuantity(item)" 
-                class="sell-badge"
-                :disabled="loading || connectionError || !activeStallId || (menuQuantities[item.item_name] || 0) <= 0"
-              >
-                <span class="sell-icon">→</span> SELL
-              </button>
-            </div>
-            <div class="item-glow"></div>
+    <!-- MAIN CONTENT: Menu + Cart Side by Side -->
+    <div class="main-content">
+      <!-- Left: Menu Items -->
+      <div class="menu-section">
+        <div class="section-header">
+          <div class="section-title">
+            <h2>Quick Sales</h2>
+            <p>Select items and add to order</p>
+          </div>
+          <div class="cart-summary-badge" v-if="cartItems.length > 0">
+            🛒 {{ cartItemCount }} item{{ cartItemCount > 1 ? 's' : '' }}
           </div>
         </div>
+
+        <!-- DYNAMIC MENU FROM DATABASE -->
+        <div v-if="menuItems.length > 0" class="menu-grid">
+          <div 
+            v-for="item in menuItems" 
+            :key="item.item_name"
+            class="menu-item-wrapper"
+          >
+            <div class="menu-item" :class="{ 'has-quantity': menuQuantities[item.item_name] > 0 }">
+              <div class="item-image-wrapper">
+                <img 
+                  v-if="item.image && item.image.startsWith('data:image')" 
+                  :src="item.image" 
+                  :alt="item.item_name"
+                  class="item-image"
+                />
+                <div v-else class="item-icon">{{ getIcon(item.item_name) }}</div>
+              </div>
+              <div class="item-info">
+                <div class="item-name">{{ item.item_name }}</div>
+                <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
+                <!-- RECIPE INDICATOR -->
+                <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
+                  <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
+                </div>
+                <div v-else class="item-recipe-info no-recipe">
+                  <span class="recipe-badge">✅ No ingredients needed</span>
+                </div>
+              </div>
+              <div class="item-action">
+                <div class="item-price">{{ formatCurrency(item.price) }}</div>
+                <div class="quantity-controls">
+                  <button 
+                    @click="adjustQuantity(item, -1)" 
+                    class="qty-btn"
+                    :disabled="loading || connectionError || !activeStallId || (menuQuantities[item.item_name] || 0) <= 0"
+                  >
+                    −
+                  </button>
+                  <span class="qty-display">{{ menuQuantities[item.item_name] || 0 }}</span>
+                  <button 
+                    @click="adjustQuantity(item, 1)" 
+                    class="qty-btn"
+                    :disabled="loading || connectionError || !activeStallId"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div class="item-glow"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div v-else-if="!loadingData && !loadingMenu" class="empty-state menu-empty">
+          <span class="empty-icon">📋</span>
+          <h3>No Menu Items Available</h3>
+          <p>Please contact your administrator to set up menu items.</p>
+        </div>
+
+        <!-- MENU LOADING STATE -->
+        <div v-if="loadingMenu" class="loading-state small">
+          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+          <p>Loading menu...</p>
+        </div>
       </div>
 
-      <!-- EMPTY STATE -->
-      <div v-else-if="!loadingData && !loadingMenu" class="empty-state menu-empty">
-        <span class="empty-icon">📋</span>
-        <h3>No Menu Items Available</h3>
-        <p>Please contact your administrator to set up menu items.</p>
-      </div>
-
-      <!-- MENU LOADING STATE -->
-      <div v-if="loadingMenu" class="loading-state small">
-        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-        <p>Loading menu...</p>
+      <!-- Right: Order Cart Panel -->
+      <div class="order-panel" v-if="cartItems.length > 0">
+        <div class="order-header">
+          <h3>🛒 Current Order</h3>
+          <button @click="clearCart" class="clear-btn" :disabled="loading">
+            🗑️ Clear
+          </button>
+        </div>
+        
+        <div class="order-items">
+          <div v-for="item in cartItems" :key="item.menuItem.item_name" class="order-item">
+            <div class="order-item-info">
+              <span class="order-item-name">{{ item.menuItem.item_name }}</span>
+              <span class="order-item-qty">×{{ item.quantity }}</span>
+            </div>
+            <span class="order-item-price">{{ formatCurrency(item.menuItem.price * item.quantity) }}</span>
+          </div>
+        </div>
+        
+        <div class="order-total">
+          <span class="total-label">TOTAL</span>
+          <span class="total-value">{{ formatCurrency(cartTotal) }}</span>
+        </div>
+        
+        <button 
+          @click="sellAll" 
+          class="sell-all-btn" 
+          :disabled="loading || cartItems.length === 0"
+        >
+          <span v-if="loading">⏳ Processing...</span>
+          <span v-else>💰 SELL ALL ({{ cartItemCount }} item{{ cartItemCount > 1 ? 's' : '' }})</span>
+        </button>
       </div>
     </div>
 
@@ -318,6 +347,8 @@ export default {
       analytics: { dailySales: [], productSales: {} },
       menuItems: [],
       menuQuantities: {},
+      // NEW: Cart state
+      cartItems: [],
       loading: false,
       loadingData: false,
       loadingMenu: false,
@@ -335,7 +366,16 @@ export default {
   computed: {
     authStore() { return useAuthStore() },
     lowStockCount() { return this.processedInventory.filter(item => item.current_level <= item.alert_level).length },
-    activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId }
+    activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId },
+    // NEW: Cart computed properties
+    cartTotal() {
+      return this.cartItems.reduce((total, item) => {
+        return total + (item.menuItem.price * item.quantity)
+      }, 0)
+    },
+    cartItemCount() {
+      return this.cartItems.reduce((count, item) => count + item.quantity, 0)
+    }
   },
   mounted() {
     this.loadData()
@@ -460,8 +500,99 @@ export default {
       if (menuItem) {
         menuItem.quantity = newQty
       }
+      // NEW: Sync cart
+      this.syncCartItem(item)
     },
 
+    // NEW: Sync individual item to cart
+    syncCartItem(item) {
+      const qty = this.menuQuantities[item.item_name] || 0
+      const existing = this.cartItems.find(i => i.menuItem.item_name === item.item_name)
+      
+      if (qty > 0) {
+        if (existing) {
+          existing.quantity = qty
+        } else {
+          this.cartItems.push({ menuItem: item, quantity: qty })
+        }
+      } else {
+        if (existing) {
+          this.cartItems = this.cartItems.filter(i => i.menuItem.item_name !== item.item_name)
+        }
+      }
+    },
+
+    // NEW: Clear all cart items
+    clearCart() {
+      this.cartItems = []
+      this.menuQuantities = {}
+      this.menuItems.forEach(item => {
+        item.quantity = 0
+      })
+      this.$emit('show-notification', 'Cart cleared', 'info')
+    },
+
+    // NEW: Sell ALL items in cart as single transaction
+    async sellAll() {
+      if (this.cartItems.length === 0) {
+        this.$emit('show-notification', 'No items to sell', 'warning')
+        return
+      }
+      
+      this.loading = true
+      try {
+        // STEP 1: Create order record (for grouping)
+        const orderData = {
+          stallId: this.activeStallId,
+          items: this.cartItems.map(item => ({
+            itemName: item.menuItem.item_name,
+            price: item.menuItem.price,
+            quantity: item.quantity
+          })),
+          total: this.cartTotal,
+          itemCount: this.cartItemCount
+        }
+        
+        // Send order to backend
+        const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        
+        const orderId = orderResponse.data.orderId || 'N/A'
+        
+        // STEP 2: Record individual sales for inventory tracking
+        for (const cartItem of this.cartItems) {
+          for (let i = 0; i < cartItem.quantity; i++) {
+            await axios.post(`${API_BASE}/sell`, {
+              itemName: cartItem.menuItem.item_name,
+              price: cartItem.menuItem.price,
+              stallId: this.activeStallId,
+              orderId: orderId // Link to order
+            }, {
+              headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+            })
+          }
+        }
+        
+        // STEP 3: Show success
+        this.$emit('show-notification', 
+          `✅ Order #${orderId} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
+          'success'
+        )
+        
+        // STEP 4: Clear cart and refresh data
+        this.clearCart()
+        await this.loadData()
+        
+      } catch (err) {
+        console.error('Order error:', err)
+        this.$emit('show-notification', 'Error processing order', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Keep for backward compatibility (if needed)
     async sellItemWithQuantity(item) {
       const qty = this.menuQuantities[item.item_name] || 0
       if (qty <= 0) {
@@ -616,6 +747,21 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* NEW: Main content with cart panel */
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-lg);
+}
+
+.menu-section {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  overflow: hidden;
 }
 
 /* Connection Banner */
@@ -803,6 +949,18 @@ export default {
   font-size: var(--font-size-sm);
 }
 
+/* Cart Summary Badge */
+.cart-summary-badge {
+  background: var(--primary);
+  color: white;
+  padding: var(--space-xs) var(--space);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  align-self: center;
+}
+
 /* Menu Grid */
 .menu-grid {
   padding: var(--space-lg);
@@ -966,32 +1124,144 @@ export default {
   color: var(--text);
 }
 
-.sell-badge {
-  background: var(--success);
-  color: white;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-xs);
+/* ============================================ */
+/* ORDER PANEL - NEW */
+/* ============================================ */
+.order-panel {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--primary);
+  padding: var(--space-lg);
+  position: sticky;
+  top: var(--space);
+  max-height: 650px;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--border);
+}
+
+.order-header h3 {
+  font-size: var(--font-size-lg);
   font-weight: 700;
-  border: none;
+  color: var(--text);
+}
+
+.clear-btn {
+  background: none;
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: var(--space-xs) var(--space);
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  text-transform: uppercase;
-  width: 100%;
-  justify-content: center;
 }
 
-.sell-badge:hover:not(:disabled) {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+.clear-btn:hover:not(:disabled) {
+  background: var(--error);
+  color: white;
 }
 
-.sell-badge:disabled {
+.clear-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.order-items {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: var(--space);
+  max-height: 300px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.order-item-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.order-item-name {
+  font-weight: 500;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
+.order-item-qty {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.order-item-price {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space) 0;
+  border-top: 2px solid var(--border);
+  margin-top: var(--space-sm);
+}
+
+.total-label {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.total-value {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.sell-all-btn {
+  width: 100%;
+  padding: var(--space);
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--font-size);
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: var(--space);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.sell-all-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.sell-all-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Inventory Summary */
@@ -1589,17 +1859,6 @@ export default {
   color: #059669;
 }
 
-.recipe-detail {
-  font-size: 0.6rem;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 0.05rem 0.4rem;
-  border-radius: 8px;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-}
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -1608,6 +1867,18 @@ export default {
 /* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .order-panel {
+    position: static;
+    max-height: none;
+    border: 2px solid var(--border);
+  }
+}
+
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: 1fr;
@@ -1648,11 +1919,6 @@ export default {
   
   .quantity-controls {
     margin: 0;
-  }
-  
-  .sell-badge {
-    padding: 0.2rem 0.6rem;
-    font-size: 0.65rem;
   }
   
   .inventory-grid {
@@ -1717,6 +1983,10 @@ export default {
     width: 40px;
     height: 40px;
   }
+  
+  .order-panel {
+    padding: var(--space);
+  }
 }
 
 @media (max-width: 480px) {
@@ -1775,11 +2045,6 @@ export default {
 @media (min-width: 769px) {
   .item-recipe-info {
     gap: 0.5rem;
-  }
-  
-  .recipe-detail {
-    font-size: 0.65rem;
-    padding: 0.05rem 0.5rem;
   }
 }
 </style>
