@@ -3081,6 +3081,10 @@ async saveStall() {
   border: 1px solid var(--border);
 }
 
+/* ============================================ */
+/* DROPDOWNS - FIXED WITH WHITE BACKGROUND      */
+/* ============================================ */
+
 /* Tab Dropdown */
 .tab-dropdown {
   position: relative;
@@ -3095,12 +3099,13 @@ async saveStall() {
   flex-shrink: 0;
 }
 
+/* Dropdown Toggle - White background */
 .dropdown-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--surface);
+  padding: 0.35rem 0.75rem;
+  background: #ffffff !important;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3126,23 +3131,27 @@ async saveStall() {
   transition: transform 0.2s ease;
 }
 
+/* Dropdown Menu - White background */
 .dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   margin-top: 0.25rem;
-  background: var(--surface);
+  background: #ffffff !important;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   z-index: 50;
   animation: dropdownSlide 0.2s ease;
+  padding: 0.25rem 0 !important;
+  min-width: 180px;
 }
 
 .period-menu {
   min-width: 140px;
+  padding: 0.25rem 0 !important;
 }
 
 @keyframes dropdownSlide {
@@ -3150,29 +3159,35 @@ async saveStall() {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Dropdown Items - White background */
 .dropdown-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
+  padding: 0.4rem 0.75rem !important;
+  background: #ffffff !important;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
   color: var(--text-secondary);
   transition: var(--transition);
   text-align: left;
+  margin: 0 !important;
+}
+
+.period-menu .dropdown-item {
+  background: #ffffff !important;
 }
 
 .dropdown-item:hover {
-  background: var(--background);
+  background: #f8fafc !important;
   color: var(--text);
 }
 
 .dropdown-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+  color: white !important;
 }
 
 .dropdown-badge {
@@ -3185,6 +3200,7 @@ async saveStall() {
   min-width: 18px;
   text-align: center;
   line-height: 18px;
+  margin-left: auto;
 }
 
 /* Action Buttons */
@@ -5297,7 +5313,7 @@ async saveStall() {
 }
 
 /* ============================================ */
-/* DROPDOWN BACKGROUND FIX                      */
+/* DROPDOWN BACKGROUND FIX - KEPT FOR SAFETY    */
 /* ============================================ */
 .sa-dashboard .dropdown-menu {
   background: #ffffff !important;
@@ -5308,7 +5324,7 @@ async saveStall() {
 }
 
 .sa-dashboard .dropdown-item {
-  background: transparent;
+  background: #ffffff !important;
 }
 
 .sa-dashboard .dropdown-item:hover {
