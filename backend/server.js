@@ -1038,20 +1038,32 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
 
   const { username, password, full_name, role, stall_ids } = req.body;
 
-  if (req.user.role === 'stall_admin' && role !== 'cashier') {
-    return res.status(403).json({ error: 'Stall Admin can only create Cashiers' });
-  }
+  // ✅ Stall Admin permission check
   if (req.user.role === 'stall_admin') {
-    const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
-    const allowedStallIds = userStalls.rows.map(r => r.stall_id);
-    if (stall_ids && stall_ids.some(id => !allowedStallIds.includes(parseInt(id)))) {
-      return res.status(403).json({ error: 'You can only assign stalls that you manage' });
+    // Check if user belongs to this company
+    const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
+    if (userCompany.rows[0]?.company_id !== companyId) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
-  }
-  if (req.user.role === 'cashier') {
+    
+    // Stall Admin can only create cashiers
+    if (role !== 'cashier') {
+      return res.status(403).json({ error: 'Stall Admin can only create Cashiers' });
+    }
+    
+    // Check if they're assigning to stalls they manage
+    if (stall_ids && stall_ids.length > 0) {
+      const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+      const allowedStallIds = userStalls.rows.map(r => r.stall_id);
+      if (stall_ids.some(id => !allowedStallIds.includes(parseInt(id)))) {
+        return res.status(403).json({ error: 'You can only assign stalls that you manage' });
+      }
+    }
+  } else if (req.user.role === 'cashier') {
     return res.status(403).json({ error: 'Cashier cannot create users' });
   }
 
+  // ✅ Existing code continues
   const hashed = bcrypt.hashSync(password, 10);
   const userRes = await pool.query(
     'INSERT INTO users (username, password, full_name, role, company_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',

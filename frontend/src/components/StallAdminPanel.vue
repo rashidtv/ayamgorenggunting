@@ -898,13 +898,19 @@ export default {
       })
     },
     filteredUsersList() {
-      return this.users.filter(user => {
-        const matchesSearch = user.username.toLowerCase().includes(this.userSearch.toLowerCase()) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(this.userSearch.toLowerCase()))
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-        return matchesSearch && matchesRole
-      })
-    },
+  return this.users.filter(user => {
+    // ✅ Only show stall_admin and cashier (hide super_admin and super_super_admin)
+    if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+      return false;
+    }
+    
+    const search = this.userSearch.toLowerCase();
+    const matchesSearch = user.username.toLowerCase().includes(search) ||
+                          (user.full_name && user.full_name.toLowerCase().includes(search));
+    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
+    return matchesSearch && matchesRole;
+  })
+},
     activeTabLabel() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.label : 'Dashboard'
@@ -3802,5 +3808,19 @@ export default {
   .dropdown-label {
     font-size: 0.8rem;
   }
+}
+
+.dropdown-menu,
+.period-menu,
+.dropdown-toggle {
+  background: #ffffff !important;
+}
+
+.dropdown-item {
+  background: #ffffff !important;
+}
+
+.dropdown-item:hover {
+  background: #f8fafc !important;
 }
 </style>
