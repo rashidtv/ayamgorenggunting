@@ -2177,130 +2177,6 @@ export default {
 }
 
 /* ============================================ */
-/* FIX: MODAL BACKGROUNDS - WHITE              */
-/* ============================================ */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-modern {
-  background: #ffffff !important;
-  border-radius: var(--radius);
-  max-width: 500px;
-  width: 92%;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.modal-modern-body {
-  background: #ffffff !important;
-  padding: 1.25rem;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.modal-lg {
-  max-width: 600px;
-}
-
-.modal-modern-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-modern-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0 0.25rem;
-}
-
-.modal-close-btn:hover {
-  color: var(--text);
-}
-
-.modal-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.modal-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.modal-form-group label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.modal-form-group input,
-.modal-form-group select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  width: 100%;
-}
-
-.modal-form-group input:focus,
-.modal-form-group select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
-}
-
-.modal-form-group small {
-  font-size: 0.65rem;
-  color: var(--text-tertiary);
-}
-
-.modal-modern-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  background: #f8fafc;
-}
-
-.stall-select-multiple {
-  min-height: 60px;
-  padding: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* ============================================ */
 /* CONTROLS SECTION - BELOW BANNER              */
 /* ============================================ */
 .controls-section {
@@ -2318,26 +2194,28 @@ export default {
   border: 1px solid var(--border);
 }
 
-/* Tab Dropdown */
+/* ============================================ */
+/* DROPDOWNS - WHITE BACKGROUND                 */
+/* ============================================ */
 .tab-dropdown {
   position: relative;
   min-width: 160px;
   flex-shrink: 0;
 }
 
-/* Period Dropdown */
 .period-dropdown-wrapper {
   position: relative;
   min-width: 140px;
   flex-shrink: 0;
 }
 
+/* Dropdown Toggle - White background */
 .dropdown-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--surface);
+  padding: 0.35rem 0.75rem;
+  background: #ffffff !important;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -2363,53 +2241,58 @@ export default {
   transition: transform 0.2s ease;
 }
 
+/* Dropdown Menu - White background */
 .dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   margin-top: 0.25rem;
-  background: var(--surface);
+  background: #ffffff !important;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   z-index: 50;
   animation: dropdownSlide 0.2s ease;
+  padding: 0.25rem 0 !important;
+  min-width: 180px;
 }
 
 .period-menu {
   min-width: 140px;
+  padding: 0.25rem 0 !important;
 }
 
-@keyframes dropdownSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* Dropdown Items - White background */
 .dropdown-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
+  padding: 0.4rem 0.75rem !important;
+  background: #ffffff !important;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
   color: var(--text-secondary);
   transition: var(--transition);
   text-align: left;
+  margin: 0 !important;
+}
+
+.period-menu .dropdown-item {
+  background: #ffffff !important;
 }
 
 .dropdown-item:hover {
-  background: var(--background);
+  background: #f8fafc !important;
   color: var(--text);
 }
 
 .dropdown-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+  color: white !important;
 }
 
 .dropdown-badge {
@@ -2422,6 +2305,12 @@ export default {
   min-width: 18px;
   text-align: center;
   line-height: 18px;
+  margin-left: auto;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Action Buttons */
@@ -3609,6 +3498,130 @@ export default {
 }
 
 /* ============================================ */
+/* MODALS - WHITE BACKGROUND                    */
+/* ============================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-modern {
+  background: #ffffff !important;
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 92%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-lg {
+  max-width: 600px;
+}
+
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.modal-modern-body {
+  background: #ffffff !important;
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.modal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.modal-form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal-form-group input,
+.modal-form-group select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.modal-form-group small {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  background: #f8fafc;
+}
+
+.stall-select-multiple {
+  min-height: 60px;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ============================================ */
 /* DETAIL MODALS                                */
 /* ============================================ */
 .detail-grid {
@@ -3808,19 +3821,5 @@ export default {
   .dropdown-label {
     font-size: 0.8rem;
   }
-}
-
-.dropdown-menu,
-.period-menu,
-.dropdown-toggle {
-  background: #ffffff !important;
-}
-
-.dropdown-item {
-  background: #ffffff !important;
-}
-
-.dropdown-item:hover {
-  background: #f8fafc !important;
 }
 </style>
