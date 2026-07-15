@@ -157,7 +157,6 @@
           <li>✅ Smart inventory management</li>
           <li>✅ Real-time sales tracking</li>
           <li>✅ Role-based access control</li>
-          <li>✅ Free updates & improvements</li>
           <li>✅ Priority support</li>
         </ul>
         <button @click="openRegistration" class="btn-primary btn-block">
