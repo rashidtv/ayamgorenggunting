@@ -1,6 +1,7 @@
 <template>
   <div class="sa-dashboard">
-    <!-- ===== CONTROLS SECTION (below banner) ===== -->
+    
+    <!-- ===== CONTROLS SECTION ===== -->
     <div class="controls-section">
       <div class="controls-row">
         <!-- Tab Dropdown -->
@@ -96,6 +97,7 @@
     <!-- TAB CONTENT                                 -->
     <!-- ============================================ -->
     <div class="tab-content">
+      
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
@@ -374,52 +376,62 @@
         </div>
       </div>
 
-      <!-- ===== STALLS TAB (View Only) ===== -->
-      <div v-if="activeTab === 'stalls'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>🏪 My Stalls</h3>
-              <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-            </div>
+<!-- ===== STALLS TAB ===== -->
+<div v-if="activeTab === 'stalls'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🏪 Stall Management</h3>
+        <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+      </div>
+      <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+    </div>
+    <div class="card-modern-body">
+      <div class="filter-bar">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="stallSearch" 
+            placeholder="Search stalls..." 
+            class="filter-input"
+          />
+        </div>
+        <select v-model="stallStatusFilter" class="filter-select">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+        <span>🏪</span>
+        <p>No stalls found</p>
+      </div>
+
+      <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+        <div class="list-item-content">
+          <span class="list-item-index">{{ index + 1 }}</span>
+          <div class="list-item-info">
+            <span class="list-item-name">{{ s.name }}</span>
+            <span class="list-item-code">{{ s.code }}</span>
           </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <input 
-                  type="text" 
-                  v-model="stallSearch" 
-                  placeholder="Search stalls..." 
-                  class="filter-input"
-                />
-              </div>
-              <select v-model="stallStatusFilter" class="filter-select">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-              <span>🏪</span>
-              <p>No stalls found</p>
-            </div>
-
-            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-              <div class="list-item-content">
-                <span class="list-item-index">{{ index + 1 }}</span>
-                <div class="list-item-info">
-                  <span class="list-item-name">{{ s.name }}</span>
-                  <span class="list-item-code">{{ s.code }}</span>
-                </div>
-                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-                  {{ s.is_active ? 'Active' : 'Inactive' }}
-                </span>
-              </div>
-            </div>
+          <span class="list-item-company">{{ s.company_name || '-' }}</span>
+          <span class="list-item-users">{{ s.user_count || 0 }} users</span>
+          <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+            {{ s.is_active ? 'Active' : 'Inactive' }}
+          </span>
+          <div class="list-item-actions">
+            <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+            <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+              {{ s.is_active ? '⏸️' : '▶️' }}
+            </button>
+            <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
@@ -465,68 +477,6 @@
                 <div class="list-item-actions">
                   <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
                   <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== MENU MANAGEMENT TAB ===== -->
-      <div v-if="activeTab === 'menu'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>📋 Menu Management</h3>
-              <span class="card-subtitle">Manage your menu items and recipes</span>
-            </div>
-            <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
-          </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <input 
-                  type="text" 
-                  v-model="menuSearch" 
-                  placeholder="Search menu items..." 
-                  class="filter-input"
-                />
-              </div>
-              <select v-model="menuCategoryFilter" class="filter-select">
-                <option value="all">All Categories</option>
-                <option value="Main">Main</option>
-                <option value="Side">Side</option>
-                <option value="Drink">Drink</option>
-                <option value="Dessert">Dessert</option>
-              </select>
-              <span class="filter-result">{{ filteredMenuItems.length }} items</span>
-            </div>
-
-            <div v-if="filteredMenuItems.length === 0" class="empty-state-modern">
-              <span>📋</span>
-              <p>No menu items found. Create your first menu item!</p>
-            </div>
-
-            <div v-for="(item, index) in filteredMenuItems" :key="item.item_name" class="menu-item-row">
-              <div class="menu-item-row-content">
-                <span class="menu-item-index">{{ index + 1 }}</span>
-                <div class="menu-item-info">
-                  <span class="menu-item-name">{{ item.item_name }}</span>
-                  <span class="menu-item-price">{{ formatCurrency(item.price) }}</span>
-                  <span class="menu-item-category">{{ item.category || 'Main' }}</span>
-                </div>
-                <div class="menu-item-recipe">
-                  <span class="recipe-label">Recipe:</span>
-                  <span v-if="item.recipe && item.recipe.length > 0" class="recipe-items">
-                    <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
-                      {{ r.material_name }}: {{ r.quantity_used }} piece{{ r.quantity_used > 1 ? 's' : '' }}
-                    </span>
-                  </span>
-                  <span v-else class="recipe-empty">No recipe</span>
-                </div>
-                <div class="menu-item-actions">
-                  <button @click="openEditMenuModal(item)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="deleteMenuItem(item.item_name)" class="list-item-btn danger" title="Delete">🗑️</button>
                 </div>
               </div>
             </div>
@@ -584,7 +534,7 @@
 
               <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
                 <span>📋</span>
-                <p>No menu items available. Please create menu items first.</p>
+                <p>No menu items available. Please contact your administrator to create menu items.</p>
               </div>
 
               <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
@@ -700,93 +650,6 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- MENU MODAL - FIXED WHITE BACKGROUND          -->
-    <!-- ============================================ -->
-    <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
-          <button @click="closeMenuModal" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body" style="background: #ffffff;">
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Item Name</label>
-              <input v-model="menuForm.item_name" placeholder="e.g., Nasi Ayam" :disabled="editingMenu" />
-            </div>
-            <div class="modal-form-group">
-              <label>Price (RM)</label>
-              <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
-            </div>
-          </div>
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Category</label>
-              <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
-            </div>
-            <div class="modal-form-group">
-              <label>Description</label>
-              <input v-model="menuForm.description" placeholder="Brief description" />
-            </div>
-          </div>
-          <div class="modal-form-group">
-            <label>Item Image</label>
-            <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
-              <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
-              <div v-if="menuForm.imagePreview" class="image-preview">
-                <img :src="menuForm.imagePreview" alt="Menu item" />
-                <button @click="removeMenuImage" class="remove-image">✕</button>
-              </div>
-              <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
-                <span>📷</span>
-                <p>Click to upload image (max 2MB)</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- ===== RECIPE SECTION - SIMPLIFIED ===== -->
-          <div class="modal-form-group recipe-section">
-            <label>Recipe (Ingredients)</label>
-            <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
-            
-            <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
-              <div class="recipe-field">
-                <label class="recipe-label">Ingredient</label>
-                <input 
-                  v-model="ingredient.material_name" 
-                  placeholder="Chicken" 
-                  class="recipe-input" 
-                  value="Chicken"
-                  readonly
-                />
-              </div>
-              <div class="recipe-field">
-                <label class="recipe-label">Pieces Needed</label>
-                <input 
-                  type="number" 
-                  v-model="ingredient.quantity_used" 
-                  placeholder="e.g., 2" 
-                  class="recipe-input-small" 
-                  step="1" 
-                  min="1"
-                />
-              </div>
-              <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
-            </div>
-            
-            <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
-              + Add Chicken to Recipe
-            </button>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
     <!-- USER MODAL                                   -->
     <!-- ============================================ -->
     <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
@@ -834,9 +697,107 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- REJECT MODAL (Keeping for safety)           -->
+    <!-- ============================================ -->
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>❌ Reject Registration</h3>
+          <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            Please provide a reason for rejecting this registration request.
+          </p>
+          <div class="modal-form-group">
+            <label>Rejection Reason *</label>
+            <textarea 
+              v-model="rejectReason" 
+              rows="4"
+              placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
+              style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
+            Confirm Rejection
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- VIEW RECEIPT MODAL                           -->
+    <!-- ============================================ -->
+    <div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>📎 Payment Receipt</h3>
+          <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body" style="text-align: center; padding: 2rem;">
+          <!-- Image Receipt -->
+          <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')">
+            <img 
+              :src="viewReceiptUrl" 
+              alt="Payment Receipt" 
+              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+              @error="handleReceiptError"
+            />
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+              📸 Image receipt
+            </p>
+          </div>
+          
+          <!-- PDF Receipt -->
+          <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
+            <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
+              <span style="font-size: 3rem;">📄</span>
+              <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
+              <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
+                ⬇️ Download PDF
+              </button>
+            </div>
+          </div>
+          
+          <!-- Regular URL Image -->
+          <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
+            <img 
+              :src="viewReceiptUrl" 
+              alt="Payment Receipt" 
+              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
+              @error="handleReceiptError"
+            />
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
+              📎 Receipt from server
+            </p>
+          </div>
+          
+          <!-- No receipt -->
+          <div v-else>
+            <div style="padding: 2rem;">
+              <span style="font-size: 3rem;">📭</span>
+              <p style="margin-top: 0.5rem; color: var(--text-secondary);">No receipt available</p>
+              <p style="font-size: 0.85rem; color: var(--text-tertiary);">The user did not upload a receipt.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
+<!-- ============================================ -->
+<!-- SCRIPT                                       -->
+<!-- ============================================ -->
 <script>
 import axios from 'axios'
 import * as echarts from 'echarts'
@@ -851,6 +812,7 @@ import {
   MarkPointComponent
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import api from '../config/api.js'
 
 // Register ECharts components
 use([
@@ -870,19 +832,18 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.c
 export default {
   props: {
     token: { type: String, required: true },
-    companyLogo: { type: String, default: null }
+    companyLogo: { type: String, default: null },
   },
 
   data() {
     return {
-      // Tabs
+      // ===== TABS - NO MENU, NO REGISTRATIONS, NO COMPANIES =====
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu', label: 'Menu', icon: '📋' },
         { id: 'menu-assignment', label: 'Menu Assignment', icon: '📋' }
       ],
       
@@ -927,23 +888,6 @@ export default {
       selectedMenuItem: null,
       stallDetailChartInstance: null,
       
-      // Menu filters
-      menuSearch: '',
-      menuCategoryFilter: 'all',
-      
-      // Menu Modal
-      menuModal: false,
-      editingMenu: false,
-      menuForm: {
-        item_name: '',
-        price: 0,
-        description: '',
-        category: '',
-        recipe: [],
-        imagePreview: null,
-        imageFile: null
-      },
-      
       // Inventory
       expandedInventoryStall: null,
       stallInventory: {},
@@ -974,6 +918,13 @@ export default {
       savingAssignment: false,
       savedAssignmentMessage: '',
       savedAssignmentType: 'success',
+
+      // Reject Modal (kept for any future use)
+      showRejectModal: false,
+      rejectReason: '',
+      rejectId: null,
+      viewReceiptModal: false,
+      viewReceiptUrl: null,
     }
   },
 
@@ -983,13 +934,6 @@ export default {
     },
     chartVisibleData() {
       return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
-    },
-    filteredMenuItems() {
-      return this.menuItems.filter(item => {
-        const matchesSearch = item.item_name.toLowerCase().includes(this.menuSearch.toLowerCase())
-        const matchesCategory = this.menuCategoryFilter === 'all' || item.category === this.menuCategoryFilter
-        return matchesSearch && matchesCategory
-      })
     },
     filteredMenuItemsForAssignment() {
       return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
@@ -1167,101 +1111,6 @@ export default {
     },
     getUnit(materialName) {
       return 'pieces'
-    },
-
-    // =============================================
-    // IMAGE COMPRESSION HELPER
-    // =============================================
-    compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
-      return new Promise((resolve) => {
-        try {
-          const img = new Image()
-          img.onload = () => {
-            let width = img.width
-            let height = img.height
-            
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width
-              width = maxWidth
-            }
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height
-              height = maxHeight
-            }
-            
-            const canvas = document.createElement('canvas')
-            canvas.width = Math.round(width)
-            canvas.height = Math.round(height)
-            const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0, width, height)
-            
-            const compressed = canvas.toDataURL('image/jpeg', quality)
-            resolve(compressed)
-          }
-          img.onerror = () => {
-            resolve(null)
-          }
-          img.src = base64Data
-        } catch (err) {
-          console.error('Compression error:', err)
-          resolve(null)
-        }
-      })
-    },
-    
-    // =============================================
-    // MENU IMAGE MANAGEMENT
-    // =============================================
-    handleMenuImageUpload(event) {
-      const file = event.target.files[0]
-      if (!file) return
-      
-      if (file.size > 2 * 1024 * 1024) {
-        this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
-        event.target.value = ''
-        return
-      }
-      
-      this.menuForm.imageFile = file
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        try {
-          const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-          this.menuForm.imagePreview = compressed || e.target.result
-        } catch (err) {
-          console.warn('Compression failed, using original:', err)
-          this.menuForm.imagePreview = e.target.result
-        }
-      }
-      reader.readAsDataURL(file)
-    },
-    handleMenuImageDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        if (file.size > 2 * 1024 * 1024) {
-          this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
-          return
-        }
-        
-        this.menuForm.imageFile = file
-        const reader = new FileReader()
-        reader.onload = async (e) => {
-          try {
-            const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
-            this.menuForm.imagePreview = compressed || e.target.result
-          } catch (err) {
-            this.menuForm.imagePreview = e.target.result
-          }
-        }
-        reader.readAsDataURL(file)
-      }
-    },
-    removeMenuImage() {
-      this.menuForm.imagePreview = null
-      this.menuForm.imageFile = null
-      if (this.$refs.menuImageInput) {
-        this.$refs.menuImageInput.value = ''
-      }
     },
 
     // =============================================
@@ -1641,157 +1490,6 @@ export default {
     },
     
     // =============================================
-    // MENU MANAGEMENT - CRUD
-    // =============================================
-    openMenuModal() {
-      this.editingMenu = false
-      this.menuForm = {
-        item_name: '',
-        price: 0,
-        description: '',
-        category: '',
-        recipe: [],
-        imagePreview: null,
-        imageFile: null
-      }
-      this.menuModal = true
-    },
-    openEditMenuModal(item) {
-      this.editingMenu = true
-      this.menuForm = {
-        item_name: item.item_name,
-        price: item.price,
-        description: item.description || '',
-        category: item.category || '',
-        recipe: (item.recipe || []).map(r => ({ ...r })),
-        imagePreview: item.image || null,
-        imageFile: null
-      }
-      this.menuModal = true
-    },
-    closeMenuModal() {
-      this.menuModal = false
-      this.editingMenu = false
-    },
-    addRecipeIngredient() {
-      this.menuForm.recipe.push({ 
-        material_name: 'Chicken', 
-        quantity_used: 1 
-      })
-    },
-    removeRecipeIngredient(index) {
-      this.menuForm.recipe.splice(index, 1)
-    },
-    async saveMenuItem() {
-      try {
-        if (!this.menuForm.item_name || !this.menuForm.price) {
-          this.$emit('show-notification', 'Item name and price are required', 'error')
-          return
-        }
-        
-        const payload = {
-          item_name: this.menuForm.item_name,
-          price: parseFloat(this.menuForm.price),
-          description: this.menuForm.description || '',
-          category: this.menuForm.category || 'Main',
-          recipe: this.menuForm.recipe
-            .filter(r => r.material_name && r.quantity_used > 0)
-            .map(r => ({
-              material_name: 'Chicken',
-              quantity_used: parseInt(r.quantity_used) || 1
-            }))
-        }
-        
-        if (this.menuForm.imagePreview) {
-          let imageData = this.menuForm.imagePreview
-          
-          if (imageData && imageData.length > 500000) {
-            try {
-              const compressed = await this.compressImage(imageData, 200, 200, 0.6)
-              if (compressed && compressed.length < imageData.length) {
-                imageData = compressed
-                console.log('✅ Image compressed from', Math.round(imageData.length/1024), 'KB to', Math.round(compressed.length/1024), 'KB')
-              }
-            } catch (e) {
-              console.warn('Image compression failed, using original', e)
-            }
-          }
-          
-          if (imageData && imageData.length < 1 * 1024 * 1024) {
-            payload.image = imageData
-          } else {
-            try {
-              const compressed = await this.compressImage(imageData, 100, 100, 0.5)
-              if (compressed && compressed.length < 1 * 1024 * 1024) {
-                payload.image = compressed
-                console.log('✅ Image aggressively compressed to', Math.round(compressed.length/1024), 'KB')
-              } else {
-                this.$emit('show-notification', 'Image is too large. Please use a smaller image.', 'warning')
-              }
-            } catch (e) {
-              this.$emit('show-notification', 'Could not compress image. Proceeding without image.', 'warning')
-            }
-          }
-        }
-        
-        console.log('📤 Sending menu payload with image size:', payload.image ? Math.round(payload.image.length/1024) + 'KB' : 'No image')
-        
-        if (this.editingMenu) {
-          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
-            headers: { 
-              Authorization: `Bearer ${this.token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          this.$emit('show-notification', 'Menu item updated successfully!', 'success')
-        } else {
-          await axios.post(`${API_BASE}/menu`, payload, {
-            headers: { 
-              Authorization: `Bearer ${this.token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          this.$emit('show-notification', 'Menu item created successfully!', 'success')
-        }
-        
-        this.closeMenuModal()
-        await this.loadMenuItems()
-      } catch (err) {
-        console.error('Save menu error:', err)
-        if (err.response?.status === 413) {
-          this.$emit('show-notification', 'Image too large. Please use a smaller image (under 1MB).', 'error')
-        } else {
-          const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
-          this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
-        }
-      }
-    },
-    async deleteMenuItem(itemName) {
-      if (confirm(`Delete menu item "${itemName}"?`)) {
-        try {
-          await axios.delete(`${API_BASE}/menu/${encodeURIComponent(itemName)}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.$emit('show-notification', 'Menu item deleted', 'success')
-          await this.loadMenuItems()
-        } catch (err) {
-          this.$emit('show-notification', 'Failed to delete menu item', 'error')
-        }
-      }
-    },
-    async loadMenuItems() {
-      try {
-        const res = await axios.get(`${API_BASE}/menu`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.menuItems = res.data || []
-      } catch (err) {
-        console.error('Failed to load menu items:', err)
-        this.menuItems = []
-      }
-    },
-    
-    // =============================================
     // MENU ASSIGNMENT METHODS
     // =============================================
     async loadMenuAssignments() {
@@ -1801,7 +1499,7 @@ export default {
       this.savedAssignmentMessage = ''
       
       try {
-        // Load all menu items first
+        // Load all menu items
         await this.loadMenuItems()
         
         // Load current assignments for the selected stall
@@ -2087,6 +1785,21 @@ export default {
         })).sort((a, b) => b.quantity - a.quantity)
       } catch (err) {
         this.menuPerformance = []
+      }
+    },
+    
+    // =============================================
+    // MENU ITEMS (For Assignment)
+    // =============================================
+    async loadMenuItems() {
+      try {
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.menuItems = res.data || []
+      } catch (err) {
+        console.error('Failed to load menu items:', err)
+        this.menuItems = []
       }
     },
     
@@ -2378,15 +2091,6 @@ export default {
             sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
           }
           fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
-        } else if (this.activeTab === 'menu') {
-          sheet = workbook.addWorksheet('Menu')
-          sheet.addRow(['📋 Menu Management', ''])
-          sheet.addRow(['Item Name', 'Price', 'Category', 'Recipe'])
-          for (const item of this.filteredMenuItems) {
-            const recipe = (item.recipe || []).map(r => `${r.material_name}: ${r.quantity_used}${this.getUnit(r.material_name)}`).join(', ')
-            sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
-          }
-          fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'menu-assignment') {
           sheet = workbook.addWorksheet('Menu Assignment')
           sheet.addRow(['📋 Menu Assignment', ''])
@@ -3912,266 +3616,6 @@ export default {
 .status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
 
 /* ============================================ */
-/* IMAGE UPLOAD                                 */
-/* ============================================ */
-.image-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  text-align: center;
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.image-upload-area:hover {
-  border-color: var(--primary);
-}
-
-.image-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--text-tertiary);
-}
-
-.image-placeholder span {
-  font-size: 2rem;
-}
-
-.image-placeholder p {
-  font-size: 0.75rem;
-  margin: 0;
-}
-
-.image-preview {
-  position: relative;
-  max-width: 120px;
-  margin: 0 auto;
-}
-
-.image-preview img {
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.remove-image {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ef4444;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ============================================ */
-/* RECIPE SECTION                               */
-/* ============================================ */
-.recipe-section {
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  margin-top: 0.5rem;
-}
-
-.recipe-hint {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-bottom: 0.75rem;
-  font-style: italic;
-}
-
-.recipe-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-end;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-.recipe-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.recipe-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.recipe-input {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 100%;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.recipe-input-small {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  width: 80px;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
-}
-
-.recipe-input-small:focus {
-  outline: none;
-  border-color: #F94908;
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
-}
-
-.add-recipe-btn {
-  margin-top: 0.5rem;
-  width: 100%;
-  justify-content: center;
-}
-
-.btn-icon-sm {
-  background: transparent;
-  border: none;
-  padding: 0.15rem 0.3rem;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-
-.btn-icon-sm:hover { background: var(--background); }
-.btn-icon-sm.danger { color: #ef4444; }
-.btn-icon-sm.danger:hover { background: #fee2e2; }
-
-.recipe-tag {
-  display: inline-block;
-  background: #f1f5f9;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  margin: 0.1rem 0.2rem;
-  font-size: 0.7rem;
-  border: 1px solid #e2e8f0;
-}
-
-/* ============================================ */
-/* MENU MANAGEMENT                              */
-/* ============================================ */
-.menu-item-row {
-  border-bottom: 1px solid var(--border-light);
-  padding: 0.5rem 0;
-}
-
-.menu-item-row:last-child {
-  border-bottom: none;
-}
-
-.menu-item-row-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.menu-item-index {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.6rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.menu-item-info {
-  flex: 1;
-  min-width: 120px;
-}
-
-.menu-item-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.menu-item-price {
-  font-size: 0.8rem;
-  color: var(--primary);
-  font-weight: 600;
-  margin-left: 0.5rem;
-}
-
-.menu-item-category {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  margin-left: 0.5rem;
-}
-
-.menu-item-recipe {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  flex: 1;
-  min-width: 150px;
-}
-
-.recipe-label {
-  font-weight: 500;
-}
-
-.recipe-items {
-  color: var(--text);
-}
-
-.recipe-empty {
-  color: var(--text-tertiary);
-  font-style: italic;
-}
-
-.menu-item-actions {
-  display: flex;
-  gap: 0.15rem;
-}
-
-/* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
 .empty-state-modern {
@@ -4247,26 +3691,6 @@ export default {
   
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
   
-  .menu-item-row-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-  }
-  
-  .menu-item-recipe {
-    min-width: unset;
-    width: 100%;
-  }
-  
-  .menu-item-actions {
-    align-self: flex-end;
-  }
-  
-  .recipe-row { flex-wrap: wrap; }
-  .modal-lg { max-width: 95%; }
-  .detail-grid { grid-template-columns: 1fr 1fr; }
-  .detail-chart { height: 150px; }
-  
   .assignment-header {
     flex-direction: column;
     align-items: stretch;
@@ -4312,11 +3736,6 @@ export default {
   .list-item-btn { font-size: 0.75rem; }
   
   .empty-state-modern span { font-size: 1.5rem; }
-  
-  .menu-item-info { min-width: unset; width: 100%; }
-  .menu-item-price { display: inline-block; }
-  .detail-grid { grid-template-columns: 1fr; }
-  .detail-chart { height: 120px; }
   
   .action-buttons {
     flex-direction: row;
