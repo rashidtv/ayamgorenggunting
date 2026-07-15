@@ -1570,31 +1570,22 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
 
     // If there are items to assign, activate them
     if (items.length > 0) {
-      // Verify all items exist in menu_items table
-      const placeholders = items.map((_, i) => `$${i + 1}`).join(', ');
-      const checkQuery = `
-        SELECT item_name FROM menu_items 
-        WHERE item_name IN (${placeholders})
-      `;
-      const checkResult = await client.query(checkQuery, items);
-      
-      const existingItems = checkResult.rows.map(row => row.item_name);
-      
-      // Only assign items that exist
-      for (const itemName of existingItems) {
-        await client.query(
-          `INSERT INTO stall_menu_assignments (stall_id, item_name, is_active) 
-           VALUES ($1, $2, true) 
-           ON CONFLICT (stall_id, item_name) 
-           DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP`,
-          [targetStallId, itemName]
+      for (const itemName of items) {
+        // Verify the item exists in menu_items
+        const itemCheck = await client.query(
+          'SELECT item_name FROM menu_items WHERE item_name = $1',
+          [itemName]
         );
-      }
-
-      // Log any items that don't exist
-      const missingItems = items.filter(item => !existingItems.includes(item));
-      if (missingItems.length > 0) {
-        console.log(`⚠️ The following items do not exist: ${missingItems.join(', ')}`);
+        
+        if (itemCheck.rows.length > 0) {
+          await client.query(
+            `INSERT INTO stall_menu_assignments (stall_id, item_name, is_active) 
+             VALUES ($1, $2, true) 
+             ON CONFLICT (stall_id, item_name) 
+             DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP`,
+            [targetStallId, itemName]
+          );
+        }
       }
     }
 
@@ -1608,7 +1599,10 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error saving menu assignments:', err);
-    res.status(500).json({ error: 'Failed to save menu assignments', details: err.message });
+    res.status(500).json({ 
+      error: 'Failed to save menu assignments', 
+      details: err.message 
+    });
   } finally {
     client.release();
   }
