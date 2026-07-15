@@ -891,7 +891,7 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   const companyId = parseInt(req.params.companyId);
   if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
 
-  // Allow stall_admin if they belong to this company
+  // Permission check
   if (req.user.role === 'stall_admin') {
     const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
     if (userCompany.rows[0]?.company_id !== companyId) {
@@ -902,11 +902,44 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   }
 
   const { name, code, location } = req.body;
-  await pool.query(
-    'INSERT INTO stalls (company_id, name, code, location) VALUES ($1, $2, $3, $4)',
+  
+  const result = await pool.query(
+    'INSERT INTO stalls (company_id, name, code, location) VALUES ($1, $2, $3, $4) RETURNING id',
     [companyId, name, code, location]
   );
-  res.json({ success: true });
+  const stallId = result.rows[0].id;
+
+  // ✅ If user is stall_admin, auto-assign them
+  if (req.user.role === 'stall_admin') {
+    await pool.query(
+      'INSERT INTO user_stall_assignments (user_id, stall_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [req.user.id, stallId]
+    );
+    console.log(`✅ Auto-assigned stall_admin ${req.user.username} to new stall ${stallId}`);
+  }
+  
+  // ✅ NEW: If user is super_admin, assign to the first stall_admin in the company
+  else if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+    // Find the first stall_admin in this company
+    const stallAdminRes = await pool.query(`
+      SELECT id FROM users 
+      WHERE company_id = $1 AND role = 'stall_admin' 
+      ORDER BY id LIMIT 1
+    `, [companyId]);
+    
+    if (stallAdminRes.rows.length > 0) {
+      const stallAdminId = stallAdminRes.rows[0].id;
+      await pool.query(
+        'INSERT INTO user_stall_assignments (user_id, stall_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [stallAdminId, stallId]
+      );
+      console.log(`✅ Auto-assigned stall_admin (ID: ${stallAdminId}) to new stall ${stallId}`);
+    } else {
+      console.log(`⚠️ No stall_admin found for company ${companyId}. Stall ${stallId} has no assignment.`);
+    }
+  }
+
+  res.json({ success: true, stallId });
 });
 
 // ============================================
@@ -1038,7 +1071,7 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
 
   const { username, password, full_name, role, stall_ids } = req.body;
 
-  // ✅ Stall Admin permission check
+  // ✅ Allow stall_admin to create users for stalls they own
   if (req.user.role === 'stall_admin') {
     // Check if user belongs to this company
     const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
@@ -1062,8 +1095,11 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
   } else if (req.user.role === 'cashier') {
     return res.status(403).json({ error: 'Cashier cannot create users' });
   }
+  // ✅ Super admin can create any user (existing behavior)
+  else if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
-  // ✅ Existing code continues
   const hashed = bcrypt.hashSync(password, 10);
   const userRes = await pool.query(
     'INSERT INTO users (username, password, full_name, role, company_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
