@@ -99,7 +99,7 @@
           <div class="all-feature-card">
             <div class="all-feature-icon">🔐</div>
             <h3>Role-Based Access</h3>
-            <p>Cashiers, Admins, Super Admins</p>
+            <p>Cashiers, Admins</p>
           </div>
           <div class="all-feature-card">
             <div class="all-feature-icon">📊</div>
@@ -148,9 +148,9 @@
           <h3>Chickory Hub Standard</h3>
           <div class="price">
             <span class="amount">RM940</span>
-            <span class="period">/year</span>
+            <span class="period">/year/per stall</span>
           </div>
-          <p class="price-sub">Includes RM100 setup fee (one-time)</p>
+          <p class="price-sub">Includes RM100 setup fee (one-time) per stall</p>
         </div>
         <ul class="pricing-list">
           <li>✅ Complete dashboard & analytics</li>
