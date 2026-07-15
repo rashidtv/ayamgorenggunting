@@ -1426,71 +1426,78 @@ export default {
     // MENU ASSIGNMENT METHODS
     // =============================================
     async loadMenuAssignments() {
-      if (!this.selectedAssignmentStall) return
-      
-      this.loadingMenuAssignments = true
-      this.savedAssignmentMessage = ''
-      
-      try {
-        // Load all menu items
-        await this.loadMenuItems()
-        
-        // Load current assignments for the selected stall
-        const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        
-        // Build assignment map
-        const assignedItems = res.data || []
-        this.menuAssignments = {}
-        this.menuItems.forEach(item => {
-          this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
-        })
-        
-        // Save original state for reset
-        this.originalMenuAssignments = { ...this.menuAssignments }
-        
-      } catch (err) {
-        console.error('Failed to load menu assignments:', err)
-        this.$emit('show-notification', 'Failed to load menu assignments', 'error')
-      } finally {
-        this.loadingMenuAssignments = false
-      }
-    },
+  if (!this.selectedAssignmentStall) return
+  
+  this.loadingMenuAssignments = true
+  this.savedAssignmentMessage = ''
+  
+  try {
+    // Load all menu items
+    await this.loadMenuItems()
+    
+    // Load current assignments for the selected stall
+    const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // ✅ Build assignment map - only selected items should be true
+    const assignedItems = res.data || []
+    console.log('📝 Currently assigned items:', assignedItems)
+    
+    this.menuAssignments = {}
+    this.menuItems.forEach(item => {
+      this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
+    })
+    
+    console.log('📝 Menu assignments map:', this.menuAssignments)
+    
+    // Save original state for reset
+    this.originalMenuAssignments = { ...this.menuAssignments }
+    
+  } catch (err) {
+    console.error('Failed to load menu assignments:', err)
+    this.$emit('show-notification', 'Failed to load menu assignments', 'error')
+  } finally {
+    this.loadingMenuAssignments = false
+  }
+},
 
     async saveMenuAssignments() {
-      if (!this.selectedAssignmentStall) return
-      
-      this.savingAssignment = true
-      this.savedAssignmentMessage = ''
-      
-      try {
-        // Get selected items
-        const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key])
-        
-        await axios.post(`${API_BASE}/menu/assignments`, {
-          stallId: this.selectedAssignmentStall,
-          items: selectedItems
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        
-        // Save original state
-        this.originalMenuAssignments = { ...this.menuAssignments }
-        
-        this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
-        this.savedAssignmentType = 'success'
-        this.$emit('show-notification', 'Menu assignments saved!', 'success')
-        
-      } catch (err) {
-        console.error('Failed to save menu assignments:', err)
-        this.savedAssignmentMessage = '❌ Failed to save menu assignments'
-        this.savedAssignmentType = 'error'
-        this.$emit('show-notification', 'Failed to save menu assignments', 'error')
-      } finally {
-        this.savingAssignment = false
-      }
-    },
+  if (!this.selectedAssignmentStall) return
+  
+  this.savingAssignment = true
+  this.savedAssignmentMessage = ''
+  
+  try {
+    // ✅ FIX: Only get selected items (where value is true)
+    const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
+    
+    console.log('📝 Saving assignments for stall:', this.selectedAssignmentStall)
+    console.log('📝 Selected items:', selectedItems)
+    
+    await axios.post(`${API_BASE}/menu/assignments`, {
+      stallId: this.selectedAssignmentStall,
+      items: selectedItems
+    }, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // Save original state
+    this.originalMenuAssignments = { ...this.menuAssignments }
+    
+    this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
+    this.savedAssignmentType = 'success'
+    this.$emit('show-notification', 'Menu assignments saved!', 'success')
+    
+  } catch (err) {
+    console.error('Failed to save menu assignments:', err)
+    this.savedAssignmentMessage = '❌ Failed to save menu assignments'
+    this.savedAssignmentType = 'error'
+    this.$emit('show-notification', 'Failed to save menu assignments', 'error')
+  } finally {
+    this.savingAssignment = false
+  }
+},
 
     resetMenuAssignments() {
       if (this.selectedAssignmentStall) {

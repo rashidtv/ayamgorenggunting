@@ -423,29 +423,44 @@ export default {
     },
 
     async loadMenu() {
-      this.loadingMenu = true
-      try {
-        const res = await axios.get(`${API_BASE}/menu`, {
-          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
-        console.log('📸 Menu items with recipes:', res.data.map(item => ({
-          name: item.item_name,
-          hasRecipe: item.recipe && item.recipe.length > 0,
-          recipeCount: item.recipe ? item.recipe.length : 0
-        })))
-        this.menuItems = res.data.map(item => ({
-          ...item,
-          quantity: 0
-        }))
-        this.menuQuantities = {}
-      } catch (error) {
-        console.error('Failed to load menu:', error)
-        this.menuItems = []
-        this.$emit('show-notification', 'Failed to load menu items', 'error')
-      } finally {
-        this.loadingMenu = false
-      }
-    },
+  this.loadingMenu = true
+  try {
+    // Get all menu items
+    const res = await axios.get(`${API_BASE}/menu`, {
+      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+    })
+    
+    // Get assignments for this stall
+    const assignmentsRes = await axios.get(`${API_BASE}/menu/assignments/${this.activeStallId}`, {
+      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+    })
+    
+    const assignedItems = assignmentsRes.data || []
+    console.log('📝 Assigned items for stall:', assignedItems)
+    
+    // ✅ Filter menu items by assignments
+    let filteredItems = res.data
+    if (assignedItems.length > 0) {
+      filteredItems = res.data.filter(item => assignedItems.includes(item.item_name))
+    }
+    // If no assignments (empty array), show all items (default behavior)
+    
+    this.menuItems = filteredItems.map(item => ({
+      ...item,
+      quantity: 0
+    }))
+    this.menuQuantities = {}
+    
+    console.log('📝 Filtered menu items:', this.menuItems.length)
+    
+  } catch (error) {
+    console.error('Failed to load menu:', error)
+    this.menuItems = []
+    this.$emit('show-notification', 'Failed to load menu items', 'error')
+  } finally {
+    this.loadingMenu = false
+  }
+},
 
     async loadInventory() {
       const response = await axios.get(`${API_BASE}/inventory`, {
