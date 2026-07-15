@@ -732,34 +732,81 @@ app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) 
 // ============================================
 
 app.get('/api/users/all', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can view all users
-  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+  // Allow super_super_admin, super_admin, and stall_admin
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin' && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
   try {
-    const result = await pool.query(`
-      SELECT 
-        u.id,
-        u.username,
-        u.full_name,
-        u.role,
-        u.company_id,
-        u.is_active,
-        COALESCE(
-          (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
-           FROM user_stall_assignments usa
-           JOIN stalls s ON usa.stall_id = s.id
-           WHERE usa.user_id = u.id),
-          '[]'
-        ) as assigned_stalls,
-        c.name as company_name
-      FROM users u
-      LEFT JOIN companies c ON u.company_id = c.id
-      WHERE u.role != 'super_super_admin'
-      ORDER BY u.username
-    `);
-
+    let query, params;
+    
+    if (req.user.role === 'stall_admin') {
+      // Get company_id(s) from stalls assigned to this user
+      const companyRes = await pool.query(`
+        SELECT DISTINCT s.company_id 
+        FROM stalls s 
+        JOIN user_stall_assignments usa ON s.id = usa.stall_id 
+        WHERE usa.user_id = $1
+      `, [req.user.id]);
+      const companyIds = companyRes.rows.map(r => r.company_id);
+      
+      if (companyIds.length === 0) {
+        return res.json([]);
+      }
+      
+      query = `
+        SELECT 
+          u.id,
+          u.username,
+          u.full_name,
+          u.role,
+          u.company_id,
+          u.is_active,
+          COALESCE(
+            (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
+             FROM user_stall_assignments usa2
+             JOIN stalls s ON usa2.stall_id = s.id
+             WHERE usa2.user_id = u.id),
+            '[]'
+          ) as assigned_stalls,
+          c.name as company_name
+        FROM users u
+        LEFT JOIN companies c ON u.company_id = c.id
+        WHERE u.company_id = ANY($1::int[])
+        AND u.role != 'super_super_admin'
+        ORDER BY u.username
+      `;
+      params = [companyIds];
+    } else {
+      // super_admin or super_super_admin – get all
+      const companyFilter = req.user.role === 'super_admin' ? ' AND u.company_id = $1' : '';
+      const filterParam = req.user.role === 'super_admin' ? [req.user.company_id] : [];
+      
+      query = `
+        SELECT 
+          u.id,
+          u.username,
+          u.full_name,
+          u.role,
+          u.company_id,
+          u.is_active,
+          COALESCE(
+            (SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'code', s.code))
+             FROM user_stall_assignments usa2
+             JOIN stalls s ON usa2.stall_id = s.id
+             WHERE usa2.user_id = u.id),
+            '[]'
+          ) as assigned_stalls,
+          c.name as company_name
+        FROM users u
+        LEFT JOIN companies c ON u.company_id = c.id
+        WHERE u.role != 'super_super_admin' ${companyFilter}
+        ORDER BY u.username
+      `;
+      params = filterParam;
+    }
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Get all users error:', err);
@@ -772,27 +819,67 @@ app.get('/api/users/all', authenticateToken, async (req, res) => {
 // ============================================
 
 app.get('/api/stalls/all', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can view all stalls
-  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+  if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin' && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
   try {
-    const result = await pool.query(`
-      SELECT 
-        s.*,
-        c.name as company_name,
-        COALESCE(
-          (SELECT COUNT(DISTINCT usa.user_id) 
-           FROM user_stall_assignments usa 
-           WHERE usa.stall_id = s.id),
-          0
-        ) as user_count
-      FROM stalls s
-      LEFT JOIN companies c ON s.company_id = c.id
-      ORDER BY c.name, s.name
-    `);
-
+    let query, params;
+    
+    if (req.user.role === 'stall_admin') {
+      // Get company_id(s) from stalls assigned to this user
+      const companyRes = await pool.query(`
+        SELECT DISTINCT s.company_id 
+        FROM stalls s 
+        JOIN user_stall_assignments usa ON s.id = usa.stall_id 
+        WHERE usa.user_id = $1
+      `, [req.user.id]);
+      const companyIds = companyRes.rows.map(r => r.company_id);
+      
+      if (companyIds.length === 0) {
+        return res.json([]);
+      }
+      
+      query = `
+        SELECT 
+          s.*,
+          c.name as company_name,
+          COALESCE(
+            (SELECT COUNT(DISTINCT usa2.user_id) 
+             FROM user_stall_assignments usa2 
+             WHERE usa2.stall_id = s.id),
+            0
+          ) as user_count
+        FROM stalls s
+        LEFT JOIN companies c ON s.company_id = c.id
+        WHERE s.company_id = ANY($1::int[])
+        ORDER BY s.name
+      `;
+      params = [companyIds];
+    } else {
+      // super_admin or super_super_admin – get all
+      const companyFilter = req.user.role === 'super_admin' ? ' WHERE s.company_id = $1' : '';
+      const filterParam = req.user.role === 'super_admin' ? [req.user.company_id] : [];
+      
+      query = `
+        SELECT 
+          s.*,
+          c.name as company_name,
+          COALESCE(
+            (SELECT COUNT(DISTINCT usa2.user_id) 
+             FROM user_stall_assignments usa2 
+             WHERE usa2.stall_id = s.id),
+            0
+          ) as user_count
+        FROM stalls s
+        LEFT JOIN companies c ON s.company_id = c.id
+        ${companyFilter}
+        ORDER BY c.name, s.name
+      `;
+      params = filterParam;
+    }
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Get all stalls error:', err);
@@ -803,7 +890,17 @@ app.get('/api/stalls/all', authenticateToken, async (req, res) => {
 app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
   const companyId = parseInt(req.params.companyId);
   if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
-  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+
+  // Allow stall_admin if they belong to this company
+  if (req.user.role === 'stall_admin') {
+    const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
+    if (userCompany.rows[0]?.company_id !== companyId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   const { name, code, location } = req.body;
   await pool.query(
     'INSERT INTO stalls (company_id, name, code, location) VALUES ($1, $2, $3, $4)',
@@ -831,8 +928,13 @@ app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Stall not found' });
     }
 
-    // Check if user has permission (Super Admin or Super Super Admin)
-    if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    // Check if user has permission
+    if (req.user.role === 'stall_admin') {
+      const access = await userCanAccessStall(req.user.id, stallId);
+      if (!access) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -877,7 +979,7 @@ app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to update stall' });
   }
 });
-// ==================== COMPANY USERS ====================
+
 // ============================================
 // GET COMPANY USERS
 // ============================================
@@ -1050,18 +1152,39 @@ app.delete('/api/companies/:id', authenticateToken, async (req, res) => {
 
 // ==================== STALL TOGGLE ====================
 app.put('/api/stalls/:stallId/toggle', authenticateToken, async (req, res) => {
-  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
-  const stall = await pool.query('SELECT is_active FROM stalls WHERE id = $1', [req.params.stallId]);
+  const stallId = parseInt(req.params.stallId);
+  if (isNaN(stallId)) return res.status(400).json({ error: 'Invalid stall ID' });
+
+  // Check if user has permission
+  if (req.user.role === 'stall_admin') {
+    const access = await userCanAccessStall(req.user.id, stallId);
+    if (!access) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const stall = await pool.query('SELECT is_active FROM stalls WHERE id = $1', [stallId]);
   if (!stall.rows[0]) return res.status(404).json({ error: 'Stall not found' });
-  await pool.query('UPDATE stalls SET is_active = $1 WHERE id = $2', [!stall.rows[0].is_active, req.params.stallId]);
+  await pool.query('UPDATE stalls SET is_active = $1 WHERE id = $2', [!stall.rows[0].is_active, stallId]);
   res.json({ success: true });
 });
 
 // ==================== STALL DELETE ====================
 app.delete('/api/stalls/:id', authenticateToken, async (req, res) => {
-  if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   const stallId = parseInt(req.params.id);
   if (isNaN(stallId)) return res.status(400).json({ error: 'Invalid stall ID' });
+
+  // Check if user has permission
+  if (req.user.role === 'stall_admin') {
+    const access = await userCanAccessStall(req.user.id, stallId);
+    if (!access) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } else if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   const stallCheck = await pool.query('SELECT id FROM stalls WHERE id = $1', [stallId]);
   if (stallCheck.rows.length === 0) {

@@ -376,62 +376,62 @@
         </div>
       </div>
 
-<!-- ===== STALLS TAB ===== -->
-<div v-if="activeTab === 'stalls'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🏪 Stall Management</h3>
-        <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-      </div>
-      <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
-    </div>
-    <div class="card-modern-body">
-      <div class="filter-bar">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="stallSearch" 
-            placeholder="Search stalls..." 
-            class="filter-input"
-          />
-        </div>
-        <select v-model="stallStatusFilter" class="filter-select">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-        <span>🏪</span>
-        <p>No stalls found</p>
-      </div>
-
-      <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-        <div class="list-item-content">
-          <span class="list-item-index">{{ index + 1 }}</span>
-          <div class="list-item-info">
-            <span class="list-item-name">{{ s.name }}</span>
-            <span class="list-item-code">{{ s.code }}</span>
+      <!-- ===== STALLS TAB - FULL CRUD ===== -->
+      <div v-if="activeTab === 'stalls'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏪 Stall Management</h3>
+              <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+            </div>
+            <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
           </div>
-          <span class="list-item-company">{{ s.company_name || '-' }}</span>
-          <span class="list-item-users">{{ s.user_count || 0 }} users</span>
-          <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-            {{ s.is_active ? 'Active' : 'Inactive' }}
-          </span>
-          <div class="list-item-actions">
-            <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
-            <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
-              {{ s.is_active ? '⏸️' : '▶️' }}
-            </button>
-            <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+          <div class="card-modern-body">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="stallSearch" 
+                  placeholder="Search stalls..." 
+                  class="filter-input"
+                />
+              </div>
+              <select v-model="stallStatusFilter" class="filter-select">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+              <span>🏪</span>
+              <p>No stalls found</p>
+            </div>
+
+            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+              <div class="list-item-content">
+                <span class="list-item-index">{{ index + 1 }}</span>
+                <div class="list-item-info">
+                  <span class="list-item-name">{{ s.name }}</span>
+                  <span class="list-item-code">{{ s.code }}</span>
+                </div>
+                <span class="list-item-company">{{ s.company_name || '-' }}</span>
+                <span class="list-item-users">{{ s.user_count || 0 }} users</span>
+                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
+                </span>
+                <div class="list-item-actions">
+                  <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+                  <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                    {{ s.is_active ? '⏸️' : '▶️' }}
+                  </button>
+                  <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
@@ -576,6 +576,85 @@
     </div>
 
     <!-- ============================================ -->
+    <!-- STALL MODAL                                  -->
+    <!-- ============================================ -->
+    <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
+          <button @click="stallModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-group">
+            <label>Stall Name</label>
+            <input v-model="stallForm.name" placeholder="Stall Name" />
+          </div>
+          <div class="modal-form-group">
+            <label>Stall Code</label>
+            <input v-model="stallForm.code" placeholder="Stall Code" />
+          </div>
+          <div class="modal-form-group">
+            <label>Location</label>
+            <input v-model="stallForm.location" placeholder="Location" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- USER MODAL                                   -->
+    <!-- ============================================ -->
+    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
+          <button @click="closeUserModal" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Username</label>
+              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+            </div>
+            <div class="modal-form-group">
+              <label>Full Name</label>
+              <input v-model="userForm.full_name" placeholder="Full Name" />
+            </div>
+          </div>
+          <div class="modal-form-row">
+            <div class="modal-form-group">
+              <label>Password</label>
+              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
+              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
+            </div>
+            <div class="modal-form-group">
+              <label>Role</label>
+              <select v-model="userForm.role">
+                <option value="stall_admin">Stall Admin</option>
+                <option value="cashier">Cashier</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-form-group">
+            <label>Assign Stalls:</label>
+            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
+              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
+            </select>
+            <small>Hold Ctrl/Cmd to select multiple</small>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
+          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- STALL DETAILS MODAL                         -->
     <!-- ============================================ -->
     <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
@@ -648,156 +727,9 @@
         </div>
       </div>
     </div>
-
-    <!-- ============================================ -->
-    <!-- USER MODAL                                   -->
-    <!-- ============================================ -->
-    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
-          <button @click="closeUserModal" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Username</label>
-              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
-            </div>
-            <div class="modal-form-group">
-              <label>Full Name</label>
-              <input v-model="userForm.full_name" placeholder="Full Name" />
-            </div>
-          </div>
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Password</label>
-              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
-              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
-            </div>
-            <div class="modal-form-group">
-              <label>Role</label>
-              <select v-model="userForm.role">
-                <option value="stall_admin">Stall Admin</option>
-                <option value="cashier">Cashier</option>
-              </select>
-            </div>
-          </div>
-          <div class="modal-form-group">
-            <label>Assign Stalls:</label>
-            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
-              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
-            </select>
-            <small>Hold Ctrl/Cmd to select multiple</small>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- REJECT MODAL (Keeping for safety)           -->
-    <!-- ============================================ -->
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal=false">
-      <div class="modal-modern">
-        <div class="modal-modern-header">
-          <h3>❌ Reject Registration</h3>
-          <button @click="showRejectModal=false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-            Please provide a reason for rejecting this registration request.
-          </p>
-          <div class="modal-form-group">
-            <label>Rejection Reason *</label>
-            <textarea 
-              v-model="rejectReason" 
-              rows="4"
-              placeholder="e.g., Payment receipt is unclear. Please resubmit with a clearer image."
-              style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"
-            ></textarea>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="showRejectModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="confirmReject" class="btn-modern danger" :disabled="!rejectReason.trim()">
-            Confirm Rejection
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- VIEW RECEIPT MODAL                           -->
-    <!-- ============================================ -->
-    <div v-if="viewReceiptModal" class="modal-overlay" @click.self="viewReceiptModal=false">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>📎 Payment Receipt</h3>
-          <button @click="viewReceiptModal=false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body" style="text-align: center; padding: 2rem;">
-          <!-- Image Receipt -->
-          <div v-if="viewReceiptUrl && viewReceiptUrl.startsWith('data:image')">
-            <img 
-              :src="viewReceiptUrl" 
-              alt="Payment Receipt" 
-              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
-              @error="handleReceiptError"
-            />
-            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
-              📸 Image receipt
-            </p>
-          </div>
-          
-          <!-- PDF Receipt -->
-          <div v-else-if="viewReceiptUrl && (viewReceiptUrl.includes('.pdf') || viewReceiptUrl.includes('application/pdf') || viewReceiptUrl.startsWith('data:application/pdf'))">
-            <div style="background: #f8fafc; padding: 2rem; border-radius: 8px; border: 1px dashed var(--border);">
-              <span style="font-size: 3rem;">📄</span>
-              <p style="margin-top: 0.5rem; font-weight: 600;">PDF Receipt</p>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Click Download to save the PDF</p>
-              <button @click="downloadReceipt" class="btn-modern primary" style="margin-top: 0.5rem;">
-                ⬇️ Download PDF
-              </button>
-            </div>
-          </div>
-          
-          <!-- Regular URL Image -->
-          <div v-else-if="viewReceiptUrl && viewReceiptUrl.startsWith('http')">
-            <img 
-              :src="viewReceiptUrl" 
-              alt="Payment Receipt" 
-              style="max-width: 100%; max-height: 500px; border-radius: var(--radius-sm); border: 1px solid var(--border);" 
-              @error="handleReceiptError"
-            />
-            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">
-              📎 Receipt from server
-            </p>
-          </div>
-          
-          <!-- No receipt -->
-          <div v-else>
-            <div style="padding: 2rem;">
-              <span style="font-size: 3rem;">📭</span>
-              <p style="margin-top: 0.5rem; color: var(--text-secondary);">No receipt available</p>
-              <p style="font-size: 0.85rem; color: var(--text-tertiary);">The user did not upload a receipt.</p>
-            </div>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="viewReceiptModal=false" class="btn-modern secondary">Close</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
-<!-- ============================================ -->
-<!-- SCRIPT                                       -->
-<!-- ============================================ -->
 <script>
 import axios from 'axios'
 import * as echarts from 'echarts'
@@ -812,7 +744,6 @@ import {
   MarkPointComponent
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import api from '../config/api.js'
 
 // Register ECharts components
 use([
@@ -832,12 +763,12 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.c
 export default {
   props: {
     token: { type: String, required: true },
-    companyLogo: { type: String, default: null },
+    companyLogo: { type: String, default: null }
   },
 
   data() {
     return {
-      // ===== TABS - NO MENU, NO REGISTRATIONS, NO COMPANIES =====
+      // ===== TABS - NO MENU CRUD, NO REGISTRATIONS, NO COMPANIES =====
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -906,6 +837,9 @@ export default {
       userModal: false,
       editingUser: false,
       userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+      stallModal: false,
+      editingStall: false,
+      stallForm: { id: null, name: '', code: '', location: '' },
       
       exporting: false,
       resizeObserver: null,
@@ -918,13 +852,6 @@ export default {
       savingAssignment: false,
       savedAssignmentMessage: '',
       savedAssignmentType: 'success',
-
-      // Reject Modal (kept for any future use)
-      showRejectModal: false,
-      rejectReason: '',
-      rejectId: null,
-      viewReceiptModal: false,
-      viewReceiptUrl: null,
     }
   },
 
@@ -1583,6 +1510,74 @@ export default {
     },
     
     // =============================================
+    // STALL CRUD
+    // =============================================
+    openStallModal() {
+      this.editingStall = false
+      this.stallForm = { id: null, name: '', code: '', location: '' }
+      this.stallModal = true
+    },
+    openEditStallModal(stall) {
+      this.editingStall = true
+      this.stallForm = {
+        id: stall.id,
+        name: stall.name,
+        code: stall.code,
+        location: stall.location || ''
+      }
+      this.stallModal = true
+    },
+    async saveStall() {
+      try {
+        if (this.editingStall) {
+          await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, { headers: { Authorization: `Bearer ${this.token}` } });
+          this.$emit('show-notification', 'Stall updated', 'success');
+        } else {
+          await axios.post(`${API_BASE}/companies/1/stalls`, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, { headers: { Authorization: `Bearer ${this.token}` } });
+          this.$emit('show-notification', 'Stall created', 'success');
+        }
+        this.stallModal = false;
+        this.loadStalls();
+        await this.loadAllStallsInventory();
+      } catch (err) {
+        console.error('Save stall error:', err);
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error');
+      }
+    },
+    async toggleStallStatus(stall) {
+      try {
+        await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+        this.loadStalls();
+        this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success');
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stall', 'error');
+      }
+    },
+    async deleteStall(stallId, stallName) {
+      if (confirm(`Delete stall "${stallName}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/stalls/${stallId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          this.loadStalls();
+          this.$emit('show-notification', 'Stall deleted', 'success');
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete stall', 'error');
+        }
+      }
+    },
+    
+    // =============================================
     // STALL RANKING
     // =============================================
     getRankClass(index) {
@@ -1661,16 +1656,36 @@ export default {
       }
     },
     async loadStalls() {
-      const res = await axios.get(`${API_BASE}/companies/1/stalls`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.stalls = res.data
+      try {
+        const res = await axios.get(`${API_BASE}/stalls/all`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.stalls = res.data.map(stall => ({
+          ...stall,
+          company_name: stall.company_name || 'N/A',
+          user_count: stall.user_count || 0
+        }))
+        console.log('✅ Stalls loaded:', this.stalls.length)
+      } catch (err) {
+        console.error('Failed to load stalls:', err)
+        this.stalls = []
+      }
     },
     async loadUsers() {
-      const res = await axios.get(`${API_BASE}/companies/1/users`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.users = res.data
+      try {
+        const res = await axios.get(`${API_BASE}/users/all`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.users = res.data.filter(user => user.role !== 'super_super_admin').map(user => ({
+          ...user,
+          company_name: user.company_name || 'N/A',
+          assigned_stalls: user.assigned_stalls || []
+        }))
+        console.log('✅ Users loaded:', this.users.length)
+      } catch (err) {
+        console.error('Failed to load users:', err)
+        this.users = []
+      }
     },
     async loadLowStock() {
       const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
@@ -2086,9 +2101,15 @@ export default {
           fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'stalls') {
           sheet = workbook.addWorksheet('Stalls')
-          sheet.addRow(['Name', 'Code', 'Status'])
+          sheet.addRow(['Name', 'Code', 'Company', 'Users', 'Status'])
           for (const stall of this.filteredStallsList) {
-            sheet.addRow([stall.name, stall.code, stall.is_active ? 'Active' : 'Inactive'])
+            sheet.addRow([
+              stall.name,
+              stall.code,
+              stall.company_name || '-',
+              stall.user_count || 0,
+              stall.is_active ? 'Active' : 'Inactive'
+            ])
           }
           fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'menu-assignment') {
@@ -2147,6 +2168,130 @@ export default {
   --radius: 12px;
   --radius-sm: 8px;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================ */
+/* FIX: MODAL BACKGROUNDS - WHITE              */
+/* ============================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-modern {
+  background: #ffffff !important;
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 92%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-modern-body {
+  background: #ffffff !important;
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.modal-lg {
+  max-width: 600px;
+}
+
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.modal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.modal-form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal-form-group input,
+.modal-form-group select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.modal-form-group small {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  background: #f8fafc;
+}
+
+.stall-select-multiple {
+  min-height: 60px;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* ============================================ */
@@ -3335,6 +3480,30 @@ export default {
   font-family: monospace;
 }
 
+.list-item-company {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.list-item-users {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: #f0fdf4;
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .list-item-stalls {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -3431,128 +3600,6 @@ export default {
 .btn-modern.small {
   padding: 0.15rem 0.5rem;
   font-size: 0.7rem;
-}
-
-/* ============================================ */
-/* MODALS                                       */
-/* ============================================ */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-modern {
-  background: var(--surface);
-  border-radius: var(--radius);
-  max-width: 480px;
-  width: 92%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: fadeIn 0.2s ease;
-}
-
-.modal-lg {
-  max-width: 600px;
-}
-
-.modal-modern-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-modern-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0 0.25rem;
-}
-
-.modal-close-btn:hover {
-  color: var(--text);
-}
-
-.modal-modern-body {
-  padding: 1.25rem;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.modal-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.modal-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.modal-form-group label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.modal-form-group input,
-.modal-form-group select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  width: 100%;
-}
-
-.modal-form-group input:focus,
-.modal-form-group select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
-}
-
-.modal-form-group small {
-  font-size: 0.65rem;
-  color: var(--text-tertiary);
-}
-
-.modal-modern-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.stall-select-multiple {
-  min-height: 60px;
-  padding: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
 }
 
 /* ============================================ */
