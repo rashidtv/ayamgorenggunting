@@ -940,7 +940,7 @@ export default {
     }
     return this.menuPerformance.slice(0, 5)  // Show only top 5
   },
-}
+  
     lowStockCount() {
       return this.lowStock.length
     },
