@@ -60,8 +60,6 @@
       </div>
     </div>
 
-
-
     <!-- ============================================ -->
     <!-- TAB CONTENT                                 -->
     <!-- ============================================ -->
@@ -70,38 +68,36 @@
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
-            <!-- ============================================ -->
-    <!-- STATS CARDS                                  -->
-    <!-- ============================================ -->
-    <div class="stats-grid">
-      <div class="stat-card" style="--stat-color: #2563eb;">
-        <div class="stat-icon">🏪</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ stalls.length }}</span>
-          <span class="stat-label">My Stalls</span>
+        <!-- STATS CARDS -->
+        <div class="stats-grid">
+          <div class="stat-card" style="--stat-color: #2563eb;">
+            <div class="stat-icon">🏪</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ stalls.length }}</span>
+              <span class="stat-label">My Stalls</span>
+            </div>
+            <div class="stat-trend up">+12%</div>
+          </div>
+          <div class="stat-card" style="--stat-color: #7c3aed;">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ users.length }}</span>
+              <span class="stat-label">My Users</span>
+            </div>
+            <div class="stat-trend up">+8%</div>
+          </div>
+          <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ lowStock.length }}</span>
+              <span class="stat-label">Low Stock Alerts</span>
+            </div>
+            <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
+              {{ lowStock.length > 0 ? '⚠️' : '✅' }}
+            </div>
+            <div class="stat-hover">Click to view →</div>
+          </div>
         </div>
-        <div class="stat-trend up">+12%</div>
-      </div>
-      <div class="stat-card" style="--stat-color: #7c3aed;">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ users.length }}</span>
-          <span class="stat-label">My Users</span>
-        </div>
-        <div class="stat-trend up">+8%</div>
-      </div>
-      <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-content">
-          <span class="stat-number">{{ lowStock.length }}</span>
-          <span class="stat-label">Low Stock Alerts</span>
-        </div>
-        <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
-          {{ lowStock.length > 0 ? '⚠️' : '✅' }}
-        </div>
-        <div class="stat-hover">Click to view →</div>
-      </div>
-    </div>
 
         <!-- KPI Cards -->
         <div class="kpi-grid">
@@ -194,158 +190,140 @@
           </div>
         </div>
 
-<!-- ===== STALL PERFORMANCE ===== -->
-<div class="card-modern">
-  <div class="card-modern-header">
-    <div>
-      <h3>🏆 Stall Performance</h3>
-      <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
-    </div>
-  </div>
-  <div class="card-modern-body stall-performance-table-container">
-    <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-      <span>📊</span>
-      <p>No sales data available for {{ getPeriodLabel() }}</p>
-    </div>
-    
-    <!-- ✅ Table Layout - Matching Menu Performance -->
-    <div v-else class="stall-table-wrapper">
-      <!-- Table Headers -->
-      <div class="stall-table-header">
-        <span class="stall-table-header-rank">Rank</span>
-        <span class="stall-table-header-name">Stall</span>
-        <span class="stall-table-header-revenue">Revenue</span>
-        <span class="stall-table-header-status">Status</span>
-        <span class="stall-table-header-details">Details</span>
-      </div>
-      
-      <!-- Table Rows - USING computed property -->
-      <div class="stall-table-body">
-        <div 
-          v-for="(stall, index) in displayStalls" 
-          :key="stall.id" 
-          class="stall-table-row clickable-item"
-          @click="viewStallDetails(stall)"
-        >
-          <!-- Rank -->
-          <span class="stall-table-rank">
-            <span class="rank-number" :class="getRankClass(index)">
-              {{ index + 1 }}
-            </span>
-          </span>
-          
-          <!-- Stall Name + Bar -->
-          <span class="stall-table-name">
-            <span class="stall-name-text">{{ stall.name }}</span>
-            <span class="stall-name-bar">
-              <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-            </span>
-          </span>
-          
-          <!-- Revenue -->
-          <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-          
-          <!-- Status with Color & Emoji -->
-          <span class="stall-table-status">
-            <span :class="['status-indicator', getStallStatusClass(stall)]">
-              {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
-            </span>
-          </span>
-          
-          <!-- Details -->
-          <span class="stall-table-details">👆</span>
+        <!-- ===== STALL PERFORMANCE ===== -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏆 Stall Performance</h3>
+              <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
+            </div>
+          </div>
+          <div class="card-modern-body stall-performance-table-container">
+            <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+              <span>📊</span>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
+            </div>
+            
+            <div v-else class="stall-table-wrapper">
+              <div class="stall-table-header">
+                <span class="stall-table-header-rank">Rank</span>
+                <span class="stall-table-header-name">Stall</span>
+                <span class="stall-table-header-revenue">Revenue</span>
+                <span class="stall-table-header-status">Status</span>
+                <span class="stall-table-header-details">Details</span>
+              </div>
+              
+              <div class="stall-table-body">
+                <div 
+                  v-for="(stall, index) in displayStalls" 
+                  :key="stall.id" 
+                  class="stall-table-row clickable-item"
+                  @click="viewStallDetails(stall)"
+                >
+                  <span class="stall-table-rank">
+                    <span class="rank-number" :class="getRankClass(index)">
+                      {{ index + 1 }}
+                    </span>
+                  </span>
+                  
+                  <span class="stall-table-name">
+                    <span class="stall-name-text">{{ stall.name }}</span>
+                    <span class="stall-name-bar">
+                      <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                    </span>
+                  </span>
+                  
+                  <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+                  
+                  <span class="stall-table-status">
+                    <span :class="['status-indicator', getStallStatusClass(stall)]">
+                      {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+                    </span>
+                  </span>
+                  
+                  <span class="stall-table-details">👆</span>
+                </div>
+                
+                <div v-if="stallPerformance.length > 5" class="stall-table-view-all">
+                  <button 
+                    @click="showAllStalls = !showAllStalls" 
+                    class="view-all-btn"
+                  >
+                    {{ showAllStalls ? '📤 Show Less' : `📥 View All (${stallPerformance.length - 5} more)` }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <!-- ✅ View All / Show Less Button -->
-        <div v-if="stallPerformance.length > 5" class="stall-table-view-all">
-          <button 
-            @click="showAllStalls = !showAllStalls" 
-            class="view-all-btn"
-          >
-            {{ showAllStalls ? '📤 Show Less' : `📥 View All (${stallPerformance.length - 5} more)` }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- ===== MENU PERFORMANCE - WITH VIEW ALL ===== -->
-<div class="card-modern">
-  <div class="card-modern-header">
-    <div>
-      <h3>🍗 Menu Performance</h3>
-      <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
-    </div>
-  </div>
-  <div class="card-modern-body menu-performance-table-container">
-    <div v-if="menuPerformance.length === 0" class="empty-state-modern">
-      <span>🍗</span>
-      <p>No sales data available for {{ getPeriodLabel() }}</p>
-    </div>
-    
-    <!-- ✅ Table Layout -->
-    <div v-else class="menu-table-wrapper">
-      <!-- Table Headers -->
-      <div class="menu-table-header">
-        <span class="menu-table-header-rank">Rank</span>
-        <span class="menu-table-header-name">Menu</span>
-        <span class="menu-table-header-revenue">Revenue</span>
-        <span class="menu-table-header-status">Status</span>
-        <span class="menu-table-header-details">Details</span>
-      </div>
-      
-      <!-- Table Rows -->
-      <div class="menu-table-body">
-        <!-- ✅ Show first 5 OR all if expanded -->
-        <div 
-          v-for="(item, index) in displayMenuItems" 
-          :key="item.name" 
-          class="menu-table-row clickable-item"
-          @click="viewMenuItemDetails(item)"
-        >
-          <!-- Rank -->
-          <span class="menu-table-rank">
-            <span class="rank-number" :class="getRankClass(index)">
-              {{ index + 1 }}
-            </span>
-          </span>
-          
-          <!-- Menu Name + Bar -->
-          <span class="menu-table-name">
-            <span class="menu-name-text">{{ item.name }}</span>
-            <span class="menu-name-bar">
-              <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-            </span>
-          </span>
-          
-          <!-- Revenue -->
-          <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-          
-          <!-- Status with Color & Emoji -->
-          <span class="menu-table-status">
-            <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-              {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-            </span>
-          </span>
-          
-          <!-- Details -->
-          <span class="menu-table-details">👆</span>
-        </div>
-        
-        <!-- ✅ View All / Show Less Button -->
-        <div v-if="menuPerformance.length > 5" class="menu-table-view-all">
-          <button 
-            @click="showAllMenuItems = !showAllMenuItems" 
-            class="view-all-btn"
-          >
-            {{ showAllMenuItems ? '📤 Show Less' : `📥 View All (${menuPerformance.length - 5} more)` }}
-          </button>
+        <!-- ===== MENU PERFORMANCE ===== -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🍗 Menu Performance</h3>
+              <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
+            </div>
+          </div>
+          <div class="card-modern-body menu-performance-table-container">
+            <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+              <span>🍗</span>
+              <p>No sales data available for {{ getPeriodLabel() }}</p>
+            </div>
+            
+            <div v-else class="menu-table-wrapper">
+              <div class="menu-table-header">
+                <span class="menu-table-header-rank">Rank</span>
+                <span class="menu-table-header-name">Menu</span>
+                <span class="menu-table-header-revenue">Revenue</span>
+                <span class="menu-table-header-status">Status</span>
+                <span class="menu-table-header-details">Details</span>
+              </div>
+              
+              <div class="menu-table-body">
+                <div 
+                  v-for="(item, index) in displayMenuItems" 
+                  :key="item.name" 
+                  class="menu-table-row clickable-item"
+                  @click="viewMenuItemDetails(item)"
+                >
+                  <span class="menu-table-rank">
+                    <span class="rank-number" :class="getRankClass(index)">
+                      {{ index + 1 }}
+                    </span>
+                  </span>
+                  
+                  <span class="menu-table-name">
+                    <span class="menu-name-text">{{ item.name }}</span>
+                    <span class="menu-name-bar">
+                      <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                    </span>
+                  </span>
+                  
+                  <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                  
+                  <span class="menu-table-status">
+                    <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                      {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                    </span>
+                  </span>
+                  
+                  <span class="menu-table-details">👆</span>
+                </div>
+                
+                <div v-if="menuPerformance.length > 5" class="menu-table-view-all">
+                  <button 
+                    @click="showAllMenuItems = !showAllMenuItems" 
+                    class="view-all-btn"
+                  >
+                    {{ showAllMenuItems ? '📤 Show Less' : `📥 View All (${menuPerformance.length - 5} more)` }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
       <!-- ===== INVENTORY TAB ===== -->
       <div v-if="activeTab === 'inventory'" class="tab-panel">
@@ -455,7 +433,7 @@
         </div>
       </div>
 
-      <!-- ===== STALLS TAB - FULL CRUD ===== -->
+      <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
         <div class="card-modern">
           <div class="card-modern-header">
@@ -576,7 +554,6 @@
             </button>
           </div>
           <div class="card-modern-body">
-            <!-- Select Stall -->
             <div class="filter-bar">
               <div class="filter-search">
                 <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
@@ -589,7 +566,6 @@
               </div>
             </div>
 
-            <!-- Menu Assignment List -->
             <div v-if="!selectedAssignmentStall" class="empty-state-modern">
               <span>🏪</span>
               <p>Please select a stall to manage its menu</p>
@@ -654,9 +630,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- STALL MODAL                                  -->
-    <!-- ============================================ -->
+    <!-- ===== STALL MODAL ===== -->
     <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
       <div class="modal-modern">
         <div class="modal-modern-header">
@@ -684,9 +658,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- USER MODAL                                   -->
-    <!-- ============================================ -->
+    <!-- ===== USER MODAL ===== -->
     <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
@@ -733,9 +705,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- STALL DETAILS MODAL                         -->
-    <!-- ============================================ -->
+    <!-- ===== STALL DETAILS MODAL ===== -->
     <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
@@ -744,108 +714,100 @@
         </div>
         <div class="modal-modern-body">
           <div class="detail-grid">
-    <div class="detail-item">
-      <span class="detail-label">Revenue</span>
-      <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
-    </div>
-    <div class="detail-item">
-      <span class="detail-label">Items Sold</span>
-      <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
-    </div>
-    <div class="detail-item">
-      <span class="detail-label">Avg Transaction</span>
-      <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
-    </div>
-    <div class="detail-item">
-      <span class="detail-label">Status</span>
-      <span class="detail-value">
-        <span :class="['status-badge', getStallStatusClass(selectedStall)]">
-          {{ getStallStatus(selectedStall) }}
-        </span>
-      </span>
-    </div>
-  </div>
-  <div class="detail-chart-container">
-    <h4>Sales Trend</h4>
-    <div ref="stallDetailChartRef" class="detail-chart"></div>
-  </div>
-</div>
+            <div class="detail-item">
+              <span class="detail-label">Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Items Sold</span>
+              <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Avg Transaction</span>
+              <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">
+                <span :class="['status-badge', getStallStatusClass(selectedStall)]">
+                  {{ getStallStatus(selectedStall) }}
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="detail-chart-container">
+            <h4>Sales Trend</h4>
+            <div ref="stallDetailChartRef" class="detail-chart"></div>
+          </div>
+        </div>
         <div class="modal-modern-footer">
           <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
         </div>
       </div>
     </div>
 
-<!-- ============================================ -->
-<!-- MENU ITEM DETAILS MODAL                     -->
-<!-- ============================================ -->
-<div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
-      <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <!-- Summary Cards -->
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Total Revenue</span>
-          <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
+    <!-- ===== MENU ITEM DETAILS MODAL ===== -->
+    <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
+          <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">Quantity Sold</span>
-          <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Average Price</span>
-          <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
-        </div>
-      </div>
-      
-      <!-- ✅ Top Selling Stall Breakdown with Revenue & Quantity -->
-      <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
-        <div class="stall-breakdown-title">
-          🏆 Top Selling Stalls
-        </div>
-        
-        <!-- Headers -->
-        <div class="stall-breakdown-header">
-          <span class="stall-breakdown-header-name">Stall</span>
-          <span class="stall-breakdown-header-revenue">Revenue</span>
-          <span class="stall-breakdown-header-quantity">Quantity</span>
-          <span class="stall-breakdown-header-bar">Performance</span>
-        </div>
-        
-        <!-- Rows -->
-        <div 
-          v-for="stall in selectedMenuItem.stallBreakdown" 
-          :key="stall.stallName"
-          class="stall-breakdown-item"
-        >
-          <span class="stall-breakdown-name">{{ stall.stallName }}</span>
-          <span class="stall-breakdown-revenue">{{ formatCurrency(stall.revenue) }}</span>
-          <span class="stall-breakdown-quantity">{{ formatNumber(stall.quantity) }}</span>
-          <div class="stall-breakdown-bar-wrapper">
-            <div class="stall-breakdown-bar">
-              <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
+        <div class="modal-modern-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Total Revenue</span>
+              <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Quantity Sold</span>
+              <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Average Price</span>
+              <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
             </div>
           </div>
+          
+          <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
+            <div class="stall-breakdown-title">
+              🏆 Top Selling Stalls
+            </div>
+            
+            <div class="stall-breakdown-header">
+              <span class="stall-breakdown-header-name">Stall</span>
+              <span class="stall-breakdown-header-revenue">Revenue</span>
+              <span class="stall-breakdown-header-quantity">Quantity</span>
+              <span class="stall-breakdown-header-bar">Performance</span>
+            </div>
+            
+            <div 
+              v-for="stall in selectedMenuItem.stallBreakdown" 
+              :key="stall.stallName"
+              class="stall-breakdown-item"
+            >
+              <span class="stall-breakdown-name">{{ stall.stallName }}</span>
+              <span class="stall-breakdown-revenue">{{ formatCurrency(stall.revenue) }}</span>
+              <span class="stall-breakdown-quantity">{{ formatNumber(stall.quantity) }}</span>
+              <div class="stall-breakdown-bar-wrapper">
+                <div class="stall-breakdown-bar">
+                  <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-else-if="selectedMenuItem?.stallBreakdown?.length === 0" class="empty-state-modern">
+            <span>📊</span>
+            <p>No stall sales data available for this menu item</p>
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
         </div>
       </div>
-      
-      <!-- ✅ Show message if no breakdown -->
-      <div v-else-if="selectedMenuItem?.stallBreakdown?.length === 0" class="empty-state-modern">
-        <span>📊</span>
-        <p>No stall sales data available for this menu item</p>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
     </div>
   </div>
-</div>
-  </div>
-   </div>
 </template>
 
 <script>
@@ -863,7 +825,6 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
-// Register ECharts components
 use([
   BarChart,
   LineChart,
@@ -900,7 +861,7 @@ export default {
       chartWindow: 7,
       chartInstance: null,
       isChartInitialized: false,
-      showAllStalls: false,
+      
       dropdownOpen: false,
       periodDropdownOpen: false,
       stalls: [],
@@ -932,7 +893,7 @@ export default {
       menuDetailModal: false,
       selectedMenuItem: null,
       stallDetailChartInstance: null,
-      showAllMenuItems: false,  // ✅ NEW
+      
       showAllStalls: false,
       showAllMenuItems: false,
       
@@ -967,91 +928,91 @@ export default {
     }
   },
 
-computed: {
-  displayStalls() {
-    if (this.showAllStalls) {
-      return this.stallPerformance  // Show ALL stalls
-    }
-    return this.stallPerformance.slice(0, 5)  // Show only top 5
-  },
-  
-  displayMenuItems() {
-    if (this.showAllMenuItems) {
-      return this.menuPerformance  // Show ALL menu items
-    }
-    return this.menuPerformance.slice(0, 5)  // Show only top 5
-  },
-
-  lowStockCount() {
-    return this.lowStock.length
-  },
-  
-  chartVisibleData() {
-    return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
-  },
-  
-  filteredMenuItemsForAssignment() {
-    return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
-  },
-  
-  filteredInventoryStalls() {
-    return this.stalls.filter(stall => {
-      const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-                            this.getStallInventory(stall.id).some(item => 
-                              item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-                            )
-      const matchesStatus = this.inventoryFilter === 'all' || 
-                            (this.inventoryFilter === 'active' && stall.is_active) ||
-                            (this.inventoryFilter === 'inactive' && !stall.is_active) ||
-                            (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-      return matchesSearch && matchesStatus
-    })
-  },
-  
-  filteredLowStock() {
-    if (this.inventorySearch) {
-      return this.lowStock.filter(item => 
-        item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-        item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-      )
-    }
-    return this.lowStock
-  },
-  
-  filteredStallsList() {
-    return this.stalls.filter(stall => {
-      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-      const matchesStatus = this.stallStatusFilter === 'all' || 
-                            (this.stallStatusFilter === 'active' && stall.is_active) ||
-                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
-      return matchesSearch && matchesStatus
-    })
-  },
-  
-  filteredUsersList() {
-    return this.users.filter(user => {
-      if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-        return false;
+  computed: {
+    displayStalls() {
+      if (this.showAllStalls) {
+        return this.stallPerformance
       }
-      const search = this.userSearch.toLowerCase();
-      const matchesSearch = user.username.toLowerCase().includes(search) ||
-                            (user.full_name && user.full_name.toLowerCase().includes(search));
-      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
-      return matchesSearch && matchesRole;
-    })
+      return this.stallPerformance.slice(0, 5)
+    },
+    
+    displayMenuItems() {
+      if (this.showAllMenuItems) {
+        return this.menuPerformance
+      }
+      return this.menuPerformance.slice(0, 5)
+    },
+
+    lowStockCount() {
+      return this.lowStock.length
+    },
+    
+    chartVisibleData() {
+      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+    },
+    
+    filteredMenuItemsForAssignment() {
+      return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
+    },
+    
+    filteredInventoryStalls() {
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                              this.getStallInventory(stall.id).some(item => 
+                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                              )
+        const matchesStatus = this.inventoryFilter === 'all' || 
+                              (this.inventoryFilter === 'active' && stall.is_active) ||
+                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+        return matchesSearch && matchesStatus
+      })
+    },
+    
+    filteredLowStock() {
+      if (this.inventorySearch) {
+        return this.lowStock.filter(item => 
+          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
+      }
+      return this.lowStock
+    },
+    
+    filteredStallsList() {
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+        const matchesStatus = this.stallStatusFilter === 'all' || 
+                              (this.stallStatusFilter === 'active' && stall.is_active) ||
+                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
+        return matchesSearch && matchesStatus
+      })
+    },
+    
+    filteredUsersList() {
+      return this.users.filter(user => {
+        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+          return false;
+        }
+        const search = this.userSearch.toLowerCase();
+        const matchesSearch = user.username.toLowerCase().includes(search) ||
+                              (user.full_name && user.full_name.toLowerCase().includes(search));
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
+        return matchesSearch && matchesRole;
+      })
+    },
+    
+    activeTabLabel() {
+      const tab = this.tabs.find(t => t.id === this.activeTab)
+      return tab ? tab.label : 'Dashboard'
+    },
+    
+    activeTabIcon() {
+      const tab = this.tabs.find(t => t.id === this.activeTab)
+      return tab ? tab.icon : '📊'
+    }
   },
-  
-  activeTabLabel() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.label : 'Dashboard'
-  },
-  
-  activeTabIcon() {
-    const tab = this.tabs.find(t => t.id === this.activeTab)
-    return tab ? tab.icon : '📊'
-  }
-},
 
   mounted() {
     this.loadData()
@@ -1112,128 +1073,112 @@ computed: {
   },
 
   methods: {
-
+    // =============================================
+    // STALL PERFORMANCE - STATUS EMOJI
+    // =============================================
     getStallStatusEmoji(stall) {
-    if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
-    if (stall.revenue > 1000) return '🟢'
-    if (stall.revenue > 500) return '🔵'
-    if (stall.revenue > 100) return '🟡'
-    return '🔴'
-  },
+      if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
+      if (stall.revenue > 1000) return '🟢'
+      if (stall.revenue > 500) return '🔵'
+      if (stall.revenue > 100) return '🟡'
+      return '🔴'
+    },
 
     // =============================================
-// MENU PERFORMANCE - STATUS EMOJI
-// =============================================
-getMenuStatusEmoji(quantity) {
-  if (!quantity || quantity === 0) return '⚪'
-  if (quantity > 50) return '🟢'
-  if (quantity > 20) return '🔵'
-  if (quantity > 5) return '🟡'
-  return '🔴'
-},
+    // MENU PERFORMANCE - STATUS EMOJI
+    // =============================================
+    getMenuStatusEmoji(quantity) {
+      if (!quantity || quantity === 0) return '⚪'
+      if (quantity > 50) return '🟢'
+      if (quantity > 20) return '🔵'
+      if (quantity > 5) return '🟡'
+      return '🔴'
+    },
 
     // =============================================
-// MENU PERFORMANCE - STAR RATING
-// =============================================
-getStarRating(quantity) {
-  if (!quantity || quantity === 0) return 0
-  if (quantity > 50) return 5
-  if (quantity > 30) return 4
-  if (quantity > 15) return 3
-  if (quantity > 5) return 2
-  return 1
-},
+    // MENU PERFORMANCE - STATUS METHODS
+    // =============================================
+    getMenuStatus(quantity) {
+      if (!quantity || quantity === 0) return 'No Sales'
+      if (quantity > 50) return 'Excellent'
+      if (quantity > 20) return 'Good'
+      if (quantity > 5) return 'Average'
+      return 'Poor'
+    },
 
-// =============================================
-// MENU PERFORMANCE - STATUS METHODS
-// =============================================
-getMenuStatus(quantity) {
-  if (!quantity || quantity === 0) return 'No Sales'
-  if (quantity > 50) return 'Excellent'
-  if (quantity > 20) return 'Good'
-  if (quantity > 5) return 'Average'
-  return 'Poor'
-},
+    getMenuStatusClass(quantity) {
+      if (!quantity || quantity === 0) return 'no-sales'
+      if (quantity > 50) return 'excellent'
+      if (quantity > 20) return 'good'
+      if (quantity > 5) return 'average'
+      return 'poor'
+    },
 
-getMenuStatusClass(quantity) {
-  if (!quantity || quantity === 0) return 'no-sales'
-  if (quantity > 50) return 'excellent'
-  if (quantity > 20) return 'good'
-  if (quantity > 5) return 'average'
-  return 'poor'
-},
+    // =============================================
+    // MENU ITEM DETAILS
+    // =============================================
+    async viewMenuItemDetails(item) {
+      console.log('🍗 Viewing menu item:', item.name)
+      
+      this.selectedMenuItem = {
+        ...item,
+        stallBreakdown: [],
+        totalQuantity: 0
+      }
+      this.menuDetailModal = true
+      
+      await this.fetchMenuTopStalls(item.name)
+    },
 
-// =============================================
-// MENU ITEM DETAILS - WITH TOP STALL BREAKDOWN
-// =============================================
-async viewMenuItemDetails(item) {
-  console.log('🍗 Viewing menu item:', item.name)
-  
-  this.selectedMenuItem = {
-    ...item,
-    stallBreakdown: [],
-    totalQuantity: 0
-  }
-  this.menuDetailModal = true
-  
-  await this.fetchMenuTopStalls(item.name)
-},
+    async fetchMenuTopStalls(itemName) {
+      try {
+        const days = this.selectedPeriod === 'today' ? 1 :
+                     this.selectedPeriod === 'week' ? 7 :
+                     this.selectedPeriod === 'month' ? 30 :
+                     this.selectedPeriod === 'quarter' ? 90 : 365
+        
+        console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
+        
+        const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
+        
+        if (!stallIds || stallIds.length === 0) {
+          console.warn('⚠️ No stall IDs found')
+          return
+        }
+        
+        const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        console.log('📊 API response:', res.data)
+        
+        const stallData = res.data || []
+        const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
+        
+        this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
+          stallName: stall.stall_name || 'Unknown',
+          quantity: parseInt(stall.quantity) || 0,
+          revenue: parseFloat(stall.revenue) || 0,
+          percentage: maxQuantity > 0 ? (stall.quantity / maxQuantity) * 100 : 0
+        })).sort((a, b) => b.quantity - a.quantity)
+        
+        this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
+        this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
+        
+        console.log('📊 Processed breakdown:', this.selectedMenuItem.stallBreakdown)
+        
+      } catch (err) {
+        console.error('❌ Failed to fetch top stalls:', err)
+        this.selectedMenuItem.stallBreakdown = []
+        this.selectedMenuItem.totalQuantity = 0
+        this.selectedMenuItem.totalRevenue = 0
+      }
+    },
 
-// =============================================
-// MENU ITEM DETAILS - WITH TOP STALL BREAKDOWN
-// =============================================
-async fetchMenuTopStalls(itemName) {
-  try {
-    const days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 : 365
-    
-    console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
-    
-    const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
-    
-    if (!stallIds || stallIds.length === 0) {
-      console.warn('⚠️ No stall IDs found')
-      return
-    }
-    
-    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    console.log('📊 API response:', res.data)
-    
-    const stallData = res.data || []
-    
-    // Calculate max quantity for bar width
-    const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
-    
-    this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
-      stallName: stall.stall_name || 'Unknown',
-      quantity: parseInt(stall.quantity) || 0,
-      revenue: parseFloat(stall.revenue) || 0,
-      // ✅ Bar width based on max quantity (not percentage)
-      percentage: maxQuantity > 0 ? (stall.quantity / maxQuantity) * 100 : 0
-    })).sort((a, b) => b.quantity - a.quantity)
-    
-    this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
-    this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
-    
-    console.log('📊 Processed breakdown:', this.selectedMenuItem.stallBreakdown)
-    
-  } catch (err) {
-    console.error('❌ Failed to fetch top stalls:', err)
-    this.selectedMenuItem.stallBreakdown = []
-    this.selectedMenuItem.totalQuantity = 0
-    this.selectedMenuItem.totalRevenue = 0
-  }
-},
-
-closeMenuDetailModal() {
-  this.menuDetailModal = false
-  this.selectedMenuItem = null
-},
+    closeMenuDetailModal() {
+      this.menuDetailModal = false
+      this.selectedMenuItem = null
+    },
 
     // =============================================
     // DROPDOWN METHODS
@@ -1301,175 +1246,175 @@ closeMenuDetailModal() {
       return 'pieces'
     },
 
- // =============================================
-// STALL DETAILS
-// =============================================
-viewStallDetails(stall) {
-  this.selectedStall = stall
-  this.stallDetailModal = true
-  this.selectedStallId = stall.id
-  
-  this.fetchStallDetails(stall.id)
-  
-  this.$nextTick(() => {
-    this.initStallDetailChart()
-  })
-},
+    // =============================================
+    // STALL DETAILS
+    // =============================================
+    viewStallDetails(stall) {
+      this.selectedStall = stall
+      this.stallDetailModal = true
+      this.selectedStallId = stall.id
+      
+      this.fetchStallDetails(stall.id)
+      
+      this.$nextTick(() => {
+        this.initStallDetailChart()
+      })
+    },
 
-async fetchStallDetails(stallId) {
-  try {
-    const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    const data = res.data || {}
-    
-    if (data && data.length > 0) {
-      const stallData = data[0]
-      this.selectedStall.items = parseInt(stallData.items_sold) || 0
-      this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
-      this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
-    }
-    
-    const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
-    if (stallIndex !== -1) {
-      this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
-    }
-    
-  } catch (err) {
-    console.error('Failed to fetch stall details:', err)
-  }
-},
-
-closeStallDetailModal() {
-  this.stallDetailModal = false
-  this.selectedStall = null
-  if (this.stallDetailChartInstance) {
-    this.stallDetailChartInstance.dispose()
-    this.stallDetailChartInstance = null
-  }
-},
-
-initStallDetailChart() {
-  if (!this.$refs.stallDetailChartRef) return
-
-  if (this.stallDetailChartInstance) {
-    this.stallDetailChartInstance.dispose()
-    this.stallDetailChartInstance = null
-  }
-
-  this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-
-  const stallId = this.selectedStall?.id
-
-  if (!stallId) {
-    console.warn('No stall ID found for detail chart')
-    return
-  }
-
-  axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
-    headers: { Authorization: `Bearer ${this.token}` }
-  })
-  .then(response => {
-    const data = response.data || {}
-    const salesData = data.dailySales || []
-
-    const days = salesData.map(d => this.formatShortDate(d.date))
-    const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-    const items = salesData.map(d => parseInt(d.items) || 0)
-
-    const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
-    const finalItems = items.length > 0 ? items : Array.from({length: 7}, () => 0)
-
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        padding: [8, 12],
-        textStyle: {
-          color: '#1e293b',
-          fontSize: 12,
-          fontWeight: 400
-        },
-        formatter: function(params) {
-          const index = params[0]?.dataIndex || 0
-          const revenue = parseFloat(finalRevenues[index]) || 0
-          const itemsCount = parseInt(finalItems[index]) || 0
-          return `
-            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-              RM ${revenue.toFixed(2)}
-            </div>
-            <div style="font-size:11px;color:#64748b;">
-              ${itemsCount} items sold
-            </div>
-          `
+    async fetchStallDetails(stallId) {
+      try {
+        const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const data = res.data || {}
+        
+        if (data && data.length > 0) {
+          const stallData = data[0]
+          this.selectedStall.items = parseInt(stallData.items_sold) || 0
+          this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
+          this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
         }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '8%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: finalDays,
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          fontWeight: 500
+        
+        const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
+        if (stallIndex !== -1) {
+          this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
         }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { 
-          lineStyle: { 
-            color: '#f1f5f9', 
-            type: 'dashed' 
-          } 
-        },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          formatter: (value) => 'RM' + value
-        },
-        name: 'Revenue (RM)',
-        nameTextStyle: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          fontWeight: 500
-        }
-      },
-      series: [{
-        type: 'bar',
-        data: finalRevenues,
-        barWidth: '40%',
-        itemStyle: {
-          borderRadius: [4, 4, 0, 0],
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#F94908' },
-              { offset: 1, color: '#fa6a2e' }
-            ]
-          }
-        }
-      }]
-    }
+        
+      } catch (err) {
+        console.error('Failed to fetch stall details:', err)
+      }
+    },
 
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-  })
-  .catch(err => {
-    console.error('Failed to load stall detail chart data:', err)
-  })
-},
+    closeStallDetailModal() {
+      this.stallDetailModal = false
+      this.selectedStall = null
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+    },
+
+    initStallDetailChart() {
+      if (!this.$refs.stallDetailChartRef) return
+
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+
+      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+
+      const stallId = this.selectedStall?.id
+
+      if (!stallId) {
+        console.warn('No stall ID found for detail chart')
+        return
+      }
+
+      axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      .then(response => {
+        const data = response.data || {}
+        const salesData = data.dailySales || []
+
+        const days = salesData.map(d => this.formatShortDate(d.date))
+        const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
+        const items = salesData.map(d => parseInt(d.items) || 0)
+
+        const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
+        const finalItems = items.length > 0 ? items : Array.from({length: 7}, () => 0)
+
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            padding: [8, 12],
+            textStyle: {
+              color: '#1e293b',
+              fontSize: 12,
+              fontWeight: 400
+            },
+            formatter: function(params) {
+              const index = params[0]?.dataIndex || 0
+              const revenue = parseFloat(finalRevenues[index]) || 0
+              const itemsCount = parseInt(finalItems[index]) || 0
+              return `
+                <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+                  RM ${revenue.toFixed(2)}
+                </div>
+                <div style="font-size:11px;color:#64748b;">
+                  ${itemsCount} items sold
+                </div>
+              `
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '8%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: finalDays,
+            axisLine: { lineStyle: { color: '#e2e8f0' } },
+            axisLabel: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              fontWeight: 500
+            }
+          },
+          yAxis: {
+            type: 'value',
+            splitLine: { 
+              lineStyle: { 
+                color: '#f1f5f9', 
+                type: 'dashed' 
+              } 
+            },
+            axisLabel: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              formatter: (value) => 'RM' + value
+            },
+            name: 'Revenue (RM)',
+            nameTextStyle: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              fontWeight: 500
+            }
+          },
+          series: [{
+            type: 'bar',
+            data: finalRevenues,
+            barWidth: '40%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            }
+          }]
+        }
+
+        this.stallDetailChartInstance.setOption(option)
+        this.stallDetailChartInstance.resize()
+      })
+      .catch(err => {
+        console.error('Failed to load stall detail chart data:', err)
+      })
+    },
     
     // =============================================
     // HELPER: Get today's date in Malaysia timezone
@@ -1758,72 +1703,72 @@ initStallDetailChart() {
     // MENU ASSIGNMENT METHODS
     // =============================================
     async loadMenuAssignments() {
-  if (!this.selectedAssignmentStall) return
-  
-  this.loadingMenuAssignments = true
-  this.savedAssignmentMessage = ''
-  
-  try {
-    await this.loadMenuItems()
-    
-    const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    const assignedItems = res.data || []
-    console.log('📝 Currently assigned items:', assignedItems)
-    
-    this.menuAssignments = {}
-    this.menuItems.forEach(item => {
-      this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
-    })
-    
-    console.log('📝 Menu assignments map:', this.menuAssignments)
-    
-    this.originalMenuAssignments = { ...this.menuAssignments }
-    
-  } catch (err) {
-    console.error('Failed to load menu assignments:', err)
-    this.$emit('show-notification', 'Failed to load menu assignments', 'error')
-  } finally {
-    this.loadingMenuAssignments = false
-  }
-},
+      if (!this.selectedAssignmentStall) return
+      
+      this.loadingMenuAssignments = true
+      this.savedAssignmentMessage = ''
+      
+      try {
+        await this.loadMenuItems()
+        
+        const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const assignedItems = res.data || []
+        console.log('📝 Currently assigned items:', assignedItems)
+        
+        this.menuAssignments = {}
+        this.menuItems.forEach(item => {
+          this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
+        })
+        
+        console.log('📝 Menu assignments map:', this.menuAssignments)
+        
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        
+      } catch (err) {
+        console.error('Failed to load menu assignments:', err)
+        this.$emit('show-notification', 'Failed to load menu assignments', 'error')
+      } finally {
+        this.loadingMenuAssignments = false
+      }
+    },
 
     async saveMenuAssignments() {
-  if (!this.selectedAssignmentStall) return
-  
-  this.savingAssignment = true
-  this.savedAssignmentMessage = ''
-  
-  try {
-    const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
-    
-    console.log('📝 Saving assignments for stall:', this.selectedAssignmentStall)
-    console.log('📝 Selected items:', selectedItems)
-    
-    await axios.post(`${API_BASE}/menu/assignments`, {
-      stallId: this.selectedAssignmentStall,
-      items: selectedItems
-    }, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    this.originalMenuAssignments = { ...this.menuAssignments }
-    
-    this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
-    this.savedAssignmentType = 'success'
-    this.$emit('show-notification', 'Menu assignments saved!', 'success')
-    
-  } catch (err) {
-    console.error('Failed to save menu assignments:', err)
-    this.savedAssignmentMessage = '❌ Failed to save menu assignments'
-    this.savedAssignmentType = 'error'
-    this.$emit('show-notification', 'Failed to save menu assignments', 'error')
-  } finally {
-    this.savingAssignment = false
-  }
-},
+      if (!this.selectedAssignmentStall) return
+      
+      this.savingAssignment = true
+      this.savedAssignmentMessage = ''
+      
+      try {
+        const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
+        
+        console.log('📝 Saving assignments for stall:', this.selectedAssignmentStall)
+        console.log('📝 Selected items:', selectedItems)
+        
+        await axios.post(`${API_BASE}/menu/assignments`, {
+          stallId: this.selectedAssignmentStall,
+          items: selectedItems
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        
+        this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
+        this.savedAssignmentType = 'success'
+        this.$emit('show-notification', 'Menu assignments saved!', 'success')
+        
+      } catch (err) {
+        console.error('Failed to save menu assignments:', err)
+        this.savedAssignmentMessage = '❌ Failed to save menu assignments'
+        this.savedAssignmentType = 'error'
+        this.$emit('show-notification', 'Failed to save menu assignments', 'error')
+      } finally {
+        this.savingAssignment = false
+      }
+    },
 
     resetMenuAssignments() {
       if (this.selectedAssignmentStall) {
@@ -1977,24 +1922,24 @@ initStallDetailChart() {
       await this.loadData()
     },
     async loadData() {
-  try {
-    await Promise.all([
-      this.loadStalls(),
-      this.loadUsers(),
-      this.loadLowStock(),
-      this.loadSalesAnalytics(),
-      this.loadStallPerformance(),
-      this.loadMenuItems()
-    ])
-    
-    await this.loadAllStallsInventory()
-    this.resetChartNavigation()
-    this.$emit('show-notification', 'Data refreshed', 'success')
-  } catch (err) {
-    console.error('Load data error:', err)
-    this.$emit('show-notification', err.message, 'error')
-  }
-},
+      try {
+        await Promise.all([
+          this.loadStalls(),
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadSalesAnalytics(),
+          this.loadStallPerformance(),
+          this.loadMenuItems()
+        ])
+        
+        await this.loadAllStallsInventory()
+        this.resetChartNavigation()
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        console.error('Load data error:', err)
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
     async loadStalls() {
       try {
         const res = await axios.get(`${API_BASE}/stalls/all`, { 
@@ -2034,199 +1979,197 @@ initStallDetailChart() {
       this.lowStock = res.data
     },
 
+    async loadSalesAnalytics() {
+      this.productSales = {}
+      
+      const days = this.selectedPeriod === 'today' ? 0 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
+      try {
+        console.log('📊 Fetching sales analytics for ALL assigned stalls, period:', this.selectedPeriod)
+        
+        const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        const data = res.data || {}
+        
+        console.log('📊 Backend productSales:', Object.keys(data.productSales || {}).length)
+        
+        let dailySales = (data.dailySales || []).map(day => ({
+          ...day,
+          items: parseInt(day.items) || 0,
+          revenue: parseFloat(day.revenue) || 0
+        }))
+        
+        if (this.selectedPeriod === 'today') {
+          const today = this.getTodayInMalaysia()
+          dailySales = dailySales.filter(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+        }
+        
+        this.salesTrend = dailySales
+        
+        const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
+        const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+        
+        this.consolidatedSales.totalItems = totalItems
+        this.consolidatedSales.totalRevenue = totalRevenue
+        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+          totalRevenue / this.stalls.length : 0
+        
+        this.consolidatedSales.topStall = data.topStall || '-'
+        this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+        
+        this.productSales = data.productSales || {}
+        
+        await this.loadMenuPerformance()
+      } catch (err) {
+        console.error('Failed to load sales analytics:', err)
+        this.salesTrend = []
+        this.consolidatedSales.totalItems = 0
+        this.consolidatedSales.totalRevenue = 0
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
+        this.productSales = {}
+      }
+    },
 
-async loadSalesAnalytics() {
-  this.productSales = {}
-  
-  const days = this.selectedPeriod === 'today' ? 0 :
-               this.selectedPeriod === 'week' ? 7 :
-               this.selectedPeriod === 'month' ? 30 :
-               this.selectedPeriod === 'quarter' ? 90 : 365
-  
-  const apiDays = this.selectedPeriod === 'today' ? 1 : days
-  
-  try {
-    console.log('📊 Fetching sales analytics for ALL assigned stalls, period:', this.selectedPeriod)
-    
-    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    const data = res.data || {}
-    
-    console.log('📊 Backend productSales:', Object.keys(data.productSales || {}).length)
-    
-    let dailySales = (data.dailySales || []).map(day => ({
-      ...day,
-      items: parseInt(day.items) || 0,
-      revenue: parseFloat(day.revenue) || 0
-    }))
-    
-    if (this.selectedPeriod === 'today') {
-      const today = this.getTodayInMalaysia()
-      dailySales = dailySales.filter(day => {
-        const dayDate = new Date(day.date)
-        dayDate.setHours(0, 0, 0, 0)
-        return dayDate.getTime() === today.getTime()
-      })
-    }
-    
-    this.salesTrend = dailySales
-    
-    const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
-    const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
-    
-    this.consolidatedSales.totalItems = totalItems
-    this.consolidatedSales.totalRevenue = totalRevenue
-    this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-      totalRevenue / this.stalls.length : 0
-    
-    this.consolidatedSales.topStall = data.topStall || '-'
-    this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-    
-    this.productSales = data.productSales || {}
-    
-    await this.loadMenuPerformance()
-  } catch (err) {
-    console.error('Failed to load sales analytics:', err)
-    this.salesTrend = []
-    this.consolidatedSales.totalItems = 0
-    this.consolidatedSales.totalRevenue = 0
-    this.consolidatedSales.topStall = '-'
-    this.consolidatedSales.topRevenue = 0
-    this.productSales = {}
-  }
-},
-
-async loadStallPerformance() {
-  const days = this.selectedPeriod === 'today' ? 0 :
-               this.selectedPeriod === 'week' ? 7 :
-               this.selectedPeriod === 'month' ? 30 :
-               this.selectedPeriod === 'quarter' ? 90 : 365
-  
-  const apiDays = this.selectedPeriod === 'today' ? 1 : days
-  
-  try {
-    let stallIds = []
-    
-    if (this.authStore?.user?.assigned_stalls?.length > 0) {
-      stallIds = this.authStore.user.assigned_stalls.map(s => s.id)
-    }
-    else if (this.stalls?.length > 0) {
-      stallIds = this.stalls.map(s => s.id)
-    }
-    else {
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser)
-          if (user?.assigned_stalls?.length > 0) {
-            stallIds = user.assigned_stalls.map(s => s.id)
+    async loadStallPerformance() {
+      const days = this.selectedPeriod === 'today' ? 0 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 : 365
+      
+      const apiDays = this.selectedPeriod === 'today' ? 1 : days
+      
+      try {
+        let stallIds = []
+        
+        if (this.authStore?.user?.assigned_stalls?.length > 0) {
+          stallIds = this.authStore.user.assigned_stalls.map(s => s.id)
+        }
+        else if (this.stalls?.length > 0) {
+          stallIds = this.stalls.map(s => s.id)
+        }
+        else {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            try {
+              const user = JSON.parse(storedUser)
+              if (user?.assigned_stalls?.length > 0) {
+                stallIds = user.assigned_stalls.map(s => s.id)
+              }
+            } catch (e) {}
           }
-        } catch (e) {}
+        }
+        
+        if (!stallIds || stallIds.length === 0) {
+          console.warn('⚠️ No stall IDs found for stall performance')
+          this.stallPerformance = []
+          return
+        }
+        
+        console.log('📊 Fetching stall performance for stalls:', stallIds)
+        
+        const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        let stallData = res.data || []
+        
+        if (!Array.isArray(stallData)) {
+          stallData = [stallData]
+        }
+        
+        if (this.selectedPeriod === 'today') {
+          const today = this.getTodayInMalaysia()
+          const hasTodaySales = this.salesTrend.some(day => {
+            const dayDate = new Date(day.date)
+            dayDate.setHours(0, 0, 0, 0)
+            return dayDate.getTime() === today.getTime()
+          })
+          if (!hasTodaySales) {
+            stallData = []
+          }
+        }
+        
+        this.stallPerformance = stallData
+      } catch (err) {
+        console.error('Failed to load stall performance:', err)
+        this.stallPerformance = []
       }
-    }
-    
-    if (!stallIds || stallIds.length === 0) {
-      console.warn('⚠️ No stall IDs found for stall performance')
-      this.stallPerformance = []
-      return
-    }
-    
-    console.log('📊 Fetching stall performance for stalls:', stallIds)
-    
-    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    let stallData = res.data || []
-    
-    if (!Array.isArray(stallData)) {
-      stallData = [stallData]
-    }
-    
-    if (this.selectedPeriod === 'today') {
-      const today = this.getTodayInMalaysia()
-      const hasTodaySales = this.salesTrend.some(day => {
-        const dayDate = new Date(day.date)
-        dayDate.setHours(0, 0, 0, 0)
-        return dayDate.getTime() === today.getTime()
-      })
-      if (!hasTodaySales) {
-        stallData = []
+    },
+
+    async loadMenuPerformance() {
+      try {
+        const productSales = this.productSales || {}
+        
+        console.log('📊 productSales keys:', Object.keys(productSales).length)
+        
+        const filteredItems = Object.keys(productSales)
+          .filter(name => {
+            const item = productSales[name]
+            const quantity = parseInt(item.quantity) || 0
+            const revenue = parseFloat(item.revenue) || 0
+            return quantity > 0 && revenue > 0
+          })
+          .map(name => ({
+            name: name,
+            quantity: parseInt(productSales[name].quantity) || 0,
+            revenue: parseFloat(productSales[name].revenue) || 0
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+        
+        if (filteredItems.length > 0) {
+          this.menuPerformance = filteredItems
+          console.log('📊 Menu performance (filtered):', this.menuPerformance.length, 'items')
+          return
+        }
+        
+        if (Object.keys(productSales).length > 0) {
+          console.log('📊 productSales exists but all items have zero sales')
+          this.menuPerformance = []
+          return
+        }
+        
+        const days = this.selectedPeriod === 'today' ? 1 :
+                     this.selectedPeriod === 'week' ? 7 :
+                     this.selectedPeriod === 'month' ? 30 :
+                     this.selectedPeriod === 'quarter' ? 90 : 365
+        
+        console.log('📊 Fetching menu performance from API, days:', days)
+        
+        const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        this.menuPerformance = (res.data || [])
+          .filter(item => {
+            const quantity = parseInt(item.quantity) || 0
+            const revenue = parseFloat(item.revenue) || 0
+            return quantity > 0 && revenue > 0
+          })
+          .map(item => ({
+            name: item.item_name,
+            quantity: parseInt(item.quantity) || 0,
+            revenue: parseFloat(item.revenue) || 0
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+        
+        console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
+        
+      } catch (err) {
+        console.error('Failed to load menu performance:', err)
+        this.menuPerformance = []
       }
-    }
-    
-    this.stallPerformance = stallData
-  } catch (err) {
-    console.error('Failed to load stall performance:', err)
-    this.stallPerformance = []
-  }
-},
-
-
-async loadMenuPerformance() {
-  try {
-    const productSales = this.productSales || {}
-    
-    console.log('📊 productSales keys:', Object.keys(productSales).length)
-    
-    const filteredItems = Object.keys(productSales)
-      .filter(name => {
-        const item = productSales[name]
-        const quantity = parseInt(item.quantity) || 0
-        const revenue = parseFloat(item.revenue) || 0
-        return quantity > 0 && revenue > 0
-      })
-      .map(name => ({
-        name: name,
-        quantity: parseInt(productSales[name].quantity) || 0,
-        revenue: parseFloat(productSales[name].revenue) || 0
-      }))
-      .sort((a, b) => b.quantity - a.quantity)
-    
-    if (filteredItems.length > 0) {
-      this.menuPerformance = filteredItems
-      console.log('📊 Menu performance (filtered):', this.menuPerformance.length, 'items')
-      return
-    }
-    
-    if (Object.keys(productSales).length > 0) {
-      console.log('📊 productSales exists but all items have zero sales')
-      this.menuPerformance = []
-      return
-    }
-    
-    const days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 : 365
-    
-    console.log('📊 Fetching menu performance from API, days:', days)
-    
-    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    this.menuPerformance = (res.data || [])
-      .filter(item => {
-        const quantity = parseInt(item.quantity) || 0
-        const revenue = parseFloat(item.revenue) || 0
-        return quantity > 0 && revenue > 0
-      })
-      .map(item => ({
-        name: item.item_name,
-        quantity: parseInt(item.quantity) || 0,
-        revenue: parseFloat(item.revenue) || 0
-      }))
-      .sort((a, b) => b.quantity - a.quantity)
-    
-    console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
-    
-  } catch (err) {
-    console.error('Failed to load menu performance:', err)
-    this.menuPerformance = []
-  }
-},
+    },
     
     // =============================================
     // MENU ITEMS (For Assignment)
@@ -3191,222 +3134,6 @@ async loadMenuPerformance() {
 }
 
 /* ============================================ */
-/* STALL RANK - FIXED HEADER & ITEMS            */
-/* ============================================ */
-
-/* ----- HEADER ROW - ALL SAME SIZE ----- */
-.stall-rank-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* ✅ ALL HEADERS SAME FONT SIZE */
-.stall-rank-header-rank,
-.stall-rank-header-name,
-.stall-rank-header-revenue,
-.stall-rank-header-status,
-.stall-rank-header-details {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-/* ----- COLUMN WIDTHS (HEADERS & ITEMS MATCH) ----- */
-.stall-rank-header-rank,
-.stall-rank .stall-rank-number {
-  width: 30px;
-  flex-shrink: 0;
-  text-align: center;
-  font-weight: 700;
-}
-
-.stall-rank-header-name,
-.stall-rank .stall-rank-name {
-  flex: 1;
-  min-width: 70px;
-  text-align: left;
-  font-weight: 500;
-}
-
-.stall-rank-header-revenue,
-.stall-rank-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.stall-rank-header-status,
-.stall-rank-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.stall-rank-header-details,
-.stall-rank-click {
-  min-width: 45px;
-  text-align: center;
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-}
-
-/* ----- ITEM ROW ----- */
-.stall-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 0.85rem;
-}
-
-.stall-rank-item:last-child {
-  border-bottom: none;
-}
-
-.stall-rank-item:hover {
-  background: var(--background);
-  transform: translateX(4px);
-}
-
-/* ----- RANK NUMBER CIRCLE ----- */
-.stall-rank-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.7rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
-.stall-rank-number.silver { background: #d1d5db; color: #374151; }
-.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
-
-/* ----- STATUS BADGE ----- */
-.stall-rank-status .status-badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
-/* ----- REVENUE BAR ----- */
-.stall-rank-bar {
-  flex: 2;
-  min-width: 50px;
-  height: 6px;
-  background: var(--background);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-rank-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--primary);
-}
-
-.stall-rank-fill.gold { background: #fbbf24; }
-.stall-rank-fill.silver { background: #d1d5db; }
-.stall-rank-fill.bronze { background: #f59e0b; }
-
-/* ============================================ */
-/* MENU RANKING                                 */
-/* ============================================ */
-.menu-rank-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.menu-rank-item:last-child {
-  border-bottom: none;
-}
-
-.menu-rank-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.menu-rank-number {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.65rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.menu-rank-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.menu-rank-qty {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.menu-rank-bar {
-  height: 3px;
-  background: var(--background);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 0.2rem;
-}
-
-.menu-rank-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.menu-rank-revenue {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text);
-  text-align: right;
-}
-
-/* ============================================ */
 /* FILTER BAR                                   */
 /* ============================================ */
 .filter-bar {
@@ -4231,77 +3958,6 @@ async loadMenuPerformance() {
   }
 }
 
-/* ============================================ */
-/* STALL PERFORMANCE - RESPONSIVE FIX           */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-rank-header {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  /* ✅ ALL HEADERS SAME SIZE IN RESPONSIVE TOO */
-  .stall-rank-header-rank,
-  .stall-rank-header-name,
-  .stall-rank-header-revenue,
-  .stall-rank-header-status,
-  .stall-rank-header-details {
-    font-size: 0.5rem;
-    letter-spacing: 0.2px;
-  }
-  
-  .stall-rank-item {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-    font-size: 0.7rem;
-  }
-  
-  .stall-rank-header-rank,
-  .stall-rank .stall-rank-number {
-    width: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-rank-header-name,
-  .stall-rank .stall-rank-name {
-    min-width: 35px;
-    font-size: 0.65rem;
-  }
-  
-  .stall-rank-header-revenue,
-  .stall-rank-revenue {
-    min-width: 50px;
-    font-size: 0.65rem;
-  }
-  
-  .stall-rank-header-status,
-  .stall-rank-status {
-    min-width: 55px;
-  }
-  
-  .stall-rank-status .status-badge {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .stall-rank-header-details,
-  .stall-rank-click {
-    min-width: 30px;
-    font-size: 0.45rem;
-  }
-  
-  .stall-rank-bar {
-    min-width: 30px;
-    height: 4px;
-  }
-}
-
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
@@ -4351,1771 +4007,6 @@ async loadMenuPerformance() {
   .dropdown-label {
     font-size: 0.8rem;
   }
-}
-
-/* ============================================ */
-/* STALL PERFORMANCE - SCROLLABLE CONTAINER    */
-/* ============================================ */
-.stall-performance-container {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-/* Custom scrollbar styling */
-.stall-performance-container::-webkit-scrollbar {
-  width: 4px;
-}
-
-.stall-performance-container::-webkit-scrollbar-track {
-  background: var(--background);
-  border-radius: 2px;
-}
-
-.stall-performance-container::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 2px;
-}
-
-.stall-rank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* ============================================ */
-/* STALL RANK HEADERS - UPDATED                */
-/* ============================================ */
-.stall-rank-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* ✅ ALL HEADERS SAME FONT SIZE */
-.stall-rank-header-rank,
-.stall-rank-header-revenue,
-.stall-rank-header-status,
-.stall-rank-header-details {
-  font-size: 0.6rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-/* ----- COLUMN WIDTHS (HEADERS & ITEMS MATCH) ----- */
-.stall-rank-header-rank {
-  flex: 2;
-  min-width: 100px;
-  text-align: left;
-}
-
-.stall-rank-header-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.stall-rank-header-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.stall-rank-header-details {
-  min-width: 45px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* ----- ITEM ROW ----- */
-.stall-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 0.85rem;
-}
-
-.stall-rank-item:last-child {
-  border-bottom: none;
-}
-
-.stall-rank-item:hover {
-  background: var(--background);
-  transform: translateX(4px);
-}
-
-/* ----- RANK + STALL ----- */
-.stall-rank {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 2;
-  min-width: 100px;
-}
-
-.stall-rank-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.7rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
-.stall-rank-number.silver { background: #d1d5db; color: #374151; }
-.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
-
-.stall-rank-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ----- REVENUE BAR ----- */
-.stall-rank-bar {
-  flex: 1.5;
-  min-width: 40px;
-  height: 6px;
-  background: var(--background);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-rank-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--primary);
-}
-
-.stall-rank-fill.gold { background: #fbbf24; }
-.stall-rank-fill.silver { background: #d1d5db; }
-.stall-rank-fill.bronze { background: #f59e0b; }
-
-/* ----- REVENUE ----- */
-.stall-rank-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-/* ----- STATUS ----- */
-.stall-rank-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.stall-rank-status .status-badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
-/* ----- DETAILS ----- */
-.stall-rank-click {
-  min-width: 30px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  transition: var(--transition);
-}
-
-.stall-rank-item:hover .stall-rank-click {
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE FIX                     */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-rank-header {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  /* ✅ ALL HEADERS SAME SIZE IN RESPONSIVE - FORCED */
-  .stall-rank-header-rank,
-  .stall-rank-header-revenue,
-  .stall-rank-header-status,
-  .stall-rank-header-details {
-    font-size: 0.55rem !important;
-    letter-spacing: 0.2px;
-  }
-  
-  .stall-rank-item {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-    font-size: 0.7rem;
-  }
-  
-  .stall-rank {
-    min-width: 60px;
-    gap: 0.3rem;
-  }
-  
-  .stall-rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-rank-name {
-    font-size: 0.65rem;
-    min-width: 30px;
-  }
-  
-  .stall-rank-revenue {
-    min-width: 50px;
-    font-size: 0.65rem;
-  }
-  
-  .stall-rank-status {
-    min-width: 55px;
-  }
-  
-  .stall-rank-status .status-badge {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .stall-rank-click {
-    min-width: 25px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-rank-bar {
-    min-width: 30px;
-    height: 4px;
-  }
-
-  /* ✅ Scroll container for mobile */
-  .stall-performance-container {
-    max-height: 300px;
-  }
-}
-
-@media (max-width: 480px) {
-  .stall-rank-header-rank {
-    min-width: 70px;
-  }
-  
-  .stall-rank-header-revenue {
-    min-width: 50px;
-  }
-  
-  .stall-rank-header-status {
-    min-width: 50px;
-  }
-  
-  .stall-rank-header-details {
-    min-width: 30px;
-  }
-}
-
-/* ============================================ */
-/* MENU PERFORMANCE - MATCHES STALL PERF        */
-/* ============================================ */
-.menu-performance-container {
-  max-height: 350px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.menu-performance-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--background);
-}
-
-.menu-performance-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.menu-performance-container::-webkit-scrollbar-track {
-  background: var(--background);
-  border-radius: 3px;
-}
-
-.menu-performance-container::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 3px;
-}
-
-.menu-rank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* ----- HEADER ROW ----- */
-.menu-rank-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.menu-rank-header-name,
-.menu-rank-header-revenue,
-.menu-rank-header-status,
-.menu-rank-header-details {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-/* ----- COLUMN WIDTHS ----- */
-.menu-rank-header-name {
-  flex: 2;
-  min-width: 100px;
-  text-align: left;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.menu-rank-header-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.menu-rank-header-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.menu-rank-header-details {
-  min-width: 45px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* ----- ITEM ROW ----- */
-.menu-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 0.85rem;
-}
-
-.menu-rank-item:last-child {
-  border-bottom: none;
-}
-
-.menu-rank-item:hover {
-  background: var(--background);
-  transform: translateX(4px);
-}
-
-/* ----- RANK + NAME + BAR ----- */
-.menu-rank {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 2;
-  min-width: 100px;
-}
-
-.menu-rank-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.7rem;
-  background: var(--background);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.menu-rank-number.gold { background: #fbbf24; color: #78350f; }
-.menu-rank-number.silver { background: #d1d5db; color: #374151; }
-.menu-rank-number.bronze { background: #f59e0b; color: #78350f; }
-
-.menu-rank-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 60px;
-}
-
-/* ----- BAR ----- */
-.menu-rank-bar {
-  flex: 1;
-  min-width: 40px;
-  height: 6px;
-  background: var(--background);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.menu-rank-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--primary);
-}
-
-/* ----- REVENUE ----- */
-.menu-rank-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-/* ----- STATUS ----- */
-.menu-rank-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.menu-rank-status .status-badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
-/* ----- DETAILS ----- */
-.menu-rank-click {
-  min-width: 45px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-}
-
-.menu-rank-item:hover .menu-rank-click {
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
-/* ============================================ */
-.stall-breakdown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-}
-
-.stall-breakdown-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.75rem;
-}
-
-.stall-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.stall-breakdown-item:last-child {
-  border-bottom: none;
-}
-
-.stall-breakdown-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-  min-width: 100px;
-}
-
-.stall-breakdown-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.stall-breakdown-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--primary);
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stall-breakdown-quantity {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-breakdown-percentage {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  min-width: 50px;
-  text-align: right;
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .menu-rank-header {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  .menu-rank-header-name,
-  .menu-rank-header-revenue,
-  .menu-rank-header-status,
-  .menu-rank-header-details {
-    font-size: 0.55rem !important;
-  }
-  
-  .menu-rank-item {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-    font-size: 0.7rem;
-  }
-  
-  .menu-rank {
-    min-width: 70px;
-    gap: 0.3rem;
-  }
-  
-  .menu-rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .menu-rank-name {
-    font-size: 0.65rem;
-    min-width: 40px;
-  }
-  
-  .menu-rank-bar {
-    min-width: 30px;
-    height: 4px;
-  }
-  
-  .menu-rank-revenue {
-    min-width: 50px;
-    font-size: 0.65rem;
-  }
-  
-  .menu-rank-status {
-    min-width: 55px;
-  }
-  
-  .menu-rank-status .status-badge {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .menu-rank-click {
-    min-width: 25px;
-    font-size: 0.6rem;
-  }
-  
-  .menu-performance-container {
-    max-height: 300px;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-breakdown-percentage {
-    min-width: 40px;
-    font-size: 0.6rem;
-  }
-}
-
-/* ==========================================
-   MENU PERFORMANCE SCROLL
-   Backward Compatible
-   ========================================== */
-
-.menu-table-scroll {
-  max-height: 360px;
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  /* smooth scrolling */
-  scroll-behavior: smooth;
-
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
-}
-
-/* Chrome / Edge / Safari */
-.menu-table-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.menu-table-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.menu-table-scroll::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-}
-
-.menu-table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* ============================================ */
-/* MENU PERFORMANCE - GRID LAYOUT               */
-/* ============================================ */
-.menu-performance-grid-container {
-  padding: 0.5rem;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-/* Scrollbar */
-.menu-performance-grid-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.menu-performance-grid-container::-webkit-scrollbar-track {
-  background: var(--background);
-  border-radius: 3px;
-}
-
-.menu-performance-grid-container::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 3px;
-}
-
-.menu-performance-grid-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--background);
-}
-
-/* Grid */
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.75rem;
-}
-
-/* Card */
-.menu-grid-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem;
-  text-align: center;
-  transition: var(--transition);
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.menu-grid-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow);
-  border-color: var(--primary);
-}
-
-/* Rank / Medal */
-.menu-grid-rank {
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.medal {
-  font-size: 1.5rem;
-}
-
-.rank-number {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--background);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Name */
-.menu-grid-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-  line-height: 1.2;
-  min-height: 2.2rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Bar */
-.menu-grid-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--background);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 0.1rem 0;
-}
-
-.menu-grid-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Revenue */
-.menu-grid-revenue {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--primary);
-}
-
-/* Stars */
-.menu-grid-stars {
-  font-size: 0.65rem;
-  letter-spacing: 0.1rem;
-}
-
-.star {
-  color: #e2e8f0;
-}
-
-.star.filled {
-  color: #f59e0b;
-}
-
-/* Click */
-.menu-grid-click {
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  opacity: 0.7;
-  transition: var(--transition);
-}
-
-.menu-grid-card:hover .menu-grid-click {
-  opacity: 1;
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* RESPONSIVE                                   */
-/* ============================================ */
-@media (max-width: 600px) {
-  .menu-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 0.5rem;
-  }
-  
-  .menu-grid-card {
-    padding: 0.5rem;
-  }
-  
-  .menu-grid-name {
-    font-size: 0.75rem;
-    min-height: 1.8rem;
-  }
-  
-  .menu-grid-revenue {
-    font-size: 0.8rem;
-  }
-  
-  .menu-grid-stars {
-    font-size: 0.55rem;
-  }
-  
-  .medal {
-    font-size: 1.2rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .menu-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* ============================================ */
-/* MENU PERFORMANCE - COLOR-CODED STATUS        */
-/* ============================================ */
-.menu-performance-table-container {
-  padding: 0.5rem;
-  max-height: 380px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--background);
-}
-
-.menu-performance-table-container::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-  display: block !important;
-}
-
-.menu-performance-table-container::-webkit-scrollbar-track {
-  background: var(--background);
-  border-radius: 3px;
-}
-
-.menu-performance-table-container::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 3px;
-}
-
-/* Table Wrapper */
-.menu-table-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* ----- Table Headers ----- */
-.menu-table-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  flex-shrink: 0;
-}
-
-.menu-table-header-rank {
-  min-width: 40px;
-  text-align: center;
-}
-
-.menu-table-header-name {
-  flex: 1;
-  text-align: left;
-}
-
-.menu-table-header-revenue {
-  min-width: 70px;
-  text-align: right;
-}
-
-.menu-table-header-status {
-  min-width: 85px;
-  text-align: center;
-}
-
-.menu-table-header-details {
-  min-width: 40px;
-  text-align: center;
-}
-
-/* ----- Table Rows ----- */
-.menu-table-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.menu-table-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: var(--transition);
-  flex-shrink: 0;
-}
-
-.menu-table-row:hover {
-  background: var(--background);
-  border-color: var(--border-light);
-  transform: translateX(2px);
-}
-
-/* ----- Rank ----- */
-.menu-table-rank {
-  min-width: 40px;
-  text-align: center;
-}
-
-.rank-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 0.7rem;
-  background: var(--background);
-  color: var(--text-secondary);
-}
-
-.rank-number.gold { background: #fbbf24; color: #78350f; }
-.rank-number.silver { background: #d1d5db; color: #374151; }
-.rank-number.bronze { background: #f59e0b; color: #78350f; }
-
-/* ----- Menu Name + Bar ----- */
-.menu-table-name {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 80px;
-}
-
-.menu-name-text {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.menu-name-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--background);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.menu-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ----- Revenue ----- */
-.menu-table-revenue {
-  min-width: 70px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-/* ----- Status ----- */
-.menu-table-status {
-  min-width: 85px;
-  text-align: center;
-}
-
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.status-indicator.excellent { background: #d1fae5; color: #059669; }
-.status-indicator.good { background: #dbeafe; color: #2563eb; }
-.status-indicator.average { background: #fef3c7; color: #d97706; }
-.status-indicator.poor { background: #fee2e2; color: #dc2626; }
-.status-indicator.no-sales { background: #f3f4f6; color: #6b7280; }
-
-/* ----- Details ----- */
-.menu-table-details {
-  min-width: 40px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-  transition: var(--transition);
-}
-
-.menu-table-row:hover .menu-table-details {
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .menu-performance-table-container {
-    max-height: 320px;
-    padding: 0.25rem;
-  }
-  
-  .menu-table-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .menu-table-header-rank { min-width: 30px; }
-  .menu-table-header-revenue { min-width: 50px; }
-  .menu-table-header-status { min-width: 60px; }
-  .menu-table-header-details { min-width: 30px; }
-  
-  .menu-table-row {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  .menu-table-rank { min-width: 30px; }
-  
-  .rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .menu-table-name { min-width: 50px; }
-  .menu-name-text { font-size: 0.7rem; }
-  
-  .menu-table-revenue {
-    min-width: 50px;
-    font-size: 0.7rem;
-  }
-  
-  .menu-table-status { min-width: 60px; }
-  
-  .status-indicator {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-    gap: 0.15rem;
-  }
-  
-  .menu-table-details {
-    min-width: 30px;
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .menu-table-header-revenue { min-width: 40px; }
-  .menu-table-header-status { min-width: 50px; }
-  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
-  .menu-table-status { min-width: 50px; }
-  
-  .status-indicator {
-    font-size: 0.45rem;
-    padding: 0.05rem 0.2rem;
-  }
-}
-
-/* ============================================ */
-/* VIEW ALL BUTTON                              */
-/* ============================================ */
-.menu-table-view-all {
-  display: flex;
-  justify-content: center;
-  padding: 0.3rem 0;
-  margin-top: 0.1rem;
-}
-
-.view-all-btn {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-  transition: var(--transition);
-  width: 100%;
-  max-width: 300px;
-}
-
-.view-all-btn:hover {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
-}
-
-.view-all-btn:active {
-  transform: scale(0.98);
-}
-
-@media (max-width: 600px) {
-  .view-all-btn {
-    font-size: 0.6rem;
-    padding: 0.2rem 0.5rem;
-  }
-}
-/* ============================================ */
-/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
-/* ============================================ */
-.stall-breakdown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.stall-breakdown-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.75rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.stall-breakdown-total {
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-  background: var(--surface);
-  padding: 0.15rem 0.6rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-}
-
-/* Headers */
-.stall-breakdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-header-name {
-  flex: 2;
-  min-width: 80px;
-  text-align: left;
-}
-
-.stall-breakdown-header-revenue {
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-breakdown-header-quantity {
-  min-width: 70px;
-  text-align: right;
-}
-
-.stall-breakdown-header-bar {
-  flex: 1.5;
-  min-width: 60px;
-  text-align: center;
-}
-
-/* Items */
-.stall-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-}
-
-.stall-breakdown-item:last-child {
-  border-bottom: none;
-}
-
-.stall-breakdown-item:hover {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-}
-
-.stall-breakdown-name {
-  flex: 2;
-  min-width: 80px;
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.stall-breakdown-revenue {
-  min-width: 80px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--primary);
-}
-
-.stall-breakdown-quantity {
-  min-width: 70px;
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-bar-wrapper {
-  flex: 1.5;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.stall-breakdown-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-breakdown-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stall-breakdown-percentage {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  min-width: 40px;
-  text-align: right;
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-breakdown-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-breakdown-header-name { min-width: 50px; }
-  .stall-breakdown-header-revenue { min-width: 60px; }
-  .stall-breakdown-header-quantity { min-width: 50px; }
-  .stall-breakdown-header-bar { min-width: 40px; }
-  
-  .stall-breakdown-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    flex-wrap: wrap;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 50px;
-    font-size: 0.75rem;
-    flex: 1;
-  }
-  
-  .stall-breakdown-revenue {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-bar-wrapper {
-    min-width: 40px;
-    flex: 1;
-    width: 100%;
-  }
-  
-  .stall-breakdown-percentage {
-    font-size: 0.55rem;
-    min-width: 35px;
-  }
-  
-  .stall-breakdown-title {
-    font-size: 0.8rem;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .stall-breakdown-total {
-    font-size: 0.65rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .stall-breakdown-header-revenue { min-width: 50px; }
-  .stall-breakdown-header-quantity { min-width: 40px; }
-  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
-  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
-}
-
-/* ============================================ */
-/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
-/* ============================================ */
-.stall-breakdown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.stall-breakdown-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.75rem;
-}
-
-/* Headers */
-.stall-breakdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-header-name {
-  flex: 2;
-  min-width: 80px;
-  text-align: left;
-}
-
-.stall-breakdown-header-revenue {
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-breakdown-header-quantity {
-  min-width: 70px;
-  text-align: right;
-}
-
-.stall-breakdown-header-bar {
-  flex: 1.5;
-  min-width: 60px;
-  text-align: center;
-}
-
-/* Items */
-.stall-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-}
-
-.stall-breakdown-item:last-child {
-  border-bottom: none;
-}
-
-.stall-breakdown-item:hover {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-}
-
-.stall-breakdown-name {
-  flex: 2;
-  min-width: 80px;
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.stall-breakdown-revenue {
-  min-width: 80px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--primary);
-}
-
-.stall-breakdown-quantity {
-  min-width: 70px;
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-bar-wrapper {
-  flex: 1.5;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.stall-breakdown-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-breakdown-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stall-breakdown-percentage {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  min-width: 40px;
-  text-align: right;
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-breakdown-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-breakdown-header-name { min-width: 50px; }
-  .stall-breakdown-header-revenue { min-width: 60px; }
-  .stall-breakdown-header-quantity { min-width: 50px; }
-  .stall-breakdown-header-bar { min-width: 40px; }
-  
-  .stall-breakdown-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    flex-wrap: wrap;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 50px;
-    font-size: 0.75rem;
-    flex: 1;
-  }
-  
-  .stall-breakdown-revenue {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-bar-wrapper {
-    min-width: 40px;
-    flex: 1;
-    width: 100%;
-  }
-  
-  .stall-breakdown-percentage {
-    font-size: 0.55rem;
-    min-width: 35px;
-  }
-  
-  .stall-breakdown-title {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .stall-breakdown-header-revenue { min-width: 50px; }
-  .stall-breakdown-header-quantity { min-width: 40px; }
-  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
-  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
-}
-/* ============================================ */
-/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
-/* ============================================ */
-.stall-breakdown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.stall-breakdown-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.75rem;
-}
-
-/* Headers */
-.stall-breakdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-header-name {
-  flex: 2;
-  min-width: 80px;
-  text-align: left;
-}
-
-.stall-breakdown-header-revenue {
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-breakdown-header-quantity {
-  min-width: 70px;
-  text-align: right;
-}
-
-.stall-breakdown-header-bar {
-  flex: 1.5;
-  min-width: 60px;
-  text-align: left;
-  padding-left: 0.5rem;
-}
-
-/* Items */
-.stall-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-}
-
-.stall-breakdown-item:last-child {
-  border-bottom: none;
-}
-
-.stall-breakdown-item:hover {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-}
-
-.stall-breakdown-name {
-  flex: 2;
-  min-width: 80px;
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.stall-breakdown-revenue {
-  min-width: 80px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--primary);
-}
-
-.stall-breakdown-quantity {
-  min-width: 70px;
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-bar-wrapper {
-  flex: 1.5;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-}
-
-.stall-breakdown-bar {
-  width: 100%;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-breakdown-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-breakdown-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-breakdown-header-name { min-width: 50px; }
-  .stall-breakdown-header-revenue { min-width: 60px; }
-  .stall-breakdown-header-quantity { min-width: 50px; }
-  .stall-breakdown-header-bar { min-width: 40px; }
-  
-  .stall-breakdown-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    flex-wrap: wrap;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 50px;
-    font-size: 0.75rem;
-    flex: 1;
-  }
-  
-  .stall-breakdown-revenue {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-bar-wrapper {
-    min-width: 40px;
-    flex: 1;
-    width: 100%;
-  }
-}
-
-@media (max-width: 400px) {
-  .stall-breakdown-header-revenue { min-width: 50px; }
-  .stall-breakdown-header-quantity { min-width: 40px; }
-  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
-  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
 }
 
 /* ============================================ */
@@ -6360,31 +4251,247 @@ async loadMenuPerformance() {
 }
 
 /* ============================================ */
+/* MENU PERFORMANCE - COLOR-CODED STATUS        */
+/* ============================================ */
+.menu-performance-table-container {
+  padding: 0.5rem;
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
+.menu-performance-table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  display: block !important;
+}
+
+.menu-performance-table-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.menu-performance-table-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+/* Table Wrapper */
+.menu-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ----- Table Headers ----- */
+.menu-table-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.menu-table-header-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.menu-table-header-name {
+  flex: 1;
+  text-align: left;
+}
+
+.menu-table-header-revenue {
+  min-width: 70px;
+  text-align: right;
+}
+
+.menu-table-header-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.menu-table-header-details {
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ----- Table Rows ----- */
+.menu-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.menu-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.menu-table-row:hover {
+  background: var(--background);
+  border-color: var(--border-light);
+  transform: translateX(2px);
+}
+
+/* ----- Rank ----- */
+.menu-table-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.rank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+}
+
+.rank-number.gold { background: #fbbf24; color: #78350f; }
+.rank-number.silver { background: #d1d5db; color: #374151; }
+.rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+/* ----- Menu Name + Bar ----- */
+.menu-table-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 80px;
+}
+
+.menu-name-text {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-name-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.menu-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ----- Revenue ----- */
+.menu-table-revenue {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ----- Status ----- */
+.menu-table-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.status-indicator.excellent { background: #d1fae5; color: #059669; }
+.status-indicator.good { background: #dbeafe; color: #2563eb; }
+.status-indicator.average { background: #fef3c7; color: #d97706; }
+.status-indicator.poor { background: #fee2e2; color: #dc2626; }
+.status-indicator.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ----- Details ----- */
+.menu-table-details {
+  min-width: 40px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  transition: var(--transition);
+}
+
+.menu-table-row:hover .menu-table-details {
+  color: var(--primary);
+}
+
+/* ============================================ */
 /* RESPONSIVE - MOBILE                         */
 /* ============================================ */
 @media (max-width: 600px) {
-  .stall-performance-table-container {
+  .stall-performance-table-container,
+  .menu-performance-table-container {
     max-height: 320px;
     padding: 0.25rem;
   }
   
-  .stall-table-header {
+  .stall-table-header,
+  .menu-table-header {
     gap: 0.3rem;
     padding: 0.2rem 0.3rem;
     font-size: 0.5rem;
   }
   
-  .stall-table-header-rank { min-width: 30px; }
-  .stall-table-header-revenue { min-width: 50px; }
-  .stall-table-header-status { min-width: 60px; }
-  .stall-table-header-details { min-width: 30px; }
+  .stall-table-header-rank,
+  .menu-table-header-rank { min-width: 30px; }
   
-  .stall-table-row {
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 50px; }
+  
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 60px; }
+  
+  .stall-table-header-details,
+  .menu-table-header-details { min-width: 30px; }
+  
+  .stall-table-row,
+  .menu-table-row {
     gap: 0.3rem;
     padding: 0.25rem 0.3rem;
   }
   
-  .stall-table-rank { min-width: 30px; }
+  .stall-table-rank,
+  .menu-table-rank { min-width: 30px; }
   
   .rank-number {
     width: 22px;
@@ -6392,15 +4499,20 @@ async loadMenuPerformance() {
     font-size: 0.6rem;
   }
   
-  .stall-table-name { min-width: 50px; }
-  .stall-name-text { font-size: 0.7rem; }
+  .stall-table-name,
+  .menu-table-name { min-width: 50px; }
   
-  .stall-table-revenue {
+  .stall-name-text,
+  .menu-name-text { font-size: 0.7rem; }
+  
+  .stall-table-revenue,
+  .menu-table-revenue {
     min-width: 50px;
     font-size: 0.7rem;
   }
   
-  .stall-table-status { min-width: 60px; }
+  .stall-table-status,
+  .menu-table-status { min-width: 60px; }
   
   .status-indicator {
     font-size: 0.5rem;
@@ -6408,7 +4520,8 @@ async loadMenuPerformance() {
     gap: 0.15rem;
   }
   
-  .stall-table-details {
+  .stall-table-details,
+  .menu-table-details {
     min-width: 30px;
     font-size: 0.7rem;
   }
@@ -6420,14 +4533,195 @@ async loadMenuPerformance() {
 }
 
 @media (max-width: 400px) {
-  .stall-table-header-revenue { min-width: 40px; }
-  .stall-table-header-status { min-width: 50px; }
-  .stall-table-revenue { min-width: 40px; font-size: 0.65rem; }
-  .stall-table-status { min-width: 50px; }
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 40px; }
+  
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 50px; }
+  
+  .stall-table-revenue,
+  .menu-table-revenue { 
+    min-width: 40px; 
+    font-size: 0.65rem; 
+  }
+  
+  .stall-table-status,
+  .menu-table-status { min-width: 50px; }
   
   .status-indicator {
     font-size: 0.45rem;
     padding: 0.05rem 0.2rem;
   }
+}
+
+/* ============================================ */
+/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
+/* ============================================ */
+.stall-breakdown-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.stall-breakdown-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.stall-breakdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-header-name {
+  flex: 2;
+  min-width: 80px;
+  text-align: left;
+}
+
+.stall-breakdown-header-revenue {
+  min-width: 80px;
+  text-align: right;
+}
+
+.stall-breakdown-header-quantity {
+  min-width: 70px;
+  text-align: right;
+}
+
+.stall-breakdown-header-bar {
+  flex: 1.5;
+  min-width: 60px;
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+.stall-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.stall-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.stall-breakdown-item:hover {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.stall-breakdown-name {
+  flex: 2;
+  min-width: 80px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-breakdown-revenue {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.stall-breakdown-quantity {
+  min-width: 70px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-bar-wrapper {
+  flex: 1.5;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.stall-breakdown-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stall-breakdown-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-breakdown-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-breakdown-header-name { min-width: 50px; }
+  .stall-breakdown-header-revenue { min-width: 60px; }
+  .stall-breakdown-header-quantity { min-width: 50px; }
+  .stall-breakdown-header-bar { min-width: 40px; }
+  
+  .stall-breakdown-item {
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+    flex-wrap: wrap;
+  }
+  
+  .stall-breakdown-name {
+    min-width: 50px;
+    font-size: 0.75rem;
+    flex: 1;
+  }
+  
+  .stall-breakdown-revenue {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-quantity {
+    min-width: 50px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-bar-wrapper {
+    min-width: 40px;
+    flex: 1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .stall-breakdown-header-revenue { min-width: 50px; }
+  .stall-breakdown-header-quantity { min-width: 40px; }
+  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
+  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
 }
 </style>
