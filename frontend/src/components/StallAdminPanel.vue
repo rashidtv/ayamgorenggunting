@@ -930,9 +930,6 @@ export default {
   },
 
   computed: {
-
-    computed: {
-  // ... existing computed properties
   
   displayMenuItems() {
     if (this.showAllMenuItems) {
@@ -940,7 +937,7 @@ export default {
     }
     return this.menuPerformance.slice(0, 5)  // Show only top 5
   },
-  
+
     lowStockCount() {
       return this.lowStock.length
     },
