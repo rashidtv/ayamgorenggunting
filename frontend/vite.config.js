@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  publicDir: 'public', // This ensures public files are copied to dist
+  publicDir: 'public', // This ensures public files are copied as-is
   server: {
     proxy: {
       '/api': {
@@ -14,11 +14,11 @@ export default defineConfig({
     }
   },
   build: {
-    // Ensure assets are copied properly
+    // Don't process assets in public folder
     assetsDir: 'assets',
     rollupOptions: {
-      output: {
-        assetFileNames: 'assets/[name].[hash][extname]'
+      input: {
+        main: 'index.html'
       }
     }
   }
