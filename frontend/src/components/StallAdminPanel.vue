@@ -1716,6 +1716,7 @@ export default {
 
 async loadSalesAnalytics() {
   this.productSales = {}
+  
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
                this.selectedPeriod === 'month' ? 30 :
@@ -1724,13 +1725,15 @@ async loadSalesAnalytics() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ No stallId – let backend return ALL assigned stalls
     console.log('📊 Fetching sales analytics for ALL assigned stalls, period:', this.selectedPeriod)
     
     const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     const data = res.data || {}
+    
+    // ✅ Debug: log what the backend returned
+    console.log('📊 Backend productSales:', Object.keys(data.productSales || {}).length)
     
     let dailySales = (data.dailySales || []).map(day => ({
       ...day,
@@ -1762,7 +1765,6 @@ async loadSalesAnalytics() {
     
     this.productSales = data.productSales || {}
     
-    // ✅ Load menu performance AFTER sales analytics
     await this.loadMenuPerformance()
   } catch (err) {
     console.error('Failed to load sales analytics:', err)
@@ -1850,13 +1852,15 @@ async loadMenuPerformance() {
   try {
     const productSales = this.productSales || {}
     
-    console.log('📊 Menu performance - productSales keys:', Object.keys(productSales).length)
+    console.log('📊 productSales keys:', Object.keys(productSales).length)
     
-    // ✅ Filter out items with zero quantity or zero revenue
-    const filteredMenuItems = Object.keys(productSales)
+    // ✅ Filter items with actual sales
+    const filteredItems = Object.keys(productSales)
       .filter(name => {
         const item = productSales[name]
-        return (item.quantity > 0 && item.revenue > 0)
+        const quantity = parseInt(item.quantity) || 0
+        const revenue = parseFloat(item.revenue) || 0
+        return quantity > 0 && revenue > 0
       })
       .map(name => ({
         name: name,
@@ -1865,22 +1869,21 @@ async loadMenuPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ Check if there are any items with actual sales
-    if (filteredMenuItems.length > 0) {
-      this.menuPerformance = filteredMenuItems
-      console.log('📊 Menu performance from productSales (filtered):', this.menuPerformance.length, 'items')
+    // ✅ If we have filtered items, use them
+    if (filteredItems.length > 0) {
+      this.menuPerformance = filteredItems
+      console.log('📊 Menu performance (filtered):', this.menuPerformance.length, 'items')
       return
     }
     
-    // ✅ If no items with sales, check if productSales has items with zero sales
+    // ✅ If productSales exists but all items have zero sales, show empty
     if (Object.keys(productSales).length > 0) {
-      // We have productSales, but they're all zero - show empty
       console.log('📊 productSales exists but all items have zero sales')
       this.menuPerformance = []
       return
     }
     
-    // ✅ If productSales is empty, fetch from API directly
+    // ✅ Fallback to API with proper filtering
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
@@ -1892,9 +1895,13 @@ async loadMenuPerformance() {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // ✅ Also filter API results
+    // ✅ Filter API results too
     this.menuPerformance = (res.data || [])
-      .filter(item => (item.quantity > 0 && item.revenue > 0))
+      .filter(item => {
+        const quantity = parseInt(item.quantity) || 0
+        const revenue = parseFloat(item.revenue) || 0
+        return quantity > 0 && revenue > 0
+      })
       .map(item => ({
         name: item.item_name,
         quantity: parseInt(item.quantity) || 0,
