@@ -2386,7 +2386,6 @@ async loadMenuPerformance() {
   flex-shrink: 0;
 }
 
-/* Dropdown Toggle - White background */
 .dropdown-toggle {
   display: flex;
   align-items: center;
@@ -2418,7 +2417,6 @@ async loadMenuPerformance() {
   transition: transform 0.2s ease;
 }
 
-/* Dropdown Menu - White background */
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -2441,7 +2439,6 @@ async loadMenuPerformance() {
   padding: 0.25rem 0 !important;
 }
 
-/* Dropdown Items - White background */
 .dropdown-item {
   display: flex;
   align-items: center;
@@ -2785,7 +2782,6 @@ async loadMenuPerformance() {
   padding: 1.25rem;
 }
 
-/* Chart Stats */
 .chart-modern-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2824,7 +2820,6 @@ async loadMenuPerformance() {
   color: var(--text-tertiary);
 }
 
-/* Chart Navigation */
 .chart-modern-nav {
   display: flex;
   align-items: center;
@@ -2954,24 +2949,74 @@ async loadMenuPerformance() {
 }
 
 /* ============================================ */
-/* STALL RANK - HEADERS & ITEMS                 */
+/* STALL RANK - FIXED HEADER & ITEMS            */
 /* ============================================ */
 
-/* ----- HEADER ROW ----- */
+/* ----- HEADER ROW - ALL SAME SIZE ----- */
 .stall-rank-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   background: var(--background);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   margin-bottom: 0.5rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
-  font-size: 0.65rem;
+}
+
+/* ✅ ALL HEADERS SAME FONT SIZE */
+.stall-rank-header-rank,
+.stall-rank-header-name,
+.stall-rank-header-revenue,
+.stall-rank-header-status,
+.stall-rank-header-details {
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ----- COLUMN WIDTHS (HEADERS & ITEMS MATCH) ----- */
+.stall-rank-header-rank,
+.stall-rank .stall-rank-number {
+  width: 30px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+.stall-rank-header-name,
+.stall-rank .stall-rank-name {
+  flex: 1;
+  min-width: 70px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.stall-rank-header-revenue,
+.stall-rank-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stall-rank-header-status,
+.stall-rank-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stall-rank-header-details,
+.stall-rank-click {
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
 }
 
 /* ----- ITEM ROW ----- */
@@ -2979,7 +3024,7 @@ async loadMenuPerformance() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: var(--transition);
@@ -2993,52 +3038,6 @@ async loadMenuPerformance() {
 .stall-rank-item:hover {
   background: var(--background);
   transform: translateX(4px);
-}
-
-/* ----- COLUMN WIDTHS (Headers & Items MUST MATCH) ----- */
-.stall-rank-header-rank,
-.stall-rank .stall-rank-number {
-  width: 30px;
-  flex-shrink: 0;
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.75rem;
-}
-
-.stall-rank-header-name,
-.stall-rank .stall-rank-name {
-  flex: 1;
-  min-width: 70px;
-  text-align: left;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-.stall-rank-header-revenue,
-.stall-rank-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.stall-rank-header-status,
-.stall-rank-status {
-  min-width: 80px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.stall-rank-header-details,
-.stall-rank-click {
-  min-width: 40px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.55rem;
-  color: var(--text-tertiary);
-  white-space: nowrap;
 }
 
 /* ----- RANK NUMBER CIRCLE ----- */
@@ -3973,10 +3972,6 @@ async loadMenuPerformance() {
   .modal-form-row { grid-template-columns: 1fr; }
   .modal-modern { width: 95%; }
   
-  .stall-rank-item { flex-wrap: wrap; }
-  .stall-rank { min-width: unset; }
-  .stall-rank-revenue { min-width: unset; }
-  
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
   
   .assignment-header {
@@ -3999,15 +3994,23 @@ async loadMenuPerformance() {
 /* ============================================ */
 @media (max-width: 600px) {
   .stall-rank-header {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  /* ✅ ALL HEADERS SAME SIZE IN RESPONSIVE TOO */
+  .stall-rank-header-rank,
+  .stall-rank-header-name,
+  .stall-rank-header-revenue,
+  .stall-rank-header-status,
+  .stall-rank-header-details {
     font-size: 0.5rem;
-    gap: 0.2rem;
-    padding: 0.25rem 0.25rem;
     letter-spacing: 0.2px;
   }
   
   .stall-rank-item {
-    gap: 0.2rem;
-    padding: 0.25rem 0.25rem;
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
     font-size: 0.7rem;
   }
   
@@ -4106,45 +4109,5 @@ async loadMenuPerformance() {
   .dropdown-label {
     font-size: 0.8rem;
   }
-}
-
-/* ============================================ */
-/* STALL RANK STATUS - PERFORMANCE BADGES      */
-/* ============================================ */
-.stall-rank-status .status-badge {
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-/* Performance Status Colors */
-.status-badge.excellent {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.status-badge.good {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.status-badge.average {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.status-badge.poor {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.status-badge.no-sales {
-  background: #f3f4f6;
-  color: #6b7280;
 }
 </style>
