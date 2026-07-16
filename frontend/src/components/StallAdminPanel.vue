@@ -219,10 +219,10 @@
         <span class="stall-table-header-details">Details</span>
       </div>
       
-      <!-- Table Rows -->
+      <!-- Table Rows - USING computed property -->
       <div class="stall-table-body">
         <div 
-          v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+          v-for="(stall, index) in displayStalls" 
           :key="stall.id" 
           class="stall-table-row clickable-item"
           @click="viewStallDetails(stall)"
@@ -933,6 +933,8 @@ export default {
       selectedMenuItem: null,
       stallDetailChartInstance: null,
       showAllMenuItems: false,  // ✅ NEW
+      showAllStalls: false,
+      showAllMenuItems: false,
       
       expandedInventoryStall: null,
       stallInventory: {},
@@ -967,11 +969,18 @@ export default {
 
   computed: {
 
-    displayStalls() {
+     displayStalls() {
     if (this.showAllStalls) {
-      return this.stallPerformance  // Show ALL
+      return this.stallPerformance  // Show ALL stalls
     }
     return this.stallPerformance.slice(0, 5)  // Show only top 5
+  },
+  
+  displayMenuItems() {
+    if (this.showAllMenuItems) {
+      return this.menuPerformance  // Show ALL menu items
+    }
+    return this.menuPerformance.slice(0, 5)  // Show only top 5
   },
   
   displayMenuItems() {
