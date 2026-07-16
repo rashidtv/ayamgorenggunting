@@ -249,7 +249,7 @@
   </div>
 </div>
 
-<!-- ===== MENU PERFORMANCE - GRID LAYOUT ===== -->
+<!-- ===== MENU PERFORMANCE - COLOR-CODED STATUS ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
@@ -257,49 +257,59 @@
       <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
     </div>
   </div>
-  <div class="card-modern-body menu-performance-grid-container">
+  <div class="card-modern-body menu-performance-table-container">
     <div v-if="menuPerformance.length === 0" class="empty-state-modern">
       <span>🍗</span>
       <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
     
-    <!-- ✅ Grid layout -->
-    <div v-else class="menu-grid">
-      <div 
-        v-for="(item, index) in menuPerformance.slice(0, 6)" 
-        :key="item.name" 
-        class="menu-grid-card clickable-item"
-        @click="viewMenuItemDetails(item)"
-      >
-        <!-- Medal / Rank -->
-        <div class="menu-grid-rank">
-          <span v-if="index === 0" class="medal gold">🥇</span>
-          <span v-else-if="index === 1" class="medal silver">🥈</span>
-          <span v-else-if="index === 2" class="medal bronze">🥉</span>
-          <span v-else class="rank-number">{{ index + 1 }}</span>
+    <!-- ✅ Table Layout -->
+    <div v-else class="menu-table-wrapper">
+      <!-- Table Headers -->
+      <div class="menu-table-header">
+        <span class="menu-table-header-rank">Rank</span>
+        <span class="menu-table-header-name">Menu</span>
+        <span class="menu-table-header-revenue">Revenue</span>
+        <span class="menu-table-header-status">Status</span>
+        <span class="menu-table-header-details">Details</span>
+      </div>
+      
+      <!-- Table Rows -->
+      <div class="menu-table-body">
+        <div 
+          v-for="(item, index) in menuPerformance.slice(0, 5)" 
+          :key="item.name" 
+          class="menu-table-row clickable-item"
+          @click="viewMenuItemDetails(item)"
+        >
+          <!-- Rank -->
+          <span class="menu-table-rank">
+            <span class="rank-number" :class="getRankClass(index)">
+              {{ index + 1 }}
+            </span>
+          </span>
+          
+          <!-- Menu Name + Bar -->
+          <span class="menu-table-name">
+            <span class="menu-name-text">{{ item.name }}</span>
+            <span class="menu-name-bar">
+              <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+            </span>
+          </span>
+          
+          <!-- Revenue -->
+          <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+          
+          <!-- Status with Color & Emoji -->
+          <span class="menu-table-status">
+            <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+              {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+            </span>
+          </span>
+          
+          <!-- Details -->
+          <span class="menu-table-details">👆</span>
         </div>
-        
-        <!-- Name -->
-        <div class="menu-grid-name">{{ item.name }}</div>
-        
-        <!-- Bar -->
-        <div class="menu-grid-bar">
-          <div 
-            class="menu-grid-fill" 
-            :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
-          ></div>
-        </div>
-        
-        <!-- Revenue -->
-        <div class="menu-grid-revenue">{{ formatCurrency(item.revenue || 0) }}</div>
-        
-        <!-- Stars -->
-        <div class="menu-grid-stars">
-          <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= getStarRating(item.quantity) }">★</span>
-        </div>
-        
-        <!-- Click indicator -->
-        <div class="menu-grid-click">👆 Click</div>
       </div>
     </div>
   </div>
@@ -1030,6 +1040,17 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// MENU PERFORMANCE - STATUS EMOJI
+// =============================================
+getMenuStatusEmoji(quantity) {
+  if (!quantity || quantity === 0) return '⚪'
+  if (quantity > 50) return '🟢'
+  if (quantity > 20) return '🔵'
+  if (quantity > 5) return '🟡'
+  return '🔴'
+},
 
     // =============================================
 // MENU PERFORMANCE - STAR RATING
@@ -5082,6 +5103,329 @@ async loadMenuPerformance() {
 @media (max-width: 400px) {
   .menu-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================ */
+/* MENU PERFORMANCE - COLOR-CODED STATUS        */
+/* ============================================ */
+.menu-performance-table-container {
+  padding: 0.5rem;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+/* Scrollbar */
+.menu-performance-table-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu-performance-table-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.menu-performance-table-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.menu-performance-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
+/* Table Wrapper */
+.menu-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ----- Table Headers ----- */
+.menu-table-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.menu-table-header-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.menu-table-header-name {
+  flex: 1;
+  text-align: left;
+}
+
+.menu-table-header-revenue {
+  min-width: 70px;
+  text-align: right;
+}
+
+.menu-table-header-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.menu-table-header-details {
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ----- Table Rows ----- */
+.menu-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.menu-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.menu-table-row:hover {
+  background: var(--background);
+  border-color: var(--border-light);
+  transform: translateX(2px);
+}
+
+/* ----- Rank ----- */
+.menu-table-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.rank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+}
+
+.rank-number.gold { background: #fbbf24; color: #78350f; }
+.rank-number.silver { background: #d1d5db; color: #374151; }
+.rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+/* ----- Menu Name + Bar ----- */
+.menu-table-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 80px;
+}
+
+.menu-name-text {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-name-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.menu-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ----- Revenue ----- */
+.menu-table-revenue {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ----- Status ----- */
+.menu-table-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Status Colors - Matches getMenuStatusClass */
+.status-indicator.excellent {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-indicator.good {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-indicator.average {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-indicator.poor {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-indicator.no-sales {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ----- Details ----- */
+.menu-table-details {
+  min-width: 40px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  transition: var(--transition);
+}
+
+.menu-table-row:hover .menu-table-details {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .menu-table-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .menu-table-header-rank {
+    min-width: 30px;
+  }
+  
+  .menu-table-header-revenue {
+    min-width: 50px;
+  }
+  
+  .menu-table-header-status {
+    min-width: 60px;
+  }
+  
+  .menu-table-header-details {
+    min-width: 30px;
+  }
+  
+  .menu-table-row {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  .menu-table-rank {
+    min-width: 30px;
+  }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .menu-table-name {
+    min-width: 50px;
+  }
+  
+  .menu-name-text {
+    font-size: 0.7rem;
+  }
+  
+  .menu-table-revenue {
+    min-width: 50px;
+    font-size: 0.7rem;
+  }
+  
+  .menu-table-status {
+    min-width: 60px;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+    gap: 0.15rem;
+  }
+  
+  .menu-table-details {
+    min-width: 30px;
+    font-size: 0.7rem;
+  }
+  
+  .menu-performance-table-container {
+    max-height: 350px;
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .menu-table-header-revenue {
+    min-width: 40px;
+  }
+  
+  .menu-table-header-status {
+    min-width: 50px;
+  }
+  
+  .menu-table-revenue {
+    min-width: 40px;
+    font-size: 0.65rem;
+  }
+  
+  .menu-table-status {
+    min-width: 50px;
+  }
+  
+  .status-indicator {
+    font-size: 0.45rem;
+    padding: 0.05rem 0.2rem;
   }
 }
 
