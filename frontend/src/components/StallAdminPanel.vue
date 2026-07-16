@@ -200,49 +200,49 @@
       <h3>🏆 Stall Performance</h3>
       <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
     </div>
-    <!-- ✅ REMOVED duplicate period-tag -->
   </div>
   <div class="card-modern-body">
-  <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-    <span>📊</span>
-    <p>No sales data available for {{ getPeriodLabel() }}</p>
-  </div>
-  
-  <!-- ✅ ADDED: Column Headers -->
-  <div class="stall-rank-header">
-    <span class="stall-rank-header-rank">Rank</span>
-    <span class="stall-rank-header-name">Stall</span>
-    <span class="stall-rank-header-revenue">Revenue</span>
-    <span class="stall-rank-header-status">Status</span>
-    <span class="stall-rank-header-details">Details</span>
-  </div>
-  
-  <div 
-    v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-    :key="stall.id" 
-    class="stall-rank-item clickable-item"
-    @click="viewStallDetails(stall)"
-  >
-    <div class="stall-rank">
-      <span class="stall-rank-number" :class="getRankClass(index)">
-        {{ index + 1 }}
-      </span>
-      <span class="stall-rank-name">{{ stall.name }}</span>
+    <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+      <span>📊</span>
+      <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
-    <div class="stall-rank-bar">
-      <div 
-        class="stall-rank-fill" 
-        :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-        :class="getRankClass(index)"
-      ></div>
+    
+    <!-- ✅ ADDED: Column Headers -->
+    <div class="stall-rank-header">
+      <span class="stall-rank-header-rank">Rank</span>
+      <span class="stall-rank-header-name">Stall</span>
+      <span class="stall-rank-header-revenue">Revenue</span>
+      <span class="stall-rank-header-status">Status</span>
+      <span class="stall-rank-header-details">Details</span>
     </div>
-    <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-    <span class="stall-rank-status">
-      <span :class="['status-badge', getStallStatusClass(stall)]">
-        {{ getStallStatus(stall) }}
+    
+    <div 
+      v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+      :key="stall.id" 
+      class="stall-rank-item clickable-item"
+      @click="viewStallDetails(stall)"
+    >
+      <div class="stall-rank">
+        <span class="stall-rank-number" :class="getRankClass(index)">
+          {{ index + 1 }}
+        </span>
+        <span class="stall-rank-name">{{ stall.name }}</span>
+      </div>
+      <div class="stall-rank-bar">
+        <div 
+          class="stall-rank-fill" 
+          :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+          :class="getRankClass(index)"
+        ></div>
+      </div>
+      <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+      <span class="stall-rank-status">
+        <span :class="['status-badge', getStallStatusClass(stall)]">
+          {{ getStallStatus(stall) }}
+        </span>
       </span>
-    </span>
-    <span class="stall-rank-click">👆 Click for details</span>
+      <span class="stall-rank-click">👆 Click for details</span>
+    </div>
   </div>
 </div>
 
