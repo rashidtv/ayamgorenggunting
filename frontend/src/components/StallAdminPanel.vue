@@ -1929,25 +1929,29 @@ export default {
       await this.loadData()
     },
     async loadData() {
-      try {
-        console.log('🔄 Loading stall admin data...')
-        await Promise.all([
-          this.loadStalls(),
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadSalesAnalytics(),
-          this.loadStallPerformance(),
-          this.loadMenuItems()
-        ])
-        
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        console.error('Load data error:', err)
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
+  try {
+    console.log('🔄 Loading stall admin data...')
+    
+    // ✅ CRITICAL: Load stalls FIRST so other methods can use them
+    await this.loadStalls()
+    
+    // ✅ Everything else can load in parallel
+    await Promise.all([
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadSalesAnalytics(),
+      this.loadStallPerformance(), // ← Now this.stalls is guaranteed to have data
+      this.loadMenuItems()
+    ])
+    
+    await this.loadAllStallsInventory()
+    this.resetChartNavigation()
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
     
     async loadStalls() {
       try {
