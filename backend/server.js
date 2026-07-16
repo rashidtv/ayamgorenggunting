@@ -551,7 +551,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // Get daily sales for all stalls
       const dailyRes = await pool.query(`
         SELECT 
           DATE(created_at) as date, 
@@ -563,7 +562,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         ORDER BY date
       `, [stallIds, startDate]);
 
-      // Get product sales breakdown
       const productRes = await pool.query(`
         SELECT 
           item_name, 
@@ -616,32 +614,42 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     // STALL ADMIN / CASHIER
     // ============================================================
     
-    // If stallId is provided, validate access
-    if (targetStallId) {
-      const allowed = await userCanAccessStall(req.user.id, targetStallId);
-      if (!allowed) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-    } else {
-      // No stallId provided, get the first assigned stall
-      targetStallId = req.user.assigned_stalls?.[0]?.id;
+    // ✅ GET ALL assigned stalls for the user
+    let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+    
+    // If no assigned stalls, try to get from database
+    if (stallIds.length === 0) {
+      const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+      stallIds = assRes.rows.map(r => r.stall_id);
     }
     
-    if (!targetStallId) {
+    // If still no stalls, return empty
+    if (stallIds.length === 0) {
+      console.log('⚠️ No stalls assigned to user:', req.user.id)
       return res.json({ dailySales: [], productSales: {}, totalItems: 0, totalRevenue: 0, topStall: '-' });
     }
+    
+    // ✅ If a specific stallId is requested, validate it's in the assigned list
+    if (targetStallId) {
+      if (!stallIds.includes(targetStallId)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      stallIds = [targetStallId];
+    }
+    
+    console.log('📊 Sales analytics for stalls:', stallIds, 'days:', dayRange)
 
-    // Get daily sales for the stall
+    // Get daily sales for all assigned stalls
     const dailyRes = await pool.query(`
       SELECT 
         DATE(created_at) as date, 
         COALESCE(SUM(price), 0) as revenue, 
         COUNT(*) as items
       FROM sales
-      WHERE stall_id = $1 AND created_at >= $2
+      WHERE stall_id = ANY($1::int[]) AND created_at >= $2
       GROUP BY DATE(created_at)
       ORDER BY date
-    `, [targetStallId, startDate]);
+    `, [stallIds, startDate]);
 
     // Get product sales breakdown
     const productRes = await pool.query(`
@@ -650,10 +658,10 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         COUNT(*) as quantity,
         COALESCE(SUM(price), 0) as revenue
       FROM sales
-      WHERE stall_id = $1 AND created_at >= $2
+      WHERE stall_id = ANY($1::int[]) AND created_at >= $2
       GROUP BY item_name
       ORDER BY quantity DESC
-    `, [targetStallId, startDate]);
+    `, [stallIds, startDate]);
 
     const productSales = {};
     productRes.rows.forEach(row => {
@@ -668,15 +676,28 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         COALESCE(SUM(price), 0) as total_revenue,
         COUNT(*) as total_items
       FROM sales
-      WHERE stall_id = $1 AND created_at >= $2
-    `, [targetStallId, startDate]);
+      WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+    `, [stallIds, startDate]);
+
+    // Get top performing stall among assigned stalls
+    const topStallRes = await pool.query(`
+      SELECT 
+        s.name as stall_name,
+        COALESCE(SUM(sales.price), 0) as revenue
+      FROM sales
+      JOIN stalls s ON sales.stall_id = s.id
+      WHERE sales.stall_id = ANY($1::int[]) AND sales.created_at >= $2
+      GROUP BY s.name
+      ORDER BY revenue DESC
+      LIMIT 1
+    `, [stallIds, startDate]);
 
     res.json({
       dailySales: dailyRes.rows,
       productSales: productSales,
       totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
       totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
-      topStall: '-'
+      topStall: topStallRes.rows[0]?.stall_name || '-'
     });
   } catch (err) {
     console.error('Sales analytics error:', err);
