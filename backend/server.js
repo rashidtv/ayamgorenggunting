@@ -2072,19 +2072,55 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
 });
 
 // ==================== STALL PERFORMANCE ====================
+// ==================== STALL PERFORMANCE ====================
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
-    const { days, stallId } = req.query;
+    const { days, stallId, stallIds } = req.query;
     let dayRange = days ? parseInt(days) : 1;
-    let targetStallId = stallId ? parseInt(stallId) : null;
-
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dayRange);
 
     // ============================================================
-    // If a specific stallId is provided (for stall_admin/cashier)
+    // NEW: Handle multiple stall IDs (comma-separated string)
     // ============================================================
-    if (targetStallId) {
+    if (stallIds) {
+      const ids = stallIds.split(',').map(Number).filter(id => !isNaN(id));
+      
+      if (ids.length === 0) {
+        return res.json([]);
+      }
+      
+      // Check access for each stall
+      for (const id of ids) {
+        const allowed = await userCanAccessStall(req.user.id, id);
+        if (!allowed) {
+          return res.status(403).json({ error: 'Access denied to one or more stalls' });
+        }
+      }
+      
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.id = ANY($1::int[])
+        GROUP BY s.id, s.name, s.is_active
+        ORDER BY revenue DESC
+      `, [ids, startDate]);
+      
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // If a specific stallId is provided
+    // ============================================================
+    if (stallId) {
+      const targetStallId = parseInt(stallId);
       const allowed = await userCanAccessStall(req.user.id, targetStallId);
       if (!allowed) {
         return res.status(403).json({ error: 'Access denied' });
@@ -2188,6 +2224,40 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
 
       return res.json(performance);
     }
+
+    // ============================================================
+    // CASHIER (Get only their assigned stall)
+    // ============================================================
+    if (req.user.role === 'cashier') {
+      const stallId = req.user.assigned_stalls?.[0]?.id;
+      
+      if (!stallId) {
+        return res.json([]);
+      }
+      
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.id = $1
+        GROUP BY s.id, s.name, s.is_active
+      `, [stallId, startDate]);
+
+      return res.json(result.rows);
+    }
+
+    res.json([]);
+  } catch (err) {
+    console.error('Stall performance error:', err);
+    res.status(500).json({ error: 'Failed to fetch stall performance' });
+  }
+});
 
     // ============================================================
     // CASHIER (Get only their assigned stall)

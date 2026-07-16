@@ -1708,6 +1708,8 @@ export default {
       })
       this.lowStock = res.data
     },
+
+
 async loadSalesAnalytics() {
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
@@ -1717,11 +1719,33 @@ async loadSalesAnalytics() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ FIX: Use the first assigned stall from the user
-    const stallId = this.authStore?.user?.assigned_stalls?.[0]?.id || this.stalls[0]?.id
+    // ✅ Get stall ID from multiple sources
+    let stallId = null
+    
+    // 1. Try from authStore
+    if (this.authStore?.user?.assigned_stalls?.length > 0) {
+      stallId = this.authStore.user.assigned_stalls[0].id
+    }
+    // 2. Try from stalls array (already loaded)
+    else if (this.stalls?.length > 0) {
+      stallId = this.stalls[0].id
+    }
+    // 3. Try from localStorage
+    else {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser)
+          if (user?.assigned_stalls?.length > 0) {
+            stallId = user.assigned_stalls[0].id
+          }
+        } catch (e) {}
+      }
+    }
     
     if (!stallId) {
       console.warn('⚠️ No stall ID found for sales analytics')
+      this.salesTrend = []
       return
     }
     
@@ -1783,17 +1807,38 @@ async loadStallPerformance() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Get ALL assigned stall IDs
-    const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
+    // ✅ Get all stall IDs from multiple sources
+    let stallIds = []
+    
+    // 1. Try from authStore
+    if (this.authStore?.user?.assigned_stalls?.length > 0) {
+      stallIds = this.authStore.user.assigned_stalls.map(s => s.id)
+    }
+    // 2. Try from stalls array (already loaded)
+    else if (this.stalls?.length > 0) {
+      stallIds = this.stalls.map(s => s.id)
+    }
+    // 3. Try from localStorage
+    else {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser)
+          if (user?.assigned_stalls?.length > 0) {
+            stallIds = user.assigned_stalls.map(s => s.id)
+          }
+        } catch (e) {}
+      }
+    }
     
     if (!stallIds || stallIds.length === 0) {
       console.warn('⚠️ No stall IDs found for stall performance')
+      this.stallPerformance = []
       return
     }
     
     console.log('📊 Fetching stall performance for stalls:', stallIds)
     
-    // ✅ Pass all stall IDs as comma-separated string
     const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
@@ -1826,13 +1871,37 @@ async loadStallPerformance() {
 
 async loadMenuPerformance() {
   try {
-    // ✅ FIX: Use the first assigned stall
-    const stallId = this.authStore?.user?.assigned_stalls?.[0]?.id || this.stalls[0]?.id
+    // ✅ Get stall ID from multiple sources
+    let stallId = null
+    
+    // 1. Try from authStore
+    if (this.authStore?.user?.assigned_stalls?.length > 0) {
+      stallId = this.authStore.user.assigned_stalls[0].id
+    }
+    // 2. Try from stalls array (already loaded)
+    else if (this.stalls?.length > 0) {
+      stallId = this.stalls[0].id
+    }
+    // 3. Try from localStorage
+    else {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser)
+          if (user?.assigned_stalls?.length > 0) {
+            stallId = user.assigned_stalls[0].id
+          }
+        } catch (e) {}
+      }
+    }
     
     if (!stallId) {
       console.warn('⚠️ No stall ID found for menu performance')
+      this.menuPerformance = []
       return
     }
+    
+    console.log('📊 Fetching menu performance for stall:', stallId)
     
     const res = await axios.get(`${API_BASE}/menu-performance?days=7&stallId=${stallId}`, {
       headers: { Authorization: `Bearer ${this.token}` }
