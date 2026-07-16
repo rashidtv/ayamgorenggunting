@@ -1653,23 +1653,27 @@ export default {
       await this.loadData()
     },
     async loadData() {
-      try {
-        await Promise.all([
-          this.loadStalls(),
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadSalesAnalytics(),
-          this.loadStallPerformance(),
-          this.loadMenuPerformance(),
-          this.loadMenuItems()
-        ])
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
+  try {
+    // ✅ Load all data in parallel
+    await Promise.all([
+      this.loadStalls(),
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadSalesAnalytics(),  // This internally calls loadMenuPerformance
+      this.loadStallPerformance(),
+      this.loadMenuItems()
+    ])
+    // ✅ loadMenuPerformance is already called inside loadSalesAnalytics
+    // No need to call it again here
+    
+    await this.loadAllStallsInventory()
+    this.resetChartNavigation()
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
     async loadStalls() {
       try {
         const res = await axios.get(`${API_BASE}/stalls/all`, { 
@@ -1719,10 +1723,8 @@ async loadSalesAnalytics() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Don't force a single stallId – let the backend return ALL assigned stalls
-    // The backend already filters by the user's assigned stalls when no stallId is passed
-    
-    console.log('📊 Fetching sales analytics for ALL assigned stalls')
+    // ✅ No stallId – let backend return ALL assigned stalls
+    console.log('📊 Fetching sales analytics for ALL assigned stalls, period:', this.selectedPeriod)
     
     const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
       headers: { Authorization: `Bearer ${this.token}` }
@@ -1759,6 +1761,7 @@ async loadSalesAnalytics() {
     
     this.productSales = data.productSales || {}
     
+    // ✅ Load menu performance AFTER sales analytics
     await this.loadMenuPerformance()
   } catch (err) {
     console.error('Failed to load sales analytics:', err)
@@ -1844,7 +1847,13 @@ async loadStallPerformance() {
 
 async loadMenuPerformance() {
   try {
-    // ✅ Don't force a single stallId – get ALL product sales from the sales analytics data
+    // ✅ Get days from selected period
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 : 365
+    
+    // ✅ If we have productSales from analytics, use them first
     const productSales = this.productSales || {}
     
     if (Object.keys(productSales).length > 0) {
@@ -1853,10 +1862,12 @@ async loadMenuPerformance() {
         quantity: parseInt(productSales[name].quantity) || 0,
         revenue: parseFloat(productSales[name].revenue) || 0
       })).sort((a, b) => b.quantity - a.quantity)
-      console.log('📊 Menu performance from productSales:', this.menuPerformance.length)
+      console.log('📊 Menu performance from productSales:', this.menuPerformance.length, 'items')
     } else {
-      // ✅ Fallback: Fetch from API without stallId
-      const res = await axios.get(`${API_BASE}/menu-performance?days=7`, {
+      // ✅ Fallback: Fetch from API with period filter
+      console.log('📊 Fetching menu performance for period:', this.selectedPeriod, 'days:', days)
+      
+      const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
         headers: { Authorization: `Bearer ${this.token}` }
       })
       
@@ -1865,7 +1876,7 @@ async loadMenuPerformance() {
         quantity: parseInt(item.quantity) || 0,
         revenue: parseFloat(item.revenue) || 0
       })).sort((a, b) => b.quantity - a.quantity)
-      console.log('📊 Menu performance from API:', this.menuPerformance.length)
+      console.log('📊 Menu performance from API:', this.menuPerformance.length, 'items')
     }
   } catch (err) {
     console.error('Failed to load menu performance:', err)
