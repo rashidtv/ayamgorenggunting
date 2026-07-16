@@ -1709,8 +1709,6 @@ export default {
       this.lowStock = res.data
     },
 async loadSalesAnalytics() {
-  console.log('📊 Stall ID for analytics:', stallId)
-  console.log('📊 API URL:', `${API_BASE}/sales-analytics?days=${apiDays}&stallId=${stallId}`)
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
                this.selectedPeriod === 'month' ? 30 :
@@ -1719,8 +1717,15 @@ async loadSalesAnalytics() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Get the first assigned stall ID
-    const stallId = this.authStore?.activeStallId || this.stalls[0]?.id
+    // ✅ FIX: Use the first assigned stall from the user
+    const stallId = this.authStore?.user?.assigned_stalls?.[0]?.id || this.stalls[0]?.id
+    
+    if (!stallId) {
+      console.warn('⚠️ No stall ID found for sales analytics')
+      return
+    }
+    
+    console.log('📊 Fetching sales analytics for stall:', stallId)
     
     const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}&stallId=${stallId}`, {
       headers: { Authorization: `Bearer ${this.token}` }
@@ -1768,6 +1773,7 @@ async loadSalesAnalytics() {
     this.productSales = {}
   }
 },
+
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
@@ -1777,18 +1783,24 @@ async loadStallPerformance() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Get the first assigned stall ID
-    const stallId = this.authStore?.activeStallId || this.stalls[0]?.id
+    // ✅ Get ALL assigned stall IDs
+    const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
     
-    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallId=${stallId}`, {
+    if (!stallIds || stallIds.length === 0) {
+      console.warn('⚠️ No stall IDs found for stall performance')
+      return
+    }
+    
+    console.log('📊 Fetching stall performance for stalls:', stallIds)
+    
+    // ✅ Pass all stall IDs as comma-separated string
+    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // For stall_admin, we only get data for their assigned stalls
     let stallData = res.data || []
     
-    // If the response is for a single stall, wrap it in an array
-    if (stallData && !Array.isArray(stallData)) {
+    if (!Array.isArray(stallData)) {
       stallData = [stallData]
     }
     
@@ -1810,13 +1822,26 @@ async loadStallPerformance() {
     this.stallPerformance = []
   }
 },
-    async loadMenuPerformance() {
+
+
+async loadMenuPerformance() {
   try {
-    const productSales = this.productSales || {}
-    this.menuPerformance = Object.keys(productSales).map(name => ({
-      name: name,
-      quantity: parseInt(productSales[name].quantity) || 0,
-      revenue: parseFloat(productSales[name].revenue) || 0
+    // ✅ FIX: Use the first assigned stall
+    const stallId = this.authStore?.user?.assigned_stalls?.[0]?.id || this.stalls[0]?.id
+    
+    if (!stallId) {
+      console.warn('⚠️ No stall ID found for menu performance')
+      return
+    }
+    
+    const res = await axios.get(`${API_BASE}/menu-performance?days=7&stallId=${stallId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    this.menuPerformance = (res.data || []).map(item => ({
+      name: item.item_name,
+      quantity: parseInt(item.quantity) || 0,
+      revenue: parseFloat(item.revenue) || 0
     })).sort((a, b) => b.quantity - a.quantity)
   } catch (err) {
     console.error('Failed to load menu performance:', err)
