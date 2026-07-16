@@ -242,7 +242,7 @@
           {{ getStallStatus(stall) }}
         </span>
       </span>
-      <span class="stall-rank-click">👆 Click</span>
+      <span class="stall-rank-click">👆</span>
     </div>
   </div>
 </div>
@@ -4162,6 +4162,203 @@ async loadMenuPerformance() {
 .status-badge.no-sales {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+/* ============================================ */
+/* STALL RANK HEADERS                           */
+/* ============================================ */
+.stall-rank-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ============================================ */
+/* STALL RANK ITEMS                             */
+/* ============================================ */
+.stall-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.85rem;
+}
+
+.stall-rank-item:last-child {
+  border-bottom: none;
+}
+
+.stall-rank-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+/* ✅ Column Definitions - Consistent widths */
+.stall-rank-header-rank,
+.stall-rank .stall-rank-number {
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.stall-rank-header-name,
+.stall-rank .stall-rank-name {
+  flex: 1;
+  min-width: 60px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.stall-rank-header-revenue,
+.stall-rank-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ✅ Status column - fixed width */
+.stall-rank-header-status,
+.stall-rank-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ✅ Details column - smaller, no truncation */
+.stall-rank-header-details,
+.stall-rank-click {
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* Status Badge */
+.stall-rank-status .status-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ✅ Revenue text - consistent size */
+.stall-rank-revenue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ✅ Rank number - consistent size */
+.stall-rank-number {
+  font-size: 0.75rem !important;
+}
+
+/* Rank bar */
+.stall-rank-bar {
+  flex: 2;
+  min-width: 60px;
+  height: 6px;
+  background: var(--background);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stall-rank-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+}
+
+.stall-rank-fill.gold { background: #fbbf24; }
+.stall-rank-fill.silver { background: #d1d5db; }
+.stall-rank-fill.bronze { background: #f59e0b; }
+
+/* Rank classes */
+.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
+.stall-rank-number.silver { background: #d1d5db; color: #374151; }
+.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+/* ============================================ */
+/* RESPONSIVE - FIX FOR MOBILE                  */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-rank-header {
+    font-size: 0.55rem;
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+  }
+  
+  .stall-rank-item {
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+    font-size: 0.75rem;
+    flex-wrap: nowrap;
+  }
+  
+  .stall-rank-header-rank,
+  .stall-rank .stall-rank-number {
+    width: 22px;
+    font-size: 0.65rem;
+  }
+  
+  .stall-rank-header-name,
+  .stall-rank .stall-rank-name {
+    min-width: 40px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-rank-header-revenue,
+  .stall-rank-revenue {
+    min-width: 55px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-rank-header-status,
+  .stall-rank-status {
+    min-width: 60px;
+  }
+  
+  .stall-rank-status .status-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .stall-rank-header-details,
+  .stall-rank-click {
+    min-width: 35px;
+    font-size: 0.5rem;
+  }
+  
+  .stall-rank-bar {
+    min-width: 40px;
+    height: 4px;
+  }
 }
 
 </style>
