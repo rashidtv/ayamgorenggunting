@@ -2908,20 +2908,6 @@ async loadMenuPerformance() {
   transform: translateX(4px);
 }
 
-.stall-rank-click,
-.menu-rank-click {
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  opacity: 0;
-  transition: var(--transition);
-  margin-left: 0.5rem;
-}
-
-.clickable-item:hover .stall-rank-click,
-.clickable-item:hover .menu-rank-click {
-  opacity: 1;
-}
-
 /* ============================================ */
 /* MODERN CARDS                                 */
 /* ============================================ */
@@ -2968,28 +2954,40 @@ async loadMenuPerformance() {
 }
 
 /* ============================================ */
-/* STALL RANKING                                */
+/* STALL RANK - HEADERS & ITEMS                 */
 /* ============================================ */
-.stall-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-}
 
-
-.stall-rank-item:last-child {
-  border-bottom: none;
-}
-
-.stall-rank {
+/* ----- HEADER ROW ----- */
+.stall-rank-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 120px;
+  padding: 0.4rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ----- ITEM ROW ----- */
+.stall-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.85rem;
+}
+
+.stall-rank-item:last-child {
+  border-bottom: none;
 }
 
 .stall-rank-item:hover {
@@ -2997,49 +2995,56 @@ async loadMenuPerformance() {
   transform: translateX(4px);
 }
 
+/* ----- COLUMN WIDTHS (Headers & Items MUST MATCH) ----- */
 .stall-rank-header-rank,
 .stall-rank .stall-rank-number {
   width: 30px;
   flex-shrink: 0;
   text-align: center;
+  font-weight: 700;
+  font-size: 0.75rem;
 }
 
 .stall-rank-header-name,
 .stall-rank .stall-rank-name {
   flex: 1;
-  min-width: 100px;
+  min-width: 70px;
   text-align: left;
+  font-weight: 500;
+  font-size: 0.85rem;
 }
 
 .stall-rank-header-revenue,
 .stall-rank-revenue {
-  font-size: 0.85rem;
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
   font-weight: 600;
+  font-size: 0.85rem;
   color: var(--text);
 }
 
 .stall-rank-header-status,
 .stall-rank-status {
-  min-width: 85px;
+  min-width: 80px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .stall-rank-header-details,
 .stall-rank-click {
-  font-size: 0.6rem;
+  min-width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 0.55rem;
   color: var(--text-tertiary);
-  opacity: 0.7;
-  transition: var(--transition);
+  white-space: nowrap;
 }
 
-.stall-rank-item:hover .stall-rank-click {
-  opacity: 1;
-}
-
+/* ----- RANK NUMBER CIRCLE ----- */
 .stall-rank-number {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -3055,23 +3060,37 @@ async loadMenuPerformance() {
 .stall-rank-number.silver { background: #d1d5db; color: #374151; }
 .stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
 
-.stall-rank-name {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
+/* ----- STATUS BADGE ----- */
+.stall-rank-status .status-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  white-space: nowrap;
 }
 
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ----- REVENUE BAR ----- */
 .stall-rank-bar {
-  flex: 1;
-  height: 4px;
+  flex: 2;
+  min-width: 50px;
+  height: 6px;
   background: var(--background);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .stall-rank-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--primary);
 }
@@ -3079,14 +3098,6 @@ async loadMenuPerformance() {
 .stall-rank-fill.gold { background: #fbbf24; }
 .stall-rank-fill.silver { background: #d1d5db; }
 .stall-rank-fill.bronze { background: #f59e0b; }
-
-.stall-rank-revenue {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  min-width: 80px;
-  text-align: right;
-}
 
 /* ============================================ */
 /* MENU RANKING                                 */
@@ -3892,20 +3903,6 @@ async loadMenuPerformance() {
   height: 200px;
 }
 
-.status-badge {
-  padding: 0.15rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.excellent { background: #d1fae5; color: #059669; }
-.status-badge.good { background: #dbeafe; color: #2563eb; }
-.status-badge.average { background: #fef3c7; color: #d97706; }
-.status-badge.poor { background: #fee2e2; color: #dc2626; }
-.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
-
 /* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
@@ -3997,6 +3994,69 @@ async loadMenuPerformance() {
   }
 }
 
+/* ============================================ */
+/* STALL PERFORMANCE - RESPONSIVE FIX           */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-rank-header {
+    font-size: 0.5rem;
+    gap: 0.2rem;
+    padding: 0.25rem 0.25rem;
+    letter-spacing: 0.2px;
+  }
+  
+  .stall-rank-item {
+    gap: 0.2rem;
+    padding: 0.25rem 0.25rem;
+    font-size: 0.7rem;
+  }
+  
+  .stall-rank-header-rank,
+  .stall-rank .stall-rank-number {
+    width: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-rank-header-name,
+  .stall-rank .stall-rank-name {
+    min-width: 35px;
+    font-size: 0.65rem;
+  }
+  
+  .stall-rank-header-revenue,
+  .stall-rank-revenue {
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .stall-rank-header-status,
+  .stall-rank-status {
+    min-width: 55px;
+  }
+  
+  .stall-rank-status .status-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .stall-rank-header-details,
+  .stall-rank-click {
+    min-width: 30px;
+    font-size: 0.45rem;
+  }
+  
+  .stall-rank-bar {
+    min-width: 30px;
+    height: 4px;
+  }
+}
+
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
@@ -4049,88 +4109,12 @@ async loadMenuPerformance() {
 }
 
 /* ============================================ */
-/* STALL RANK STATUS                            */
-/* ============================================ */
-.stall-rank-status {
-  min-width: 80px;
-  text-align: center;
-}
-
-.stall-rank-status .status-tag {
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.stall-rank-status .status-tag.active {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.stall-rank-status .status-tag.inactive {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* ============================================ */
-/* STALL RANK HEADERS                           */
-/* ============================================ */
-.stall-rank-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stall-rank-header-rank {
-  width: 24px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.stall-rank-header-name {
-  min-width: 120px;
-  flex: 1;
-}
-
-.stall-rank-header-revenue {
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-rank-header-status {
-  min-width: 80px;
-  text-align: center;
-}
-
-.stall-rank-header-details {
-  min-width: 60px;
-  text-align: center;
-}
-
-/* ============================================ */
 /* STALL RANK STATUS - PERFORMANCE BADGES      */
 /* ============================================ */
-.stall-rank-status {
-  min-width: 80px;
-  text-align: center;
-}
-
 .stall-rank-status .status-badge {
-  padding: 0.15rem 0.6rem;
+  padding: 0.1rem 0.5rem;
   border-radius: 20px;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -4163,202 +4147,4 @@ async loadMenuPerformance() {
   background: #f3f4f6;
   color: #6b7280;
 }
-
-/* ============================================ */
-/* STALL RANK HEADERS                           */
-/* ============================================ */
-.stall-rank-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* ============================================ */
-/* STALL RANK ITEMS                             */
-/* ============================================ */
-.stall-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 0.85rem;
-}
-
-.stall-rank-item:last-child {
-  border-bottom: none;
-}
-
-.stall-rank-item:hover {
-  background: var(--background);
-  transform: translateX(4px);
-}
-
-/* ✅ Column Definitions - Consistent widths */
-.stall-rank-header-rank,
-.stall-rank .stall-rank-number {
-  width: 28px;
-  flex-shrink: 0;
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.75rem;
-}
-
-.stall-rank-header-name,
-.stall-rank .stall-rank-name {
-  flex: 1;
-  min-width: 60px;
-  text-align: left;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-.stall-rank-header-revenue,
-.stall-rank-revenue {
-  min-width: 70px;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-/* ✅ Status column - fixed width */
-.stall-rank-header-status,
-.stall-rank-status {
-  min-width: 75px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* ✅ Details column - smaller, no truncation */
-.stall-rank-header-details,
-.stall-rank-click {
-  min-width: 45px;
-  text-align: center;
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-/* Status Badge */
-.stall-rank-status .status-badge {
-  padding: 0.1rem 0.4rem;
-  border-radius: 12px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-/* ✅ Revenue text - consistent size */
-.stall-rank-revenue {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* ✅ Rank number - consistent size */
-.stall-rank-number {
-  font-size: 0.75rem !important;
-}
-
-/* Rank bar */
-.stall-rank-bar {
-  flex: 2;
-  min-width: 60px;
-  height: 6px;
-  background: var(--background);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-rank-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--primary);
-}
-
-.stall-rank-fill.gold { background: #fbbf24; }
-.stall-rank-fill.silver { background: #d1d5db; }
-.stall-rank-fill.bronze { background: #f59e0b; }
-
-/* Rank classes */
-.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
-.stall-rank-number.silver { background: #d1d5db; color: #374151; }
-.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
-
-/* ============================================ */
-/* RESPONSIVE - FIX FOR MOBILE                  */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-rank-header {
-    font-size: 0.55rem;
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-  }
-  
-  .stall-rank-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    font-size: 0.75rem;
-    flex-wrap: nowrap;
-  }
-  
-  .stall-rank-header-rank,
-  .stall-rank .stall-rank-number {
-    width: 22px;
-    font-size: 0.65rem;
-  }
-  
-  .stall-rank-header-name,
-  .stall-rank .stall-rank-name {
-    min-width: 40px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-rank-header-revenue,
-  .stall-rank-revenue {
-    min-width: 55px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-rank-header-status,
-  .stall-rank-status {
-    min-width: 60px;
-  }
-  
-  .stall-rank-status .status-badge {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .stall-rank-header-details,
-  .stall-rank-click {
-    min-width: 35px;
-    font-size: 0.5rem;
-  }
-  
-  .stall-rank-bar {
-    min-width: 40px;
-    height: 4px;
-  }
-}
-
 </style>
