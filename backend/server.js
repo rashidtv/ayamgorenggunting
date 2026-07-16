@@ -2072,7 +2072,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
 });
 
 // ==================== STALL PERFORMANCE ====================
-// ==================== STALL PERFORMANCE ====================
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
     const { days, stallId, stallIds } = req.query;
@@ -2081,7 +2080,7 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
     startDate.setDate(startDate.getDate() - dayRange);
 
     // ============================================================
-    // NEW: Handle multiple stall IDs (comma-separated string)
+    // Handle multiple stall IDs (comma-separated string)
     // ============================================================
     if (stallIds) {
       const ids = stallIds.split(',').map(Number).filter(id => !isNaN(id));
@@ -2090,7 +2089,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
         return res.json([]);
       }
       
-      // Check access for each stall
       for (const id of ids) {
         const allowed = await userCanAccessStall(req.user.id, id);
         if (!allowed) {
@@ -2224,40 +2222,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
 
       return res.json(performance);
     }
-
-    // ============================================================
-    // CASHIER (Get only their assigned stall)
-    // ============================================================
-    if (req.user.role === 'cashier') {
-      const stallId = req.user.assigned_stalls?.[0]?.id;
-      
-      if (!stallId) {
-        return res.json([]);
-      }
-      
-      const result = await pool.query(`
-        SELECT 
-          s.id,
-          s.name,
-          s.is_active,
-          COALESCE(SUM(sales.price), 0) as revenue,
-          COUNT(sales.id) as items_sold,
-          COALESCE(AVG(sales.price), 0) as avg_transaction
-        FROM stalls s
-        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
-        WHERE s.id = $1
-        GROUP BY s.id, s.name, s.is_active
-      `, [stallId, startDate]);
-
-      return res.json(result.rows);
-    }
-
-    res.json([]);
-  } catch (err) {
-    console.error('Stall performance error:', err);
-    res.status(500).json({ error: 'Failed to fetch stall performance' });
-  }
-});
 
     // ============================================================
     // CASHIER (Get only their assigned stall)
