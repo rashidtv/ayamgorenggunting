@@ -194,51 +194,48 @@
           </div>
         </div>
 
-        <!-- Stall Performance - Clickable -->
         <div class="card-modern">
-          <div class="card-modern-header">
-            <div class="card-modern-header">
-  <div>
-    <h3>🏆 Stall Performance</h3>
-    <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
-  </div>
-  <!-- ✅ REMOVED duplicate period-tag -->
-</div>
-          <div class="card-modern-body">
-  <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-    <span>📊</span>
-    <p>No sales data available for {{ getPeriodLabel() }}</p>
-  </div>
-  <div 
-    v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-    :key="stall.id" 
-    class="stall-rank-item clickable-item"
-    @click="viewStallDetails(stall)"
-  >
-    <div class="stall-rank">
-      <span class="stall-rank-number" :class="getRankClass(index)">
-        {{ index + 1 }}
-      </span>
-      <span class="stall-rank-name">{{ stall.name }}</span>
+  <div class="card-modern-header">
+    <div>
+      <h3>🏆 Stall Performance</h3>
+      <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
     </div>
-    <div class="stall-rank-bar">
-      <div 
-        class="stall-rank-fill" 
-        :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-        :class="getRankClass(index)"
-      ></div>
+    <!-- ✅ REMOVED duplicate period-tag -->
+  </div>
+  <div class="card-modern-body">
+    <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+      <span>📊</span>
+      <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
-    <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-    <!-- ✅ ADDED: Status column -->
-    <span class="stall-rank-status">
-      <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
-        {{ stall.is_active ? 'Active' : 'Inactive' }}
+    <div 
+      v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+      :key="stall.id" 
+      class="stall-rank-item clickable-item"
+      @click="viewStallDetails(stall)"
+    >
+      <div class="stall-rank">
+        <span class="stall-rank-number" :class="getRankClass(index)">
+          {{ index + 1 }}
+        </span>
+        <span class="stall-rank-name">{{ stall.name }}</span>
+      </div>
+      <div class="stall-rank-bar">
+        <div 
+          class="stall-rank-fill" 
+          :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+          :class="getRankClass(index)"
+        ></div>
+      </div>
+      <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+      <span class="stall-rank-status">
+        <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
+          {{ stall.is_active ? 'Active' : 'Inactive' }}
+        </span>
       </span>
-    </span>
-    <span class="stall-rank-click">👆 Click for details</span>
+      <span class="stall-rank-click">👆 Click for details</span>
+    </div>
   </div>
 </div>
-        </div>
 
         <!-- Menu Performance - Clickable -->
         <div class="card-modern">
@@ -1069,7 +1066,7 @@ export default {
   this.$nextTick(() => {
     this.initStallDetailChart()
   })
-},,
+},
     closeStallDetailModal() {
       this.stallDetailModal = false
       this.selectedStall = null
