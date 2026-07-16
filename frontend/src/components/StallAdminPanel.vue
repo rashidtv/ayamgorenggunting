@@ -249,42 +249,59 @@
   </div>
 </div>
 
-        <!-- Menu Performance - Clickable -->
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>🍗 Menu Performance</h3>
-              <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
-            </div>
-          </div>
-          <div class="card-modern-body">
-            <div v-if="menuPerformance.length === 0" class="empty-state-modern">
-              <span>🍗</span>
-              <p>No sales data available for {{ getPeriodLabel() }}</p>
-            </div>
+        <!-- ===== MENU PERFORMANCE - MATCHES STALL PERFORMANCE ===== -->
+<div class="card-modern">
+  <div class="card-modern-header">
+    <div>
+      <h3>🍗 Menu Performance</h3>
+      <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
+    </div>
+  </div>
+  <div class="card-modern-body menu-performance-container">
+    <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+      <span>🍗</span>
+      <p>No sales data available for {{ getPeriodLabel() }}</p>
+    </div>
+    
+    <!-- ✅ Column Headers - Matches Stall Performance -->
+    <div v-else class="menu-rank-header">
+      <span class="menu-rank-header-name">Rank / Menu</span>
+      <span class="menu-rank-header-revenue">Revenue</span>
+      <span class="menu-rank-header-status">Status</span>
+      <span class="menu-rank-header-details">Details</span>
+    </div>
+    
+    <!-- ✅ Scrollable list -->
+    <div class="menu-rank-list">
+      <div 
+        v-for="(item, index) in menuPerformance.slice(0, 5)" 
+        :key="item.name" 
+        class="menu-rank-item clickable-item"
+        @click="viewMenuItemDetails(item)"
+      >
+        <div class="menu-rank">
+          <span class="menu-rank-number" :class="getRankClass(index)">
+            {{ index + 1 }}
+          </span>
+          <span class="menu-rank-name">{{ item.name }}</span>
+          <div class="menu-rank-bar">
             <div 
-              v-for="(item, index) in menuPerformance.slice(0, 5)" 
-              :key="item.name" 
-              class="menu-rank-item clickable-item"
-              @click="viewMenuItemDetails(item)"
-            >
-              <div class="menu-rank-info">
-                <span class="menu-rank-number">{{ index + 1 }}</span>
-                <span class="menu-rank-name">{{ item.name }}</span>
-                <span class="menu-rank-qty">{{ item.quantity }} sold</span>
-              </div>
-              <div class="menu-rank-bar">
-                <div 
-                  class="menu-rank-fill" 
-                  :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
-                ></div>
-              </div>
-              <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-              <span class="menu-rank-click">👆 Click for details</span>
-            </div>
+              class="menu-rank-fill" 
+              :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
+            ></div>
           </div>
         </div>
+        <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+        <span class="menu-rank-status">
+          <span :class="['status-badge', getMenuStatusClass(item.quantity)]">
+            {{ getMenuStatus(item.quantity) }}
+          </span>
+        </span>
+        <span class="menu-rank-click">👆</span>
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- ===== INVENTORY TAB ===== -->
       <div v-if="activeTab === 'inventory'" class="tab-panel">
@@ -716,35 +733,52 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- MENU ITEM DETAILS MODAL                     -->
-    <!-- ============================================ -->
-    <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
-          <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
+<!-- MENU ITEM DETAILS MODAL                     -->
+<!-- ============================================ -->
+<div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
+      <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Total Revenue</span>
+          <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
         </div>
-        <div class="modal-modern-body">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Total Revenue</span>
-              <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Quantity Sold</span>
-              <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Average Price</span>
-              <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
-            </div>
+        <div class="detail-item">
+          <span class="detail-label">Quantity Sold</span>
+          <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Average Price</span>
+          <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
+        </div>
+      </div>
+      
+      <!-- ✅ Top Selling Stall Breakdown -->
+      <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
+        <div class="stall-breakdown-title">🏆 Top Selling Stalls</div>
+        <div 
+          v-for="stall in selectedMenuItem.stallBreakdown" 
+          :key="stall.stallName"
+          class="stall-breakdown-item"
+        >
+          <span class="stall-breakdown-name">{{ stall.stallName }}</span>
+          <div class="stall-breakdown-bar">
+            <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
           </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
+          <span class="stall-breakdown-quantity">{{ stall.quantity }} sold</span>
+          <span class="stall-breakdown-percentage">{{ stall.percentage.toFixed(0) }}%</span>
         </div>
       </div>
     </div>
+    <div class="modal-modern-footer">
+      <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -998,6 +1032,79 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// MENU PERFORMANCE - STATUS METHODS
+// =============================================
+getMenuStatus(quantity) {
+  if (!quantity || quantity === 0) return 'No Sales'
+  if (quantity > 50) return 'Excellent'
+  if (quantity > 20) return 'Good'
+  if (quantity > 5) return 'Average'
+  return 'Poor'
+},
+
+getMenuStatusClass(quantity) {
+  if (!quantity || quantity === 0) return 'no-sales'
+  if (quantity > 50) return 'excellent'
+  if (quantity > 20) return 'good'
+  if (quantity > 5) return 'average'
+  return 'poor'
+},
+
+// =============================================
+// MENU ITEM DETAILS - WITH TOP STALL BREAKDOWN
+// =============================================
+async viewMenuItemDetails(item) {
+  this.selectedMenuItem = item
+  this.menuDetailModal = true
+  
+  // ✅ Fetch top selling stalls for this menu item
+  await this.fetchMenuTopStalls(item.name)
+},
+
+async fetchMenuTopStalls(itemName) {
+  try {
+    // ✅ Get sales data for this menu item across all stalls
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 : 365
+    
+    const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
+    
+    if (!stallIds || stallIds.length === 0) {
+      return
+    }
+    
+    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // ✅ Process stall breakdown data
+    const stallData = res.data || []
+    
+    // ✅ Calculate total quantity for percentage
+    const totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
+    
+    this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
+      stallName: stall.stall_name || 'Unknown',
+      quantity: parseInt(stall.quantity) || 0,
+      percentage: totalQuantity > 0 ? (stall.quantity / totalQuantity) * 100 : 0
+    })).sort((a, b) => b.quantity - a.quantity)
+    
+    this.selectedMenuItem.totalQuantity = totalQuantity
+    
+  } catch (err) {
+    console.error('Failed to fetch menu top stalls:', err)
+    this.selectedMenuItem.stallBreakdown = []
+  }
+},
+
+closeMenuDetailModal() {
+  this.menuDetailModal = false
+  this.selectedMenuItem = null
+},
     // =============================================
     // DROPDOWN METHODS
     // =============================================
@@ -4448,4 +4555,353 @@ async loadMenuPerformance() {
     min-width: 30px;
   }
 }
+
+/* ============================================ */
+/* MENU PERFORMANCE - MATCHES STALL PERF        */
+/* ============================================ */
+.menu-performance-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.menu-performance-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu-performance-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 2px;
+}
+
+.menu-performance-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.menu-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ----- HEADER ROW ----- */
+.menu-rank-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.menu-rank-header-name,
+.menu-rank-header-revenue,
+.menu-rank-header-status,
+.menu-rank-header-details {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ----- COLUMN WIDTHS ----- */
+.menu-rank-header-name {
+  flex: 2;
+  min-width: 120px;
+  text-align: left;
+}
+
+.menu-rank-header-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.menu-rank-header-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.menu-rank-header-details {
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ----- ITEM ROW ----- */
+.menu-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.85rem;
+}
+
+.menu-rank-item:last-child {
+  border-bottom: none;
+}
+
+.menu-rank-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+/* ----- RANK + NAME + BAR ----- */
+.menu-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 2;
+  min-width: 120px;
+}
+
+.menu-rank-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.menu-rank-number.gold { background: #fbbf24; color: #78350f; }
+.menu-rank-number.silver { background: #d1d5db; color: #374151; }
+.menu-rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+.menu-rank-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 60px;
+}
+
+/* ----- BAR ----- */
+.menu-rank-bar {
+  flex: 1;
+  min-width: 40px;
+  height: 6px;
+  background: var(--background);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.menu-rank-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+}
+
+/* ----- REVENUE ----- */
+.menu-rank-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ----- STATUS ----- */
+.menu-rank-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.menu-rank-status .status-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ----- DETAILS ----- */
+.menu-rank-click {
+  min-width: 30px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  transition: var(--transition);
+}
+
+.menu-rank-item:hover .menu-rank-click {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
+/* ============================================ */
+.stall-breakdown-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.stall-breakdown-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.stall-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.stall-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.stall-breakdown-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  min-width: 100px;
+}
+
+.stall-breakdown-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stall-breakdown-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--primary);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stall-breakdown-quantity {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 80px;
+  text-align: right;
+}
+
+.stall-breakdown-percentage {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .menu-rank-header {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  .menu-rank-header-name,
+  .menu-rank-header-revenue,
+  .menu-rank-header-status,
+  .menu-rank-header-details {
+    font-size: 0.55rem !important;
+  }
+  
+  .menu-rank-item {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+    font-size: 0.7rem;
+  }
+  
+  .menu-rank {
+    min-width: 70px;
+    gap: 0.3rem;
+  }
+  
+  .menu-rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .menu-rank-name {
+    font-size: 0.65rem;
+    min-width: 40px;
+  }
+  
+  .menu-rank-bar {
+    min-width: 30px;
+    height: 4px;
+  }
+  
+  .menu-rank-revenue {
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .menu-rank-status {
+    min-width: 55px;
+  }
+  
+  .menu-rank-status .status-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .menu-rank-click {
+    min-width: 25px;
+    font-size: 0.6rem;
+  }
+  
+  .menu-performance-container {
+    max-height: 300px;
+  }
+  
+  .stall-breakdown-name {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-quantity {
+    min-width: 50px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-breakdown-percentage {
+    min-width: 40px;
+    font-size: 0.6rem;
+  }
+}
+
 </style>

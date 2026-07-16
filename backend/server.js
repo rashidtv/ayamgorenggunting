@@ -1997,21 +1997,37 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
 // ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
-    const { days, stallId } = req.query;
+    const { days, stallId, itemName } = req.query;
     let dayRange = days ? parseInt(days) : 7;
-    
-    // ✅ FIX: Use calendar day for "Today" (days=1)
-    let startDate;
-    if (dayRange === 1) {
-      // "Today" – use calendar day (Malaysia timezone)
-      const now = new Date();
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-      malaysiaToday.setHours(0, 0, 0, 0);
-      startDate = malaysiaToday;
-    } else {
-      // Other periods – subtract days
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - dayRange);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - dayRange);
+
+    // ============================================================
+    // NEW: If itemName is provided, get breakdown by stall
+    // ============================================================
+    if (itemName) {
+      const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      
+      if (stallIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // ✅ Get all stalls that sold this menu item
+      const result = await pool.query(`
+        SELECT 
+          st.name as stall_name,
+          COUNT(*) as quantity,
+          COALESCE(SUM(s.price), 0) as revenue
+        FROM sales s
+        JOIN stalls st ON s.stall_id = st.id
+        WHERE s.item_name = $1 
+          AND s.stall_id = ANY($2::int[]) 
+          AND s.created_at >= $3
+        GROUP BY st.name
+        ORDER BY quantity DESC
+      `, [itemName, stallIds, startDate]);
+      
+      return res.json(result.rows);
     }
 
     // ============================================================
