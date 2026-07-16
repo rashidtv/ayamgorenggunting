@@ -1118,40 +1118,66 @@ closeStallDetailModal() {
   }
 },
 
-    initStallDetailChart() {
+initStallDetailChart() {
   if (!this.$refs.stallDetailChartRef) return
-  
+
   if (this.stallDetailChartInstance) {
     this.stallDetailChartInstance.dispose()
     this.stallDetailChartInstance = null
   }
-  
+
   this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-  
-  // ✅ Get sales data for this specific stall from the API
+
   const stallId = this.selectedStall?.id
-  
+
   if (!stallId) {
     console.warn('No stall ID found for detail chart')
     return
   }
-  
-  // ✅ Fetch actual data for this stall
+
   axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
     const data = response.data || {}
     const salesData = data.dailySales || []
-    
+
     const days = salesData.map(d => this.formatShortDate(d.date))
     const revenues = salesData.map(d => d.revenue || 0)
-    
+    const items = salesData.map(d => d.items || 0)
+
     const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
-    
+    const finalItems = items.length > 0 ? items : Array.from({length: 7}, () => 0)
+
     const option = {
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: {
+          color: '#1e293b',
+          fontSize: 12,  // ✅ Smaller font size
+          fontWeight: 400
+        },
+        // ✅ Custom formatter - shows only Revenue and Items Sold
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const revenue = finalRevenues[index] || 0
+          const itemsCount = finalItems[index] || 0
+          // ✅ Only show Revenue and Items Sold (no date)
+          return `
+            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+              RM ${revenue.toFixed(2)}
+            </div>
+            <div style="font-size:11px;color:#64748b;">
+              ${itemsCount} items sold
+            </div>
+          `
+        }
+      },
       grid: {
         left: '3%',
         right: '4%',
@@ -1163,15 +1189,30 @@ closeStallDetailModal() {
         type: 'category',
         data: finalDays,
         axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11 }
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500
+        }
       },
       yAxis: {
         type: 'value',
-        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        splitLine: { 
+          lineStyle: { 
+            color: '#f1f5f9', 
+            type: 'dashed' 
+          } 
+        },
         axisLabel: { 
           color: '#94a3b8', 
           fontSize: 11,
           formatter: (value) => 'RM' + value
+        },
+        name: 'Revenue (RM)',
+        nameTextStyle: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500
         }
       },
       series: [{
@@ -1191,7 +1232,7 @@ closeStallDetailModal() {
         }
       }]
     }
-    
+
     this.stallDetailChartInstance.setOption(option)
     this.stallDetailChartInstance.resize()
   })
