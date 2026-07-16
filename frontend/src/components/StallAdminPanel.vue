@@ -203,37 +203,46 @@
     <!-- ✅ REMOVED duplicate period-tag -->
   </div>
   <div class="card-modern-body">
-    <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-      <span>📊</span>
-      <p>No sales data available for {{ getPeriodLabel() }}</p>
-    </div>
-    <div 
-      v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-      :key="stall.id" 
-      class="stall-rank-item clickable-item"
-      @click="viewStallDetails(stall)"
-    >
-      <div class="stall-rank">
-        <span class="stall-rank-number" :class="getRankClass(index)">
-          {{ index + 1 }}
-        </span>
-        <span class="stall-rank-name">{{ stall.name }}</span>
-      </div>
-      <div class="stall-rank-bar">
-        <div 
-          class="stall-rank-fill" 
-          :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-          :class="getRankClass(index)"
-        ></div>
-      </div>
-      <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-      <span class="stall-rank-status">
-        <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
-          {{ stall.is_active ? 'Active' : 'Inactive' }}
-        </span>
+  <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+    <span>📊</span>
+    <p>No sales data available for {{ getPeriodLabel() }}</p>
+  </div>
+  
+  <!-- ✅ ADDED: Column Headers -->
+  <div class="stall-rank-header">
+    <span class="stall-rank-header-rank">Rank</span>
+    <span class="stall-rank-header-name">Stall</span>
+    <span class="stall-rank-header-revenue">Revenue</span>
+    <span class="stall-rank-header-status">Status</span>
+    <span class="stall-rank-header-details">Details</span>
+  </div>
+  
+  <div 
+    v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+    :key="stall.id" 
+    class="stall-rank-item clickable-item"
+    @click="viewStallDetails(stall)"
+  >
+    <div class="stall-rank">
+      <span class="stall-rank-number" :class="getRankClass(index)">
+        {{ index + 1 }}
       </span>
-      <span class="stall-rank-click">👆 Click for details</span>
+      <span class="stall-rank-name">{{ stall.name }}</span>
     </div>
+    <div class="stall-rank-bar">
+      <div 
+        class="stall-rank-fill" 
+        :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+        :class="getRankClass(index)"
+      ></div>
+    </div>
+    <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+    <span class="stall-rank-status">
+      <span :class="['status-badge', getStallStatusClass(stall)]">
+        {{ getStallStatus(stall) }}
+      </span>
+    </span>
+    <span class="stall-rank-click">👆 Click for details</span>
   </div>
 </div>
 
@@ -671,32 +680,32 @@
         </div>
         <div class="modal-modern-body">
           <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Revenue</span>
-              <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Items Sold</span>
-              <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Avg Transaction</span>
-              <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value">
-                <span :class="['status-badge', getStallStatusClass(selectedStall)]">
-                  {{ getStallStatus(selectedStall) }}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div class="detail-chart-container">
-            <h4>Sales Trend</h4>
-            <div ref="stallDetailChartRef" class="detail-chart"></div>
-          </div>
-        </div>
+    <div class="detail-item">
+      <span class="detail-label">Revenue</span>
+      <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Items Sold</span>
+      <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Avg Transaction</span>
+      <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Status</span>
+      <span class="detail-value">
+        <span :class="['status-badge', getStallStatusClass(selectedStall)]">
+          {{ getStallStatus(selectedStall) }}
+        </span>
+      </span>
+    </div>
+  </div>
+  <div class="detail-chart-container">
+    <h4>Sales Trend</h4>
+    <div ref="stallDetailChartRef" class="detail-chart"></div>
+  </div>
+</div>
         <div class="modal-modern-footer">
           <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
         </div>
@@ -1055,18 +1064,47 @@ export default {
     // =============================================
     // STALL DETAILS
     // =============================================
-    viewStallDetails(stall) {
+   viewStallDetails(stall) {
   // ✅ Use the actual stall data passed from the performance list
   this.selectedStall = stall
   this.stallDetailModal = true
-  
-  // ✅ Store the stall ID for chart data
   this.selectedStallId = stall.id
+  
+  // ✅ Fetch full stall data including items and avg transaction
+  this.fetchStallDetails(stall.id)
   
   this.$nextTick(() => {
     this.initStallDetailChart()
   })
 },
+
+async fetchStallDetails(stallId) {
+  try {
+    // ✅ Fetch detailed data for this specific stall
+    const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    const data = res.data || {}
+    
+    // ✅ Update selectedStall with the detailed data
+    if (data && data.length > 0) {
+      const stallData = data[0]
+      this.selectedStall.items = parseInt(stallData.items_sold) || 0
+      this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
+      this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
+    }
+    
+    // ✅ Also update the stallPerformance array
+    const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
+    if (stallIndex !== -1) {
+      this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
+    }
+    
+  } catch (err) {
+    console.error('Failed to fetch stall details:', err)
+  }
+}
     closeStallDetailModal() {
       this.stallDetailModal = false
       this.selectedStall = null
@@ -3983,6 +4021,95 @@ async loadMenuPerformance() {
 .stall-rank-status .status-tag.inactive {
   background: #fee2e2;
   color: #dc2626;
+}
+
+/* ============================================ */
+/* STALL RANK HEADERS                           */
+/* ============================================ */
+.stall-rank-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stall-rank-header-rank {
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.stall-rank-header-name {
+  min-width: 120px;
+  flex: 1;
+}
+
+.stall-rank-header-revenue {
+  min-width: 80px;
+  text-align: right;
+}
+
+.stall-rank-header-status {
+  min-width: 80px;
+  text-align: center;
+}
+
+.stall-rank-header-details {
+  min-width: 60px;
+  text-align: center;
+}
+
+/* ============================================ */
+/* STALL RANK STATUS - PERFORMANCE BADGES      */
+/* ============================================ */
+.stall-rank-status {
+  min-width: 80px;
+  text-align: center;
+}
+
+.stall-rank-status .status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+}
+
+/* Performance Status Colors */
+.status-badge.excellent {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.good {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-badge.average {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.poor {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.no-sales {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 </style>
