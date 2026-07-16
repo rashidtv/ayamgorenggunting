@@ -1719,18 +1719,18 @@ async loadSalesAnalytics() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Get stall ID from multiple sources
+    // ✅ Get stall ID from multiple sources with proper fallbacks
     let stallId = null
     
-    // 1. Try from authStore
+    // Source 1: From authStore (logged-in user)
     if (this.authStore?.user?.assigned_stalls?.length > 0) {
       stallId = this.authStore.user.assigned_stalls[0].id
     }
-    // 2. Try from stalls array (already loaded)
+    // Source 2: From the stalls array (already loaded in component)
     else if (this.stalls?.length > 0) {
       stallId = this.stalls[0].id
     }
-    // 3. Try from localStorage
+    // Source 3: From localStorage (persisted user data)
     else {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
@@ -1739,19 +1739,28 @@ async loadSalesAnalytics() {
           if (user?.assigned_stalls?.length > 0) {
             stallId = user.assigned_stalls[0].id
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to parse user from localStorage:', e)
+        }
       }
     }
     
+    // If still no stallId, try to get it from the backend
     if (!stallId) {
-      console.warn('⚠️ No stall ID found for sales analytics')
-      this.salesTrend = []
-      return
+      console.warn('⚠️ No stall ID found in any source, trying to fetch from backend')
+      // The backend will use the user's first assigned stall if no stallId is passed
+      // So we can still call the API without stallId
     }
     
-    console.log('📊 Fetching sales analytics for stall:', stallId)
+    console.log('📊 Fetching sales analytics for stall:', stallId || 'default')
     
-    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}&stallId=${stallId}`, {
+    // ✅ Build URL with or without stallId
+    let url = `${API_BASE}/sales-analytics?days=${apiDays}`
+    if (stallId) {
+      url += `&stallId=${stallId}`
+    }
+    
+    const res = await axios.get(url, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     const data = res.data || {}
@@ -1773,6 +1782,7 @@ async loadSalesAnalytics() {
     
     this.salesTrend = dailySales
     
+    // ✅ Calculate KPI stats
     const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
     const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
     
@@ -1786,6 +1796,7 @@ async loadSalesAnalytics() {
     
     this.productSales = data.productSales || {}
     
+    // ✅ Load menu performance after sales data is loaded
     await this.loadMenuPerformance()
   } catch (err) {
     console.error('Failed to load sales analytics:', err)
@@ -1874,15 +1885,15 @@ async loadMenuPerformance() {
     // ✅ Get stall ID from multiple sources
     let stallId = null
     
-    // 1. Try from authStore
+    // Source 1: From authStore
     if (this.authStore?.user?.assigned_stalls?.length > 0) {
       stallId = this.authStore.user.assigned_stalls[0].id
     }
-    // 2. Try from stalls array (already loaded)
+    // Source 2: From the stalls array
     else if (this.stalls?.length > 0) {
       stallId = this.stalls[0].id
     }
-    // 3. Try from localStorage
+    // Source 3: From localStorage
     else {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
@@ -1891,27 +1902,36 @@ async loadMenuPerformance() {
           if (user?.assigned_stalls?.length > 0) {
             stallId = user.assigned_stalls[0].id
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to parse user from localStorage:', e)
+        }
       }
     }
     
-    if (!stallId) {
-      console.warn('⚠️ No stall ID found for menu performance')
-      this.menuPerformance = []
-      return
+    // ✅ If we have a stallId, fetch menu performance
+    if (stallId) {
+      console.log('📊 Fetching menu performance for stall:', stallId)
+      
+      const res = await axios.get(`${API_BASE}/menu-performance?days=7&stallId=${stallId}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      
+      this.menuPerformance = (res.data || []).map(item => ({
+        name: item.item_name,
+        quantity: parseInt(item.quantity) || 0,
+        revenue: parseFloat(item.revenue) || 0
+      })).sort((a, b) => b.quantity - a.quantity)
+    } else {
+      // ✅ If no stallId, use the productSales data from sales analytics
+      const productSales = this.productSales || {}
+      this.menuPerformance = Object.keys(productSales).map(name => ({
+        name: name,
+        quantity: parseInt(productSales[name].quantity) || 0,
+        revenue: parseFloat(productSales[name].revenue) || 0
+      })).sort((a, b) => b.quantity - a.quantity)
+      
+      console.log('📊 Using productSales for menu performance:', this.menuPerformance.length)
     }
-    
-    console.log('📊 Fetching menu performance for stall:', stallId)
-    
-    const res = await axios.get(`${API_BASE}/menu-performance?days=7&stallId=${stallId}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    this.menuPerformance = (res.data || []).map(item => ({
-      name: item.item_name,
-      quantity: parseInt(item.quantity) || 0,
-      revenue: parseFloat(item.revenue) || 0
-    })).sort((a, b) => b.quantity - a.quantity)
   } catch (err) {
     console.error('Failed to load menu performance:', err)
     this.menuPerformance = []

@@ -1966,19 +1966,19 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
 });
 
 // ==================== MENU PERFORMANCE ====================
+// ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
     const { days, stallId } = req.query;
     let dayRange = days ? parseInt(days) : 7;
-    let targetStallId = stallId ? parseInt(stallId) : null;
-    
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dayRange);
-    
+
     // ============================================================
-    // If a specific stallId is provided
+    // If stallId is provided, get data for that specific stall
     // ============================================================
-    if (targetStallId) {
+    if (stallId) {
+      const targetStallId = parseInt(stallId);
       const allowed = await userCanAccessStall(req.user.id, targetStallId);
       if (!allowed) {
         return res.status(403).json({ error: 'Access denied' });
@@ -2023,7 +2023,7 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
     }
 
     // ============================================================
-    // STALL ADMIN (Get their assigned stalls)
+    // STALL ADMIN (No specific stallId, get all their assigned stalls)
     // ============================================================
     if (req.user.role === 'stall_admin') {
       const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
