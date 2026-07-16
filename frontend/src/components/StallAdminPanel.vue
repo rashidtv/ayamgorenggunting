@@ -827,7 +827,6 @@ export default {
 
   data() {
     return {
-      // ===== TABS - NO MENU CRUD, NO REGISTRATIONS, NO COMPANIES =====
       activeTab: 'dashboard',
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -837,14 +836,12 @@ export default {
         { id: 'menu-assignment', label: 'Menu Assignment', icon: '📋' }
       ],
       
-      // Chart settings
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
       chartInstance: null,
       isChartInitialized: false,
       
-      // Data
       dropdownOpen: false,
       periodDropdownOpen: false,
       stalls: [],
@@ -871,28 +868,23 @@ export default {
         { value: 'year', label: 'Year' }
       ],
       
-      // Detail Modals
       stallDetailModal: false,
       selectedStall: null,
       menuDetailModal: false,
       selectedMenuItem: null,
       stallDetailChartInstance: null,
       
-      // Inventory
       expandedInventoryStall: null,
       stallInventory: {},
       inventorySearch: '',
       inventoryFilter: 'all',
       
-      // Stalls tab
       stallSearch: '',
       stallStatusFilter: 'all',
       
-      // Users tab
       userSearch: '',
       userRoleFilter: 'all',
       
-      // Modals
       userModal: false,
       editingUser: false,
       userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
@@ -903,7 +895,6 @@ export default {
       exporting: false,
       resizeObserver: null,
 
-      // Menu Assignment
       selectedAssignmentStall: null,
       menuAssignments: {},
       originalMenuAssignments: {},
@@ -958,11 +949,9 @@ export default {
     },
     filteredUsersList() {
   return this.users.filter(user => {
-    // ✅ Only show stall_admin and cashier (hide super_admin and super_super_admin)
     if (user.role === 'super_admin' || user.role === 'super_super_admin') {
       return false;
     }
-    
     const search = this.userSearch.toLowerCase();
     const matchesSearch = user.username.toLowerCase().includes(search) ||
                           (user.full_name && user.full_name.toLowerCase().includes(search));
@@ -1040,7 +1029,7 @@ export default {
 
   methods: {
 
-    // =============================================
+// =============================================
 // MENU PERFORMANCE - STATUS METHODS
 // =============================================
 getMenuStatus(quantity) {
@@ -1065,7 +1054,6 @@ getMenuStatusClass(quantity) {
 async viewMenuItemDetails(item) {
   console.log('🍗 Viewing menu item:', item.name)
   
-  // ✅ Reset selectedMenuItem
   this.selectedMenuItem = {
     ...item,
     stallBreakdown: [],
@@ -1073,7 +1061,6 @@ async viewMenuItemDetails(item) {
   }
   this.menuDetailModal = true
   
-  // ✅ Fetch top selling stalls
   await this.fetchMenuTopStalls(item.name)
 },
 
@@ -1086,7 +1073,6 @@ async fetchMenuTopStalls(itemName) {
     
     console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
     
-    // ✅ Get stall IDs from authStore or stalls array
     const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
     
     if (!stallIds || stallIds.length === 0) {
@@ -1124,6 +1110,7 @@ closeMenuDetailModal() {
   this.menuDetailModal = false
   this.selectedMenuItem = null
 },
+
     // =============================================
     // DROPDOWN METHODS
     // =============================================
@@ -1194,12 +1181,10 @@ closeMenuDetailModal() {
 // STALL DETAILS
 // =============================================
 viewStallDetails(stall) {
-  // ✅ Use the actual stall data passed from the performance list
   this.selectedStall = stall
   this.stallDetailModal = true
   this.selectedStallId = stall.id
   
-  // ✅ Fetch full stall data including items and avg transaction
   this.fetchStallDetails(stall.id)
   
   this.$nextTick(() => {
@@ -1209,14 +1194,12 @@ viewStallDetails(stall) {
 
 async fetchStallDetails(stallId) {
   try {
-    // ✅ Fetch detailed data for this specific stall
     const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
     const data = res.data || {}
     
-    // ✅ Update selectedStall with the detailed data
     if (data && data.length > 0) {
       const stallData = data[0]
       this.selectedStall.items = parseInt(stallData.items_sold) || 0
@@ -1224,7 +1207,6 @@ async fetchStallDetails(stallId) {
       this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
     }
     
-    // ✅ Also update the stallPerformance array
     const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
     if (stallIndex !== -1) {
       this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
@@ -1290,7 +1272,6 @@ initStallDetailChart() {
         },
         formatter: function(params) {
           const index = params[0]?.dataIndex || 0
-          // ✅ Convert to number and handle null/undefined
           const revenue = parseFloat(finalRevenues[index]) || 0
           const itemsCount = parseInt(finalItems[index]) || 0
           return `
@@ -1365,18 +1346,6 @@ initStallDetailChart() {
     console.error('Failed to load stall detail chart data:', err)
   })
 },
-    
-    // =============================================
-    // MENU ITEM DETAILS
-    // =============================================
-    viewMenuItemDetails(item) {
-      this.selectedMenuItem = item
-      this.menuDetailModal = true
-    },
-    closeMenuDetailModal() {
-      this.menuDetailModal = false
-      this.selectedMenuItem = null
-    },
     
     // =============================================
     // HELPER: Get today's date in Malaysia timezone
@@ -1671,15 +1640,12 @@ initStallDetailChart() {
   this.savedAssignmentMessage = ''
   
   try {
-    // Load all menu items
     await this.loadMenuItems()
     
-    // Load current assignments for the selected stall
     const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // ✅ Build assignment map - only selected items should be true
     const assignedItems = res.data || []
     console.log('📝 Currently assigned items:', assignedItems)
     
@@ -1690,7 +1656,6 @@ initStallDetailChart() {
     
     console.log('📝 Menu assignments map:', this.menuAssignments)
     
-    // Save original state for reset
     this.originalMenuAssignments = { ...this.menuAssignments }
     
   } catch (err) {
@@ -1708,7 +1673,6 @@ initStallDetailChart() {
   this.savedAssignmentMessage = ''
   
   try {
-    // ✅ FIX: Only get selected items (where value is true)
     const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
     
     console.log('📝 Saving assignments for stall:', this.selectedAssignmentStall)
@@ -1721,7 +1685,6 @@ initStallDetailChart() {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // Save original state
     this.originalMenuAssignments = { ...this.menuAssignments }
     
     this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
@@ -1891,17 +1854,14 @@ initStallDetailChart() {
     },
     async loadData() {
   try {
-    // ✅ Load all data in parallel
     await Promise.all([
       this.loadStalls(),
       this.loadUsers(),
       this.loadLowStock(),
-      this.loadSalesAnalytics(),  // This internally calls loadMenuPerformance
+      this.loadSalesAnalytics(),
       this.loadStallPerformance(),
       this.loadMenuItems()
     ])
-    // ✅ loadMenuPerformance is already called inside loadSalesAnalytics
-    // No need to call it again here
     
     await this.loadAllStallsInventory()
     this.resetChartNavigation()
@@ -1969,7 +1929,6 @@ async loadSalesAnalytics() {
     })
     const data = res.data || {}
     
-    // ✅ Debug: log what the backend returned
     console.log('📊 Backend productSales:', Object.keys(data.productSales || {}).length)
     
     let dailySales = (data.dailySales || []).map(day => ({
@@ -2023,18 +1982,14 @@ async loadStallPerformance() {
   const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
-    // ✅ Get all stall IDs from multiple sources
     let stallIds = []
     
-    // 1. Try from authStore
     if (this.authStore?.user?.assigned_stalls?.length > 0) {
       stallIds = this.authStore.user.assigned_stalls.map(s => s.id)
     }
-    // 2. Try from stalls array (already loaded)
     else if (this.stalls?.length > 0) {
       stallIds = this.stalls.map(s => s.id)
     }
-    // 3. Try from localStorage
     else {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
@@ -2091,7 +2046,6 @@ async loadMenuPerformance() {
     
     console.log('📊 productSales keys:', Object.keys(productSales).length)
     
-    // ✅ Filter items with actual sales
     const filteredItems = Object.keys(productSales)
       .filter(name => {
         const item = productSales[name]
@@ -2106,21 +2060,18 @@ async loadMenuPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ If we have filtered items, use them
     if (filteredItems.length > 0) {
       this.menuPerformance = filteredItems
       console.log('📊 Menu performance (filtered):', this.menuPerformance.length, 'items')
       return
     }
     
-    // ✅ If productSales exists but all items have zero sales, show empty
     if (Object.keys(productSales).length > 0) {
       console.log('📊 productSales exists but all items have zero sales')
       this.menuPerformance = []
       return
     }
     
-    // ✅ Fallback to API with proper filtering
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
@@ -2132,7 +2083,6 @@ async loadMenuPerformance() {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // ✅ Filter API results too
     this.menuPerformance = (res.data || [])
       .filter(item => {
         const quantity = parseInt(item.quantity) || 0
@@ -4579,7 +4529,7 @@ async loadMenuPerformance() {
 /* MENU PERFORMANCE - MATCHES STALL PERF        */
 /* ============================================ */
 .menu-performance-container {
-  max-height: 350px;  /* ✅ Limits height, enables scroll */
+  max-height: 350px;
   overflow-y: auto;
   padding-right: 4px;
 }
