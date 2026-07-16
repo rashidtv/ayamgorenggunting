@@ -202,47 +202,49 @@
       <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
     </div>
   </div>
-  <div class="card-modern-body">
+  <div class="card-modern-body stall-performance-container">
     <div v-if="stallPerformance.length === 0" class="empty-state-modern">
       <span>📊</span>
       <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
     
-    <!-- ✅ Column Headers - MATCHES items structure -->
+    <!-- ✅ Column Headers - "Rank / Stall" as ONE header -->
     <div v-else class="stall-rank-header">
-      <span class="stall-rank-header-rank">Rank</span>
-      <span class="stall-rank-header-name">Stall</span>
+      <span class="stall-rank-header-rank">Rank / Stall</span>
       <span class="stall-rank-header-revenue">Revenue</span>
       <span class="stall-rank-header-status">Status</span>
       <span class="stall-rank-header-details">Details</span>
     </div>
     
-    <div 
-      v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-      :key="stall.id" 
-      class="stall-rank-item clickable-item"
-      @click="viewStallDetails(stall)"
-    >
-      <div class="stall-rank">
-        <span class="stall-rank-number" :class="getRankClass(index)">
-          {{ index + 1 }}
+    <!-- ✅ Scrollable list -->
+    <div class="stall-rank-list">
+      <div 
+        v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+        :key="stall.id" 
+        class="stall-rank-item clickable-item"
+        @click="viewStallDetails(stall)"
+      >
+        <div class="stall-rank">
+          <span class="stall-rank-number" :class="getRankClass(index)">
+            {{ index + 1 }}
+          </span>
+          <span class="stall-rank-name">{{ stall.name }}</span>
+        </div>
+        <div class="stall-rank-bar">
+          <div 
+            class="stall-rank-fill" 
+            :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+            :class="getRankClass(index)"
+          ></div>
+        </div>
+        <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+        <span class="stall-rank-status">
+          <span :class="['status-badge', getStallStatusClass(stall)]">
+            {{ getStallStatus(stall) }}
+          </span>
         </span>
-        <span class="stall-rank-name">{{ stall.name }}</span>
+        <span class="stall-rank-click">👆</span>
       </div>
-      <div class="stall-rank-bar">
-        <div 
-          class="stall-rank-fill" 
-          :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-          :class="getRankClass(index)"
-        ></div>
-      </div>
-      <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-      <span class="stall-rank-status">
-        <span :class="['status-badge', getStallStatusClass(stall)]">
-          {{ getStallStatus(stall) }}
-        </span>
-      </span>
-      <span class="stall-rank-click">👆</span>
     </div>
   </div>
 </div>
@@ -4108,6 +4110,302 @@ async loadMenuPerformance() {
   
   .dropdown-label {
     font-size: 0.8rem;
+  }
+}
+
+/* ============================================ */
+/* STALL PERFORMANCE - SCROLLABLE CONTAINER    */
+/* ============================================ */
+.stall-performance-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Custom scrollbar styling */
+.stall-performance-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stall-performance-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 2px;
+}
+
+.stall-performance-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.stall-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ============================================ */
+/* STALL RANK HEADERS - UPDATED                */
+/* ============================================ */
+.stall-rank-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ✅ ALL HEADERS SAME FONT SIZE */
+.stall-rank-header-rank,
+.stall-rank-header-revenue,
+.stall-rank-header-status,
+.stall-rank-header-details {
+  font-size: 0.6rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ----- COLUMN WIDTHS (HEADERS & ITEMS MATCH) ----- */
+.stall-rank-header-rank {
+  flex: 2;
+  min-width: 100px;
+  text-align: left;
+}
+
+.stall-rank-header-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.stall-rank-header-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stall-rank-header-details {
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ----- ITEM ROW ----- */
+.stall-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.85rem;
+}
+
+.stall-rank-item:last-child {
+  border-bottom: none;
+}
+
+.stall-rank-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+/* ----- RANK + STALL ----- */
+.stall-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 2;
+  min-width: 100px;
+}
+
+.stall-rank-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.stall-rank-number.gold { background: #fbbf24; color: #78350f; }
+.stall-rank-number.silver { background: #d1d5db; color: #374151; }
+.stall-rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+.stall-rank-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- REVENUE BAR ----- */
+.stall-rank-bar {
+  flex: 1.5;
+  min-width: 40px;
+  height: 6px;
+  background: var(--background);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stall-rank-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--primary);
+}
+
+.stall-rank-fill.gold { background: #fbbf24; }
+.stall-rank-fill.silver { background: #d1d5db; }
+.stall-rank-fill.bronze { background: #f59e0b; }
+
+/* ----- REVENUE ----- */
+.stall-rank-revenue {
+  min-width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ----- STATUS ----- */
+.stall-rank-status {
+  min-width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stall-rank-status .status-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ----- DETAILS ----- */
+.stall-rank-click {
+  min-width: 30px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  transition: var(--transition);
+}
+
+.stall-rank-item:hover .stall-rank-click {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE FIX                     */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-rank-header {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  /* ✅ ALL HEADERS SAME SIZE IN RESPONSIVE - FORCED */
+  .stall-rank-header-rank,
+  .stall-rank-header-revenue,
+  .stall-rank-header-status,
+  .stall-rank-header-details {
+    font-size: 0.55rem !important;
+    letter-spacing: 0.2px;
+  }
+  
+  .stall-rank-item {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+    font-size: 0.7rem;
+  }
+  
+  .stall-rank {
+    min-width: 60px;
+    gap: 0.3rem;
+  }
+  
+  .stall-rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-rank-name {
+    font-size: 0.65rem;
+    min-width: 30px;
+  }
+  
+  .stall-rank-revenue {
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .stall-rank-status {
+    min-width: 55px;
+  }
+  
+  .stall-rank-status .status-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .stall-rank-click {
+    min-width: 25px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-rank-bar {
+    min-width: 30px;
+    height: 4px;
+  }
+
+  /* ✅ Scroll container for mobile */
+  .stall-performance-container {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stall-rank-header-rank {
+    min-width: 70px;
+  }
+  
+  .stall-rank-header-revenue {
+    min-width: 50px;
+  }
+  
+  .stall-rank-header-status {
+    min-width: 50px;
+  }
+  
+  .stall-rank-header-details {
+    min-width: 30px;
   }
 }
 </style>
