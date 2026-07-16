@@ -60,7 +60,17 @@
       </div>
     </div>
 
+
+
     <!-- ============================================ -->
+    <!-- TAB CONTENT                                 -->
+    <!-- ============================================ -->
+    <div class="tab-content">
+      
+      <!-- ===== DASHBOARD TAB ===== -->
+      <div v-if="activeTab === 'dashboard'" class="tab-panel">
+        
+            <!-- ============================================ -->
     <!-- STATS CARDS                                  -->
     <!-- ============================================ -->
     <div class="stats-grid">
@@ -93,14 +103,6 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- TAB CONTENT                                 -->
-    <!-- ============================================ -->
-    <div class="tab-content">
-      
-      <!-- ===== DASHBOARD TAB ===== -->
-      <div v-if="activeTab === 'dashboard'" class="tab-panel">
-        
         <!-- KPI Cards -->
         <div class="kpi-grid">
           <div class="kpi-card">
