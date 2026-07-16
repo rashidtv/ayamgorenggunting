@@ -732,7 +732,7 @@
       </div>
     </div>
 
-    <!-- ============================================ -->
+<!-- ============================================ -->
 <!-- MENU ITEM DETAILS MODAL                     -->
 <!-- ============================================ -->
 <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
@@ -772,6 +772,12 @@
           <span class="stall-breakdown-quantity">{{ stall.quantity }} sold</span>
           <span class="stall-breakdown-percentage">{{ stall.percentage.toFixed(0) }}%</span>
         </div>
+      </div>
+      
+      <!-- ✅ Show message if no breakdown -->
+      <div v-else-if="selectedMenuItem?.stallBreakdown?.length === 0" class="empty-state-modern">
+        <span>📊</span>
+        <p>No stall sales data available for this menu item</p>
       </div>
     </div>
     <div class="modal-modern-footer">
@@ -1057,24 +1063,34 @@ getMenuStatusClass(quantity) {
 // MENU ITEM DETAILS - WITH TOP STALL BREAKDOWN
 // =============================================
 async viewMenuItemDetails(item) {
-  this.selectedMenuItem = item
+  console.log('🍗 Viewing menu item:', item.name)
+  
+  // ✅ Reset selectedMenuItem
+  this.selectedMenuItem = {
+    ...item,
+    stallBreakdown: [],
+    totalQuantity: 0
+  }
   this.menuDetailModal = true
   
-  // ✅ Fetch top selling stalls for this menu item
+  // ✅ Fetch top selling stalls
   await this.fetchMenuTopStalls(item.name)
 },
 
 async fetchMenuTopStalls(itemName) {
   try {
-    // ✅ Get sales data for this menu item across all stalls
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
                  this.selectedPeriod === 'quarter' ? 90 : 365
     
+    console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
+    
+    // ✅ Get stall IDs from authStore or stalls array
     const stallIds = this.authStore?.user?.assigned_stalls?.map(s => s.id) || this.stalls.map(s => s.id)
     
     if (!stallIds || stallIds.length === 0) {
+      console.warn('⚠️ No stall IDs found')
       return
     }
     
@@ -1082,22 +1098,24 @@ async fetchMenuTopStalls(itemName) {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // ✅ Process stall breakdown data
-    const stallData = res.data || []
+    console.log('📊 API response:', res.data)
     
-    // ✅ Calculate total quantity for percentage
+    const stallData = res.data || []
     const totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
     
     this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
       stallName: stall.stall_name || 'Unknown',
       quantity: parseInt(stall.quantity) || 0,
+      revenue: parseFloat(stall.revenue) || 0,
       percentage: totalQuantity > 0 ? (stall.quantity / totalQuantity) * 100 : 0
     })).sort((a, b) => b.quantity - a.quantity)
     
     this.selectedMenuItem.totalQuantity = totalQuantity
     
+    console.log('📊 Processed breakdown:', this.selectedMenuItem.stallBreakdown)
+    
   } catch (err) {
-    console.error('Failed to fetch menu top stalls:', err)
+    console.error('❌ Failed to fetch top stalls:', err)
     this.selectedMenuItem.stallBreakdown = []
   }
 },
@@ -4561,23 +4579,28 @@ async loadMenuPerformance() {
 /* MENU PERFORMANCE - MATCHES STALL PERF        */
 /* ============================================ */
 .menu-performance-container {
-  max-height: 400px;
+  max-height: 350px;  /* ✅ Limits height, enables scroll */
   overflow-y: auto;
   padding-right: 4px;
 }
 
+.menu-performance-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
 .menu-performance-container::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .menu-performance-container::-webkit-scrollbar-track {
   background: var(--background);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .menu-performance-container::-webkit-scrollbar-thumb {
   background: var(--primary);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .menu-rank-list {
@@ -4613,26 +4636,38 @@ async loadMenuPerformance() {
 /* ----- COLUMN WIDTHS ----- */
 .menu-rank-header-name {
   flex: 2;
-  min-width: 120px;
+  min-width: 100px;
   text-align: left;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .menu-rank-header-revenue {
   min-width: 70px;
   text-align: right;
   flex-shrink: 0;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .menu-rank-header-status {
   min-width: 75px;
   text-align: center;
   flex-shrink: 0;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .menu-rank-header-details {
   min-width: 45px;
   text-align: center;
   flex-shrink: 0;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* ----- ITEM ROW ----- */
@@ -4662,7 +4697,7 @@ async loadMenuPerformance() {
   align-items: center;
   gap: 0.5rem;
   flex: 2;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .menu-rank-number {
@@ -4746,12 +4781,11 @@ async loadMenuPerformance() {
 
 /* ----- DETAILS ----- */
 .menu-rank-click {
-  min-width: 30px;
+  min-width: 45px;
   text-align: center;
   flex-shrink: 0;
   font-size: 0.7rem;
   color: var(--text-tertiary);
-  transition: var(--transition);
 }
 
 .menu-rank-item:hover .menu-rank-click {
