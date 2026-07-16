@@ -5111,13 +5111,17 @@ async loadMenuPerformance() {
 /* ============================================ */
 .menu-performance-table-container {
   padding: 0.5rem;
-  max-height: 450px;
+  max-height: 380px;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
 }
 
-/* Scrollbar */
 .menu-performance-table-container::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
+  display: block !important;
 }
 
 .menu-performance-table-container::-webkit-scrollbar-track {
@@ -5128,11 +5132,6 @@ async loadMenuPerformance() {
 .menu-performance-table-container::-webkit-scrollbar-thumb {
   background: var(--primary);
   border-radius: 3px;
-}
-
-.menu-performance-table-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--background);
 }
 
 /* Table Wrapper */
@@ -5156,6 +5155,7 @@ async loadMenuPerformance() {
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  flex-shrink: 0;
 }
 
 .menu-table-header-rank {
@@ -5194,11 +5194,12 @@ async loadMenuPerformance() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
   transition: var(--transition);
+  flex-shrink: 0;
 }
 
 .menu-table-row:hover {
@@ -5291,31 +5292,11 @@ async loadMenuPerformance() {
   white-space: nowrap;
 }
 
-/* Status Colors - Matches getMenuStatusClass */
-.status-indicator.excellent {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.status-indicator.good {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.status-indicator.average {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.status-indicator.poor {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.status-indicator.no-sales {
-  background: #f3f4f6;
-  color: #6b7280;
-}
+.status-indicator.excellent { background: #d1fae5; color: #059669; }
+.status-indicator.good { background: #dbeafe; color: #2563eb; }
+.status-indicator.average { background: #fef3c7; color: #d97706; }
+.status-indicator.poor { background: #fee2e2; color: #dc2626; }
+.status-indicator.no-sales { background: #f3f4f6; color: #6b7280; }
 
 /* ----- Details ----- */
 .menu-table-details {
@@ -5334,36 +5315,28 @@ async loadMenuPerformance() {
 /* RESPONSIVE - MOBILE                         */
 /* ============================================ */
 @media (max-width: 600px) {
+  .menu-performance-table-container {
+    max-height: 320px;
+    padding: 0.25rem;
+  }
+  
   .menu-table-header {
     gap: 0.3rem;
     padding: 0.2rem 0.3rem;
     font-size: 0.5rem;
   }
   
-  .menu-table-header-rank {
-    min-width: 30px;
-  }
-  
-  .menu-table-header-revenue {
-    min-width: 50px;
-  }
-  
-  .menu-table-header-status {
-    min-width: 60px;
-  }
-  
-  .menu-table-header-details {
-    min-width: 30px;
-  }
+  .menu-table-header-rank { min-width: 30px; }
+  .menu-table-header-revenue { min-width: 50px; }
+  .menu-table-header-status { min-width: 60px; }
+  .menu-table-header-details { min-width: 30px; }
   
   .menu-table-row {
     gap: 0.3rem;
     padding: 0.25rem 0.3rem;
   }
   
-  .menu-table-rank {
-    min-width: 30px;
-  }
+  .menu-table-rank { min-width: 30px; }
   
   .rank-number {
     width: 22px;
@@ -5371,22 +5344,15 @@ async loadMenuPerformance() {
     font-size: 0.6rem;
   }
   
-  .menu-table-name {
-    min-width: 50px;
-  }
-  
-  .menu-name-text {
-    font-size: 0.7rem;
-  }
+  .menu-table-name { min-width: 50px; }
+  .menu-name-text { font-size: 0.7rem; }
   
   .menu-table-revenue {
     min-width: 50px;
     font-size: 0.7rem;
   }
   
-  .menu-table-status {
-    min-width: 60px;
-  }
+  .menu-table-status { min-width: 60px; }
   
   .status-indicator {
     font-size: 0.5rem;
@@ -5398,30 +5364,13 @@ async loadMenuPerformance() {
     min-width: 30px;
     font-size: 0.7rem;
   }
-  
-  .menu-performance-table-container {
-    max-height: 350px;
-    padding: 0.25rem;
-  }
 }
 
 @media (max-width: 400px) {
-  .menu-table-header-revenue {
-    min-width: 40px;
-  }
-  
-  .menu-table-header-status {
-    min-width: 50px;
-  }
-  
-  .menu-table-revenue {
-    min-width: 40px;
-    font-size: 0.65rem;
-  }
-  
-  .menu-table-status {
-    min-width: 50px;
-  }
+  .menu-table-header-revenue { min-width: 40px; }
+  .menu-table-header-status { min-width: 50px; }
+  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
+  .menu-table-status { min-width: 50px; }
   
   .status-indicator {
     font-size: 0.45rem;
