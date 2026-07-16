@@ -194,7 +194,8 @@
           </div>
         </div>
 
-        <div class="card-modern">
+        <!-- ===== STALL PERFORMANCE ===== -->
+<div class="card-modern">
   <div class="card-modern-header">
     <div>
       <h3>🏆 Stall Performance</h3>
@@ -207,8 +208,8 @@
       <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
     
-    <!-- ✅ ADDED: Column Headers -->
-    <div class="stall-rank-header">
+    <!-- ✅ Column Headers - MATCHES items structure -->
+    <div v-else class="stall-rank-header">
       <span class="stall-rank-header-rank">Rank</span>
       <span class="stall-rank-header-name">Stall</span>
       <span class="stall-rank-header-revenue">Revenue</span>
@@ -241,7 +242,7 @@
           {{ getStallStatus(stall) }}
         </span>
       </span>
-      <span class="stall-rank-click">👆 Click for details</span>
+      <span class="stall-rank-click">👆 Click</span>
     </div>
   </div>
 </div>
@@ -2973,9 +2974,12 @@ async loadMenuPerformance() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
 }
+
 
 .stall-rank-item:last-child {
   border-bottom: none;
@@ -2986,6 +2990,51 @@ async loadMenuPerformance() {
   align-items: center;
   gap: 0.5rem;
   min-width: 120px;
+}
+
+.stall-rank-item:hover {
+  background: var(--background);
+  transform: translateX(4px);
+}
+
+.stall-rank-header-rank,
+.stall-rank .stall-rank-number {
+  width: 30px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.stall-rank-header-name,
+.stall-rank .stall-rank-name {
+  flex: 1;
+  min-width: 100px;
+  text-align: left;
+}
+
+.stall-rank-header-revenue,
+.stall-rank-revenue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stall-rank-header-status,
+.stall-rank-status {
+  min-width: 85px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stall-rank-header-details,
+.stall-rank-click {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+  transition: var(--transition);
+}
+
+.stall-rank-item:hover .stall-rank-click {
+  opacity: 1;
 }
 
 .stall-rank-number {
@@ -4086,6 +4135,7 @@ async loadMenuPerformance() {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   display: inline-block;
+  white-space: nowrap;
 }
 
 /* Performance Status Colors */
