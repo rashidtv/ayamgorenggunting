@@ -1848,19 +1848,35 @@ async loadStallPerformance() {
 
 async loadMenuPerformance() {
   try {
-    // ✅ Get the current productSales
     const productSales = this.productSales || {}
     
     console.log('📊 Menu performance - productSales keys:', Object.keys(productSales).length)
     
-    // ✅ If productSales has data, use it
-    if (Object.keys(productSales).length > 0) {
-      this.menuPerformance = Object.keys(productSales).map(name => ({
+    // ✅ Filter out items with zero quantity or zero revenue
+    const filteredMenuItems = Object.keys(productSales)
+      .filter(name => {
+        const item = productSales[name]
+        return (item.quantity > 0 && item.revenue > 0)
+      })
+      .map(name => ({
         name: name,
         quantity: parseInt(productSales[name].quantity) || 0,
         revenue: parseFloat(productSales[name].revenue) || 0
-      })).sort((a, b) => b.quantity - a.quantity)
-      console.log('📊 Menu performance from productSales:', this.menuPerformance.length, 'items')
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+    
+    // ✅ Check if there are any items with actual sales
+    if (filteredMenuItems.length > 0) {
+      this.menuPerformance = filteredMenuItems
+      console.log('📊 Menu performance from productSales (filtered):', this.menuPerformance.length, 'items')
+      return
+    }
+    
+    // ✅ If no items with sales, check if productSales has items with zero sales
+    if (Object.keys(productSales).length > 0) {
+      // We have productSales, but they're all zero - show empty
+      console.log('📊 productSales exists but all items have zero sales')
+      this.menuPerformance = []
       return
     }
     
@@ -1876,13 +1892,17 @@ async loadMenuPerformance() {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    this.menuPerformance = (res.data || []).map(item => ({
-      name: item.item_name,
-      quantity: parseInt(item.quantity) || 0,
-      revenue: parseFloat(item.revenue) || 0
-    })).sort((a, b) => b.quantity - a.quantity)
+    // ✅ Also filter API results
+    this.menuPerformance = (res.data || [])
+      .filter(item => (item.quantity > 0 && item.revenue > 0))
+      .map(item => ({
+        name: item.item_name,
+        quantity: parseInt(item.quantity) || 0,
+        revenue: parseFloat(item.revenue) || 0
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
     
-    console.log('📊 Menu performance from API:', this.menuPerformance.length, 'items')
+    console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
     
   } catch (err) {
     console.error('Failed to load menu performance:', err)
