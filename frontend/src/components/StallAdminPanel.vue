@@ -249,7 +249,7 @@
   </div>
 </div>
 
-        <!-- ===== MENU PERFORMANCE - MATCHES STALL PERFORMANCE ===== -->
+<!-- ===== MENU PERFORMANCE - GRID LAYOUT ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
@@ -257,47 +257,49 @@
       <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
     </div>
   </div>
-  <div class="card-modern-body menu-performance-container">
+  <div class="card-modern-body menu-performance-grid-container">
     <div v-if="menuPerformance.length === 0" class="empty-state-modern">
       <span>🍗</span>
       <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
     
-    <!-- ✅ Column Headers - Matches Stall Performance -->
-    <div v-else class="menu-rank-header">
-      <span class="menu-rank-header-name">Rank / Menu</span>
-      <span class="menu-rank-header-revenue">Revenue</span>
-      <span class="menu-rank-header-status">Status</span>
-      <span class="menu-rank-header-details">Details</span>
-    </div>
-    
-    <!-- ✅ Scrollable list -->
-    <div class="menu-rank-list">
+    <!-- ✅ Grid layout -->
+    <div v-else class="menu-grid">
       <div 
-        v-for="(item, index) in menuPerformance.slice(0, 5)" 
+        v-for="(item, index) in menuPerformance.slice(0, 6)" 
         :key="item.name" 
-        class="menu-rank-item clickable-item"
+        class="menu-grid-card clickable-item"
         @click="viewMenuItemDetails(item)"
       >
-        <div class="menu-rank">
-          <span class="menu-rank-number" :class="getRankClass(index)">
-            {{ index + 1 }}
-          </span>
-          <span class="menu-rank-name">{{ item.name }}</span>
-          <div class="menu-rank-bar">
-            <div 
-              class="menu-rank-fill" 
-              :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
-            ></div>
-          </div>
+        <!-- Medal / Rank -->
+        <div class="menu-grid-rank">
+          <span v-if="index === 0" class="medal gold">🥇</span>
+          <span v-else-if="index === 1" class="medal silver">🥈</span>
+          <span v-else-if="index === 2" class="medal bronze">🥉</span>
+          <span v-else class="rank-number">{{ index + 1 }}</span>
         </div>
-        <span class="menu-rank-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-        <span class="menu-rank-status">
-          <span :class="['status-badge', getMenuStatusClass(item.quantity)]">
-            {{ getMenuStatus(item.quantity) }}
-          </span>
-        </span>
-        <span class="menu-rank-click">👆</span>
+        
+        <!-- Name -->
+        <div class="menu-grid-name">{{ item.name }}</div>
+        
+        <!-- Bar -->
+        <div class="menu-grid-bar">
+          <div 
+            class="menu-grid-fill" 
+            :style="{ width: getPerformancePercentage(item.quantity) + '%' }"
+          ></div>
+        </div>
+        
+        <!-- Revenue -->
+        <div class="menu-grid-revenue">{{ formatCurrency(item.revenue || 0) }}</div>
+        
+        <!-- Stars -->
+        <div class="menu-grid-stars">
+          <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= getStarRating(item.quantity) }">★</span>
+        </div>
+        
+        <!-- Click indicator -->
+        <div class="menu-grid-click">👆 Click</div>
       </div>
     </div>
   </div>
@@ -1028,6 +1030,18 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// MENU PERFORMANCE - STAR RATING
+// =============================================
+getStarRating(quantity) {
+  if (!quantity || quantity === 0) return 0
+  if (quantity > 50) return 5
+  if (quantity > 30) return 4
+  if (quantity > 15) return 3
+  if (quantity > 5) return 2
+  return 1
+},
 
 // =============================================
 // MENU PERFORMANCE - STATUS METHODS
@@ -4886,6 +4900,188 @@ async loadMenuPerformance() {
   .stall-breakdown-percentage {
     min-width: 40px;
     font-size: 0.6rem;
+  }
+}
+
+/* ============================================ */
+/* MENU PERFORMANCE - GRID LAYOUT               */
+/* ============================================ */
+.menu-performance-grid-container {
+  padding: 0.5rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Scrollbar */
+.menu-performance-grid-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu-performance-grid-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.menu-performance-grid-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.menu-performance-grid-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
+/* Grid */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Card */
+.menu-grid-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  text-align: center;
+  transition: var(--transition);
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.menu-grid-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+/* Rank / Medal */
+.menu-grid-rank {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.medal {
+  font-size: 1.5rem;
+}
+
+.rank-number {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--background);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Name */
+.menu-grid-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.2;
+  min-height: 2.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Bar */
+.menu-grid-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0.1rem 0;
+}
+
+.menu-grid-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Revenue */
+.menu-grid-revenue {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--primary);
+}
+
+/* Stars */
+.menu-grid-stars {
+  font-size: 0.65rem;
+  letter-spacing: 0.1rem;
+}
+
+.star {
+  color: #e2e8f0;
+}
+
+.star.filled {
+  color: #f59e0b;
+}
+
+/* Click */
+.menu-grid-click {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+  transition: var(--transition);
+}
+
+.menu-grid-card:hover .menu-grid-click {
+  opacity: 1;
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
+@media (max-width: 600px) {
+  .menu-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .menu-grid-card {
+    padding: 0.5rem;
+  }
+  
+  .menu-grid-name {
+    font-size: 0.75rem;
+    min-height: 1.8rem;
+  }
+  
+  .menu-grid-revenue {
+    font-size: 0.8rem;
+  }
+  
+  .menu-grid-stars {
+    font-size: 0.55rem;
+  }
+  
+  .medal {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
