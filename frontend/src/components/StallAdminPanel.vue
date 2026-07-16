@@ -197,40 +197,47 @@
         <!-- Stall Performance - Clickable -->
         <div class="card-modern">
           <div class="card-modern-header">
-            <div>
-              <h3>🏆 Stall Performance</h3>
-              <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
-            </div>
-            <span class="period-tag">{{ getPeriodLabel() }}</span>
-          </div>
+            <div class="card-modern-header">
+  <div>
+    <h3>🏆 Stall Performance</h3>
+    <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
+  </div>
+  <!-- ✅ REMOVED duplicate period-tag -->
+</div>
           <div class="card-modern-body">
-            <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-              <span>📊</span>
-              <p>No sales data available for {{ getPeriodLabel() }}</p>
-            </div>
-            <div 
-              v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-              :key="stall.id" 
-              class="stall-rank-item clickable-item"
-              @click="viewStallDetails(stall)"
-            >
-              <div class="stall-rank">
-                <span class="stall-rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-                <span class="stall-rank-name">{{ stall.name }}</span>
-              </div>
-              <div class="stall-rank-bar">
-                <div 
-                  class="stall-rank-fill" 
-                  :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-                  :class="getRankClass(index)"
-                ></div>
-              </div>
-              <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-              <span class="stall-rank-click">👆 Click for details</span>
-            </div>
-          </div>
+  <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+    <span>📊</span>
+    <p>No sales data available for {{ getPeriodLabel() }}</p>
+  </div>
+  <div 
+    v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+    :key="stall.id" 
+    class="stall-rank-item clickable-item"
+    @click="viewStallDetails(stall)"
+  >
+    <div class="stall-rank">
+      <span class="stall-rank-number" :class="getRankClass(index)">
+        {{ index + 1 }}
+      </span>
+      <span class="stall-rank-name">{{ stall.name }}</span>
+    </div>
+    <div class="stall-rank-bar">
+      <div 
+        class="stall-rank-fill" 
+        :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
+        :class="getRankClass(index)"
+      ></div>
+    </div>
+    <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+    <!-- ✅ ADDED: Status column -->
+    <span class="stall-rank-status">
+      <span :class="['status-tag', stall.is_active ? 'active' : 'inactive']">
+        {{ stall.is_active ? 'Active' : 'Inactive' }}
+      </span>
+    </span>
+    <span class="stall-rank-click">👆 Click for details</span>
+  </div>
+</div>
         </div>
 
         <!-- Menu Performance - Clickable -->
@@ -1052,12 +1059,17 @@ export default {
     // STALL DETAILS
     // =============================================
     viewStallDetails(stall) {
-      this.selectedStall = stall
-      this.stallDetailModal = true
-      this.$nextTick(() => {
-        this.initStallDetailChart()
-      })
-    },
+  // ✅ Use the actual stall data passed from the performance list
+  this.selectedStall = stall
+  this.stallDetailModal = true
+  
+  // ✅ Store the stall ID for chart data
+  this.selectedStallId = stall.id
+  
+  this.$nextTick(() => {
+    this.initStallDetailChart()
+  })
+},,
     closeStallDetailModal() {
       this.stallDetailModal = false
       this.selectedStall = null
@@ -1067,67 +1079,86 @@ export default {
       }
     },
     initStallDetailChart() {
-      if (!this.$refs.stallDetailChartRef) return
-      
-      if (this.stallDetailChartInstance) {
-        this.stallDetailChartInstance.dispose()
-        this.stallDetailChartInstance = null
-      }
-      
-      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-      
-      const salesData = this.salesTrend || []
-      const days = salesData.map(d => this.formatShortDate(d.date))
-      const revenues = salesData.map(d => d.revenue || 0)
-      
-      const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-      const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => Math.floor(Math.random() * 500) + 50)
-      
-      const option = {
-        tooltip: { trigger: 'axis' },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: finalDays,
-          axisLine: { lineStyle: { color: '#e2e8f0' } },
-          axisLabel: { color: '#94a3b8', fontSize: 11 }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: { 
-            color: '#94a3b8', 
-            fontSize: 11,
-            formatter: (value) => 'RM' + value
+  if (!this.$refs.stallDetailChartRef) return
+  
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+  
+  this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+  
+  // ✅ Get sales data for this specific stall from the API
+  const stallId = this.selectedStall?.id
+  
+  if (!stallId) {
+    console.warn('No stall ID found for detail chart')
+    return
+  }
+  
+  // ✅ Fetch actual data for this stall
+  axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
+    headers: { Authorization: `Bearer ${this.token}` }
+  })
+  .then(response => {
+    const data = response.data || {}
+    const salesData = data.dailySales || []
+    
+    const days = salesData.map(d => this.formatShortDate(d.date))
+    const revenues = salesData.map(d => d.revenue || 0)
+    
+    const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
+    
+    const option = {
+      tooltip: { trigger: 'axis' },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: finalDays,
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { color: '#94a3b8', fontSize: 11 }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          formatter: (value) => 'RM' + value
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: finalRevenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
           }
-        },
-        series: [{
-          type: 'bar',
-          data: finalRevenues,
-          barWidth: '40%',
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#F94908' },
-                { offset: 1, color: '#fa6a2e' }
-              ]
-            }
-          }
-        }]
-      }
-      
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-    },
+        }
+      }]
+    }
+    
+    this.stallDetailChartInstance.setOption(option)
+    this.stallDetailChartInstance.resize()
+  })
+  .catch(err => {
+    console.error('Failed to load stall detail chart data:', err)
+  })
+},
     
     // =============================================
     // MENU ITEM DETAILS
@@ -3930,4 +3961,31 @@ async loadMenuPerformance() {
     font-size: 0.8rem;
   }
 }
+
+/* ============================================ */
+/* STALL RANK STATUS                            */
+/* ============================================ */
+.stall-rank-status {
+  min-width: 80px;
+  text-align: center;
+}
+
+.stall-rank-status .status-tag {
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.stall-rank-status .status-tag.active {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.stall-rank-status .status-tag.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 </style>
