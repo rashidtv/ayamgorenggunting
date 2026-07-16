@@ -1708,115 +1708,121 @@ export default {
       })
       this.lowStock = res.data
     },
-    async loadSalesAnalytics() {
-      const days = this.selectedPeriod === 'today' ? 0 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 : 365
-      
-      const apiDays = this.selectedPeriod === 'today' ? 1 : days
-      
-      try {
-        const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        const data = res.data || {}
-        
-        let dailySales = (data.dailySales || []).map(day => ({
-          ...day,
-          items: parseInt(day.items) || 0,
-          revenue: parseFloat(day.revenue) || 0
-        }))
-        
-        if (this.selectedPeriod === 'today') {
-          const today = this.getTodayInMalaysia()
-          
-          dailySales = dailySales.filter(day => {
-            const dayDate = new Date(day.date)
-            dayDate.setHours(0, 0, 0, 0)
-            return dayDate.getTime() === today.getTime()
-          })
-        }
-        
-        this.salesTrend = dailySales
-        
-        const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
-        const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
-        
-        this.consolidatedSales.totalItems = totalItems
-        this.consolidatedSales.totalRevenue = totalRevenue
-        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-          totalRevenue / this.stalls.length : 0
-        
-        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
-          this.consolidatedSales.topStall = '-'
-          this.consolidatedSales.topRevenue = 0
-        } else {
-          this.consolidatedSales.topStall = data.topStall || '-'
-          this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-        }
-        
-        this.productSales = data.productSales || {}
-        
-        if (this.selectedPeriod === 'today' && dailySales.length === 0) {
-          this.productSales = {}
-        }
-        
-        await this.loadMenuPerformance()
-      } catch (err) {
-        console.error('Failed to load sales analytics:', err)
-        this.salesTrend = []
-        this.consolidatedSales.totalItems = 0
-        this.consolidatedSales.totalRevenue = 0
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-        this.productSales = {}
+async loadSalesAnalytics() {
+  console.log('📊 Stall ID for analytics:', stallId)
+  console.log('📊 API URL:', `${API_BASE}/sales-analytics?days=${apiDays}&stallId=${stallId}`)
+  const days = this.selectedPeriod === 'today' ? 0 :
+               this.selectedPeriod === 'week' ? 7 :
+               this.selectedPeriod === 'month' ? 30 :
+               this.selectedPeriod === 'quarter' ? 90 : 365
+  
+  const apiDays = this.selectedPeriod === 'today' ? 1 : days
+  
+  try {
+    // ✅ Get the first assigned stall ID
+    const stallId = this.authStore?.activeStallId || this.stalls[0]?.id
+    
+    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}&stallId=${stallId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    const data = res.data || {}
+    
+    let dailySales = (data.dailySales || []).map(day => ({
+      ...day,
+      items: parseInt(day.items) || 0,
+      revenue: parseFloat(day.revenue) || 0
+    }))
+    
+    if (this.selectedPeriod === 'today') {
+      const today = this.getTodayInMalaysia()
+      dailySales = dailySales.filter(day => {
+        const dayDate = new Date(day.date)
+        dayDate.setHours(0, 0, 0, 0)
+        return dayDate.getTime() === today.getTime()
+      })
+    }
+    
+    this.salesTrend = dailySales
+    
+    const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
+    const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+    
+    this.consolidatedSales.totalItems = totalItems
+    this.consolidatedSales.totalRevenue = totalRevenue
+    this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+      totalRevenue / this.stalls.length : 0
+    
+    this.consolidatedSales.topStall = data.topStall || '-'
+    this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+    
+    this.productSales = data.productSales || {}
+    
+    await this.loadMenuPerformance()
+  } catch (err) {
+    console.error('Failed to load sales analytics:', err)
+    this.salesTrend = []
+    this.consolidatedSales.totalItems = 0
+    this.consolidatedSales.totalRevenue = 0
+    this.consolidatedSales.topStall = '-'
+    this.consolidatedSales.topRevenue = 0
+    this.productSales = {}
+  }
+},
+async loadStallPerformance() {
+  const days = this.selectedPeriod === 'today' ? 0 :
+               this.selectedPeriod === 'week' ? 7 :
+               this.selectedPeriod === 'month' ? 30 :
+               this.selectedPeriod === 'quarter' ? 90 : 365
+  
+  const apiDays = this.selectedPeriod === 'today' ? 1 : days
+  
+  try {
+    // ✅ Get the first assigned stall ID
+    const stallId = this.authStore?.activeStallId || this.stalls[0]?.id
+    
+    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallId=${stallId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // For stall_admin, we only get data for their assigned stalls
+    let stallData = res.data || []
+    
+    // If the response is for a single stall, wrap it in an array
+    if (stallData && !Array.isArray(stallData)) {
+      stallData = [stallData]
+    }
+    
+    if (this.selectedPeriod === 'today') {
+      const today = this.getTodayInMalaysia()
+      const hasTodaySales = this.salesTrend.some(day => {
+        const dayDate = new Date(day.date)
+        dayDate.setHours(0, 0, 0, 0)
+        return dayDate.getTime() === today.getTime()
+      })
+      if (!hasTodaySales) {
+        stallData = []
       }
-    },
-    async loadStallPerformance() {
-      const days = this.selectedPeriod === 'today' ? 0 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 : 365
-      
-      const apiDays = this.selectedPeriod === 'today' ? 1 : days
-      
-      try {
-        const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        let stallData = res.data || []
-        
-        if (this.selectedPeriod === 'today') {
-          const today = this.getTodayInMalaysia()
-          const hasTodaySales = this.salesTrend.some(day => {
-            const dayDate = new Date(day.date)
-            dayDate.setHours(0, 0, 0, 0)
-            return dayDate.getTime() === today.getTime()
-          })
-          
-          if (!hasTodaySales) {
-            stallData = []
-          }
-        }
-        
-        this.stallPerformance = stallData
-      } catch (err) {
-        this.stallPerformance = []
-      }
-    },
+    }
+    
+    this.stallPerformance = stallData
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+  }
+},
     async loadMenuPerformance() {
-      try {
-        const productSales = this.productSales || {}
-        this.menuPerformance = Object.keys(productSales).map(name => ({
-          name: name,
-          quantity: parseInt(productSales[name].quantity) || 0,
-          revenue: parseFloat(productSales[name].revenue) || 0
-        })).sort((a, b) => b.quantity - a.quantity)
-      } catch (err) {
-        this.menuPerformance = []
-      }
-    },
+  try {
+    const productSales = this.productSales || {}
+    this.menuPerformance = Object.keys(productSales).map(name => ({
+      name: name,
+      quantity: parseInt(productSales[name].quantity) || 0,
+      revenue: parseFloat(productSales[name].revenue) || 0
+    })).sort((a, b) => b.quantity - a.quantity)
+  } catch (err) {
+    console.error('Failed to load menu performance:', err)
+    this.menuPerformance = []
+  }
+},
     
     // =============================================
     // MENU ITEMS (For Assignment)

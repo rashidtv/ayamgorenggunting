@@ -528,11 +528,12 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dayRange);
 
-    // For super_admin, get all stalls in their company
+    // ============================================================
+    // SUPER ADMIN / SUPER SUPER ADMIN
+    // ============================================================
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
       let companyId = req.user.company_id;
       if (req.user.role === 'super_super_admin') {
-        // Get first company if none specified
         const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
         if (companyRes.rows[0]) {
           companyId = companyRes.rows[0].id;
@@ -582,7 +583,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         };
       });
 
-      // Get total items and revenue for the period
       const totalRes = await pool.query(`
         SELECT 
           COALESCE(SUM(price), 0) as total_revenue,
@@ -591,7 +591,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         WHERE stall_id = ANY($1::int[]) AND created_at >= $2
       `, [stallIds, startDate]);
 
-      // Get top performing stall
       const topStallRes = await pool.query(`
         SELECT 
           s.name as stall_name,
@@ -613,19 +612,26 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       });
     }
 
-    // For single stall (stall_admin or cashier)
-    if (!targetStallId) {
+    // ============================================================
+    // STALL ADMIN / CASHIER
+    // ============================================================
+    
+    // If stallId is provided, validate access
+    if (targetStallId) {
+      const allowed = await userCanAccessStall(req.user.id, targetStallId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    } else {
+      // No stallId provided, get the first assigned stall
       targetStallId = req.user.assigned_stalls?.[0]?.id;
     }
+    
     if (!targetStallId) {
       return res.json({ dailySales: [], productSales: {}, totalItems: 0, totalRevenue: 0, topStall: '-' });
     }
 
-    const allowed = await userCanAccessStall(req.user.id, targetStallId);
-    if (!allowed) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
+    // Get daily sales for the stall
     const dailyRes = await pool.query(`
       SELECT 
         DATE(created_at) as date, 
@@ -637,6 +643,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       ORDER BY date
     `, [targetStallId, startDate]);
 
+    // Get product sales breakdown
     const productRes = await pool.query(`
       SELECT 
         item_name, 
@@ -1961,27 +1968,103 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
 // ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
-    const { days } = req.query;
+    const { days, stallId } = req.query;
     let dayRange = days ? parseInt(days) : 7;
+    let targetStallId = stallId ? parseInt(stallId) : null;
     
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dayRange);
     
-    let query = `
-      SELECT item_name, COUNT(*) as quantity, SUM(price) as revenue
-      FROM sales
-      WHERE created_at >= $1
-    `;
-    
-    if (req.user.role === 'super_admin') {
-      query += ` AND stall_id IN (SELECT id FROM stalls WHERE company_id = $2)`;
-      const result = await pool.query(query + ` GROUP BY item_name ORDER BY quantity DESC`, [startDate, req.user.company_id]);
+    // ============================================================
+    // If a specific stallId is provided
+    // ============================================================
+    if (targetStallId) {
+      const allowed = await userCanAccessStall(req.user.id, targetStallId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      const result = await pool.query(`
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id = $1 AND created_at >= $2
+        GROUP BY item_name
+        ORDER BY quantity DESC
+      `, [targetStallId, startDate]);
+      
       return res.json(result.rows);
     }
-    
-    query += ` GROUP BY item_name ORDER BY quantity DESC`;
-    const result = await pool.query(query, [startDate]);
-    res.json(result.rows);
+
+    // ============================================================
+    // SUPER ADMIN / SUPER SUPER ADMIN
+    // ============================================================
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.json([]);
+      }
+
+      const result = await pool.query(`
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id IN (SELECT id FROM stalls WHERE company_id = $1) AND created_at >= $2
+        GROUP BY item_name
+        ORDER BY quantity DESC
+      `, [companyId, startDate]);
+      
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // STALL ADMIN (Get their assigned stalls)
+    // ============================================================
+    if (req.user.role === 'stall_admin') {
+      const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      
+      if (stallIds.length === 0) {
+        return res.json([]);
+      }
+      
+      const result = await pool.query(`
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY item_name
+        ORDER BY quantity DESC
+      `, [stallIds, startDate]);
+      
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // CASHIER (Get only their assigned stall)
+    // ============================================================
+    if (req.user.role === 'cashier') {
+      const stallId = req.user.assigned_stalls?.[0]?.id;
+      
+      if (!stallId) {
+        return res.json([]);
+      }
+      
+      const result = await pool.query(`
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id = $1 AND created_at >= $2
+        GROUP BY item_name
+        ORDER BY quantity DESC
+      `, [stallId, startDate]);
+      
+      return res.json(result.rows);
+    }
+
+    res.json([]);
   } catch (err) {
     console.error('Error in /api/menu-performance:', err);
     res.status(500).json({ error: 'Failed to fetch menu performance', details: err.message });
@@ -1991,12 +2074,42 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
 // ==================== STALL PERFORMANCE ====================
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
-    const { days } = req.query;
+    const { days, stallId } = req.query;
     let dayRange = days ? parseInt(days) : 1;
+    let targetStallId = stallId ? parseInt(stallId) : null;
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - dayRange);
 
+    // ============================================================
+    // If a specific stallId is provided (for stall_admin/cashier)
+    // ============================================================
+    if (targetStallId) {
+      const allowed = await userCanAccessStall(req.user.id, targetStallId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.id = $1
+        GROUP BY s.id, s.name, s.is_active
+      `, [targetStallId, startDate]);
+      
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // SUPER ADMIN / SUPER SUPER ADMIN
+    // ============================================================
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
       let companyId = req.user.company_id;
       if (req.user.role === 'super_super_admin') {
@@ -2025,19 +2138,82 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
         ORDER BY revenue DESC
       `, [companyId, startDate]);
 
-      const performance = result.rows.map(row => {
-        return {
-          id: row.id,
-          name: row.name,
-          is_active: row.is_active,
-          revenue: parseFloat(row.revenue),
-          items: parseInt(row.items_sold),
-          avgTransaction: parseFloat(row.avg_transaction),
-          growth: 0
-        };
-      });
+      const performance = result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        is_active: row.is_active,
+        revenue: parseFloat(row.revenue),
+        items: parseInt(row.items_sold),
+        avgTransaction: parseFloat(row.avg_transaction),
+        growth: 0
+      }));
 
       return res.json(performance);
+    }
+
+    // ============================================================
+    // STALL ADMIN (No specific stallId, get all their assigned stalls)
+    // ============================================================
+    if (req.user.role === 'stall_admin') {
+      const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      
+      if (stallIds.length === 0) {
+        return res.json([]);
+      }
+      
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.id = ANY($1::int[])
+        GROUP BY s.id, s.name, s.is_active
+        ORDER BY revenue DESC
+      `, [stallIds, startDate]);
+
+      const performance = result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        is_active: row.is_active,
+        revenue: parseFloat(row.revenue),
+        items: parseInt(row.items_sold),
+        avgTransaction: parseFloat(row.avg_transaction),
+        growth: 0
+      }));
+
+      return res.json(performance);
+    }
+
+    // ============================================================
+    // CASHIER (Get only their assigned stall)
+    // ============================================================
+    if (req.user.role === 'cashier') {
+      const stallId = req.user.assigned_stalls?.[0]?.id;
+      
+      if (!stallId) {
+        return res.json([]);
+      }
+      
+      const result = await pool.query(`
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id AND sales.created_at >= $2
+        WHERE s.id = $1
+        GROUP BY s.id, s.name, s.is_active
+      `, [stallId, startDate]);
+
+      return res.json(result.rows);
     }
 
     res.json([]);
