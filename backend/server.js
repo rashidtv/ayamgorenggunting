@@ -526,17 +526,15 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     let dayRange = days ? parseInt(days) : 7;
 
     let startDate;
-    if (dayRange === 1) {
-      // ✅ "Today" – use calendar day (Malaysia timezone)
-      const now = new Date();
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-      malaysiaToday.setHours(0, 0, 0, 0);
-      startDate = malaysiaToday;
-    } else {
-      // Other periods – subtract days
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - dayRange);
-    }
+if (dayRange === 1) {
+  const now = new Date();
+  const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+  malaysiaToday.setHours(0, 0, 0, 0);
+  startDate = malaysiaToday;
+} else {
+  startDate = new Date();
+  startDate.setDate(startDate.getDate() - dayRange);
+}
 
     // ============================================================
     // SUPER ADMIN / SUPER SUPER ADMIN
@@ -1997,13 +1995,24 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
 });
 
 // ==================== MENU PERFORMANCE ====================
-// ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
     const { days, stallId } = req.query;
     let dayRange = days ? parseInt(days) : 7;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - dayRange);
+    
+    // ✅ FIX: Use calendar day for "Today" (days=1)
+    let startDate;
+    if (dayRange === 1) {
+      // "Today" – use calendar day (Malaysia timezone)
+      const now = new Date();
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+      malaysiaToday.setHours(0, 0, 0, 0);
+      startDate = malaysiaToday;
+    } else {
+      // Other periods – subtract days
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - dayRange);
+    }
 
     // ============================================================
     // If stallId is provided, get data for that specific stall
