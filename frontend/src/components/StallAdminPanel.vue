@@ -785,9 +785,6 @@
       <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
         <div class="stall-breakdown-title">
           🏆 Top Selling Stalls
-          <span class="stall-breakdown-total">
-            Total: {{ formatNumber(selectedMenuItem.totalQuantity) }} items · {{ formatCurrency(selectedMenuItem.totalRevenue) }}
-          </span>
         </div>
         
         <!-- Headers -->
@@ -795,7 +792,7 @@
           <span class="stall-breakdown-header-name">Stall</span>
           <span class="stall-breakdown-header-revenue">Revenue</span>
           <span class="stall-breakdown-header-quantity">Quantity</span>
-          <span class="stall-breakdown-header-bar">Sales</span>
+          <span class="stall-breakdown-header-bar">Sales %</span>
         </div>
         
         <!-- Rows -->
@@ -5717,4 +5714,195 @@ async loadMenuPerformance() {
   .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
   .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
 }
+
+/* ============================================ */
+/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
+/* ============================================ */
+.stall-breakdown-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.stall-breakdown-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+/* Headers */
+.stall-breakdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-header-name {
+  flex: 2;
+  min-width: 80px;
+  text-align: left;
+}
+
+.stall-breakdown-header-revenue {
+  min-width: 80px;
+  text-align: right;
+}
+
+.stall-breakdown-header-quantity {
+  min-width: 70px;
+  text-align: right;
+}
+
+.stall-breakdown-header-bar {
+  flex: 1.5;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Items */
+.stall-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.stall-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.stall-breakdown-item:hover {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.stall-breakdown-name {
+  flex: 2;
+  min-width: 80px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-breakdown-revenue {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.stall-breakdown-quantity {
+  min-width: 70px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-bar-wrapper {
+  flex: 1.5;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stall-breakdown-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stall-breakdown-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stall-breakdown-percentage {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-breakdown-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-breakdown-header-name { min-width: 50px; }
+  .stall-breakdown-header-revenue { min-width: 60px; }
+  .stall-breakdown-header-quantity { min-width: 50px; }
+  .stall-breakdown-header-bar { min-width: 40px; }
+  
+  .stall-breakdown-item {
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+    flex-wrap: wrap;
+  }
+  
+  .stall-breakdown-name {
+    min-width: 50px;
+    font-size: 0.75rem;
+    flex: 1;
+  }
+  
+  .stall-breakdown-revenue {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-quantity {
+    min-width: 50px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-bar-wrapper {
+    min-width: 40px;
+    flex: 1;
+    width: 100%;
+  }
+  
+  .stall-breakdown-percentage {
+    font-size: 0.55rem;
+    min-width: 35px;
+  }
+  
+  .stall-breakdown-title {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .stall-breakdown-header-revenue { min-width: 50px; }
+  .stall-breakdown-header-quantity { min-width: 40px; }
+  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
+  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
+}
+
 </style>
