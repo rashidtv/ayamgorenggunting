@@ -1061,10 +1061,10 @@ export default {
       return 'pieces'
     },
 
-    // =============================================
-    // STALL DETAILS
-    // =============================================
-   viewStallDetails(stall) {
+ // =============================================
+// STALL DETAILS
+// =============================================
+viewStallDetails(stall) {
   // ✅ Use the actual stall data passed from the performance list
   this.selectedStall = stall
   this.stallDetailModal = true
@@ -1104,15 +1104,17 @@ async fetchStallDetails(stallId) {
   } catch (err) {
     console.error('Failed to fetch stall details:', err)
   }
-}
-    closeStallDetailModal() {
-      this.stallDetailModal = false
-      this.selectedStall = null
-      if (this.stallDetailChartInstance) {
-        this.stallDetailChartInstance.dispose()
-        this.stallDetailChartInstance = null
-      }
-    },
+},
+
+closeStallDetailModal() {
+  this.stallDetailModal = false
+  this.selectedStall = null
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+},
+
     initStallDetailChart() {
   if (!this.$refs.stallDetailChartRef) return
   
