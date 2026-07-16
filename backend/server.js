@@ -525,8 +525,18 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     let targetStallId = stallId ? parseInt(stallId) : null;
     let dayRange = days ? parseInt(days) : 7;
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - dayRange);
+    let startDate;
+    if (dayRange === 1) {
+      // ✅ "Today" – use calendar day (Malaysia timezone)
+      const now = new Date();
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+      malaysiaToday.setHours(0, 0, 0, 0);
+      startDate = malaysiaToday;
+    } else {
+      // Other periods – subtract days
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - dayRange);
+    }
 
     // ============================================================
     // SUPER ADMIN / SUPER SUPER ADMIN
