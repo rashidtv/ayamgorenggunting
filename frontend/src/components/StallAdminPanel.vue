@@ -275,9 +275,9 @@
       </div>
       
       <!-- Table Rows -->
-      <div class="menu-table-body">
+      <div class="menu-table-body menu-table-scroll">
         <div 
-          v-for="(item, index) in menuPerformance.slice(0, 5)" 
+          v-for="(item, index) in menuPerformance"
           :key="item.name" 
           class="menu-table-row clickable-item"
           @click="viewMenuItemDetails(item)"
@@ -4922,6 +4922,42 @@ async loadMenuPerformance() {
     min-width: 40px;
     font-size: 0.6rem;
   }
+}
+
+/* ==========================================
+   MENU PERFORMANCE SCROLL
+   Backward Compatible
+   ========================================== */
+
+.menu-table-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* smooth scrolling */
+  scroll-behavior: smooth;
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Chrome / Edge / Safari */
+.menu-table-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.menu-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu-table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.menu-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ============================================ */
