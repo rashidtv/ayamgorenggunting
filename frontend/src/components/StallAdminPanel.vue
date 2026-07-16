@@ -792,7 +792,7 @@
           <span class="stall-breakdown-header-name">Stall</span>
           <span class="stall-breakdown-header-revenue">Revenue</span>
           <span class="stall-breakdown-header-quantity">Quantity</span>
-          <span class="stall-breakdown-header-bar">Sales %</span>
+          <span class="stall-breakdown-header-bar">Performance</span>
         </div>
         
         <!-- Rows -->
@@ -808,7 +808,6 @@
             <div class="stall-breakdown-bar">
               <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
             </div>
-            <span class="stall-breakdown-percentage">{{ stall.percentage.toFixed(0) }}%</span>
           </div>
         </div>
       </div>
@@ -1162,24 +1161,21 @@ async fetchMenuTopStalls(itemName) {
     
     const stallData = res.data || []
     
-    // ✅ Calculate totals for display
-    const totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
-    const totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
+    // Calculate max quantity for bar width
+    const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
     
     this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
       stallName: stall.stall_name || 'Unknown',
       quantity: parseInt(stall.quantity) || 0,
       revenue: parseFloat(stall.revenue) || 0,
-      // ✅ Keep percentage for bar width only (visual)
-      percentage: totalQuantity > 0 ? Math.min((stall.quantity / totalQuantity) * 100, 100) : 0
+      // ✅ Bar width based on max quantity (not percentage)
+      percentage: maxQuantity > 0 ? (stall.quantity / maxQuantity) * 100 : 0
     })).sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ Store totals
-    this.selectedMenuItem.totalQuantity = totalQuantity
-    this.selectedMenuItem.totalRevenue = totalRevenue
+    this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
+    this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
     
     console.log('📊 Processed breakdown:', this.selectedMenuItem.stallBreakdown)
-    console.log('📊 Totals - Quantity:', totalQuantity, 'Revenue:', totalRevenue)
     
   } catch (err) {
     console.error('❌ Failed to fetch top stalls:', err)
@@ -5904,5 +5900,176 @@ async loadMenuPerformance() {
   .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
   .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
 }
+/* ============================================ */
+/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
+/* ============================================ */
+.stall-breakdown-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
 
+.stall-breakdown-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+/* Headers */
+.stall-breakdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-header-name {
+  flex: 2;
+  min-width: 80px;
+  text-align: left;
+}
+
+.stall-breakdown-header-revenue {
+  min-width: 80px;
+  text-align: right;
+}
+
+.stall-breakdown-header-quantity {
+  min-width: 70px;
+  text-align: right;
+}
+
+.stall-breakdown-header-bar {
+  flex: 1.5;
+  min-width: 60px;
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+/* Items */
+.stall-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.stall-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.stall-breakdown-item:hover {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.stall-breakdown-name {
+  flex: 2;
+  min-width: 80px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-breakdown-revenue {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.stall-breakdown-quantity {
+  min-width: 70px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-bar-wrapper {
+  flex: 1.5;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.stall-breakdown-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stall-breakdown-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-breakdown-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-breakdown-header-name { min-width: 50px; }
+  .stall-breakdown-header-revenue { min-width: 60px; }
+  .stall-breakdown-header-quantity { min-width: 50px; }
+  .stall-breakdown-header-bar { min-width: 40px; }
+  
+  .stall-breakdown-item {
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+    flex-wrap: wrap;
+  }
+  
+  .stall-breakdown-name {
+    min-width: 50px;
+    font-size: 0.75rem;
+    flex: 1;
+  }
+  
+  .stall-breakdown-revenue {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-quantity {
+    min-width: 50px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-bar-wrapper {
+    min-width: 40px;
+    flex: 1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .stall-breakdown-header-revenue { min-width: 50px; }
+  .stall-breakdown-header-quantity { min-width: 40px; }
+  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
+  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
+}
 </style>
