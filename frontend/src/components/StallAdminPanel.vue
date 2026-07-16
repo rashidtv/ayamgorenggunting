@@ -967,9 +967,8 @@ export default {
     }
   },
 
-  computed: {
-
-     displayStalls() {
+computed: {
+  displayStalls() {
     if (this.showAllStalls) {
       return this.stallPerformance  // Show ALL stalls
     }
@@ -982,76 +981,77 @@ export default {
     }
     return this.menuPerformance.slice(0, 5)  // Show only top 5
   },
-  
-  displayMenuItems() {
-    if (this.showAllMenuItems) {
-      return this.menuPerformance  // Show ALL
-    }
-    return this.menuPerformance.slice(0, 5)  // Show only top 5
-  },
 
-    lowStockCount() {
-      return this.lowStock.length
-    },
-    chartVisibleData() {
-      return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
-    },
-    filteredMenuItemsForAssignment() {
-      return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
-    },
-    filteredInventoryStalls() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-                              this.getStallInventory(stall.id).some(item => 
-                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-                              )
-        const matchesStatus = this.inventoryFilter === 'all' || 
-                              (this.inventoryFilter === 'active' && stall.is_active) ||
-                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
-                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-        return matchesSearch && matchesStatus
-      })
-    },
-    filteredLowStock() {
-      if (this.inventorySearch) {
-        return this.lowStock.filter(item => 
-          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-        )
-      }
-      return this.lowStock
-    },
-    filteredStallsList() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-        const matchesStatus = this.stallStatusFilter === 'all' || 
-                              (this.stallStatusFilter === 'active' && stall.is_active) ||
-                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
-        return matchesSearch && matchesStatus
-      })
-    },
-    filteredUsersList() {
-  return this.users.filter(user => {
-    if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-      return false;
-    }
-    const search = this.userSearch.toLowerCase();
-    const matchesSearch = user.username.toLowerCase().includes(search) ||
-                          (user.full_name && user.full_name.toLowerCase().includes(search));
-    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
-    return matchesSearch && matchesRole;
-  })
-},
-    activeTabLabel() {
-      const tab = this.tabs.find(t => t.id === this.activeTab)
-      return tab ? tab.label : 'Dashboard'
-    },
-    activeTabIcon() {
-      const tab = this.tabs.find(t => t.id === this.activeTab)
-      return tab ? tab.icon : '📊'
-    }
+  lowStockCount() {
+    return this.lowStock.length
   },
+  
+  chartVisibleData() {
+    return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
+  },
+  
+  filteredMenuItemsForAssignment() {
+    return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
+  },
+  
+  filteredInventoryStalls() {
+    return this.stalls.filter(stall => {
+      const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                            this.getStallInventory(stall.id).some(item => 
+                              item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                            )
+      const matchesStatus = this.inventoryFilter === 'all' || 
+                            (this.inventoryFilter === 'active' && stall.is_active) ||
+                            (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                            (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+      return matchesSearch && matchesStatus
+    })
+  },
+  
+  filteredLowStock() {
+    if (this.inventorySearch) {
+      return this.lowStock.filter(item => 
+        item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+        item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+      )
+    }
+    return this.lowStock
+  },
+  
+  filteredStallsList() {
+    return this.stalls.filter(stall => {
+      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+      const matchesStatus = this.stallStatusFilter === 'all' || 
+                            (this.stallStatusFilter === 'active' && stall.is_active) ||
+                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
+      return matchesSearch && matchesStatus
+    })
+  },
+  
+  filteredUsersList() {
+    return this.users.filter(user => {
+      if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+        return false;
+      }
+      const search = this.userSearch.toLowerCase();
+      const matchesSearch = user.username.toLowerCase().includes(search) ||
+                            (user.full_name && user.full_name.toLowerCase().includes(search));
+      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
+      return matchesSearch && matchesRole;
+    })
+  },
+  
+  activeTabLabel() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.label : 'Dashboard'
+  },
+  
+  activeTabIcon() {
+    const tab = this.tabs.find(t => t.id === this.activeTab)
+    return tab ? tab.icon : '📊'
+  }
+},
 
   mounted() {
     this.loadData()
