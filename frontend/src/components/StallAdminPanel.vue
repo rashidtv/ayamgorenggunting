@@ -249,7 +249,7 @@
   </div>
 </div>
 
-<!-- ===== MENU PERFORMANCE - COLOR-CODED STATUS ===== -->
+<!-- ===== MENU PERFORMANCE - WITH VIEW ALL ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
@@ -275,9 +275,10 @@
       </div>
       
       <!-- Table Rows -->
-      <div class="menu-table-body menu-table-scroll">
+      <div class="menu-table-body">
+        <!-- ✅ Show first 5 OR all if expanded -->
         <div 
-          v-for="(item, index) in menuPerformance"
+          v-for="(item, index) in displayMenuItems" 
           :key="item.name" 
           class="menu-table-row clickable-item"
           @click="viewMenuItemDetails(item)"
@@ -309,6 +310,16 @@
           
           <!-- Details -->
           <span class="menu-table-details">👆</span>
+        </div>
+        
+        <!-- ✅ View All / Show Less Button -->
+        <div v-if="menuPerformance.length > 5" class="menu-table-view-all">
+          <button 
+            @click="showAllMenuItems = !showAllMenuItems" 
+            class="view-all-btn"
+          >
+            {{ showAllMenuItems ? '📤 Show Less' : `📥 View All (${menuPerformance.length - 5} more)` }}
+          </button>
         </div>
       </div>
     </div>
@@ -885,6 +896,7 @@ export default {
       menuDetailModal: false,
       selectedMenuItem: null,
       stallDetailChartInstance: null,
+      showAllMenuItems: false,  // ✅ NEW
       
       expandedInventoryStall: null,
       stallInventory: {},
@@ -918,6 +930,17 @@ export default {
   },
 
   computed: {
+
+    computed: {
+  // ... existing computed properties
+  
+  displayMenuItems() {
+    if (this.showAllMenuItems) {
+      return this.menuPerformance  // Show ALL
+    }
+    return this.menuPerformance.slice(0, 5)  // Show only top 5
+  },
+}
     lowStockCount() {
       return this.lowStock.length
     },
@@ -5411,6 +5434,49 @@ async loadMenuPerformance() {
   .status-indicator {
     font-size: 0.45rem;
     padding: 0.05rem 0.2rem;
+  }
+}
+
+/* ============================================ */
+/* VIEW ALL BUTTON                              */
+/* ============================================ */
+.menu-table-view-all {
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0;
+  margin-top: 0.1rem;
+}
+
+.view-all-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  max-width: 300px;
+}
+
+.view-all-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
+}
+
+.view-all-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .view-all-btn {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.5rem;
   }
 }
 
