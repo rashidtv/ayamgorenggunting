@@ -194,7 +194,7 @@
           </div>
         </div>
 
-        <!-- ===== STALL PERFORMANCE ===== -->
+<!-- ===== STALL PERFORMANCE ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
@@ -202,48 +202,69 @@
       <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
     </div>
   </div>
-  <div class="card-modern-body stall-performance-container">
+  <div class="card-modern-body stall-performance-table-container">
     <div v-if="stallPerformance.length === 0" class="empty-state-modern">
       <span>📊</span>
       <p>No sales data available for {{ getPeriodLabel() }}</p>
     </div>
     
-    <!-- ✅ Column Headers - "Rank / Stall" as ONE header -->
-    <div v-else class="stall-rank-header">
-      <span class="stall-rank-header-rank">Rank / Stall</span>
-      <span class="stall-rank-header-revenue">Revenue</span>
-      <span class="stall-rank-header-status">Status</span>
-      <span class="stall-rank-header-details">Details</span>
-    </div>
-    
-    <!-- ✅ Scrollable list -->
-    <div class="stall-rank-list">
-      <div 
-        v-for="(stall, index) in stallPerformance.slice(0, 5)" 
-        :key="stall.id" 
-        class="stall-rank-item clickable-item"
-        @click="viewStallDetails(stall)"
-      >
-        <div class="stall-rank">
-          <span class="stall-rank-number" :class="getRankClass(index)">
-            {{ index + 1 }}
+    <!-- ✅ Table Layout - Matching Menu Performance -->
+    <div v-else class="stall-table-wrapper">
+      <!-- Table Headers -->
+      <div class="stall-table-header">
+        <span class="stall-table-header-rank">Rank</span>
+        <span class="stall-table-header-name">Stall</span>
+        <span class="stall-table-header-revenue">Revenue</span>
+        <span class="stall-table-header-status">Status</span>
+        <span class="stall-table-header-details">Details</span>
+      </div>
+      
+      <!-- Table Rows -->
+      <div class="stall-table-body">
+        <div 
+          v-for="(stall, index) in stallPerformance.slice(0, 5)" 
+          :key="stall.id" 
+          class="stall-table-row clickable-item"
+          @click="viewStallDetails(stall)"
+        >
+          <!-- Rank -->
+          <span class="stall-table-rank">
+            <span class="rank-number" :class="getRankClass(index)">
+              {{ index + 1 }}
+            </span>
           </span>
-          <span class="stall-rank-name">{{ stall.name }}</span>
-        </div>
-        <div class="stall-rank-bar">
-          <div 
-            class="stall-rank-fill" 
-            :style="{ width: getStallBarWidth(stall.revenue) + '%' }"
-            :class="getRankClass(index)"
-          ></div>
-        </div>
-        <span class="stall-rank-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-        <span class="stall-rank-status">
-          <span :class="['status-badge', getStallStatusClass(stall)]">
-            {{ getStallStatus(stall) }}
+          
+          <!-- Stall Name + Bar -->
+          <span class="stall-table-name">
+            <span class="stall-name-text">{{ stall.name }}</span>
+            <span class="stall-name-bar">
+              <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+            </span>
           </span>
-        </span>
-        <span class="stall-rank-click">👆</span>
+          
+          <!-- Revenue -->
+          <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+          
+          <!-- Status with Color & Emoji -->
+          <span class="stall-table-status">
+            <span :class="['status-indicator', getStallStatusClass(stall)]">
+              {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+            </span>
+          </span>
+          
+          <!-- Details -->
+          <span class="stall-table-details">👆</span>
+        </div>
+        
+        <!-- ✅ View All / Show Less Button -->
+        <div v-if="stallPerformance.length > 5" class="stall-table-view-all">
+          <button 
+            @click="showAllStalls = !showAllStalls" 
+            class="view-all-btn"
+          >
+            {{ showAllStalls ? '📤 Show Less' : `📥 View All (${stallPerformance.length - 5} more)` }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -879,7 +900,7 @@ export default {
       chartWindow: 7,
       chartInstance: null,
       isChartInitialized: false,
-      
+      showAllStalls: false,
       dropdownOpen: false,
       periodDropdownOpen: false,
       stalls: [],
@@ -945,6 +966,13 @@ export default {
   },
 
   computed: {
+
+    displayStalls() {
+    if (this.showAllStalls) {
+      return this.stallPerformance  // Show ALL
+    }
+    return this.stallPerformance.slice(0, 5)  // Show only top 5
+  },
   
   displayMenuItems() {
     if (this.showAllMenuItems) {
@@ -1075,6 +1103,14 @@ export default {
   },
 
   methods: {
+
+    getStallStatusEmoji(stall) {
+    if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
+    if (stall.revenue > 1000) return '🟢'
+    if (stall.revenue > 500) return '🔵'
+    if (stall.revenue > 100) return '🟡'
+    return '🔴'
+  },
 
     // =============================================
 // MENU PERFORMANCE - STATUS EMOJI
@@ -6071,5 +6107,318 @@ async loadMenuPerformance() {
   .stall-breakdown-header-quantity { min-width: 40px; }
   .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
   .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
+}
+
+/* ============================================ */
+/* STALL PERFORMANCE - MATCHES MENU PERF        */
+/* ============================================ */
+.stall-performance-table-container {
+  padding: 0.5rem;
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
+.stall-performance-table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  display: block !important;
+}
+
+.stall-performance-table-container::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.stall-performance-table-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+/* Table Wrapper */
+.stall-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ----- Table Headers ----- */
+.stall-table-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.stall-table-header-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.stall-table-header-name {
+  flex: 1;
+  text-align: left;
+}
+
+.stall-table-header-revenue {
+  min-width: 70px;
+  text-align: right;
+}
+
+.stall-table-header-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.stall-table-header-details {
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ----- Table Rows ----- */
+.stall-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stall-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.stall-table-row:hover {
+  background: var(--background);
+  border-color: var(--border-light);
+  transform: translateX(2px);
+}
+
+/* ----- Rank ----- */
+.stall-table-rank {
+  min-width: 40px;
+  text-align: center;
+}
+
+.rank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.7rem;
+  background: var(--background);
+  color: var(--text-secondary);
+}
+
+.rank-number.gold { background: #fbbf24; color: #78350f; }
+.rank-number.silver { background: #d1d5db; color: #374151; }
+.rank-number.bronze { background: #f59e0b; color: #78350f; }
+
+/* ----- Stall Name + Bar ----- */
+.stall-table-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 80px;
+}
+
+.stall-name-text {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stall-name-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--background);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stall-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ----- Revenue ----- */
+.stall-table-revenue {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ----- Status ----- */
+.stall-table-status {
+  min-width: 85px;
+  text-align: center;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.status-indicator.excellent { background: #d1fae5; color: #059669; }
+.status-indicator.good { background: #dbeafe; color: #2563eb; }
+.status-indicator.average { background: #fef3c7; color: #d97706; }
+.status-indicator.poor { background: #fee2e2; color: #dc2626; }
+.status-indicator.no-sales { background: #f3f4f6; color: #6b7280; }
+
+/* ----- Details ----- */
+.stall-table-details {
+  min-width: 40px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  transition: var(--transition);
+}
+
+.stall-table-row:hover .stall-table-details {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* VIEW ALL BUTTON                              */
+/* ============================================ */
+.stall-table-view-all {
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0;
+  margin-top: 0.1rem;
+}
+
+.view-all-btn {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  max-width: 300px;
+}
+
+.view-all-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
+}
+
+.view-all-btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-performance-table-container {
+    max-height: 320px;
+    padding: 0.25rem;
+  }
+  
+  .stall-table-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-table-header-rank { min-width: 30px; }
+  .stall-table-header-revenue { min-width: 50px; }
+  .stall-table-header-status { min-width: 60px; }
+  .stall-table-header-details { min-width: 30px; }
+  
+  .stall-table-row {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  .stall-table-rank { min-width: 30px; }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-table-name { min-width: 50px; }
+  .stall-name-text { font-size: 0.7rem; }
+  
+  .stall-table-revenue {
+    min-width: 50px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-table-status { min-width: 60px; }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+    gap: 0.15rem;
+  }
+  
+  .stall-table-details {
+    min-width: 30px;
+    font-size: 0.7rem;
+  }
+  
+  .view-all-btn {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .stall-table-header-revenue { min-width: 40px; }
+  .stall-table-header-status { min-width: 50px; }
+  .stall-table-revenue { min-width: 40px; font-size: 0.65rem; }
+  .stall-table-status { min-width: 50px; }
+  
+  .status-indicator {
+    font-size: 0.45rem;
+    padding: 0.05rem 0.2rem;
+  }
 }
 </style>
