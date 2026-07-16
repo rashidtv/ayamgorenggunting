@@ -1715,6 +1715,7 @@ export default {
 
 
 async loadSalesAnalytics() {
+  this.productSales = {}
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
                this.selectedPeriod === 'month' ? 30 :
@@ -1847,15 +1848,12 @@ async loadStallPerformance() {
 
 async loadMenuPerformance() {
   try {
-    // ✅ Get days from selected period
-    const days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 : 365
-    
-    // ✅ If we have productSales from analytics, use them first
+    // ✅ Get the current productSales
     const productSales = this.productSales || {}
     
+    console.log('📊 Menu performance - productSales keys:', Object.keys(productSales).length)
+    
+    // ✅ If productSales has data, use it
     if (Object.keys(productSales).length > 0) {
       this.menuPerformance = Object.keys(productSales).map(name => ({
         name: name,
@@ -1863,21 +1861,29 @@ async loadMenuPerformance() {
         revenue: parseFloat(productSales[name].revenue) || 0
       })).sort((a, b) => b.quantity - a.quantity)
       console.log('📊 Menu performance from productSales:', this.menuPerformance.length, 'items')
-    } else {
-      // ✅ Fallback: Fetch from API with period filter
-      console.log('📊 Fetching menu performance for period:', this.selectedPeriod, 'days:', days)
-      
-      const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      
-      this.menuPerformance = (res.data || []).map(item => ({
-        name: item.item_name,
-        quantity: parseInt(item.quantity) || 0,
-        revenue: parseFloat(item.revenue) || 0
-      })).sort((a, b) => b.quantity - a.quantity)
-      console.log('📊 Menu performance from API:', this.menuPerformance.length, 'items')
+      return
     }
+    
+    // ✅ If productSales is empty, fetch from API directly
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 : 365
+    
+    console.log('📊 Fetching menu performance from API, days:', days)
+    
+    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    this.menuPerformance = (res.data || []).map(item => ({
+      name: item.item_name,
+      quantity: parseInt(item.quantity) || 0,
+      revenue: parseFloat(item.revenue) || 0
+    })).sort((a, b) => b.quantity - a.quantity)
+    
+    console.log('📊 Menu performance from API:', this.menuPerformance.length, 'items')
+    
   } catch (err) {
     console.error('Failed to load menu performance:', err)
     this.menuPerformance = []
