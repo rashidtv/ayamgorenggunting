@@ -1143,8 +1143,8 @@ initStallDetailChart() {
     const salesData = data.dailySales || []
 
     const days = salesData.map(d => this.formatShortDate(d.date))
-    const revenues = salesData.map(d => d.revenue || 0)
-    const items = salesData.map(d => d.items || 0)
+    const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
+    const items = salesData.map(d => parseInt(d.items) || 0)
 
     const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
@@ -1159,15 +1159,14 @@ initStallDetailChart() {
         padding: [8, 12],
         textStyle: {
           color: '#1e293b',
-          fontSize: 12,  // ✅ Smaller font size
+          fontSize: 12,
           fontWeight: 400
         },
-        // ✅ Custom formatter - shows only Revenue and Items Sold
         formatter: function(params) {
           const index = params[0]?.dataIndex || 0
-          const revenue = finalRevenues[index] || 0
-          const itemsCount = finalItems[index] || 0
-          // ✅ Only show Revenue and Items Sold (no date)
+          // ✅ Convert to number and handle null/undefined
+          const revenue = parseFloat(finalRevenues[index]) || 0
+          const itemsCount = parseInt(finalItems[index]) || 0
           return `
             <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
               RM ${revenue.toFixed(2)}
