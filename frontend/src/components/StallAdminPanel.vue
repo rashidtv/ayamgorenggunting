@@ -87,20 +87,25 @@
         
 <!-- ===== STATS CARDS - GLASSMORPHISM ===== -->
 <div class="stats-grid">
-  <!-- My Stalls - Clickable with Active/Inactive -->
+  <!-- My Stalls - Clickable with Total/Active/Inactive -->
   <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
     <div class="stat-icon">🏪</div>
     <div class="stat-content">
-      <div class="stat-number-row">
-        <span class="stat-number">{{ stalls.filter(s => s.is_active).length }}</span>
-        <span class="stat-number-divider">/</span>
-        <span class="stat-number stat-number-inactive">{{ stalls.filter(s => !s.is_active).length }}</span>
+      <!-- Total Number - Big -->
+      <span class="stat-number">{{ stalls.length }}</span>
+      <span class="stat-label">My Stalls</span>
+      <!-- Active/Inactive Breakdown -->
+      <div class="stat-breakdown">
+        <span class="stat-breakdown-item active">
+          <span class="breakdown-dot active">●</span>
+          {{ stalls.filter(s => s.is_active).length }} Active
+        </span>
+        <span class="stat-breakdown-divider">·</span>
+        <span class="stat-breakdown-item inactive">
+          <span class="breakdown-dot inactive">○</span>
+          {{ stalls.filter(s => !s.is_active).length }} Inactive
+        </span>
       </div>
-      <span class="stat-label">
-        <span class="label-active">● Active</span>
-        <span class="label-divider">·</span>
-        <span class="label-inactive">○ Inactive</span>
-      </span>
       <span class="stat-sub-label">{{ stalls.length }} Total Stalls</span>
     </div>
     <div class="stat-trend up">
@@ -5232,15 +5237,9 @@ export default {
   min-width: 0;
 }
 
-/* Number Row - Active/Inactive */
-.stat-card.glass .stat-number-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.25rem;
-}
-
+/* Number - Big */
 .stat-card.glass .stat-number {
-  display: inline-block;
+  display: block;
   font-size: 2.2rem;
   font-weight: 700;
   color: var(--text);
@@ -5248,19 +5247,7 @@ export default {
   letter-spacing: -0.02em;
 }
 
-.stat-card.glass .stat-number-divider {
-  font-size: 1.8rem;
-  font-weight: 300;
-  color: var(--text-tertiary);
-  margin: 0 0.15rem;
-}
-
-.stat-card.glass .stat-number-inactive {
-  color: var(--text-tertiary);
-  opacity: 0.6;
-}
-
-/* Label with Active/Inactive */
+/* Label */
 .stat-card.glass .stat-label {
   display: block;
   font-size: 0.75rem;
@@ -5268,22 +5255,51 @@ export default {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-top: 0.15rem;
+  margin-top: 0.05rem;
 }
 
-.stat-card.glass .label-active {
+/* Breakdown - Active/Inactive */
+.stat-card.glass .stat-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+}
+
+.stat-card.glass .stat-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 500;
+}
+
+.stat-card.glass .stat-breakdown-item.active {
   color: #10b981;
 }
 
-.stat-card.glass .label-inactive {
+.stat-card.glass .stat-breakdown-item.inactive {
   color: var(--text-tertiary);
   opacity: 0.6;
 }
 
-.stat-card.glass .label-divider {
+.stat-card.glass .breakdown-dot {
+  font-size: 0.55rem;
+}
+
+.stat-card.glass .breakdown-dot.active {
+  color: #10b981;
+}
+
+.stat-card.glass .breakdown-dot.inactive {
   color: var(--text-tertiary);
-  opacity: 0.4;
-  margin: 0 0.2rem;
+  opacity: 0.5;
+}
+
+.stat-card.glass .stat-breakdown-divider {
+  color: var(--text-tertiary);
+  opacity: 0.3;
+  font-size: 0.5rem;
 }
 
 /* Sub Label - Total */
@@ -5358,10 +5374,6 @@ export default {
   .stat-card.glass .stat-number {
     font-size: 1.8rem;
   }
-  
-  .stat-card.glass .stat-number-divider {
-    font-size: 1.4rem;
-  }
 }
 
 @media (max-width: 600px) {
@@ -5388,12 +5400,12 @@ export default {
     font-size: 1.4rem;
   }
   
-  .stat-card.glass .stat-number-divider {
-    font-size: 1.2rem;
-  }
-  
   .stat-card.glass .stat-label {
     font-size: 0.6rem;
+  }
+  
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.55rem;
   }
   
   .stat-card.glass .stat-sub-label {
@@ -5434,13 +5446,13 @@ export default {
     font-size: 1.1rem;
   }
   
-  .stat-card.glass .stat-number-divider {
-    font-size: 0.9rem;
-  }
-  
   .stat-card.glass .stat-label {
     font-size: 0.5rem;
     letter-spacing: 0.2px;
+  }
+  
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.45rem;
   }
   
   .stat-card.glass .stat-sub-label {
