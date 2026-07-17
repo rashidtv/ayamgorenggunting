@@ -1699,165 +1699,161 @@ export default {
     },
     
     updateChart() {
-      if (!this.chartInstance) return
-      
-      const data = this.chartVisibleData
-      if (data.length === 0) {
-        const option = {
-          title: {
-            text: `No sales data for ${this.getPeriodLabel()}`,
-            left: 'center',
-            top: 'center',
-            textStyle: {
-              color: '#94a3b8',
-              fontSize: 14,
-              fontWeight: 400
-            }
+  if (!this.chartInstance) return
+  
+  const data = this.chartVisibleData
+  if (data.length === 0) {
+    const option = {
+      title: {
+        text: `No sales data for ${this.getPeriodLabel()}`,
+        left: 'center',
+        top: 'center',
+        textStyle: {
+          color: '#94a3b8',
+          fontSize: 14,
+          fontWeight: 400
+        }
+      }
+    }
+    this.chartInstance.setOption(option, true)
+    return
+  }
+  
+  const dates = data.map(d => d.label || this.formatShortDate(d.date))
+  const revenues = data.map(d => d.revenue || 0)
+  
+  const chartWidth = this.$refs.chartRef?.clientWidth || 0
+  const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      padding: [6, 10],  // Even smaller padding
+      textStyle: { 
+        color: '#1e293b', 
+        fontSize: 11,  // Base font size
+        fontWeight: 400
+      },
+      formatter: function(params) {
+        const index = params[0]?.dataIndex || 0
+        const revenue = data[index]?.revenue || 0
+        const itemsCount = data[index]?.items || 0
+        const dateStr = data[index]?.date || data[index]?.label || ''
+        
+        // Format date as "12th Jul 2026"
+        let formattedDate = dateStr
+        if (dateStr && !dateStr.includes('W')) {
+          const date = new Date(dateStr)
+          if (!isNaN(date.getTime())) {
+            const day = date.getDate()
+            const month = date.toLocaleDateString('en-MY', { month: 'short' })
+            const year = date.getFullYear()
+            const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+            formattedDate = `${day}${suffix} ${month} ${year}`
           }
         }
-        this.chartInstance.setOption(option, true)
-        return
+        
+        return `
+          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+        `
       }
-      
-      const dates = data.map(d => d.label || this.formatShortDate(d.date))
-      const revenues = data.map(d => d.revenue || 0)
-      
-      const chartWidth = this.$refs.chartRef?.clientWidth || 0
-      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
-      
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderColor: '#e2e8f0',
-          borderWidth: 1,
-          padding: [12, 16],
-          textStyle: { color: '#1e293b', fontSize: 13 },
-          formatter: function(params) {
-            const index = params[0]?.dataIndex || 0
-            const revenue = data[index]?.revenue || 0
-            const itemsCount = data[index]?.items || 0
-            return `
-              <div style="font-weight:600;margin-bottom:4px;">${data[index]?.label || data[index]?.date || ''}</div>
-              <div style="color:#F94908;font-size:16px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-              <div style="color:#64748b;font-size:12px;">${itemsCount} items sold</div>
-            `
-          }
-        },
-        grid: {
-          left: chartWidth < 400 ? '5%' : '3%',
-          right: chartWidth < 400 ? '5%' : '4%',
-          bottom: '12%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: dates,
-          axisLine: { lineStyle: { color: '#e2e8f0' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: chartWidth < 400 ? 9 : 11,
-            fontWeight: 500,
-            interval: labelInterval,
-            rotate: chartWidth < 400 ? 30 : 0,
-            margin: 12,
-            showMaxLabel: true,
-            showMinLabel: true
-          },
-          axisTick: { show: false },
-          splitLine: { show: false }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: chartWidth < 400 ? 9 : 11,
-            formatter: function(value) {
-              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
-              return 'RM' + value
-            }
-          },
-          name: chartWidth > 500 ? 'Revenue (RM)' : '',
-          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
-        },
-        series: [
-          {
-            name: 'Revenue',
-            type: 'bar',
-            data: revenues,
-            barWidth: chartWidth < 400 ? '35%' : '55%',
-            itemStyle: {
-              borderRadius: [4, 4, 0, 0],
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: '#F94908' },
-                  { offset: 1, color: '#fa6a2e' }
-                ]
-              }
-            },
-            emphasis: { itemStyle: { color: '#d63d07' } }
-          },
-          {
-            name: 'Trend Line',
-            type: 'line',
-            data: revenues,
-            smooth: false,
-            lineStyle: { 
-              color: '#F94908', 
-              width: 2.5, 
-              type: 'solid'
-            },
-            symbol: 'circle',
-            symbolSize: chartWidth < 400 ? 5 : 7,
-            itemStyle: { 
-              color: '#F94908', 
-              borderColor: '#ffffff', 
-              borderWidth: 2 
-            },
-            areaStyle: {
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
-                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
-                ]
-              }
-            },
-            z: 10,
-            markLine: {
-              silent: true,
-              symbol: 'none',
-              lineStyle: {
-                color: '#94a3b8',
-                type: 'dashed',
-                width: 1
-              },
-              label: {
-                color: '#94a3b8',
-                fontSize: 10,
-                fontWeight: 500,
-                formatter: function(params) {
-                  return 'Avg: RM' + params.value.toFixed(0)
-                }
-              },
-              data: [
-                {
-                  type: 'average',
-                  name: 'Average'
-                }
-              ]
-            }
-          }
-        ]
-      }
-      
-      this.chartInstance.setOption(option, true)
     },
+    grid: {
+      left: chartWidth < 400 ? '5%' : '3%',
+      right: chartWidth < 400 ? '5%' : '4%',
+      bottom: '12%',
+      top: '8%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: chartWidth < 400 ? 9 : 11,
+        fontWeight: 500,
+        interval: labelInterval,
+        rotate: chartWidth < 400 ? 30 : 0,
+        margin: 12,
+        showMaxLabel: true,
+        showMinLabel: true
+      },
+      axisTick: { show: false },
+      splitLine: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: chartWidth < 400 ? 9 : 11,
+        formatter: function(value) {
+          if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
+          return 'RM' + value
+        }
+      },
+      name: chartWidth > 500 ? 'Revenue (RM)' : '',
+      nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
+    },
+    series: [
+      {
+        name: 'Revenue',
+        type: 'bar',
+        data: revenues,
+        barWidth: chartWidth < 400 ? '35%' : '55%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#d63d07' } }
+      },
+      {
+        name: 'Trend Line',
+        type: 'line',
+        data: revenues,
+        smooth: false,
+        lineStyle: { 
+          color: '#F94908', 
+          width: 2.5, 
+          type: 'solid'
+        },
+        symbol: 'circle',
+        symbolSize: chartWidth < 400 ? 5 : 7,
+        itemStyle: { 
+          color: '#F94908', 
+          borderColor: '#ffffff', 
+          borderWidth: 2 
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
+              { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+            ]
+          }
+        },
+        z: 10
+      }
+    ]
+  }
+  
+  this.chartInstance.setOption(option, true)
+},
     
     handleChartResize() {
       if (this.chartInstance) {
