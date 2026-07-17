@@ -85,36 +85,61 @@
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
-        <!-- STATS CARDS -->
-        <div class="stats-grid">
-          <div class="stat-card" style="--stat-color: #2563eb;">
-            <div class="stat-icon">🏪</div>
-            <div class="stat-content">
-              <span class="stat-number">{{ stalls.length }}</span>
-              <span class="stat-label">My Stalls</span>
-            </div>
-            <div class="stat-trend up">+12%</div>
-          </div>
-          <div class="stat-card" style="--stat-color: #7c3aed;">
-            <div class="stat-icon">👥</div>
-            <div class="stat-content">
-              <span class="stat-number">{{ users.length }}</span>
-              <span class="stat-label">My Users</span>
-            </div>
-            <div class="stat-trend up">+8%</div>
-          </div>
-          <div class="stat-card clickable" style="--stat-color: #dc2626;" @click="switchTab('inventory')">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-content">
-              <span class="stat-number">{{ lowStock.length }}</span>
-              <span class="stat-label">Low Stock Alerts</span>
-            </div>
-            <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
-              {{ lowStock.length > 0 ? '⚠️' : '✅' }}
-            </div>
-            <div class="stat-hover">Click to view →</div>
-          </div>
-        </div>
+        <!-- ===== STATS CARDS - GLASSMORPHISM ===== -->
+<div class="stats-grid">
+  <!-- My Stalls - Clickable -->
+  <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
+    <div class="stat-icon">🏪</div>
+    <div class="stat-content">
+      <span class="stat-number">{{ stalls.length }}</span>
+      <span class="stat-label">My Stalls</span>
+    </div>
+    <div class="stat-trend up">
+      <span class="trend-arrow">↑</span> 12%
+    </div>
+    <div class="stat-hover">Click to view →</div>
+  </div>
+  
+  <!-- My Users - Clickable -->
+  <div class="stat-card glass clickable" style="--stat-color: #7c3aed; --stat-color-alpha: rgba(124, 58, 237, 0.15);" @click="switchTab('users')">
+    <div class="stat-icon">👥</div>
+    <div class="stat-content">
+      <span class="stat-number">{{ users.length }}</span>
+      <span class="stat-label">My Users</span>
+    </div>
+    <div class="stat-trend up">
+      <span class="trend-arrow">↑</span> 8%
+    </div>
+    <div class="stat-hover">Click to view →</div>
+  </div>
+  
+  <!-- Menu Items - Clickable to Menu Assignment -->
+  <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTab('menu-assignment')">
+    <div class="stat-icon">📋</div>
+    <div class="stat-content">
+      <span class="stat-number">{{ menuItems.length }}</span>
+      <span class="stat-label">Menu Items</span>
+    </div>
+    <div class="stat-trend neutral">
+      <span class="trend-arrow">•</span> {{ menuItems.length > 0 ? 'Active' : 'None' }}
+    </div>
+    <div class="stat-hover">Click to manage →</div>
+  </div>
+  
+  <!-- Low Stock - Clickable to Inventory -->
+  <div class="stat-card glass clickable" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTab('inventory')">
+    <div class="stat-icon">⚠️</div>
+    <div class="stat-content">
+      <span class="stat-number">{{ lowStock.length }}</span>
+      <span class="stat-label">Low Stock Alerts</span>
+    </div>
+    <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
+      <span class="trend-arrow">{{ lowStock.length > 0 ? '⚠' : '✓' }}</span>
+      {{ lowStock.length > 0 ? `${lowStock.length} items` : 'All good' }}
+    </div>
+    <div class="stat-hover">Click to view →</div>
+  </div>
+</div>
 
         <!-- KPI Cards -->
         <div class="kpi-grid">
@@ -5055,6 +5080,302 @@ export default {
   
   .dropdown-label {
     font-size: 0.8rem;
+  }
+}
+
+/* ============================================ */
+/* STATS GRID - GLASSMORPHISM STYLE            */
+/* ============================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Glass Card */
+.stat-card.glass {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 100px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+
+/* Glass background with color tint */
+.stat-card.glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    var(--stat-color-alpha, rgba(37, 99, 235, 0.08)),
+    rgba(255, 255, 255, 0.05)
+  );
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Glass shimmer effect */
+.stat-card.glass::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at 30% 20%,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* All content above glass effect */
+.stat-card.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Accent color line */
+.stat-card.glass .stat-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--stat-color, #2563eb);
+  border-radius: 16px 16px 0 0;
+  opacity: 0.8;
+  z-index: 1;
+}
+
+/* Hover effect */
+.stat-card.glass:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px var(--stat-color-alpha, rgba(37, 99, 235, 0.15));
+  border-color: var(--stat-color, #2563eb);
+}
+
+.stat-card.glass.clickable {
+  cursor: pointer;
+}
+
+.stat-card.glass.clickable:hover .stat-hover {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.stat-card.glass .stat-hover {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 1rem;
+  font-size: 0.6rem;
+  color: var(--stat-color, #2563eb);
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateX(10px);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  z-index: 1;
+}
+
+/* Icon - Glass style */
+.stat-card.glass .stat-icon {
+  font-size: 2.5rem;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.stat-card.glass:hover .stat-icon {
+  transform: scale(1.08) rotate(-3deg);
+  background: var(--stat-color, #2563eb);
+  border-color: var(--stat-color, #2563eb);
+  color: white;
+  box-shadow: 0 4px 15px var(--stat-color-alpha, rgba(37, 99, 235, 0.3));
+}
+
+/* Content */
+.stat-card.glass .stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card.glass .stat-number {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.stat-card.glass .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.15rem;
+}
+
+/* Trend indicator */
+.stat-card.glass .stat-trend {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.7rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.stat-card.glass .stat-trend .trend-arrow {
+  font-size: 0.7rem;
+}
+
+.stat-card.glass .stat-trend.up { 
+  color: #10b981; 
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.stat-card.glass .stat-trend.down { 
+  color: #ef4444; 
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.stat-card.glass .stat-trend.neutral { 
+  color: var(--text-secondary); 
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================ */
+/* RESPONSIVE - GLASSMORPHISM                  */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-card.glass {
+    padding: 1.25rem 1rem;
+    min-height: 85px;
+    gap: 1rem;
+  }
+  
+  .stat-card.glass .stat-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+  }
+  
+  .stat-card.glass .stat-number {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .stat-card.glass {
+    padding: 1rem 0.75rem;
+    min-height: 70px;
+    gap: 0.75rem;
+    border-radius: 12px;
+  }
+  
+  .stat-card.glass .stat-icon {
+    font-size: 1.6rem;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  
+  .stat-card.glass .stat-number {
+    font-size: 1.4rem;
+  }
+  
+  .stat-card.glass .stat-label {
+    font-size: 0.6rem;
+  }
+  
+  .stat-card.glass .stat-trend {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .stat-card.glass .stat-hover {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-card.glass {
+    padding: 0.75rem 0.5rem;
+    min-height: 60px;
+    gap: 0.5rem;
+    border-radius: 10px;
+  }
+  
+  .stat-card.glass .stat-icon {
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  
+  .stat-card.glass .stat-number {
+    font-size: 1.1rem;
+  }
+  
+  .stat-card.glass .stat-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.2px;
+  }
+  
+  .stat-card.glass .stat-trend {
+    font-size: 0.4rem;
+    padding: 0.05rem 0.3rem;
   }
 }
 </style>
