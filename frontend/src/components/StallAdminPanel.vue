@@ -43,6 +43,23 @@
             >
               {{ p.label }}
             </button>
+            
+            <!-- Custom Date Range -->
+            <div v-if="selectedPeriod === 'custom'" class="custom-date-range">
+              <div class="date-range-inputs">
+                <div class="date-input-group">
+                  <label>From</label>
+                  <input type="date" v-model="customDateStart" @change="applyCustomRange" />
+                </div>
+                <div class="date-input-group">
+                  <label>To</label>
+                  <input type="date" v-model="customDateEnd" @change="applyCustomRange" />
+                </div>
+              </div>
+              <button @click="applyCustomRange" class="btn-modern primary small" style="width: 100%; margin-top: 0.5rem;">
+                Apply Range
+              </button>
+            </div>
           </div>
         </div>
 
@@ -143,7 +160,7 @@
           </div>
 
           <div class="chart-modern-body">
-            <!-- Stats Row -->
+            <!-- Stats Row - Simplified -->
             <div class="chart-modern-stats" v-if="salesTrend.length > 0">
               <div class="chart-modern-stat">
                 <span class="chart-modern-stat-label">Peak</span>
@@ -151,19 +168,22 @@
                 <span class="chart-modern-stat-sub">{{ getPeakDay() }}</span>
               </div>
               <div class="chart-modern-stat">
-                <span class="chart-modern-stat-label">Average</span>
-                <span class="chart-modern-stat-value">{{ formatCurrency(getAverageRevenue()) }}</span>
-              </div>
-              <div class="chart-modern-stat">
-                <span class="chart-modern-stat-label">Items</span>
-                <span class="chart-modern-stat-value">{{ formatNumber(getTotalItems()) }}</span>
-              </div>
-              <div class="chart-modern-stat">
                 <span class="chart-modern-stat-label">Trend</span>
                 <span class="chart-modern-stat-value" :class="getTrendDirection()">
                   {{ getTrendDirection() === 'up' ? '↑' : getTrendDirection() === 'down' ? '↓' : '→' }}
                   {{ getTrendPercentage() }}%
                 </span>
+                <span class="chart-modern-stat-sub">{{ getTrendDirection() === 'up' ? 'Rising' : getTrendDirection() === 'down' ? 'Declining' : 'Stable' }}</span>
+              </div>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Best Day</span>
+                <span class="chart-modern-stat-value">{{ getBestDayName() }}</span>
+                <span class="chart-modern-stat-sub">{{ formatCurrency(getBestDayRevenue()) }}</span>
+              </div>
+              <div class="chart-modern-stat">
+                <span class="chart-modern-stat-label">Total</span>
+                <span class="chart-modern-stat-value">{{ formatCurrency(getTotalRevenue()) }}</span>
+                <span class="chart-modern-stat-sub">{{ formatNumber(getTotalItems()) }} items</span>
               </div>
             </div>
 
@@ -893,8 +913,15 @@ export default {
         { value: 'week', label: 'Week' },
         { value: 'month', label: 'Month' },
         { value: 'quarter', label: 'Quarter' },
-        { value: 'year', label: 'Year' }
+        { value: 'halfyear', label: 'Half Year' },
+        { value: 'year', label: 'Year' },
+        { value: 'custom', label: 'Custom Range' }
       ],
+      
+      // Custom date range
+      customDateStart: null,
+      customDateEnd: null,
+      customDays: 30,
       
       stallDetailModal: false,
       selectedStall: null,
@@ -1143,7 +1170,10 @@ export default {
         const days = this.selectedPeriod === 'today' ? 1 :
                      this.selectedPeriod === 'week' ? 7 :
                      this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 : 365
+                     this.selectedPeriod === 'quarter' ? 90 :
+                     this.selectedPeriod === 'halfyear' ? 180 :
+                     this.selectedPeriod === 'year' ? 365 :
+                     this.customDays || 30
         
         console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
         
@@ -1207,7 +1237,17 @@ export default {
     selectPeriod(value) {
       this.selectedPeriod = value
       this.periodDropdownOpen = false
-      this.refreshAllData()
+      
+      if (value === 'custom') {
+        // Set default range (last 30 days)
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - 30)
+        this.customDateStart = start.toISOString().split('T')[0]
+        this.customDateEnd = end.toISOString().split('T')[0]
+      } else {
+        this.refreshAllData()
+      }
     },
     handleClickOutside(event) {
       const container = this.$el
@@ -1215,6 +1255,33 @@ export default {
         this.dropdownOpen = false
         this.periodDropdownOpen = false
       }
+    },
+
+    // =============================================
+    // CUSTOM DATE RANGE
+    // =============================================
+    applyCustomRange() {
+      if (!this.customDateStart || !this.customDateEnd) {
+        this.$emit('show-notification', 'Please select both start and end dates', 'warning')
+        return
+      }
+      
+      const start = new Date(this.customDateStart)
+      const end = new Date(this.customDateEnd)
+      
+      if (start > end) {
+        this.$emit('show-notification', 'Start date must be before end date', 'error')
+        return
+      }
+      
+      // Calculate days difference
+      const diffTime = Math.abs(end - start)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      this.customDays = diffDays + 1 // Include both start and end
+      
+      this.periodDropdownOpen = false
+      this.refreshAllData()
+      this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
     },
 
     // =============================================
@@ -1236,7 +1303,43 @@ export default {
     },
     formatShortDate(dateStr) {
       if (!dateStr) return ''
-      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+      
+      // For custom range, show smart labels
+      if (this.selectedPeriod === 'custom') {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
+      }
+      
+      // For quarter, halfyear, year - show month names
+      if (this.selectedPeriod === 'quarter' || 
+          this.selectedPeriod === 'halfyear' || 
+          this.selectedPeriod === 'year') {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-MY', { month: 'short' })
+      }
+      
+      // For week grouping in month view
+      if (this.selectedPeriod === 'month') {
+        if (dateStr.includes('W')) {
+          return dateStr
+        }
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-MY', { day: 'numeric' })
+      }
+      
+      const date = new Date(dateStr)
+      
+      // For week view, show day names
+      if (this.selectedPeriod === 'week') {
+        return date.toLocaleDateString('en-MY', { weekday: 'short' })
+      }
+      
+      // For today, show time
+      if (this.selectedPeriod === 'today') {
+        return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })
+      }
+      
+      return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
     },
     formatFullDate(dateStr) {
       if (!dateStr) return ''
@@ -1247,11 +1350,38 @@ export default {
       })
     },
     getPeriodLabel() {
-      var p = this.periods.find(p => p.value === this.selectedPeriod)
+      const p = this.periods.find(p => p.value === this.selectedPeriod)
+      if (this.selectedPeriod === 'custom') {
+        return `Custom (${this.customDays} days)`
+      }
       return p ? p.label : 'Week'
     },
     getUnit(materialName) {
       return 'pieces'
+    },
+
+    // =============================================
+    // CHART STATS - SIMPLIFIED
+    // =============================================
+    getBestDayName() {
+      if (this.salesTrend.length === 0) return '-'
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      const day = this.salesTrend.find(d => d.revenue === max)
+      return day ? this.formatShortDate(day.date) : '-'
+    },
+
+    getBestDayRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      return max
+    },
+
+    getTotalRevenue() {
+      return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    },
+
+    getTotalItems() {
+      return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
     },
 
     // =============================================
@@ -1435,6 +1565,111 @@ export default {
     },
     
     // =============================================
+    // GROUPING HELPERS
+    // =============================================
+    groupSalesByWeek(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      
+      const grouped = {}
+      
+      dailySales.forEach(day => {
+        const date = new Date(day.date)
+        const weekNumber = this.getWeekNumber(date)
+        const year = date.getFullYear()
+        const key = `${year}-W${weekNumber}`
+        
+        if (!grouped[key]) {
+          const weekStart = this.getWeekStart(date)
+          grouped[key] = {
+            date: weekStart.toISOString().split('T')[0],
+            label: `W${weekNumber}`,
+            revenue: 0,
+            items: 0,
+            weekNumber: weekNumber,
+            year: year
+          }
+        }
+        
+        grouped[key].revenue += day.revenue || 0
+        grouped[key].items += day.items || 0
+      })
+      
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupSalesByMonth(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      
+      const grouped = {}
+      
+      dailySales.forEach(day => {
+        const date = new Date(day.date)
+        const month = date.getMonth()
+        const year = date.getFullYear()
+        const key = `${year}-${month}`
+        
+        if (!grouped[key]) {
+          const monthName = date.toLocaleDateString('en-MY', { month: 'short' })
+          grouped[key] = {
+            date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+            label: monthName,
+            revenue: 0,
+            items: 0,
+            month: month,
+            year: year
+          }
+        }
+        
+        grouped[key].revenue += day.revenue || 0
+        grouped[key].items += day.items || 0
+      })
+      
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupSalesCustom(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      
+      const days = dailySales.length
+      
+      // If less than 14 days, show daily
+      if (days <= 14) {
+        return dailySales.map(day => ({
+          ...day,
+          label: new Date(day.date).toLocaleDateString('en-MY', { 
+            month: 'short', 
+            day: 'numeric' 
+          })
+        }))
+      }
+      
+      // If less than 60 days, show weekly
+      if (days <= 60) {
+        return this.groupSalesByWeek(dailySales)
+      }
+      
+      // Otherwise show monthly
+      return this.groupSalesByMonth(dailySales)
+    },
+
+    getWeekNumber(date) {
+      const d = new Date(date)
+      d.setHours(0, 0, 0, 0)
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7)
+      const week1 = new Date(d.getFullYear(), 0, 4)
+      return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
+    },
+
+    getWeekStart(date) {
+      const d = new Date(date)
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      const weekStart = new Date(d.setDate(diff))
+      weekStart.setHours(0, 0, 0, 0)
+      return weekStart
+    },
+    
+    // =============================================
     // ECHARTS - Professional Chart
     // =============================================
     initChart() {
@@ -1484,7 +1719,7 @@ export default {
         return
       }
       
-      const dates = data.map(d => this.formatShortDate(d.date))
+      const dates = data.map(d => d.label || this.formatShortDate(d.date))
       const revenues = data.map(d => d.revenue || 0)
       
       const chartWidth = this.$refs.chartRef?.clientWidth || 0
@@ -1503,7 +1738,7 @@ export default {
             const revenue = data[index]?.revenue || 0
             const itemsCount = data[index]?.items || 0
             return `
-              <div style="font-weight:600;margin-bottom:4px;">${data[index]?.label || ''}</div>
+              <div style="font-weight:600;margin-bottom:4px;">${data[index]?.label || data[index]?.date || ''}</div>
               <div style="color:#F94908;font-size:16px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
               <div style="color:#64748b;font-size:12px;">${itemsCount} items sold</div>
             `
@@ -1570,22 +1805,53 @@ export default {
             name: 'Trend Line',
             type: 'line',
             data: revenues,
-            smooth: true,
-            lineStyle: { color: '#F94908', width: 2, type: 'solid' },
+            smooth: false,
+            lineStyle: { 
+              color: '#F94908', 
+              width: 2.5, 
+              type: 'solid'
+            },
             symbol: 'circle',
-            symbolSize: chartWidth < 400 ? 4 : 6,
-            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
+            symbolSize: chartWidth < 400 ? 5 : 7,
+            itemStyle: { 
+              color: '#F94908', 
+              borderColor: '#ffffff', 
+              borderWidth: 2 
+            },
             areaStyle: {
               color: {
                 type: 'linear',
                 x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(249, 73, 8, 0.15)' },
+                  { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
                   { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
                 ]
               }
             },
-            z: 10
+            z: 10,
+            markLine: {
+              silent: true,
+              symbol: 'none',
+              lineStyle: {
+                color: '#94a3b8',
+                type: 'dashed',
+                width: 1
+              },
+              label: {
+                color: '#94a3b8',
+                fontSize: 10,
+                fontWeight: 500,
+                formatter: function(params) {
+                  return 'Avg: RM' + params.value.toFixed(0)
+                }
+              },
+              data: [
+                {
+                  type: 'average',
+                  name: 'Average'
+                }
+              ]
+            }
           }
         ]
       }
@@ -1621,7 +1887,7 @@ export default {
       const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
       return total / this.salesTrend.length
     },
-    getTotalItems() {
+    getTotalItemsOld() {
       return this.salesTrend.reduce((sum, d) => {
         const items = parseInt(d.items) || 0
         return sum + items
@@ -1929,29 +2195,29 @@ export default {
       await this.loadData()
     },
     async loadData() {
-  try {
-    console.log('🔄 Loading stall admin data...')
-    
-    // ✅ CRITICAL: Load stalls FIRST so other methods can use them
-    await this.loadStalls()
-    
-    // ✅ Everything else can load in parallel
-    await Promise.all([
-      this.loadUsers(),
-      this.loadLowStock(),
-      this.loadSalesAnalytics(),
-      this.loadStallPerformance(), // ← Now this.stalls is guaranteed to have data
-      this.loadMenuItems()
-    ])
-    
-    await this.loadAllStallsInventory()
-    this.resetChartNavigation()
-    this.$emit('show-notification', 'Data refreshed', 'success')
-  } catch (err) {
-    console.error('Load data error:', err)
-    this.$emit('show-notification', err.message, 'error')
-  }
-},
+      try {
+        console.log('🔄 Loading stall admin data...')
+        
+        // Load stalls FIRST so other methods can use them
+        await this.loadStalls()
+        
+        // Everything else can load in parallel
+        await Promise.all([
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadSalesAnalytics(),
+          this.loadStallPerformance(),
+          this.loadMenuItems()
+        ])
+        
+        await this.loadAllStallsInventory()
+        this.resetChartNavigation()
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        console.error('Load data error:', err)
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
     
     async loadStalls() {
       try {
@@ -1977,7 +2243,6 @@ export default {
           headers: { Authorization: `Bearer ${this.token}` } 
         })
         this.users = res.data.filter(user => {
-          // For stall_admin, show only users in their company
           if (user.role === 'super_admin' || user.role === 'super_super_admin') {
             return false;
           }
@@ -2014,7 +2279,10 @@ export default {
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 : 365
+                   this.selectedPeriod === 'quarter' ? 90 :
+                   this.selectedPeriod === 'halfyear' ? 180 :
+                   this.selectedPeriod === 'year' ? 365 :
+                   this.customDays || 30
       
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
@@ -2041,6 +2309,24 @@ export default {
             dayDate.setHours(0, 0, 0, 0)
             return dayDate.getTime() === today.getTime()
           })
+        }
+        
+        // SMART GROUPING BASED ON PERIOD
+        if (this.selectedPeriod === 'month') {
+          // Month: Show weekly groups (5 weeks)
+          dailySales = this.groupSalesByWeek(dailySales)
+        } else if (this.selectedPeriod === 'quarter') {
+          // Quarter: Show monthly groups (3 months)
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'halfyear') {
+          // Half Year: Show monthly groups (6 months)
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'year') {
+          // Year: Show monthly groups (12 months)
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'custom') {
+          // Custom: Smart grouping based on range
+          dailySales = this.groupSalesCustom(dailySales)
         }
         
         this.salesTrend = dailySales
@@ -2074,12 +2360,14 @@ export default {
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 : 365
+                   this.selectedPeriod === 'quarter' ? 90 :
+                   this.selectedPeriod === 'halfyear' ? 180 :
+                   this.selectedPeriod === 'year' ? 365 :
+                   this.customDays || 30
       
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
       try {
-        // Get stall IDs from assigned stalls
         const stallIds = this.stalls.map(s => s.id)
         
         if (!stallIds || stallIds.length === 0) {
@@ -2155,7 +2443,10 @@ export default {
         const days = this.selectedPeriod === 'today' ? 1 :
                      this.selectedPeriod === 'week' ? 7 :
                      this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 : 365
+                     this.selectedPeriod === 'quarter' ? 90 :
+                     this.selectedPeriod === 'halfyear' ? 180 :
+                     this.selectedPeriod === 'year' ? 365 :
+                     this.customDays || 30
         
         console.log('📊 Fetching menu performance from API, days:', days)
         
@@ -2686,6 +2977,57 @@ export default {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Custom Date Range */
+.custom-date-range {
+  padding: 0.75rem;
+  background: var(--background);
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+}
+
+.date-range-inputs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.date-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.date-input-group label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.date-input-group input {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  background: #ffffff;
+  color: var(--text);
+  width: 100%;
+}
+
+.date-input-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+@media (max-width: 600px) {
+  .date-range-inputs {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;
@@ -2981,18 +3323,20 @@ export default {
   padding: 1.25rem;
 }
 
+/* Chart Stats - Modern Minimal */
 .chart-modern-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   margin-bottom: 1.25rem;
-  padding: 0.5rem;
+  padding: 0.75rem;
   background: var(--background);
   border-radius: var(--radius-sm);
 }
 
 .chart-modern-stat {
   text-align: center;
+  padding: 0.25rem;
 }
 
 .chart-modern-stat-label {
@@ -3001,11 +3345,12 @@ export default {
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .chart-modern-stat-value {
   display: block;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
@@ -3015,8 +3360,9 @@ export default {
 .chart-modern-stat-value.down { color: #ef4444; }
 
 .chart-modern-stat-sub {
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 .chart-modern-nav {
@@ -4435,6 +4781,19 @@ export default {
   width: 100%;
   height: 200px;
 }
+
+.status-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.status-badge.excellent { background: #d1fae5; color: #059669; }
+.status-badge.good { background: #dbeafe; color: #2563eb; }
+.status-badge.average { background: #fef3c7; color: #d97706; }
+.status-badge.poor { background: #fee2e2; color: #dc2626; }
+.status-badge.no-sales { background: #f3f4f6; color: #6b7280; }
 
 /* ============================================ */
 /* MENU ASSIGNMENT                             */
