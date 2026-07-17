@@ -155,34 +155,128 @@
   </div>
 </div>
 
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-label">Revenue</div>
-            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
-            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-              {{ getRevenueChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getRevenueChange()).toFixed(1) }}%
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Items Sold</div>
-            <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
-            <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
-              {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Average per Stall</div>
-            <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
-          </div>
-          <div class="kpi-card highlight">
-            <div class="kpi-label">🏆 Top Stall</div>
-            <div class="kpi-value" style="font-size: 1.1rem;">{{ consolidatedSales.topStall || '-' }}</div>
-            <div class="kpi-change" v-if="consolidatedSales.topRevenue">
-              {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
-            </div>
-          </div>
-        </div>
+        <!-- KPI Cards with Sparkline -->
+<div class="kpi-grid">
+  <!-- Revenue -->
+  <div class="kpi-card" style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);">
+    <div class="kpi-icon">💰</div>
+    <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+    <div class="kpi-label">Revenue</div>
+    <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+      <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
+      {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+    </div>
+    <!-- Sparkline -->
+    <div class="sparkline-container">
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+          class="sparkline-line"
+          :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
+        />
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+          class="sparkline-area"
+          :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+        />
+      </svg>
+    </div>
+    <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+      {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+    </div>
+  </div>
+
+  <!-- Items Sold -->
+  <div class="kpi-card" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);">
+    <div class="kpi-icon">📦</div>
+    <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
+    <div class="kpi-label">Items Sold</div>
+    <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+      <span class="trend-icon">{{ getItemsChange() >= 0 ? '↑' : '↓' }}</span>
+      {{ Math.abs(getItemsChange()).toFixed(1) }}%
+    </div>
+    <!-- Sparkline -->
+    <div class="sparkline-container">
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
+          class="sparkline-line"
+          :style="{ stroke: getItemsChange() >= 0 ? '#10b981' : '#ef4444' }"
+        />
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
+          class="sparkline-area"
+          :style="{ fill: getItemsChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+        />
+      </svg>
+    </div>
+    <div class="kpi-trend-label" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+      {{ getItemsChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+    </div>
+  </div>
+
+  <!-- Average per Stall -->
+  <div class="kpi-card" style="--kpi-color: #7c3aed; --kpi-color-alpha: rgba(124, 58, 237, 0.08);">
+    <div class="kpi-icon">⭐</div>
+    <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
+    <div class="kpi-label">Avg per Stall</div>
+    <div class="kpi-change neutral">
+      <span class="trend-icon">•</span>
+      {{ stalls.length > 0 ? `${stalls.length} stalls` : 'No stalls' }}
+    </div>
+    <!-- Sparkline -->
+    <div class="sparkline-container">
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
+          class="sparkline-line"
+          style="stroke: #7c3aed;"
+        />
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
+          class="sparkline-area"
+          style="fill: rgba(124, 58, 237, 0.1);"
+        />
+      </svg>
+    </div>
+    <div class="kpi-trend-label neutral">
+      {{ stalls.length > 0 ? `${stalls.length} active stalls` : 'No stalls' }}
+    </div>
+  </div>
+
+  <!-- Top Stall -->
+  <div class="kpi-card highlight" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);">
+    <div class="kpi-icon">🏆</div>
+    <div class="kpi-value" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</div>
+    <div class="kpi-label">Top Stall</div>
+    <div class="kpi-change" v-if="consolidatedSales.topRevenue">
+      <span class="trend-icon">🏆</span>
+      {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
+    </div>
+    <div class="kpi-change neutral" v-else>
+      <span class="trend-icon">•</span>
+      No data
+    </div>
+    <!-- Sparkline -->
+    <div class="sparkline-container">
+      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+          class="sparkline-line"
+          style="stroke: #f59e0b;"
+        />
+        <polyline
+          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+          class="sparkline-area"
+          style="fill: rgba(245, 158, 11, 0.1);"
+        />
+      </svg>
+    </div>
+    <div class="kpi-trend-label neutral">
+      {{ consolidatedSales.topStall !== '-' ? 'Top performer' : 'No sales yet' }}
+    </div>
+  </div>
+</div>
 
         <!-- Professional Chart with ECharts -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
@@ -1147,6 +1241,32 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// SPARKLINE HELPER
+// =============================================
+getSparklinePoints(data) {
+  if (!data || data.length === 0) {
+    return '0,40 200,40'
+  }
+  
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * 200
+    const max = Math.max(...data, 1)
+    const min = Math.min(...data, 0)
+    const range = max - min || 1
+    const y = 40 - ((value - min) / range) * 35
+    return `${x},${y}`
+  })
+  
+  // Add final point to close the area
+  const lastX = (data.length - 1) / (data.length - 1) * 200
+  points.push(`${lastX},40`)
+  points.push(`0,40`)
+  
+  return points.join(' ')
+},
+
     // =============================================
     // STALL PERFORMANCE - STATUS EMOJI
     // =============================================
@@ -5464,4 +5584,233 @@ export default {
     padding: 0.05rem 0.3rem;
   }
 }
+
+/* ============================================ */
+/* KPI CARDS - WITH SPARKLINE                  */
+/* ============================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 140px;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--kpi-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-card.highlight {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.kpi-card.highlight:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+}
+
+/* Icon */
+.kpi-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+/* Value */
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Label */
+.kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
+}
+
+/* Change indicator */
+.kpi-change {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+}
+
+.kpi-change .trend-icon {
+  font-size: 0.65rem;
+}
+
+.kpi-change.positive {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.kpi-change.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.kpi-change.neutral {
+  color: var(--text-secondary);
+  background: var(--background);
+}
+
+/* Sparkline Container */
+.sparkline-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  opacity: 0.6;
+}
+
+.sparkline-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sparkline-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-area {
+  opacity: 0.3;
+}
+
+/* Trend Label */
+.kpi-trend-label {
+  font-size: 0.55rem;
+  font-weight: 500;
+  margin-top: 0.15rem;
+  opacity: 0.7;
+}
+
+.kpi-trend-label.positive {
+  color: #10b981;
+}
+
+.kpi-trend-label.negative {
+  color: #ef4444;
+}
+
+.kpi-trend-label.neutral {
+  color: var(--text-tertiary);
+}
+
+/* ============================================ */
+/* RESPONSIVE - KPI CARDS                      */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .kpi-card {
+    min-height: 120px;
+    padding: 1rem;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .sparkline-container {
+    height: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .kpi-card {
+    min-height: 100px;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+
+  .kpi-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+
+  .kpi-label {
+    font-size: 0.6rem;
+  }
+
+  .kpi-change {
+    font-size: 0.6rem;
+    padding: 0.05rem 0.3rem;
+  }
+
+  .sparkline-container {
+    height: 25px;
+    opacity: 0.4;
+  }
+
+  .kpi-trend-label {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .kpi-grid {
+    gap: 0.5rem;
+  }
+
+  .kpi-card {
+    min-height: 85px;
+    padding: 0.6rem;
+    border-radius: 10px;
+  }
+
+  .kpi-value {
+    font-size: 1rem;
+  }
+
+  .kpi-icon {
+    font-size: 1.2rem;
+  }
+
+  .sparkline-container {
+    height: 20px;
+  }
+}
+
 </style>
