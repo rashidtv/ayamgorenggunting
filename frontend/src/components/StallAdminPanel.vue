@@ -1741,12 +1741,13 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return dateStr
-  
   // ✅ For today, show Malaysia time (UTC+8) for display only
   if (this.selectedPeriod === 'today') {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    
     // Convert UTC to Malaysia time for display
+    // The date is already in UTC, so we just format it in Malaysia timezone
     return date.toLocaleTimeString('en-MY', { 
       hour: '2-digit', 
       minute: '2-digit',
@@ -1757,6 +1758,8 @@ formatShortDate(dateStr) {
   
   // For custom range, show smart labels
   if (this.selectedPeriod === 'custom') {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
@@ -1764,20 +1767,29 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
   // For week grouping in month view
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
   // For week view, show day names
   if (this.selectedPeriod === 'week') {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { weekday: 'short', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
+  // Default: show date with Malaysia timezone
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
   return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
 },
     formatFullDate(dateStr) {
