@@ -85,184 +85,185 @@
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
-<!-- Stats Cards -->
-<div class="stats-grid">
-  <!-- My Stalls - Clickable to Stalls Tab -->
-  <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
-    <div class="stat-icon">🏪</div>
-    <div class="stat-content">
-      <span class="stat-number">{{ stalls.length }}</span>
-      <span class="stat-label">My Stalls</span>
-      <div class="stat-breakdown">
-        <span class="stat-breakdown-item active">● {{ stalls.filter(s => s.is_active).length }} Active</span>
-        <span class="stat-breakdown-divider">·</span>
-        <span class="stat-breakdown-item inactive">○ {{ stalls.filter(s => !s.is_active).length }} Inactive</span>
-      </div>
-      <span class="stat-sub-label">{{ stalls.length }} Total Stalls</span>
-    </div>
-    <div class="stat-trend up">↑ 12%</div>
-    <div class="stat-hover">Click to view →</div>
-  </div>
-  
-  <!-- My Users - Clickable to Users Tab -->
-  <div class="stat-card glass clickable" style="--stat-color: #7c3aed; --stat-color-alpha: rgba(124, 58, 237, 0.15);" @click="switchTab('users')">
-    <div class="stat-icon">👥</div>
-    <div class="stat-content">
-      <span class="stat-number">{{ users.length }}</span>
-      <span class="stat-label">My Users</span>
-    </div>
-    <div class="stat-trend up">↑ 8%</div>
-    <div class="stat-hover">Click to view →</div>
-  </div>
-  
-  <!-- Menu Sold - Clickable to Menu Tab (Performance sub-tab) -->
-  <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTabWithSubTab('menu', 'performance')">
-    <div class="stat-icon">📈</div>
-    <div class="stat-content">
-      <span class="stat-number">{{ formatNumber(consolidatedSales.totalItems || 0) }}</span>
-      <span class="stat-label">Menu Sold</span>
-    </div>
-    <div class="stat-trend" :class="getItemsChange() >= 0 ? 'up' : 'down'">
-      {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
-    </div>
-    <div class="stat-hover">Click to view →</div>
-  </div>
-  
-  <!-- Top Stall - Clickable to Stalls Tab (Performance sub-tab) -->
-  <div class="stat-card glass clickable highlight" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTabWithSubTab('stalls', 'performance')">
-    <div class="stat-icon">🏆</div>
-    <div class="stat-content">
-      <span class="stat-number" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</span>
-      <span class="stat-label">Top Stall</span>
-      <span class="stat-sub-label" v-if="consolidatedSales.topRevenue">{{ formatCurrency(consolidatedSales.topRevenue || 0) }}</span>
-    </div>
-    <div class="stat-trend neutral">🏆</div>
-    <div class="stat-hover">Click to view →</div>
-  </div>
-</div>
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <!-- My Stalls - Clickable to Stalls Tab -->
+          <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
+            <div class="stat-icon">🏪</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ stalls.length }}</span>
+              <span class="stat-label">My Stalls</span>
+              <div class="stat-breakdown">
+                <span class="stat-breakdown-item active">● {{ stalls.filter(s => s.is_active).length }} Active</span>
+                <span class="stat-breakdown-divider">·</span>
+                <span class="stat-breakdown-item inactive">○ {{ stalls.filter(s => !s.is_active).length }} Inactive</span>
+              </div>
+              <span class="stat-sub-label">{{ stalls.length }} Total Stalls</span>
+            </div>
+            <div class="stat-trend up">↑ 12%</div>
+            <div class="stat-hover">Click to view →</div>
+          </div>
+          
+          <!-- My Users - Clickable to Users Tab -->
+          <div class="stat-card glass clickable" style="--stat-color: #7c3aed; --stat-color-alpha: rgba(124, 58, 237, 0.15);" @click="switchTab('users')">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ users.length }}</span>
+              <span class="stat-label">My Users</span>
+            </div>
+            <div class="stat-trend up">↑ 8%</div>
+            <div class="stat-hover">Click to view →</div>
+          </div>
+          
+          <!-- My Menu - Clickable to Menu Assignment -->
+          <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTabWithSubTab('menu', 'assignment')">
+            <div class="stat-icon">📋</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ menuItems.length }}</span>
+              <span class="stat-label">My Menu</span>
+              <div class="stat-breakdown">
+                <span class="stat-breakdown-item active">● {{ menuItems.filter(item => item.price > 0).length }} Active</span>
+              </div>
+              <span class="stat-sub-label">{{ menuItems.length }} Total Items</span>
+            </div>
+            <div class="stat-trend neutral">📋</div>
+            <div class="stat-hover">Click to manage →</div>
+          </div>
+          
+          <!-- Low Stock Alert - Clickable to Inventory -->
+          <div class="stat-card glass clickable highlight" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTab('inventory')">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+              <span class="stat-number">{{ lowStock.length }}</span>
+              <span class="stat-label">Low Stock Alert</span>
+              <span class="stat-sub-label" v-if="lowStock.length > 0">{{ lowStock.length }} items need attention</span>
+              <span class="stat-sub-label" v-else>All stocks are healthy</span>
+            </div>
+            <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
+              {{ lowStock.length > 0 ? '⚠' : '✓' }}
+            </div>
+            <div class="stat-hover">Click to view →</div>
+          </div>
+        </div>
 
         <!-- KPI Cards with Sparkline -->
-<div class="kpi-grid">
-  <!-- Revenue -->
-  <div class="kpi-card" style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);">
-    <div class="kpi-icon">💰</div>
-    <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
-    <div class="kpi-label">Revenue</div>
-    <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-      <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
-      {{ Math.abs(getRevenueChange()).toFixed(1) }}%
-    </div>
-    <!-- Sparkline -->
-    <div class="sparkline-container">
-      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-          class="sparkline-line"
-          :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
-        />
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-          class="sparkline-area"
-          :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
-        />
-      </svg>
-    </div>
-    <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-      {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
-    </div>
-  </div>
+        <div class="kpi-grid">
+          <!-- Revenue -->
+          <div class="kpi-card" style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+            <div class="kpi-label">Revenue</div>
+            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
+              {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+            </div>
+            <div class="sparkline-container">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-line"
+                  :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
+                />
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-area"
+                  :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+                />
+              </svg>
+            </div>
+            <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+            </div>
+          </div>
 
-  <!-- Items Sold -->
-  <div class="kpi-card" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);">
-    <div class="kpi-icon">📦</div>
-    <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
-    <div class="kpi-label">Items Sold</div>
-    <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
-      <span class="trend-icon">{{ getItemsChange() >= 0 ? '↑' : '↓' }}</span>
-      {{ Math.abs(getItemsChange()).toFixed(1) }}%
-    </div>
-    <!-- Sparkline -->
-    <div class="sparkline-container">
-      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
-          class="sparkline-line"
-          :style="{ stroke: getItemsChange() >= 0 ? '#10b981' : '#ef4444' }"
-        />
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
-          class="sparkline-area"
-          :style="{ fill: getItemsChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
-        />
-      </svg>
-    </div>
-    <div class="kpi-trend-label" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
-      {{ getItemsChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
-    </div>
-  </div>
+          <!-- Menu Sold - Clickable to Menu Performance -->
+          <div class="kpi-card clickable" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);" @click="switchTabWithSubTab('menu', 'performance')">
+            <div class="kpi-icon">📈</div>
+            <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
+            <div class="kpi-label">Menu Sold</div>
+            <div class="kpi-change" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+              <span class="trend-icon">{{ getItemsChange() >= 0 ? '↑' : '↓' }}</span>
+              {{ Math.abs(getItemsChange()).toFixed(1) }}%
+            </div>
+            <div class="sparkline-container">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
+                  class="sparkline-line"
+                  :style="{ stroke: getItemsChange() >= 0 ? '#10b981' : '#ef4444' }"
+                />
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.items || 0))"
+                  class="sparkline-area"
+                  :style="{ fill: getItemsChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+                />
+              </svg>
+            </div>
+            <div class="kpi-trend-label" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
+              {{ getItemsChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+            </div>
+          </div>
 
-  <!-- Average per Stall -->
-  <div class="kpi-card" style="--kpi-color: #7c3aed; --kpi-color-alpha: rgba(124, 58, 237, 0.08);">
-    <div class="kpi-icon">⭐</div>
-    <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
-    <div class="kpi-label">Avg per Stall</div>
-    <div class="kpi-change neutral">
-      <span class="trend-icon">•</span>
-      {{ stalls.length > 0 ? `${stalls.length} stalls` : 'No stalls' }}
-    </div>
-    <!-- Sparkline -->
-    <div class="sparkline-container">
-      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
-          class="sparkline-line"
-          style="stroke: #7c3aed;"
-        />
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
-          class="sparkline-area"
-          style="fill: rgba(124, 58, 237, 0.1);"
-        />
-      </svg>
-    </div>
-    <div class="kpi-trend-label neutral">
-      {{ stalls.length > 0 ? `${stalls.length} active stalls` : 'No stalls' }}
-    </div>
-  </div>
+          <!-- Average per Stall -->
+          <div class="kpi-card" style="--kpi-color: #7c3aed; --kpi-color-alpha: rgba(124, 58, 237, 0.08);">
+            <div class="kpi-icon">⭐</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.averagePerStall || 0) }}</div>
+            <div class="kpi-label">Avg per Stall</div>
+            <div class="kpi-change neutral">
+              <span class="trend-icon">•</span>
+              {{ stalls.length > 0 ? `${stalls.length} stalls` : 'No stalls' }}
+            </div>
+            <div class="sparkline-container">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
+                  class="sparkline-line"
+                  style="stroke: #7c3aed;"
+                />
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue / (stalls.length || 1) || 0))"
+                  class="sparkline-area"
+                  style="fill: rgba(124, 58, 237, 0.1);"
+                />
+              </svg>
+            </div>
+            <div class="kpi-trend-label neutral">
+              {{ stalls.length > 0 ? `${stalls.length} active stalls` : 'No stalls' }}
+            </div>
+          </div>
 
-  <!-- Top Stall -->
-  <div class="kpi-card highlight" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);">
-    <div class="kpi-icon">🏆</div>
-    <div class="kpi-value" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</div>
-    <div class="kpi-label">Top Stall</div>
-    <div class="kpi-change" v-if="consolidatedSales.topRevenue">
-      <span class="trend-icon">🏆</span>
-      {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
-    </div>
-    <div class="kpi-change neutral" v-else>
-      <span class="trend-icon">•</span>
-      No data
-    </div>
-    <!-- Sparkline -->
-    <div class="sparkline-container">
-      <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-          class="sparkline-line"
-          style="stroke: #f59e0b;"
-        />
-        <polyline
-          :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-          class="sparkline-area"
-          style="fill: rgba(245, 158, 11, 0.1);"
-        />
-      </svg>
-    </div>
-    <div class="kpi-trend-label neutral">
-      {{ consolidatedSales.topStall !== '-' ? 'Top performer' : 'No sales yet' }}
-    </div>
-  </div>
-</div>
+          <!-- Top Stall - Clickable to Stall Performance -->
+          <div class="kpi-card highlight clickable" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);" @click="switchTabWithSubTab('stalls', 'performance')">
+            <div class="kpi-icon">🏆</div>
+            <div class="kpi-value" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</div>
+            <div class="kpi-label">Top Stall</div>
+            <div class="kpi-change" v-if="consolidatedSales.topRevenue">
+              <span class="trend-icon">🏆</span>
+              {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
+            </div>
+            <div class="kpi-change neutral" v-else>
+              <span class="trend-icon">•</span>
+              No data
+            </div>
+            <div class="sparkline-container">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-line"
+                  style="stroke: #f59e0b;"
+                />
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-area"
+                  style="fill: rgba(245, 158, 11, 0.1);"
+                />
+              </svg>
+            </div>
+            <div class="kpi-trend-label neutral">
+              {{ consolidatedSales.topStall !== '-' ? 'Top performer' : 'No sales yet' }}
+            </div>
+          </div>
+        </div>
 
         <!-- Professional Chart with ECharts -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
@@ -337,8 +338,8 @@
               <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
             </div>
             <button @click="switchTabWithSubTab('stalls', 'performance')" class="btn-modern secondary small">
-      View All →
-    </button>
+              View All →
+            </button>
           </div>
           <div class="card-modern-body stall-performance-table-container">
             <div v-if="stallPerformance.length === 0" class="empty-state-modern">
@@ -385,15 +386,6 @@
                   
                   <span class="stall-table-details">👆</span>
                 </div>
-                
-                <div v-if="stallPerformance.length > 5" class="stall-table-view-all">
-                  <button 
-                    @click="showAllStalls = !showAllStalls" 
-                    class="view-all-btn"
-                  >
-                    {{ showAllStalls ? '📤 Show Less' : `📥 View All (${stallPerformance.length - 5} more)` }}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -407,8 +399,8 @@
               <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
             </div>
             <button @click="switchTabWithSubTab('menu', 'performance')" class="btn-modern secondary small">
-      View All →
-    </button>
+              View All →
+            </button>
           </div>
           <div class="card-modern-body menu-performance-table-container">
             <div v-if="menuPerformance.length === 0" class="empty-state-modern">
@@ -454,15 +446,6 @@
                   </span>
                   
                   <span class="menu-table-details">👆</span>
-                </div>
-                
-                <div v-if="menuPerformance.length > 5" class="menu-table-view-all">
-                  <button 
-                    @click="showAllMenuItems = !showAllMenuItems" 
-                    class="view-all-btn"
-                  >
-                    {{ showAllMenuItems ? '📤 Show Less' : `📥 View All (${menuPerformance.length - 5} more)` }}
-                  </button>
                 </div>
               </div>
             </div>
@@ -578,152 +561,143 @@
         </div>
       </div>
 
-<!-- ===== STALLS TAB ===== -->
-<div v-if="activeTab === 'stalls'" class="tab-panel">
-  <!-- Sub-tabs -->
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'management' }"
-      @click="stallSubTab = 'management'"
-    >
-      🏪 Stall Management
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'performance' }"
-      @click="stallSubTab = 'performance'"
-    >
-      📊 Stall Performance
-    </button>
-  </div>
-  
-  <!-- Stall Management -->
-  <div v-if="stallSubTab === 'management'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>🏪 Stall Management</h3>
-          <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-        </div>
-        <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
-      </div>
-      <div class="card-modern-body">
-        <div class="filter-bar">
-          <div class="filter-search">
-            <input 
-              type="text" 
-              v-model="stallSearch" 
-              placeholder="Search stalls..." 
-              class="filter-input"
-            />
-          </div>
-          <select v-model="stallStatusFilter" class="filter-select">
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-
-        <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-          <span>🏪</span>
-          <p>No stalls found</p>
-        </div>
-
-        <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-          <div class="list-item-content">
-            <span class="list-item-index">{{ index + 1 }}</span>
-            <div class="list-item-info">
-              <span class="list-item-name">{{ s.name }}</span>
-              <span class="list-item-code">{{ s.code }}</span>
-            </div>
-            <span class="list-item-company">{{ s.company_name || '-' }}</span>
-            <span class="list-item-users">{{ s.user_count || 0 }} users</span>
-            <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-              {{ s.is_active ? 'Active' : 'Inactive' }}
-            </span>
-            <div class="list-item-actions">
-              <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
-              <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
-                {{ s.is_active ? '⏸️' : '▶️' }}
-              </button>
-              <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Stall Performance - Full List -->
-  <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📊 Stall Performance</h3>
-          <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
-        </div>
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-      </div>
-      <div class="card-modern-body stall-performance-table-container">
-        <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-          <span>📊</span>
-          <p>No sales data available for {{ getPeriodLabel() }}</p>
+      <!-- ===== STALLS TAB ===== -->
+      <div v-if="activeTab === 'stalls'" class="tab-panel">
+        <div class="sub-tabs">
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'management' }"
+            @click="stallSubTab = 'management'"
+          >
+            🏪 Stall Management
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'performance' }"
+            @click="stallSubTab = 'performance'"
+          >
+            📊 Stall Performance
+          </button>
         </div>
         
-        <!-- Full Stall Performance Table -->
-        <div v-else class="stall-table-wrapper">
-          <!-- Table Headers -->
-          <div class="stall-table-header">
-            <span class="stall-table-header-rank">Rank</span>
-            <span class="stall-table-header-name">Stall</span>
-            <span class="stall-table-header-revenue">Revenue</span>
-            <span class="stall-table-header-status">Status</span>
-            <span class="stall-table-header-details">Details</span>
+        <!-- Stall Management -->
+        <div v-if="stallSubTab === 'management'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>🏪 Stall Management</h3>
+                <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+              </div>
+              <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+            </div>
+            <div class="card-modern-body">
+              <div class="filter-bar">
+                <div class="filter-search">
+                  <input 
+                    type="text" 
+                    v-model="stallSearch" 
+                    placeholder="Search stalls..." 
+                    class="filter-input"
+                  />
+                </div>
+                <select v-model="stallStatusFilter" class="filter-select">
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+                <span>🏪</span>
+                <p>No stalls found</p>
+              </div>
+
+              <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+                <div class="list-item-content">
+                  <span class="list-item-index">{{ index + 1 }}</span>
+                  <div class="list-item-info">
+                    <span class="list-item-name">{{ s.name }}</span>
+                    <span class="list-item-code">{{ s.code }}</span>
+                  </div>
+                  <span class="list-item-company">{{ s.company_name || '-' }}</span>
+                  <span class="list-item-users">{{ s.user_count || 0 }} users</span>
+                  <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+                    {{ s.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                  <div class="list-item-actions">
+                    <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+                    <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                      {{ s.is_active ? '⏸️' : '▶️' }}
+                    </button>
+                    <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <!-- Table Rows - ALL STALLS -->
-          <div class="stall-table-body">
-            <div 
-              v-for="(stall, index) in stallPerformance" 
-              :key="stall.id" 
-              class="stall-table-row clickable-item"
-              @click="viewStallDetails(stall)"
-            >
-              <!-- Rank -->
-              <span class="stall-table-rank">
-                <span class="rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-              </span>
+        </div>
+        
+        <!-- Stall Performance - Full List -->
+        <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📊 Stall Performance</h3>
+                <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
+              </div>
+              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+            </div>
+            <div class="card-modern-body stall-performance-table-container">
+              <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+                <span>📊</span>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
+              </div>
               
-              <!-- Stall Name + Bar -->
-              <span class="stall-table-name">
-                <span class="stall-name-text">{{ stall.name }}</span>
-                <span class="stall-name-bar">
-                  <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-                </span>
-              </span>
-              
-              <!-- Revenue -->
-              <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-              
-              <!-- Status with Color & Emoji -->
-              <span class="stall-table-status">
-                <span :class="['status-indicator', getStallStatusClass(stall)]">
-                  {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
-                </span>
-              </span>
-              
-              <!-- Details -->
-              <span class="stall-table-details">👆</span>
+              <div v-else class="stall-table-wrapper">
+                <div class="stall-table-header">
+                  <span class="stall-table-header-rank">Rank</span>
+                  <span class="stall-table-header-name">Stall</span>
+                  <span class="stall-table-header-revenue">Revenue</span>
+                  <span class="stall-table-header-status">Status</span>
+                  <span class="stall-table-header-details">Details</span>
+                </div>
+                
+                <div class="stall-table-body">
+                  <div 
+                    v-for="(stall, index) in stallPerformance" 
+                    :key="stall.id" 
+                    class="stall-table-row clickable-item"
+                    @click="viewStallDetails(stall)"
+                  >
+                    <span class="stall-table-rank">
+                      <span class="rank-number" :class="getRankClass(index)">
+                        {{ index + 1 }}
+                      </span>
+                    </span>
+                    
+                    <span class="stall-table-name">
+                      <span class="stall-name-text">{{ stall.name }}</span>
+                      <span class="stall-name-bar">
+                        <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                      </span>
+                    </span>
+                    
+                    <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+                    
+                    <span class="stall-table-status">
+                      <span :class="['status-indicator', getStallStatusClass(stall)]">
+                        {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+                      </span>
+                    </span>
+                    
+                    <span class="stall-table-details">👆</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
@@ -776,369 +750,354 @@
         </div>
       </div>
 
-<!-- ===== MENU TAB ===== -->
-<div v-if="activeTab === 'menu'" class="tab-panel">
-  <!-- Sub-tabs -->
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'assignment' }"
-      @click="menuSubTab = 'assignment'"
-    >
-      📋 Menu Assignment
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'performance' }"
-      @click="menuSubTab = 'performance'"
-    >
-      📊 Menu Performance
-    </button>
-  </div>
-  
-  <!-- Menu Assignment -->
-  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📋 Menu Assignment</h3>
-          <span class="card-subtitle">Assign menu items to stalls</span>
-        </div>
-        <button @click="loadMenuAssignments" class="btn-modern secondary small">
-          ⟳ Refresh
-        </button>
-      </div>
-      <div class="card-modern-body">
-        <!-- Select Stall -->
-        <div class="filter-bar">
-          <div class="filter-search">
-            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-              <option value="">-- Select a stall --</option>
-              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                {{ stall.name }} ({{ stall.code }})
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Menu Assignment List -->
-        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-          <span>🏪</span>
-          <p>Please select a stall to manage its menu</p>
-        </div>
-
-        <div v-else-if="loadingMenuAssignments" class="loading-state small">
-          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-          <p>Loading menu assignments...</p>
-        </div>
-
-        <div v-else class="menu-assignment-list">
-          <div class="assignment-header">
-            <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-            <button @click="selectAllMenus" class="btn-modern secondary small">
-              ✅ Select All
-            </button>
-            <button @click="deselectAllMenus" class="btn-modern secondary small">
-              ❌ Deselect All
-            </button>
-          </div>
-
-          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-            <span>📋</span>
-            <p>No menu items available. Please contact your administrator to create menu items.</p>
-          </div>
-
-          <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
-            <div class="assignment-item-content">
-              <div class="assignment-item-info">
-                <div class="assignment-item-checkbox">
-                  <input 
-                    type="checkbox" 
-                    :id="`menu-${item.item_name}`" 
-                    v-model="menuAssignments[item.item_name]"
-                    :disabled="savingAssignment"
-                  />
-                  <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                    <span class="assignment-item-name">{{ item.item_name }}</span>
-                    <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                    <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="selectedAssignmentStall" class="assignment-actions">
-            <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-              {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-            </button>
-            <button @click="resetMenuAssignments" class="btn-modern secondary">
-              ↩ Reset
-            </button>
-          </div>
-
-          <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-            {{ savedAssignmentMessage }}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Menu Performance - Full List -->
-  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📊 Menu Performance</h3>
-          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-        </div>
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-      </div>
-      <div class="card-modern-body menu-performance-table-container">
-        <div v-if="menuPerformance.length === 0" class="empty-state-modern">
-          <span>📊</span>
-          <p>No sales data available for {{ getPeriodLabel() }}</p>
+      <!-- ===== MENU TAB ===== -->
+      <div v-if="activeTab === 'menu'" class="tab-panel">
+        <div class="sub-tabs">
+          <button 
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'assignment' }"
+            @click="menuSubTab = 'assignment'"
+          >
+            📋 Menu Assignment
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'performance' }"
+            @click="menuSubTab = 'performance'"
+          >
+            📊 Menu Performance
+          </button>
         </div>
         
-        <!-- Full Menu Performance Table -->
-        <div v-else class="menu-table-wrapper">
-          <!-- Table Headers -->
-          <div class="menu-table-header">
-            <span class="menu-table-header-rank">Rank</span>
-            <span class="menu-table-header-name">Menu</span>
-            <span class="menu-table-header-revenue">Revenue</span>
-            <span class="menu-table-header-status">Status</span>
-            <span class="menu-table-header-details">Details</span>
-          </div>
-          
-          <!-- Table Rows - ALL MENU ITEMS -->
-          <div class="menu-table-body">
-            <div 
-              v-for="(item, index) in menuPerformance" 
-              :key="item.name" 
-              class="menu-table-row clickable-item"
-              @click="viewMenuItemDetails(item)"
-            >
-              <!-- Rank -->
-              <span class="menu-table-rank">
-                <span class="rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-              </span>
-              
-              <!-- Menu Name + Bar -->
-              <span class="menu-table-name">
-                <span class="menu-name-text">{{ item.name }}</span>
-                <span class="menu-name-bar">
-                  <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-                </span>
-              </span>
-              
-              <!-- Revenue -->
-              <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-              
-              <!-- Status with Color & Emoji -->
-              <span class="menu-table-status">
-                <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-                  {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-                </span>
-              </span>
-              
-              <!-- Details -->
-              <span class="menu-table-details">👆</span>
+        <!-- Menu Assignment -->
+        <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📋 Menu Assignment</h3>
+                <span class="card-subtitle">Assign menu items to stalls</span>
+              </div>
+              <button @click="loadMenuAssignments" class="btn-modern secondary small">
+                ⟳ Refresh
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
+            <div class="card-modern-body">
+              <div class="filter-bar">
+                <div class="filter-search">
+                  <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+                  <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+                    <option value="">-- Select a stall --</option>
+                    <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                      {{ stall.name }} ({{ stall.code }})
+                    </option>
+                  </select>
+                </div>
+              </div>
 
-    <!-- ============================================ -->
-    <!-- STALL MODAL                                  -->
-    <!-- ============================================ -->
-    <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
-      <div class="modal-modern">
-        <div class="modal-modern-header">
-          <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
-          <button @click="stallModal=false" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="modal-form-group">
-            <label>Stall Name</label>
-            <input v-model="stallForm.name" placeholder="Stall Name" />
-          </div>
-          <div class="modal-form-group">
-            <label>Stall Code</label>
-            <input v-model="stallForm.code" placeholder="Stall Code" />
-          </div>
-          <div class="modal-form-group">
-            <label>Location</label>
-            <input v-model="stallForm.location" placeholder="Location" />
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
-        </div>
-      </div>
-    </div>
+              <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+                <span>🏪</span>
+                <p>Please select a stall to manage its menu</p>
+              </div>
 
-    <!-- ============================================ -->
-    <!-- USER MODAL                                   -->
-    <!-- ============================================ -->
-    <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
-          <button @click="closeUserModal" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Username</label>
-              <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
-            </div>
-            <div class="modal-form-group">
-              <label>Full Name</label>
-              <input v-model="userForm.full_name" placeholder="Full Name" />
-            </div>
-          </div>
-          <div class="modal-form-row">
-            <div class="modal-form-group">
-              <label>Password</label>
-              <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
-              <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
-            </div>
-            <div class="modal-form-group">
-              <label>Role</label>
-              <select v-model="userForm.role">
-                <option value="stall_admin">Stall Admin</option>
-                <option value="cashier">Cashier</option>
-              </select>
-            </div>
-          </div>
-          <div class="modal-form-group">
-            <label>Assign Stalls:</label>
-            <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
-              <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
-            </select>
-            <small>Hold Ctrl/Cmd to select multiple</small>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
-          <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
-        </div>
-      </div>
-    </div>
+              <div v-else-if="loadingMenuAssignments" class="loading-state small">
+                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                <p>Loading menu assignments...</p>
+              </div>
 
-    <!-- ============================================ -->
-    <!-- STALL DETAILS MODAL                         -->
-    <!-- ============================================ -->
-    <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>🏪 {{ selectedStall?.name || 'Stall Details' }}</h3>
-          <button @click="closeStallDetailModal" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Revenue</span>
-              <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Items Sold</span>
-              <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Avg Transaction</span>
-              <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="detail-value">
-                <span :class="['status-badge', getStallStatusClass(selectedStall)]">
-                  {{ getStallStatus(selectedStall) }}
-                </span>
-              </span>
-            </div>
-          </div>
-          <div class="detail-chart-container">
-            <h4>Sales Trend</h4>
-            <div ref="stallDetailChartRef" class="detail-chart"></div>
-          </div>
-        </div>
-        <div class="modal-modern-footer">
-          <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
-        </div>
-      </div>
-    </div>
+              <div v-else class="menu-assignment-list">
+                <div class="assignment-header">
+                  <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
+                  <button @click="selectAllMenus" class="btn-modern secondary small">
+                    ✅ Select All
+                  </button>
+                  <button @click="deselectAllMenus" class="btn-modern secondary small">
+                    ❌ Deselect All
+                  </button>
+                </div>
 
-    <!-- ============================================ -->
-    <!-- MENU ITEM DETAILS MODAL                     -->
-    <!-- ============================================ -->
-    <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
-      <div class="modal-modern modal-lg">
-        <div class="modal-modern-header">
-          <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
-          <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-modern-body">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Total Revenue</span>
-              <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Quantity Sold</span>
-              <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Average Price</span>
-              <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
-            </div>
-          </div>
-          
-          <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
-            <div class="stall-breakdown-title">
-              🏆 Top Selling Stalls
-            </div>
-            
-            <div class="stall-breakdown-header">
-              <span class="stall-breakdown-header-name">Stall</span>
-              <span class="stall-breakdown-header-revenue">Revenue</span>
-              <span class="stall-breakdown-header-quantity">Quantity</span>
-              <span class="stall-breakdown-header-bar">Performance</span>
-            </div>
-            
-            <div 
-              v-for="stall in selectedMenuItem.stallBreakdown" 
-              :key="stall.stallName"
-              class="stall-breakdown-item"
-            >
-              <span class="stall-breakdown-name">{{ stall.stallName }}</span>
-              <span class="stall-breakdown-revenue">{{ formatCurrency(stall.revenue) }}</span>
-              <span class="stall-breakdown-quantity">{{ formatNumber(stall.quantity) }}</span>
-              <div class="stall-breakdown-bar-wrapper">
-                <div class="stall-breakdown-bar">
-                  <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
+                <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+                  <span>📋</span>
+                  <p>No menu items available. Please contact your administrator to create menu items.</p>
+                </div>
+
+                <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
+                  <div class="assignment-item-content">
+                    <div class="assignment-item-info">
+                      <div class="assignment-item-checkbox">
+                        <input 
+                          type="checkbox" 
+                          :id="`menu-${item.item_name}`" 
+                          v-model="menuAssignments[item.item_name]"
+                          :disabled="savingAssignment"
+                        />
+                        <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                          <span class="assignment-item-name">{{ item.item_name }}</span>
+                          <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                          <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="selectedAssignmentStall" class="assignment-actions">
+                  <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                    {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+                  </button>
+                  <button @click="resetMenuAssignments" class="btn-modern secondary">
+                    ↩ Reset
+                  </button>
+                </div>
+
+                <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+                  {{ savedAssignmentMessage }}
                 </div>
               </div>
             </div>
           </div>
-          
-          <div v-else-if="selectedMenuItem?.stallBreakdown?.length === 0" class="empty-state-modern">
-            <span>📊</span>
-            <p>No stall sales data available for this menu item</p>
+        </div>
+        
+        <!-- Menu Performance - Full List -->
+        <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📊 Menu Performance</h3>
+                <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+              </div>
+              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+            </div>
+            <div class="card-modern-body menu-performance-table-container">
+              <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+                <span>📊</span>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
+              </div>
+              
+              <div v-else class="menu-table-wrapper">
+                <div class="menu-table-header">
+                  <span class="menu-table-header-rank">Rank</span>
+                  <span class="menu-table-header-name">Menu</span>
+                  <span class="menu-table-header-revenue">Revenue</span>
+                  <span class="menu-table-header-status">Status</span>
+                  <span class="menu-table-header-details">Details</span>
+                </div>
+                
+                <div class="menu-table-body">
+                  <div 
+                    v-for="(item, index) in menuPerformance" 
+                    :key="item.name" 
+                    class="menu-table-row clickable-item"
+                    @click="viewMenuItemDetails(item)"
+                  >
+                    <span class="menu-table-rank">
+                      <span class="rank-number" :class="getRankClass(index)">
+                        {{ index + 1 }}
+                      </span>
+                    </span>
+                    
+                    <span class="menu-table-name">
+                      <span class="menu-name-text">{{ item.name }}</span>
+                      <span class="menu-name-bar">
+                        <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                      </span>
+                    </span>
+                    
+                    <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                    
+                    <span class="menu-table-status">
+                      <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                        {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                      </span>
+                    </span>
+                    
+                    <span class="menu-table-details">👆</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="modal-modern-footer">
-          <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- MODALS                                       -->
+      <!-- ============================================ -->
+      
+      <!-- STALL MODAL -->
+      <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
+        <div class="modal-modern">
+          <div class="modal-modern-header">
+            <h3>{{ editingStall ? 'Edit Stall' : 'New Stall' }}</h3>
+            <button @click="stallModal=false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="modal-form-group">
+              <label>Stall Name</label>
+              <input v-model="stallForm.name" placeholder="Stall Name" />
+            </div>
+            <div class="modal-form-group">
+              <label>Stall Code</label>
+              <input v-model="stallForm.code" placeholder="Stall Code" />
+            </div>
+            <div class="modal-form-group">
+              <label>Location</label>
+              <input v-model="stallForm.location" placeholder="Location" />
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="stallModal=false" class="btn-modern secondary">Cancel</button>
+            <button @click="saveStall" class="btn-modern primary">{{ editingStall ? 'Update' : 'Create' }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MODAL -->
+      <div v-if="userModal" class="modal-overlay" @click.self="closeUserModal">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>{{ editingUser ? 'Edit User' : 'New User' }}</h3>
+            <button @click="closeUserModal" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="modal-form-row">
+              <div class="modal-form-group">
+                <label>Username</label>
+                <input v-model="userForm.username" placeholder="Username" :disabled="editingUser" />
+              </div>
+              <div class="modal-form-group">
+                <label>Full Name</label>
+                <input v-model="userForm.full_name" placeholder="Full Name" />
+              </div>
+            </div>
+            <div class="modal-form-row">
+              <div class="modal-form-group">
+                <label>Password</label>
+                <input v-if="!editingUser" type="password" v-model="userForm.password" placeholder="Password" />
+                <input v-else type="password" v-model="userForm.password" placeholder="Leave blank to keep" />
+              </div>
+              <div class="modal-form-group">
+                <label>Role</label>
+                <select v-model="userForm.role">
+                  <option value="stall_admin">Stall Admin</option>
+                  <option value="cashier">Cashier</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-form-group">
+              <label>Assign Stalls:</label>
+              <select multiple class="stall-select-multiple" v-model="userForm.stall_ids">
+                <option v-for="s in stalls" :value="s.id">{{ s.name }}</option>
+              </select>
+              <small>Hold Ctrl/Cmd to select multiple</small>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="closeUserModal" class="btn-modern secondary">Cancel</button>
+            <button @click="saveUser" class="btn-modern primary">{{ editingUser ? 'Update' : 'Create' }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STALL DETAILS MODAL -->
+      <div v-if="stallDetailModal" class="modal-overlay" @click.self="closeStallDetailModal">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>🏪 {{ selectedStall?.name || 'Stall Details' }}</h3>
+            <button @click="closeStallDetailModal" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Revenue</span>
+                <span class="detail-value">{{ formatCurrency(selectedStall?.revenue || 0) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Items Sold</span>
+                <span class="detail-value">{{ selectedStall?.items || 0 }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Avg Transaction</span>
+                <span class="detail-value">{{ formatCurrency(selectedStall?.avgTransaction || 0) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">
+                  <span :class="['status-badge', getStallStatusClass(selectedStall)]">
+                    {{ getStallStatus(selectedStall) }}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div class="detail-chart-container">
+              <h4>Sales Trend</h4>
+              <div ref="stallDetailChartRef" class="detail-chart"></div>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="closeStallDetailModal" class="btn-modern secondary">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENU ITEM DETAILS MODAL -->
+      <div v-if="menuDetailModal" class="modal-overlay" @click.self="closeMenuDetailModal">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>🍗 {{ selectedMenuItem?.name || 'Menu Item Details' }}</h3>
+            <button @click="closeMenuDetailModal" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Total Revenue</span>
+                <span class="detail-value">{{ formatCurrency(selectedMenuItem?.revenue || 0) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Quantity Sold</span>
+                <span class="detail-value">{{ selectedMenuItem?.quantity || 0 }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Average Price</span>
+                <span class="detail-value">{{ formatCurrency((selectedMenuItem?.revenue || 0) / (selectedMenuItem?.quantity || 1)) }}</span>
+              </div>
+            </div>
+            
+            <div v-if="selectedMenuItem?.stallBreakdown?.length > 0" class="stall-breakdown-container">
+              <div class="stall-breakdown-title">
+                🏆 Top Selling Stalls
+              </div>
+              
+              <div class="stall-breakdown-header">
+                <span class="stall-breakdown-header-name">Stall</span>
+                <span class="stall-breakdown-header-revenue">Revenue</span>
+                <span class="stall-breakdown-header-quantity">Quantity</span>
+                <span class="stall-breakdown-header-bar">Performance</span>
+              </div>
+              
+              <div 
+                v-for="stall in selectedMenuItem.stallBreakdown" 
+                :key="stall.stallName"
+                class="stall-breakdown-item"
+              >
+                <span class="stall-breakdown-name">{{ stall.stallName }}</span>
+                <span class="stall-breakdown-revenue">{{ formatCurrency(stall.revenue) }}</span>
+                <span class="stall-breakdown-quantity">{{ formatNumber(stall.quantity) }}</span>
+                <div class="stall-breakdown-bar-wrapper">
+                  <div class="stall-breakdown-bar">
+                    <div class="stall-breakdown-fill" :style="{ width: Math.min(stall.percentage, 100) + '%' }"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div v-else-if="selectedMenuItem?.stallBreakdown?.length === 0" class="empty-state-modern">
+              <span>📊</span>
+              <p>No stall sales data available for this menu item</p>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="closeMenuDetailModal" class="btn-modern secondary">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1196,8 +1155,8 @@ export default {
       chartWindow: 7,
       chartInstance: null,
       isChartInitialized: false,
-      stallSubTab: 'management',  // 'management' or 'performance'
-      menuSubTab: 'assignment',   // 'assignment' or 'performance'
+      stallSubTab: 'management',
+      menuSubTab: 'assignment',
       
       dropdownOpen: false,
       periodDropdownOpen: false,
@@ -1227,7 +1186,6 @@ export default {
         { value: 'custom', label: 'Custom Range' }
       ],
       
-      // Custom date range
       customDateStart: null,
       customDateEnd: null,
       customDays: 30,
@@ -1417,47 +1375,39 @@ export default {
   },
 
   methods: {
+    // =============================================
+    // TAB NAVIGATION WITH SUB-TAB
+    // =============================================
+    switchTabWithSubTab(tabId, subTabId) {
+      this.activeTab = tabId
+      if (tabId === 'stalls') {
+        this.stallSubTab = subTabId || 'management'
+      } else if (tabId === 'menu') {
+        this.menuSubTab = subTabId || 'assignment'
+      }
+      this.dropdownOpen = false
+    },
 
     // =============================================
-// TAB NAVIGATION WITH SUB-TAB
-// =============================================
-switchTabWithSubTab(tabId, subTabId) {
-  this.activeTab = tabId
-  
-  // Set sub-tab based on which tab we're going to
-  if (tabId === 'stalls') {
-    this.stallSubTab = subTabId || 'management' // 'management' or 'performance'
-  } else if (tabId === 'menu') {
-    this.menuSubTab = subTabId || 'assignment' // 'assignment' or 'performance'
-  }
-  
-  this.dropdownOpen = false
-},
-
+    // SPARKLINE HELPER
     // =============================================
-// SPARKLINE HELPER
-// =============================================
-getSparklinePoints(data) {
-  if (!data || data.length === 0) {
-    return '0,40 200,40'
-  }
-  
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * 200
-    const max = Math.max(...data, 1)
-    const min = Math.min(...data, 0)
-    const range = max - min || 1
-    const y = 40 - ((value - min) / range) * 35
-    return `${x},${y}`
-  })
-  
-  // Add final point to close the area
-  const lastX = (data.length - 1) / (data.length - 1) * 200
-  points.push(`${lastX},40`)
-  points.push(`0,40`)
-  
-  return points.join(' ')
-},
+    getSparklinePoints(data) {
+      if (!data || data.length === 0) {
+        return '0,40 200,40'
+      }
+      const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * 200
+        const max = Math.max(...data, 1)
+        const min = Math.min(...data, 0)
+        const range = max - min || 1
+        const y = 40 - ((value - min) / range) * 35
+        return `${x},${y}`
+      })
+      const lastX = (data.length - 1) / (data.length - 1) * 200
+      points.push(`${lastX},40`)
+      points.push(`0,40`)
+      return points.join(' ')
+    },
 
     // =============================================
     // STALL PERFORMANCE - STATUS EMOJI
@@ -1504,15 +1454,12 @@ getSparklinePoints(data) {
     // MENU ITEM DETAILS
     // =============================================
     async viewMenuItemDetails(item) {
-      console.log('🍗 Viewing menu item:', item.name)
-      
       this.selectedMenuItem = {
         ...item,
         stallBreakdown: [],
         totalQuantity: 0
       }
       this.menuDetailModal = true
-      
       await this.fetchMenuTopStalls(item.name)
     },
 
@@ -1526,20 +1473,14 @@ getSparklinePoints(data) {
                      this.selectedPeriod === 'year' ? 365 :
                      this.customDays || 30
         
-        console.log('📊 Fetching top stalls for:', itemName, 'days:', days)
-        
         const stallIds = this.stalls.map(s => s.id)
-        
         if (!stallIds || stallIds.length === 0) {
-          console.warn('⚠️ No stall IDs found')
           return
         }
         
         const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        
-        console.log('📊 API response:', res.data)
         
         const stallData = res.data || []
         const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
@@ -1553,11 +1494,8 @@ getSparklinePoints(data) {
         
         this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
         this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
-        
-        console.log('📊 Processed breakdown:', this.selectedMenuItem.stallBreakdown)
-        
       } catch (err) {
-        console.error('❌ Failed to fetch top stalls:', err)
+        console.error('Failed to fetch top stalls:', err)
         this.selectedMenuItem.stallBreakdown = []
         this.selectedMenuItem.totalQuantity = 0
         this.selectedMenuItem.totalRevenue = 0
@@ -1588,9 +1526,7 @@ getSparklinePoints(data) {
     selectPeriod(value) {
       this.selectedPeriod = value
       this.periodDropdownOpen = false
-      
       if (value === 'custom') {
-        // Set default range (last 30 days)
         const end = new Date()
         const start = new Date()
         start.setDate(start.getDate() - 30)
@@ -1616,20 +1552,15 @@ getSparklinePoints(data) {
         this.$emit('show-notification', 'Please select both start and end dates', 'warning')
         return
       }
-      
       const start = new Date(this.customDateStart)
       const end = new Date(this.customDateEnd)
-      
       if (start > end) {
         this.$emit('show-notification', 'Start date must be before end date', 'error')
         return
       }
-      
-      // Calculate days difference
       const diffTime = Math.abs(end - start)
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      this.customDays = diffDays + 1 // Include both start and end
-      
+      this.customDays = diffDays + 1
       this.periodDropdownOpen = false
       this.refreshAllData()
       this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
@@ -1654,42 +1585,26 @@ getSparklinePoints(data) {
     },
     formatShortDate(dateStr) {
       if (!dateStr) return ''
-      
-      // For custom range, show smart labels
       if (this.selectedPeriod === 'custom') {
         const date = new Date(dateStr)
         return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
       }
-      
-      // For quarter, halfyear, year - show month names
-      if (this.selectedPeriod === 'quarter' || 
-          this.selectedPeriod === 'halfyear' || 
-          this.selectedPeriod === 'year') {
+      if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear' || this.selectedPeriod === 'year') {
         const date = new Date(dateStr)
         return date.toLocaleDateString('en-MY', { month: 'short' })
       }
-      
-      // For week grouping in month view
       if (this.selectedPeriod === 'month') {
-        if (dateStr.includes('W')) {
-          return dateStr
-        }
+        if (dateStr.includes('W')) return dateStr
         const date = new Date(dateStr)
         return date.toLocaleDateString('en-MY', { day: 'numeric' })
       }
-      
       const date = new Date(dateStr)
-      
-      // For week view, show day names
       if (this.selectedPeriod === 'week') {
         return date.toLocaleDateString('en-MY', { weekday: 'short' })
       }
-      
-      // For today, show time
       if (this.selectedPeriod === 'today') {
         return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })
       }
-      
       return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
     },
     formatFullDate(dateStr) {
@@ -1712,7 +1627,7 @@ getSparklinePoints(data) {
     },
 
     // =============================================
-    // CHART STATS - SIMPLIFIED
+    // CHART STATS
     // =============================================
     getBestDayName() {
       if (this.salesTrend.length === 0) return '-'
@@ -1741,9 +1656,7 @@ getSparklinePoints(data) {
     viewStallDetails(stall) {
       this.selectedStall = stall
       this.stallDetailModal = true
-      
       this.fetchStallDetails(stall.id)
-      
       this.$nextTick(() => {
         this.initStallDetailChart()
       })
@@ -1754,21 +1667,17 @@ getSparklinePoints(data) {
         const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        
         const data = res.data || {}
-        
         if (data && data.length > 0) {
           const stallData = data[0]
           this.selectedStall.items = parseInt(stallData.items_sold) || 0
           this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
           this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
         }
-        
         const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
         if (stallIndex !== -1) {
           this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
         }
-        
       } catch (err) {
         console.error('Failed to fetch stall details:', err)
       }
@@ -1785,20 +1694,13 @@ getSparklinePoints(data) {
 
     initStallDetailChart() {
       if (!this.$refs.stallDetailChartRef) return
-
       if (this.stallDetailChartInstance) {
         this.stallDetailChartInstance.dispose()
         this.stallDetailChartInstance = null
       }
-
       this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-
       const stallId = this.selectedStall?.id
-
-      if (!stallId) {
-        console.warn('No stall ID found for detail chart')
-        return
-      }
+      if (!stallId) return
 
       axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
         headers: { Authorization: `Bearer ${this.token}` }
@@ -1806,14 +1708,12 @@ getSparklinePoints(data) {
       .then(response => {
         const data = response.data || {}
         const salesData = data.dailySales || []
-
         const days = salesData.map(d => this.formatShortDate(d.date))
         const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
         const items = salesData.map(d => parseInt(d.items) || 0)
 
         const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
-        const finalItems = items.length > 0 ? items : Array.from({length: 7}, () => 0)
 
         const option = {
           tooltip: {
@@ -1822,15 +1722,11 @@ getSparklinePoints(data) {
             borderColor: '#e2e8f0',
             borderWidth: 1,
             padding: [8, 12],
-            textStyle: {
-              color: '#1e293b',
-              fontSize: 12,
-              fontWeight: 400
-            },
+            textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
             formatter: function(params) {
               const index = params[0]?.dataIndex || 0
               const revenue = parseFloat(finalRevenues[index]) || 0
-              const itemsCount = parseInt(finalItems[index]) || 0
+              const itemsCount = parseInt(items[index]) || 0
               return `
                 <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
                   RM ${revenue.toFixed(2)}
@@ -1852,31 +1748,14 @@ getSparklinePoints(data) {
             type: 'category',
             data: finalDays,
             axisLine: { lineStyle: { color: '#e2e8f0' } },
-            axisLabel: { 
-              color: '#94a3b8', 
-              fontSize: 11,
-              fontWeight: 500
-            }
+            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
           },
           yAxis: {
             type: 'value',
-            splitLine: { 
-              lineStyle: { 
-                color: '#f1f5f9', 
-                type: 'dashed' 
-              } 
-            },
-            axisLabel: { 
-              color: '#94a3b8', 
-              fontSize: 11,
-              formatter: (value) => 'RM' + value
-            },
+            splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+            axisLabel: { color: '#94a3b8', fontSize: 11, formatter: (value) => 'RM' + value },
             name: 'Revenue (RM)',
-            nameTextStyle: { 
-              color: '#94a3b8', 
-              fontSize: 11,
-              fontWeight: 500
-            }
+            nameTextStyle: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
           },
           series: [{
             type: 'bar',
@@ -1895,7 +1774,6 @@ getSparklinePoints(data) {
             }
           }]
         }
-
         this.stallDetailChartInstance.setOption(option)
         this.stallDetailChartInstance.resize()
       })
@@ -1905,7 +1783,7 @@ getSparklinePoints(data) {
     },
     
     // =============================================
-    // HELPER: Get today's date in Malaysia timezone
+    // HELPER
     // =============================================
     getTodayInMalaysia() {
       const now = new Date()
@@ -1920,15 +1798,12 @@ getSparklinePoints(data) {
     // =============================================
     groupSalesByWeek(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
-      
       const grouped = {}
-      
       dailySales.forEach(day => {
         const date = new Date(day.date)
         const weekNumber = this.getWeekNumber(date)
         const year = date.getFullYear()
         const key = `${year}-W${weekNumber}`
-        
         if (!grouped[key]) {
           const weekStart = this.getWeekStart(date)
           grouped[key] = {
@@ -1940,25 +1815,20 @@ getSparklinePoints(data) {
             year: year
           }
         }
-        
         grouped[key].revenue += day.revenue || 0
         grouped[key].items += day.items || 0
       })
-      
       return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
     },
 
     groupSalesByMonth(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
-      
       const grouped = {}
-      
       dailySales.forEach(day => {
         const date = new Date(day.date)
         const month = date.getMonth()
         const year = date.getFullYear()
         const key = `${year}-${month}`
-        
         if (!grouped[key]) {
           const monthName = date.toLocaleDateString('en-MY', { month: 'short' })
           grouped[key] = {
@@ -1970,20 +1840,15 @@ getSparklinePoints(data) {
             year: year
           }
         }
-        
         grouped[key].revenue += day.revenue || 0
         grouped[key].items += day.items || 0
       })
-      
       return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
     },
 
     groupSalesCustom(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
-      
       const days = dailySales.length
-      
-      // If less than 14 days, show daily
       if (days <= 14) {
         return dailySales.map(day => ({
           ...day,
@@ -1993,13 +1858,9 @@ getSparklinePoints(data) {
           })
         }))
       }
-      
-      // If less than 60 days, show weekly
       if (days <= 60) {
         return this.groupSalesByWeek(dailySales)
       }
-      
-      // Otherwise show monthly
       return this.groupSalesByMonth(dailySales)
     },
 
@@ -2025,186 +1886,158 @@ getSparklinePoints(data) {
     // =============================================
     initChart() {
       if (!this.$refs.chartRef) return
-      
       if (this.chartInstance) {
         this.chartInstance.dispose()
         this.chartInstance = null
       }
-      
       this.chartInstance = echarts.init(this.$refs.chartRef)
       this.isChartInitialized = true
-      
       this.updateChart()
-      
       if (this.resizeObserver) {
         this.resizeObserver.disconnect()
       }
-      
       this.resizeObserver = new ResizeObserver(() => {
         this.handleChartResize()
       })
       this.resizeObserver.observe(this.$refs.chartRef)
-      
       window.removeEventListener('resize', this.handleChartResize)
       window.addEventListener('resize', this.handleChartResize)
     },
     
     updateChart() {
-  if (!this.chartInstance) return
-  
-  const data = this.chartVisibleData
-  if (data.length === 0) {
-    const option = {
-      title: {
-        text: `No sales data for ${this.getPeriodLabel()}`,
-        left: 'center',
-        top: 'center',
-        textStyle: {
-          color: '#94a3b8',
-          fontSize: 14,
-          fontWeight: 400
-        }
-      }
-    }
-    this.chartInstance.setOption(option, true)
-    return
-  }
-  
-  const dates = data.map(d => d.label || this.formatShortDate(d.date))
-  const revenues = data.map(d => d.revenue || 0)
-  
-  const chartWidth = this.$refs.chartRef?.clientWidth || 0
-  const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      padding: [6, 10],  // Even smaller padding
-      textStyle: { 
-        color: '#1e293b', 
-        fontSize: 11,  // Base font size
-        fontWeight: 400
-      },
-      formatter: function(params) {
-        const index = params[0]?.dataIndex || 0
-        const revenue = data[index]?.revenue || 0
-        const itemsCount = data[index]?.items || 0
-        const dateStr = data[index]?.date || data[index]?.label || ''
-        
-        // Format date as "12th Jul 2026"
-        let formattedDate = dateStr
-        if (dateStr && !dateStr.includes('W')) {
-          const date = new Date(dateStr)
-          if (!isNaN(date.getTime())) {
-            const day = date.getDate()
-            const month = date.toLocaleDateString('en-MY', { month: 'short' })
-            const year = date.getFullYear()
-            const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-            formattedDate = `${day}${suffix} ${month} ${year}`
+      if (!this.chartInstance) return
+      const data = this.chartVisibleData
+      if (data.length === 0) {
+        const option = {
+          title: {
+            text: `No sales data for ${this.getPeriodLabel()}`,
+            left: 'center',
+            top: 'center',
+            textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
           }
         }
-        
-        return `
-          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-        `
+        this.chartInstance.setOption(option, true)
+        return
       }
-    },
-    grid: {
-      left: chartWidth < 400 ? '5%' : '3%',
-      right: chartWidth < 400 ? '5%' : '4%',
-      bottom: '12%',
-      top: '8%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      axisLine: { lineStyle: { color: '#e2e8f0' } },
-      axisLabel: {
-        color: '#94a3b8',
-        fontSize: chartWidth < 400 ? 9 : 11,
-        fontWeight: 500,
-        interval: labelInterval,
-        rotate: chartWidth < 400 ? 30 : 0,
-        margin: 12,
-        showMaxLabel: true,
-        showMinLabel: true
-      },
-      axisTick: { show: false },
-      splitLine: { show: false }
-    },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-      axisLabel: {
-        color: '#94a3b8',
-        fontSize: chartWidth < 400 ? 9 : 11,
-        formatter: function(value) {
-          if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
-          return 'RM' + value
-        }
-      },
-      name: chartWidth > 500 ? 'Revenue (RM)' : '',
-      nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
-    },
-    series: [
-      {
-        name: 'Revenue',
-        type: 'bar',
-        data: revenues,
-        barWidth: chartWidth < 400 ? '35%' : '55%',
-        itemStyle: {
-          borderRadius: [4, 4, 0, 0],
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#F94908' },
-              { offset: 1, color: '#fa6a2e' }
-            ]
+      
+      const dates = data.map(d => d.label || this.formatShortDate(d.date))
+      const revenues = data.map(d => d.revenue || 0)
+      const chartWidth = this.$refs.chartRef?.clientWidth || 0
+      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: [6, 10],
+          textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
+          formatter: function(params) {
+            const index = params[0]?.dataIndex || 0
+            const revenue = data[index]?.revenue || 0
+            const itemsCount = data[index]?.items || 0
+            const dateStr = data[index]?.date || data[index]?.label || ''
+            let formattedDate = dateStr
+            if (dateStr && !dateStr.includes('W')) {
+              const date = new Date(dateStr)
+              if (!isNaN(date.getTime())) {
+                const day = date.getDate()
+                const month = date.toLocaleDateString('en-MY', { month: 'short' })
+                const year = date.getFullYear()
+                const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+                formattedDate = `${day}${suffix} ${month} ${year}`
+              }
+            }
+            return `
+              <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+              <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+            `
           }
         },
-        emphasis: { itemStyle: { color: '#d63d07' } }
-      },
-      {
-        name: 'Trend Line',
-        type: 'line',
-        data: revenues,
-        smooth: false,
-        lineStyle: { 
-          color: '#F94908', 
-          width: 2.5, 
-          type: 'solid'
+        grid: {
+          left: chartWidth < 400 ? '5%' : '3%',
+          right: chartWidth < 400 ? '5%' : '4%',
+          bottom: '12%',
+          top: '8%',
+          containLabel: true
         },
-        symbol: 'circle',
-        symbolSize: chartWidth < 400 ? 5 : 7,
-        itemStyle: { 
-          color: '#F94908', 
-          borderColor: '#ffffff', 
-          borderWidth: 2 
+        xAxis: {
+          type: 'category',
+          data: dates,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            fontWeight: 500,
+            interval: labelInterval,
+            rotate: chartWidth < 400 ? 30 : 0,
+            margin: 12,
+            showMaxLabel: true,
+            showMinLabel: true
+          },
+          axisTick: { show: false },
+          splitLine: { show: false }
         },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
-              { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
-            ]
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            formatter: function(value) {
+              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
+              return 'RM' + value
+            }
+          },
+          name: chartWidth > 500 ? 'Revenue (RM)' : '',
+          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
+        },
+        series: [
+          {
+            name: 'Revenue',
+            type: 'bar',
+            data: revenues,
+            barWidth: chartWidth < 400 ? '35%' : '55%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            },
+            emphasis: { itemStyle: { color: '#d63d07' } }
+          },
+          {
+            name: 'Trend Line',
+            type: 'line',
+            data: revenues,
+            smooth: false,
+            lineStyle: { color: '#F94908', width: 2.5, type: 'solid' },
+            symbol: 'circle',
+            symbolSize: chartWidth < 400 ? 5 : 7,
+            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
+                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+                ]
+              }
+            },
+            z: 10
           }
-        },
-        z: 10
+        ]
       }
-    ]
-  }
-  
-  this.chartInstance.setOption(option, true)
-},
+      this.chartInstance.setOption(option, true)
+    },
     
     handleChartResize() {
       if (this.chartInstance) {
@@ -2233,12 +2066,6 @@ getSparklinePoints(data) {
       if (this.salesTrend.length === 0) return 0
       const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
       return total / this.salesTrend.length
-    },
-    getTotalItemsOld() {
-      return this.salesTrend.reduce((sum, d) => {
-        const items = parseInt(d.items) || 0
-        return sum + items
-      }, 0)
     },
     getTrendDirection() {
       if (this.salesTrend.length < 2) return 'neutral'
@@ -2291,7 +2118,6 @@ getSparklinePoints(data) {
     },
     toggleChartFullscreen() {
       this.chartFullscreen = !this.chartFullscreen
-      
       if (this.chartFullscreen) {
         document.body.style.overflow = 'hidden'
         const backdrop = document.createElement('div')
@@ -2324,29 +2150,19 @@ getSparklinePoints(data) {
     // =============================================
     async loadMenuAssignments() {
       if (!this.selectedAssignmentStall) return
-      
       this.loadingMenuAssignments = true
       this.savedAssignmentMessage = ''
-      
       try {
         await this.loadMenuItems()
-        
         const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        
         const assignedItems = res.data || []
-        console.log('📝 Currently assigned items:', assignedItems)
-        
         this.menuAssignments = {}
         this.menuItems.forEach(item => {
           this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
         })
-        
-        console.log('📝 Menu assignments map:', this.menuAssignments)
-        
         this.originalMenuAssignments = { ...this.menuAssignments }
-        
       } catch (err) {
         console.error('Failed to load menu assignments:', err)
         this.$emit('show-notification', 'Failed to load menu assignments', 'error')
@@ -2357,29 +2173,20 @@ getSparklinePoints(data) {
 
     async saveMenuAssignments() {
       if (!this.selectedAssignmentStall) return
-      
       this.savingAssignment = true
       this.savedAssignmentMessage = ''
-      
       try {
         const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
-        
-        console.log('📝 Saving assignments for stall:', this.selectedAssignmentStall)
-        console.log('📝 Selected items:', selectedItems)
-        
         await axios.post(`${API_BASE}/menu/assignments`, {
           stallId: this.selectedAssignmentStall,
           items: selectedItems
         }, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        
         this.originalMenuAssignments = { ...this.menuAssignments }
-        
         this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
         this.savedAssignmentType = 'success'
         this.$emit('show-notification', 'Menu assignments saved!', 'success')
-        
       } catch (err) {
         console.error('Failed to save menu assignments:', err)
         this.savedAssignmentMessage = '❌ Failed to save menu assignments'
@@ -2544,11 +2351,7 @@ getSparklinePoints(data) {
     async loadData() {
       try {
         console.log('🔄 Loading stall admin data...')
-        
-        // Load stalls FIRST so other methods can use them
         await this.loadStalls()
-        
-        // Everything else can load in parallel
         await Promise.all([
           this.loadUsers(),
           this.loadLowStock(),
@@ -2556,7 +2359,6 @@ getSparklinePoints(data) {
           this.loadStallPerformance(),
           this.loadMenuItems()
         ])
-        
         await this.loadAllStallsInventory()
         this.resetChartNavigation()
         this.$emit('show-notification', 'Data refreshed', 'success')
@@ -2577,7 +2379,6 @@ getSparklinePoints(data) {
           user_count: stall.user_count || 0
         }))
         console.log('✅ Stalls loaded:', this.stalls.length)
-        console.log('✅ Stalls data:', this.stalls)
       } catch (err) {
         console.error('Failed to load stalls:', err)
         this.stalls = []
@@ -2600,7 +2401,6 @@ getSparklinePoints(data) {
           assigned_stalls: user.assigned_stalls || []
         }))
         console.log('✅ Users loaded:', this.users.length)
-        console.log('✅ Users data:', this.users)
       } catch (err) {
         console.error('Failed to load users:', err)
         this.users = []
@@ -2622,7 +2422,6 @@ getSparklinePoints(data) {
 
     async loadSalesAnalytics() {
       this.productSales = {}
-      
       const days = this.selectedPeriod === 'today' ? 0 :
                    this.selectedPeriod === 'week' ? 7 :
                    this.selectedPeriod === 'month' ? 30 :
@@ -2630,18 +2429,13 @@ getSparklinePoints(data) {
                    this.selectedPeriod === 'halfyear' ? 180 :
                    this.selectedPeriod === 'year' ? 365 :
                    this.customDays || 30
-      
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
       try {
-        console.log('📊 Fetching sales analytics for assigned stalls, period:', this.selectedPeriod)
-        
         const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         const data = res.data || {}
-        
-        console.log('📊 Backend productSales:', Object.keys(data.productSales || {}).length)
         
         let dailySales = (data.dailySales || []).map(day => ({
           ...day,
@@ -2658,21 +2452,15 @@ getSparklinePoints(data) {
           })
         }
         
-        // SMART GROUPING BASED ON PERIOD
         if (this.selectedPeriod === 'month') {
-          // Month: Show weekly groups (5 weeks)
           dailySales = this.groupSalesByWeek(dailySales)
         } else if (this.selectedPeriod === 'quarter') {
-          // Quarter: Show monthly groups (3 months)
           dailySales = this.groupSalesByMonth(dailySales)
         } else if (this.selectedPeriod === 'halfyear') {
-          // Half Year: Show monthly groups (6 months)
           dailySales = this.groupSalesByMonth(dailySales)
         } else if (this.selectedPeriod === 'year') {
-          // Year: Show monthly groups (12 months)
           dailySales = this.groupSalesByMonth(dailySales)
         } else if (this.selectedPeriod === 'custom') {
-          // Custom: Smart grouping based on range
           dailySales = this.groupSalesCustom(dailySales)
         }
         
@@ -2685,12 +2473,9 @@ getSparklinePoints(data) {
         this.consolidatedSales.totalRevenue = totalRevenue
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           totalRevenue / this.stalls.length : 0
-        
         this.consolidatedSales.topStall = data.topStall || '-'
         this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-        
         this.productSales = data.productSales || {}
-        
         await this.loadMenuPerformance()
       } catch (err) {
         console.error('Failed to load sales analytics:', err)
@@ -2711,30 +2496,22 @@ getSparklinePoints(data) {
                    this.selectedPeriod === 'halfyear' ? 180 :
                    this.selectedPeriod === 'year' ? 365 :
                    this.customDays || 30
-      
       const apiDays = this.selectedPeriod === 'today' ? 1 : days
       
       try {
         const stallIds = this.stalls.map(s => s.id)
-        
         if (!stallIds || stallIds.length === 0) {
-          console.warn('⚠️ No stall IDs found for stall performance')
           this.stallPerformance = []
           return
         }
         
-        console.log('📊 Fetching stall performance for stalls:', stallIds)
-        
         const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        
         let stallData = res.data || []
-        
         if (!Array.isArray(stallData)) {
           stallData = [stallData]
         }
-        
         if (this.selectedPeriod === 'today') {
           const today = this.getTodayInMalaysia()
           const hasTodaySales = this.salesTrend.some(day => {
@@ -2746,7 +2523,6 @@ getSparklinePoints(data) {
             stallData = []
           }
         }
-        
         this.stallPerformance = stallData
         console.log('✅ Stall performance loaded:', this.stallPerformance.length)
       } catch (err) {
@@ -2758,9 +2534,6 @@ getSparklinePoints(data) {
     async loadMenuPerformance() {
       try {
         const productSales = this.productSales || {}
-        
-        console.log('📊 productSales keys:', Object.keys(productSales).length)
-        
         const filteredItems = Object.keys(productSales)
           .filter(name => {
             const item = productSales[name]
@@ -2777,12 +2550,10 @@ getSparklinePoints(data) {
         
         if (filteredItems.length > 0) {
           this.menuPerformance = filteredItems
-          console.log('📊 Menu performance (filtered):', this.menuPerformance.length, 'items')
           return
         }
         
         if (Object.keys(productSales).length > 0) {
-          console.log('📊 productSales exists but all items have zero sales')
           this.menuPerformance = []
           return
         }
@@ -2794,8 +2565,6 @@ getSparklinePoints(data) {
                      this.selectedPeriod === 'halfyear' ? 180 :
                      this.selectedPeriod === 'year' ? 365 :
                      this.customDays || 30
-        
-        console.log('📊 Fetching menu performance from API, days:', days)
         
         const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
           headers: { Authorization: `Bearer ${this.token}` }
@@ -2815,7 +2584,6 @@ getSparklinePoints(data) {
           .sort((a, b) => b.quantity - a.quantity)
         
         console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
-        
       } catch (err) {
         console.error('Failed to load menu performance:', err)
         this.menuPerformance = []
@@ -2846,9 +2614,7 @@ getSparklinePoints(data) {
         const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         });
-        
         const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken');
-        
         if (!chickenExists) {
           await axios.post(`${API_BASE}/inventory/update`, {
             stallId: stallId,
@@ -2858,7 +2624,6 @@ getSparklinePoints(data) {
           }, {
             headers: { Authorization: `Bearer ${this.token}` }
           });
-          console.log('✅ Inventory initialized for stall', stallId);
         }
       } catch (err) {
         console.error('Failed to initialize inventory:', err);
@@ -3132,16 +2897,14 @@ getSparklinePoints(data) {
             ])
           }
           fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
-        } else if (this.activeTab === 'menu-assignment') {
-          sheet = workbook.addWorksheet('Menu Assignment')
-          sheet.addRow(['📋 Menu Assignment', ''])
-          sheet.addRow(['Stall:', this.stalls.find(s => s.id === this.selectedAssignmentStall)?.name || 'No stall selected'])
-          sheet.addRow([])
-          sheet.addRow(['Menu Item', 'Assigned'])
+        } else if (this.activeTab === 'menu') {
+          sheet = workbook.addWorksheet('Menu')
+          sheet.addRow(['📋 Menu Management', ''])
+          sheet.addRow(['Item Name', 'Price', 'Category'])
           for (const item of this.filteredMenuItemsForAssignment) {
-            sheet.addRow([item.item_name, this.menuAssignments[item.item_name] ? '✅ Yes' : '❌ No'])
+            sheet.addRow([item.item_name, item.price, item.category || 'Main'])
           }
-          fileName = `Chickory_Menu_Assignment_${new Date().toISOString().split('T')[0]}.xlsx`
+          fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
         } else {
           sheet = workbook.addWorksheet('Users')
           sheet.addRow(['Username', 'Role', 'Stalls'])
@@ -3430,170 +3193,546 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* STATS GRID                                   */
+/* STATS GRID - GLASSMORPHISM STYLE            */
 /* ============================================ */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+/* Glass Card */
+.stat-card.glass {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: var(--transition);
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  min-height: 100px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
-.stat-card::before {
+.stat-card.glass::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--stat-color, var(--primary));
-  opacity: 0.6;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    var(--stat-color-alpha, rgba(37, 99, 235, 0.08)),
+    rgba(255, 255, 255, 0.05)
+  );
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
+.stat-card.glass::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at 30% 20%,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
 }
 
-.stat-card.clickable {
+.stat-card.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-card.glass:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px var(--stat-color-alpha, rgba(37, 99, 235, 0.15));
+  border-color: var(--stat-color, #2563eb);
+}
+
+.stat-card.glass.clickable {
   cursor: pointer;
 }
 
-.stat-card.clickable:hover {
-  border-color: var(--stat-color);
+.stat-card.glass.clickable:hover .stat-hover {
+  opacity: 1;
+  transform: translateX(0);
 }
 
-.stat-card .stat-hover {
+.stat-card.glass .stat-hover {
   position: absolute;
-  bottom: 0.25rem;
+  bottom: 0.75rem;
   right: 1rem;
   font-size: 0.6rem;
-  color: var(--stat-color);
+  color: var(--stat-color, #2563eb);
   opacity: 0;
-  transition: var(--transition);
+  transition: all 0.3s ease;
+  transform: translateX(10px);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  z-index: 1;
 }
 
-.stat-card.clickable:hover .stat-hover {
-  opacity: 1;
-}
-
-.stat-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
+.stat-card.glass .stat-icon {
+  font-size: 2.5rem;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--background);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
-.stat-content {
+.stat-card.glass:hover .stat-icon {
+  transform: scale(1.08) rotate(-3deg);
+  background: var(--stat-color, #2563eb);
+  border-color: var(--stat-color, #2563eb);
+  color: white;
+  box-shadow: 0 4px 15px var(--stat-color-alpha, rgba(37, 99, 235, 0.3));
+}
+
+.stat-card.glass .stat-content {
   flex: 1;
+  min-width: 0;
 }
 
-.stat-number {
+.stat-card.glass .stat-number {
   display: block;
-  font-size: 1.3rem;
+  font-size: 2.2rem;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.2;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-.stat-label {
+.stat-card.glass .stat-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.05rem;
+}
+
+.stat-card.glass .stat-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+}
+
+.stat-card.glass .stat-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
   font-weight: 500;
 }
 
-.stat-trend {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  background: var(--background);
+.stat-card.glass .stat-breakdown-item.active {
+  color: #10b981;
 }
 
-.stat-trend.up { color: #10b981; }
-.stat-trend.down { color: #ef4444; }
+.stat-card.glass .stat-breakdown-item.inactive {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.stat-card.glass .breakdown-dot {
+  font-size: 0.55rem;
+}
+
+.stat-card.glass .breakdown-dot.active {
+  color: #10b981;
+}
+
+.stat-card.glass .breakdown-dot.inactive {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+
+.stat-card.glass .stat-breakdown-divider {
+  color: var(--text-tertiary);
+  opacity: 0.3;
+  font-size: 0.5rem;
+}
+
+.stat-card.glass .stat-sub-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  margin-top: 0.05rem;
+  opacity: 0.7;
+}
+
+.stat-card.glass .stat-trend {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.7rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.stat-card.glass .stat-trend .trend-arrow {
+  font-size: 0.7rem;
+}
+
+.stat-card.glass .stat-trend.up { 
+  color: #10b981; 
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.stat-card.glass .stat-trend.down { 
+  color: #ef4444; 
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.stat-card.glass .stat-trend.neutral { 
+  color: var(--text-secondary); 
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.05);
+}
 
 /* ============================================ */
-/* KPI CARDS                                    */
+/* RESPONSIVE - GLASSMORPHISM                  */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .stat-card.glass {
+    padding: 1.25rem 1rem;
+    min-height: 85px;
+    gap: 1rem;
+  }
+  .stat-card.glass .stat-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+  }
+  .stat-card.glass .stat-number {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .stat-card.glass {
+    padding: 1rem 0.75rem;
+    min-height: 70px;
+    gap: 0.75rem;
+    border-radius: 12px;
+  }
+  .stat-card.glass .stat-icon {
+    font-size: 1.6rem;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  .stat-card.glass .stat-number {
+    font-size: 1.4rem;
+  }
+  .stat-card.glass .stat-label {
+    font-size: 0.6rem;
+  }
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.55rem;
+  }
+  .stat-card.glass .stat-sub-label {
+    font-size: 0.5rem;
+  }
+  .stat-card.glass .stat-trend {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.4rem;
+  }
+  .stat-card.glass .stat-hover {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .stat-card.glass {
+    padding: 0.75rem 0.5rem;
+    min-height: 60px;
+    gap: 0.5rem;
+    border-radius: 10px;
+  }
+  .stat-card.glass .stat-icon {
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .stat-card.glass .stat-number {
+    font-size: 1.1rem;
+  }
+  .stat-card.glass .stat-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.2px;
+  }
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.45rem;
+  }
+  .stat-card.glass .stat-sub-label {
+    font-size: 0.45rem;
+  }
+  .stat-card.glass .stat-trend {
+    font-size: 0.4rem;
+    padding: 0.05rem 0.3rem;
+  }
+}
+
+/* ============================================ */
+/* KPI CARDS - WITH SPARKLINE                  */
 /* ============================================ */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .kpi-card {
   background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem 1.25rem 1rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem;
-  text-align: center;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 140px;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  transform: translateY(-4px);
+  border-color: var(--kpi-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-card.clickable {
+  cursor: pointer;
+}
+
+.kpi-card.clickable:hover {
+  border-color: var(--kpi-color);
+  box-shadow: 0 8px 24px var(--kpi-color-alpha);
 }
 
 .kpi-card.highlight {
-  border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(249, 73, 8, 0.05), rgba(250, 106, 46, 0.05));
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.kpi-card.highlight:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+}
+
+.kpi-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .kpi-label {
   font-size: 0.7rem;
   color: var(--text-secondary);
-  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.kpi-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0.2rem 0;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
 }
 
 .kpi-change {
   font-size: 0.7rem;
   font-weight: 600;
+  margin-top: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
 }
 
-.kpi-change.positive { color: #10b981; }
-.kpi-change.negative { color: #ef4444; }
+.kpi-change .trend-icon {
+  font-size: 0.65rem;
+}
 
-/* ============================================ */
-/* ECHARTS CONTAINER                           */
-/* ============================================ */
-.echarts-container {
+.kpi-change.positive {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.kpi-change.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.kpi-change.neutral {
+  color: var(--text-secondary);
+  background: var(--background);
+}
+
+.sparkline-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  opacity: 0.6;
+}
+
+.sparkline-container svg {
   width: 100%;
-  height: 300px;
+  height: 100%;
 }
 
-.chart-modern.fullscreen .echarts-container {
-  height: calc(100vh - 250px);
+.sparkline-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-area {
+  opacity: 0.3;
+}
+
+.kpi-trend-label {
+  font-size: 0.55rem;
+  font-weight: 500;
+  margin-top: 0.15rem;
+  opacity: 0.7;
+}
+
+.kpi-trend-label.positive {
+  color: #10b981;
+}
+
+.kpi-trend-label.negative {
+  color: #ef4444;
+}
+
+.kpi-trend-label.neutral {
+  color: var(--text-tertiary);
+}
+
+/* ============================================ */
+/* RESPONSIVE - KPI CARDS                      */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .kpi-card {
+    min-height: 120px;
+    padding: 1rem;
+  }
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+  .sparkline-container {
+    height: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .kpi-card {
+    min-height: 100px;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+  .kpi-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.1rem;
+  }
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+  .kpi-label {
+    font-size: 0.6rem;
+  }
+  .kpi-change {
+    font-size: 0.6rem;
+    padding: 0.05rem 0.3rem;
+  }
+  .sparkline-container {
+    height: 25px;
+    opacity: 0.4;
+  }
+  .kpi-trend-label {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .kpi-grid {
+    gap: 0.5rem;
+  }
+  .kpi-card {
+    min-height: 85px;
+    padding: 0.6rem;
+    border-radius: 10px;
+  }
+  .kpi-value {
+    font-size: 1rem;
+  }
+  .kpi-icon {
+    font-size: 1.2rem;
+  }
+  .sparkline-container {
+    height: 20px;
+  }
 }
 
 /* ============================================ */
@@ -3670,7 +3809,6 @@ getSparklinePoints(data) {
   padding: 1.25rem;
 }
 
-/* Chart Stats - Modern Minimal */
 .chart-modern-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3781,6 +3919,15 @@ getSparklinePoints(data) {
   margin: 0;
 }
 
+.echarts-container {
+  width: 100%;
+  height: 300px;
+}
+
+.chart-modern.fullscreen .echarts-container {
+  height: calc(100vh - 250px);
+}
+
 /* ============================================ */
 /* CLICKABLE ITEMS                              */
 /* ============================================ */
@@ -3841,7 +3988,7 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* STALL PERFORMANCE - MATCHES MENU PERF        */
+/* STALL PERFORMANCE                            */
 /* ============================================ */
 .stall-performance-table-container {
   padding: 0.5rem;
@@ -3890,30 +4037,11 @@ getSparklinePoints(data) {
   flex-shrink: 0;
 }
 
-.stall-table-header-rank {
-  min-width: 40px;
-  text-align: center;
-}
-
-.stall-table-header-name {
-  flex: 1;
-  text-align: left;
-}
-
-.stall-table-header-revenue {
-  min-width: 70px;
-  text-align: right;
-}
-
-.stall-table-header-status {
-  min-width: 85px;
-  text-align: center;
-}
-
-.stall-table-header-details {
-  min-width: 40px;
-  text-align: center;
-}
+.stall-table-header-rank { min-width: 40px; text-align: center; }
+.stall-table-header-name { flex: 1; text-align: left; }
+.stall-table-header-revenue { min-width: 70px; text-align: right; }
+.stall-table-header-status { min-width: 85px; text-align: center; }
+.stall-table-header-details { min-width: 40px; text-align: center; }
 
 .stall-table-body {
   display: flex;
@@ -3939,10 +4067,7 @@ getSparklinePoints(data) {
   transform: translateX(2px);
 }
 
-.stall-table-rank {
-  min-width: 40px;
-  text-align: center;
-}
+.stall-table-rank { min-width: 40px; text-align: center; }
 
 .rank-number {
   display: inline-flex;
@@ -4001,10 +4126,7 @@ getSparklinePoints(data) {
   color: var(--text);
 }
 
-.stall-table-status {
-  min-width: 85px;
-  text-align: center;
-}
+.stall-table-status { min-width: 85px; text-align: center; }
 
 .status-indicator {
   display: inline-flex;
@@ -4038,43 +4160,7 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* VIEW ALL BUTTON                              */
-/* ============================================ */
-.stall-table-view-all {
-  display: flex;
-  justify-content: center;
-  padding: 0.3rem 0;
-  margin-top: 0.1rem;
-}
-
-.view-all-btn {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-  transition: var(--transition);
-  width: 100%;
-  max-width: 300px;
-}
-
-.view-all-btn:hover {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
-}
-
-.view-all-btn:active {
-  transform: scale(0.98);
-}
-
-/* ============================================ */
-/* MENU PERFORMANCE - COLOR-CODED STATUS        */
+/* MENU PERFORMANCE                             */
 /* ============================================ */
 .menu-performance-table-container {
   padding: 0.5rem;
@@ -4123,30 +4209,11 @@ getSparklinePoints(data) {
   flex-shrink: 0;
 }
 
-.menu-table-header-rank {
-  min-width: 40px;
-  text-align: center;
-}
-
-.menu-table-header-name {
-  flex: 1;
-  text-align: left;
-}
-
-.menu-table-header-revenue {
-  min-width: 70px;
-  text-align: right;
-}
-
-.menu-table-header-status {
-  min-width: 85px;
-  text-align: center;
-}
-
-.menu-table-header-details {
-  min-width: 40px;
-  text-align: center;
-}
+.menu-table-header-rank { min-width: 40px; text-align: center; }
+.menu-table-header-name { flex: 1; text-align: left; }
+.menu-table-header-revenue { min-width: 70px; text-align: right; }
+.menu-table-header-status { min-width: 85px; text-align: center; }
+.menu-table-header-details { min-width: 40px; text-align: center; }
 
 .menu-table-body {
   display: flex;
@@ -4172,10 +4239,7 @@ getSparklinePoints(data) {
   transform: translateX(2px);
 }
 
-.menu-table-rank {
-  min-width: 40px;
-  text-align: center;
-}
+.menu-table-rank { min-width: 40px; text-align: center; }
 
 .rank-number {
   display: inline-flex;
@@ -4234,29 +4298,7 @@ getSparklinePoints(data) {
   color: var(--text);
 }
 
-.menu-table-status {
-  min-width: 85px;
-  text-align: center;
-}
-
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 20px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.status-indicator.excellent { background: #d1fae5; color: #059669; }
-.status-indicator.good { background: #dbeafe; color: #2563eb; }
-.status-indicator.average { background: #fef3c7; color: #d97706; }
-.status-indicator.poor { background: #fee2e2; color: #dc2626; }
-.status-indicator.no-sales { background: #f3f4f6; color: #6b7280; }
+.menu-table-status { min-width: 85px; text-align: center; }
 
 .menu-table-details {
   min-width: 40px;
@@ -4271,311 +4313,56 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* RESPONSIVE - MOBILE                         */
+/* SUB-TABS                                     */
 /* ============================================ */
+.sub-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--background);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.sub-tab {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.sub-tab:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.sub-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.sub-tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
 @media (max-width: 600px) {
-  .stall-performance-table-container,
-  .menu-performance-table-container {
-    max-height: 320px;
-    padding: 0.25rem;
-  }
-  
-  .stall-table-header,
-  .menu-table-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-table-header-rank,
-  .menu-table-header-rank { min-width: 30px; }
-  .stall-table-header-revenue,
-  .menu-table-header-revenue { min-width: 50px; }
-  .stall-table-header-status,
-  .menu-table-header-status { min-width: 60px; }
-  .stall-table-header-details,
-  .menu-table-header-details { min-width: 30px; }
-  
-  .stall-table-row,
-  .menu-table-row {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  .stall-table-rank,
-  .menu-table-rank { min-width: 30px; }
-  
-  .rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-table-name,
-  .menu-table-name { min-width: 50px; }
-  .stall-name-text,
-  .menu-name-text { font-size: 0.7rem; }
-  
-  .stall-table-revenue,
-  .menu-table-revenue {
-    min-width: 50px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-table-status,
-  .menu-table-status { min-width: 60px; }
-  
-  .status-indicator {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
+  .sub-tabs {
+    flex-direction: column;
     gap: 0.15rem;
   }
-  
-  .stall-table-details,
-  .menu-table-details {
-    min-width: 30px;
-    font-size: 0.7rem;
-  }
-  
-  .view-all-btn {
-    font-size: 0.6rem;
-    padding: 0.2rem 0.5rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .stall-table-header-revenue,
-  .menu-table-header-revenue { min-width: 40px; }
-  .stall-table-header-status,
-  .menu-table-header-status { min-width: 50px; }
-  .stall-table-revenue,
-  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
-  .stall-table-status,
-  .menu-table-status { min-width: 50px; }
-  
-  .status-indicator {
-    font-size: 0.45rem;
-    padding: 0.05rem 0.2rem;
-  }
-}
-
-/* ============================================ */
-/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
-/* ============================================ */
-.stall-breakdown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.stall-breakdown-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.75rem;
-}
-
-.stall-breakdown-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-header-name {
-  flex: 2;
-  min-width: 80px;
-  text-align: left;
-}
-
-.stall-breakdown-header-revenue {
-  min-width: 80px;
-  text-align: right;
-}
-
-.stall-breakdown-header-quantity {
-  min-width: 70px;
-  text-align: right;
-}
-
-.stall-breakdown-header-bar {
-  flex: 1.5;
-  min-width: 60px;
-  text-align: left;
-  padding-left: 0.5rem;
-}
-
-.stall-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-}
-
-.stall-breakdown-item:last-child {
-  border-bottom: none;
-}
-
-.stall-breakdown-item:hover {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-}
-
-.stall-breakdown-name {
-  flex: 2;
-  min-width: 80px;
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.stall-breakdown-revenue {
-  min-width: 80px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--primary);
-}
-
-.stall-breakdown-quantity {
-  min-width: 70px;
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.stall-breakdown-bar-wrapper {
-  flex: 1.5;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-}
-
-.stall-breakdown-bar {
-  width: 100%;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stall-breakdown-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-breakdown-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-breakdown-header-name { min-width: 50px; }
-  .stall-breakdown-header-revenue { min-width: 60px; }
-  .stall-breakdown-header-quantity { min-width: 50px; }
-  .stall-breakdown-header-bar { min-width: 40px; }
-  
-  .stall-breakdown-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    flex-wrap: wrap;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 50px;
-    font-size: 0.75rem;
-    flex: 1;
-  }
-  
-  .stall-breakdown-revenue {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-bar-wrapper {
-    min-width: 40px;
-    flex: 1;
+  .sub-tab {
     width: 100%;
+    text-align: center;
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
   }
-}
-
-@media (max-width: 400px) {
-  .stall-breakdown-header-revenue { min-width: 50px; }
-  .stall-breakdown-header-quantity { min-width: 40px; }
-  .stall-breakdown-revenue { min-width: 50px; font-size: 0.7rem; }
-  .stall-breakdown-quantity { min-width: 40px; font-size: 0.7rem; }
-}
-
-/* ============================================ */
-/* FILTER BAR                                   */
-/* ============================================ */
-.filter-bar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-search {
-  flex: 1;
-  min-width: 140px;
-}
-
-.filter-input {
-  width: 100%;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  transition: var(--transition);
-}
-
-.filter-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
-}
-
-.filter-select {
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  min-width: 110px;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: var(--primary);
 }
 
 /* ============================================ */
@@ -4748,9 +4535,6 @@ getSparklinePoints(data) {
   flex-wrap: wrap;
 }
 
-/* ============================================ */
-/* ALERTS                                       */
-/* ============================================ */
 .alerts-section {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -4960,7 +4744,7 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* MODALS - WHITE BACKGROUND                    */
+/* MODALS                                       */
 /* ============================================ */
 .modal-overlay {
   position: fixed;
@@ -5272,6 +5056,54 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
+/* FILTER BAR                                   */
+/* ============================================ */
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 140px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.filter-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 110px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ============================================ */
 /* EMPTY STATE                                  */
 /* ============================================ */
 .empty-state-modern {
@@ -5292,7 +5124,131 @@ getSparklinePoints(data) {
 }
 
 /* ============================================ */
-/* RESPONSIVE                                   */
+/* MENU DETAIL MODAL - TOP STALL BREAKDOWN     */
+/* ============================================ */
+.stall-breakdown-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.stall-breakdown-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.stall-breakdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.stall-breakdown-header-name { flex: 2; min-width: 80px; text-align: left; }
+.stall-breakdown-header-revenue { min-width: 80px; text-align: right; }
+.stall-breakdown-header-quantity { min-width: 70px; text-align: right; }
+.stall-breakdown-header-bar { flex: 1.5; min-width: 60px; text-align: left; padding-left: 0.5rem; }
+
+.stall-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.stall-breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.stall-breakdown-item:hover {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.stall-breakdown-name { flex: 2; min-width: 80px; font-weight: 500; font-size: 0.85rem; color: var(--text); }
+.stall-breakdown-revenue { min-width: 80px; text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--primary); }
+.stall-breakdown-quantity { min-width: 70px; text-align: right; font-size: 0.85rem; color: var(--text-secondary); }
+
+.stall-breakdown-bar-wrapper { flex: 1.5; min-width: 60px; display: flex; align-items: center; }
+.stall-breakdown-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.stall-breakdown-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-breakdown-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
+  .stall-breakdown-header-name { min-width: 50px; }
+  .stall-breakdown-header-revenue { min-width: 60px; }
+  .stall-breakdown-header-quantity { min-width: 50px; }
+  .stall-breakdown-header-bar { min-width: 40px; }
+  .stall-breakdown-item { gap: 0.3rem; padding: 0.3rem 0.3rem; flex-wrap: wrap; }
+  .stall-breakdown-name { min-width: 50px; font-size: 0.75rem; flex: 1; }
+  .stall-breakdown-revenue { min-width: 60px; font-size: 0.75rem; }
+  .stall-breakdown-quantity { min-width: 50px; font-size: 0.75rem; }
+  .stall-breakdown-bar-wrapper { min-width: 40px; flex: 1; width: 100%; }
+  
+  .stall-performance-table-container,
+  .menu-performance-table-container { max-height: 320px; padding: 0.25rem; }
+  
+  .stall-table-header,
+  .menu-table-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
+  .stall-table-header-rank,
+  .menu-table-header-rank { min-width: 30px; }
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 50px; }
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 60px; }
+  .stall-table-header-details,
+  .menu-table-header-details { min-width: 30px; }
+  
+  .stall-table-row,
+  .menu-table-row { gap: 0.3rem; padding: 0.25rem 0.3rem; }
+  .stall-table-rank,
+  .menu-table-rank { min-width: 30px; }
+  .rank-number { width: 22px; height: 22px; font-size: 0.6rem; }
+  .stall-table-name,
+  .menu-table-name { min-width: 50px; }
+  .stall-name-text,
+  .menu-name-text { font-size: 0.7rem; }
+  .stall-table-revenue,
+  .menu-table-revenue { min-width: 50px; font-size: 0.7rem; }
+  .stall-table-status,
+  .menu-table-status { min-width: 60px; }
+  .status-indicator { font-size: 0.5rem; padding: 0.05rem 0.3rem; gap: 0.15rem; }
+  .stall-table-details,
+  .menu-table-details { min-width: 30px; font-size: 0.7rem; }
+}
+
+@media (max-width: 400px) {
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 40px; }
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 50px; }
+  .stall-table-revenue,
+  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
+  .stall-table-status,
+  .menu-table-status { min-width: 50px; }
+  .status-indicator { font-size: 0.45rem; padding: 0.05rem 0.2rem; }
+}
+
+/* ============================================ */
+/* RESPONSIVE - GENERAL                         */
 /* ============================================ */
 @media (max-width: 768px) {
   .controls-row {
@@ -5300,62 +5256,36 @@ getSparklinePoints(data) {
     align-items: stretch;
     gap: 0.5rem;
   }
-  
   .tab-dropdown,
   .period-dropdown-wrapper {
     min-width: unset;
     width: 100%;
   }
-  
   .action-buttons {
     margin-left: 0;
     justify-content: center;
   }
-  
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
   .stat-card { padding: 0.75rem; }
   .stat-number { font-size: 1.1rem; }
-  
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-value { font-size: 1.1rem; }
-  
   .echarts-container { height: 200px; }
   .chart-wrapper { min-height: 200px; }
-  
   .chart-modern-body { padding: 0.75rem; }
-  
-  .chart-modern-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.35rem;
-  }
-  
+  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
   .chart-modern-stat-value { font-size: 0.8rem; }
-  
   .filter-bar { flex-direction: column; }
   .filter-search { min-width: unset; }
   .filter-select { min-width: unset; }
-  
   .inventory-items-grid { grid-template-columns: 1fr; }
   .inventory-stall-header { flex-direction: column; align-items: flex-start; }
-  
   .modal-form-row { grid-template-columns: 1fr; }
   .modal-modern { width: 95%; }
-  
   .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
-  
-  .assignment-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .assignment-count {
-    margin-right: 0;
-    text-align: center;
-  }
-  
-  .assignment-item-label {
-    font-size: 0.8rem;
-  }
+  .assignment-header { flex-direction: column; align-items: stretch; }
+  .assignment-count { margin-right: 0; text-align: center; }
+  .assignment-item-label { font-size: 0.8rem; }
 }
 
 @media (max-width: 480px) {
@@ -5363,700 +5293,23 @@ getSparklinePoints(data) {
   .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
   .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
   .stat-number { font-size: 0.95rem; }
-  
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .kpi-card { padding: 0.5rem; }
   .kpi-value { font-size: 0.95rem; }
-  
   .echarts-container { height: 160px; }
   .chart-wrapper { min-height: 160px; }
-  
-  .chart-modern-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.25rem;
-    padding: 0.35rem;
-  }
-  
+  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.25rem; padding: 0.35rem; }
   .chart-modern-stat { padding: 0.15rem; }
   .chart-modern-stat-value { font-size: 0.75rem; }
   .chart-modern-stat-label { font-size: 0.5rem; }
-  
   .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
-  
   .list-item-content { gap: 0.35rem; }
   .list-item-name { font-size: 0.75rem; }
   .list-item-btn { font-size: 0.75rem; }
-  
   .empty-state-modern span { font-size: 1.5rem; }
-  
-  .action-buttons {
-    flex-direction: row;
-    width: 100%;
-  }
-  
-  .header-action-btn {
-    flex: 1;
-    justify-content: center;
-  }
-  
-  .dropdown-toggle {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.6rem;
-  }
-  
-  .dropdown-label {
-    font-size: 0.8rem;
-  }
+  .action-buttons { flex-direction: row; width: 100%; }
+  .header-action-btn { flex: 1; justify-content: center; }
+  .dropdown-toggle { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+  .dropdown-label { font-size: 0.8rem; }
 }
-
-/* ============================================ */
-/* STATS GRID - GLASSMORPHISM STYLE            */
-/* ============================================ */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Glass Card */
-.stat-card.glass {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 1.5rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  min-height: 100px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-}
-
-/* Glass background with color tint */
-.stat-card.glass::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, 
-    var(--stat-color-alpha, rgba(37, 99, 235, 0.08)),
-    rgba(255, 255, 255, 0.05)
-  );
-  border-radius: 16px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Glass shimmer effect */
-.stat-card.glass::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    ellipse at 30% 20%,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* All content above glass effect */
-.stat-card.glass > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Accent color line */
-.stat-card.glass .stat-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--stat-color, #2563eb);
-  border-radius: 16px 16px 0 0;
-  opacity: 0.8;
-  z-index: 1;
-}
-
-/* Hover effect */
-.stat-card.glass:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 12px 40px var(--stat-color-alpha, rgba(37, 99, 235, 0.15));
-  border-color: var(--stat-color, #2563eb);
-}
-
-.stat-card.glass.clickable {
-  cursor: pointer;
-}
-
-.stat-card.glass.clickable:hover .stat-hover {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.stat-card.glass .stat-hover {
-  position: absolute;
-  bottom: 0.75rem;
-  right: 1rem;
-  font-size: 0.6rem;
-  color: var(--stat-color, #2563eb);
-  opacity: 0;
-  transition: all 0.3s ease;
-  transform: translateX(10px);
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  z-index: 1;
-}
-
-/* Icon - Glass style */
-.stat-card.glass .stat-icon {
-  font-size: 2.5rem;
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.stat-card.glass:hover .stat-icon {
-  transform: scale(1.08) rotate(-3deg);
-  background: var(--stat-color, #2563eb);
-  border-color: var(--stat-color, #2563eb);
-  color: white;
-  box-shadow: 0 4px 15px var(--stat-color-alpha, rgba(37, 99, 235, 0.3));
-}
-
-/* Content */
-.stat-card.glass .stat-content {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Number - Big */
-.stat-card.glass .stat-number {
-  display: block;
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-
-/* Label */
-.stat-card.glass .stat-label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 0.05rem;
-}
-
-/* Breakdown - Active/Inactive */
-.stat-card.glass .stat-breakdown {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.2rem;
-  font-size: 0.7rem;
-}
-
-.stat-card.glass .stat-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  font-weight: 500;
-}
-
-.stat-card.glass .stat-breakdown-item.active {
-  color: #10b981;
-}
-
-.stat-card.glass .stat-breakdown-item.inactive {
-  color: var(--text-tertiary);
-  opacity: 0.6;
-}
-
-.stat-card.glass .breakdown-dot {
-  font-size: 0.55rem;
-}
-
-.stat-card.glass .breakdown-dot.active {
-  color: #10b981;
-}
-
-.stat-card.glass .breakdown-dot.inactive {
-  color: var(--text-tertiary);
-  opacity: 0.5;
-}
-
-.stat-card.glass .stat-breakdown-divider {
-  color: var(--text-tertiary);
-  opacity: 0.3;
-  font-size: 0.5rem;
-}
-
-/* Sub Label - Total */
-.stat-card.glass .stat-sub-label {
-  display: block;
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  font-weight: 400;
-  margin-top: 0.05rem;
-  opacity: 0.7;
-}
-
-/* Trend indicator */
-.stat-card.glass .stat-trend {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.2rem 0.7rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  white-space: nowrap;
-}
-
-.stat-card.glass .stat-trend .trend-arrow {
-  font-size: 0.7rem;
-}
-
-.stat-card.glass .stat-trend.up { 
-  color: #10b981; 
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.stat-card.glass .stat-trend.down { 
-  color: #ef4444; 
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.stat-card.glass .stat-trend.neutral { 
-  color: var(--text-secondary); 
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.05);
-}
-
-/* ============================================ */
-/* RESPONSIVE - GLASSMORPHISM                  */
-/* ============================================ */
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-  
-  .stat-card.glass {
-    padding: 1.25rem 1rem;
-    min-height: 85px;
-    gap: 1rem;
-  }
-  
-  .stat-card.glass .stat-icon {
-    font-size: 2rem;
-    width: 50px;
-    height: 50px;
-  }
-  
-  .stat-card.glass .stat-number {
-    font-size: 1.8rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-  
-  .stat-card.glass {
-    padding: 1rem 0.75rem;
-    min-height: 70px;
-    gap: 0.75rem;
-    border-radius: 12px;
-  }
-  
-  .stat-card.glass .stat-icon {
-    font-size: 1.6rem;
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-  }
-  
-  .stat-card.glass .stat-number {
-    font-size: 1.4rem;
-  }
-  
-  .stat-card.glass .stat-label {
-    font-size: 0.6rem;
-  }
-  
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.55rem;
-  }
-  
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.5rem;
-  }
-  
-  .stat-card.glass .stat-trend {
-    font-size: 0.5rem;
-    padding: 0.1rem 0.4rem;
-  }
-  
-  .stat-card.glass .stat-hover {
-    display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-  
-  .stat-card.glass {
-    padding: 0.75rem 0.5rem;
-    min-height: 60px;
-    gap: 0.5rem;
-    border-radius: 10px;
-  }
-  
-  .stat-card.glass .stat-icon {
-    font-size: 1.2rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-  
-  .stat-card.glass .stat-number {
-    font-size: 1.1rem;
-  }
-  
-  .stat-card.glass .stat-label {
-    font-size: 0.5rem;
-    letter-spacing: 0.2px;
-  }
-  
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.45rem;
-  }
-  
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.45rem;
-  }
-  
-  .stat-card.glass .stat-trend {
-    font-size: 0.4rem;
-    padding: 0.05rem 0.3rem;
-  }
-}
-
-/* ============================================ */
-/* KPI CARDS - WITH SPARKLINE                  */
-/* ============================================ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-.kpi-card {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 1.25rem 1.25rem 1rem;
-  border: 1px solid var(--border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  min-height: 140px;
-}
-
-.kpi-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--kpi-color);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-}
-
-.kpi-card.highlight {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.kpi-card.highlight:hover {
-  border-color: #f59e0b;
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
-}
-
-/* Icon */
-.kpi-icon {
-  font-size: 1.8rem;
-  margin-bottom: 0.2rem;
-  display: block;
-}
-
-/* Value */
-.kpi-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0.1rem 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-/* Label */
-.kpi-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  margin-top: 0.05rem;
-}
-
-/* Change indicator */
-.kpi-change {
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-top: 0.3rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-}
-
-.kpi-change .trend-icon {
-  font-size: 0.65rem;
-}
-
-.kpi-change.positive {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
-}
-
-.kpi-change.negative {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
-}
-
-.kpi-change.neutral {
-  color: var(--text-secondary);
-  background: var(--background);
-}
-
-/* Sparkline Container */
-.sparkline-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  opacity: 0.6;
-}
-
-.sparkline-container svg {
-  width: 100%;
-  height: 100%;
-}
-
-.sparkline-line {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.sparkline-area {
-  opacity: 0.3;
-}
-
-/* Trend Label */
-.kpi-trend-label {
-  font-size: 0.55rem;
-  font-weight: 500;
-  margin-top: 0.15rem;
-  opacity: 0.7;
-}
-
-.kpi-trend-label.positive {
-  color: #10b981;
-}
-
-.kpi-trend-label.negative {
-  color: #ef4444;
-}
-
-.kpi-trend-label.neutral {
-  color: var(--text-tertiary);
-}
-
-/* ============================================ */
-/* RESPONSIVE - KPI CARDS                      */
-/* ============================================ */
-@media (max-width: 1024px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .kpi-card {
-    min-height: 120px;
-    padding: 1rem;
-  }
-
-  .kpi-value {
-    font-size: 1.5rem;
-  }
-
-  .sparkline-container {
-    height: 30px;
-  }
-}
-
-@media (max-width: 600px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-
-  .kpi-card {
-    min-height: 100px;
-    padding: 0.75rem;
-    border-radius: 12px;
-  }
-
-  .kpi-icon {
-    font-size: 1.4rem;
-    margin-bottom: 0.1rem;
-  }
-
-  .kpi-value {
-    font-size: 1.2rem;
-  }
-
-  .kpi-label {
-    font-size: 0.6rem;
-  }
-
-  .kpi-change {
-    font-size: 0.6rem;
-    padding: 0.05rem 0.3rem;
-  }
-
-  .sparkline-container {
-    height: 25px;
-    opacity: 0.4;
-  }
-
-  .kpi-trend-label {
-    display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .kpi-grid {
-    gap: 0.5rem;
-  }
-
-  .kpi-card {
-    min-height: 85px;
-    padding: 0.6rem;
-    border-radius: 10px;
-  }
-
-  .kpi-value {
-    font-size: 1rem;
-  }
-
-  .kpi-icon {
-    font-size: 1.2rem;
-  }
-
-  .sparkline-container {
-    height: 20px;
-  }
-}
-
-/* ============================================ */
-/* SUB-TABS                                     */
-/* ============================================ */
-.sub-tabs {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  background: var(--background);
-  padding: 0.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-
-.sub-tab {
-  padding: 0.5rem 1.25rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.sub-tab:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.sub-tab.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.sub-tab-content {
-  animation: fadeIn 0.3s ease;
-}
-
-@media (max-width: 600px) {
-  .sub-tabs {
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-  
-  .sub-tab {
-    width: 100%;
-    text-align: center;
-    padding: 0.4rem 1rem;
-    font-size: 0.75rem;
-  }
-}
-
 </style>
