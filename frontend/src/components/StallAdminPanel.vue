@@ -2702,7 +2702,6 @@ updateChart() {
       }
     },
 
-// Also update the loadSalesAnalytics method to better handle the data:
 async loadSalesAnalytics() {
   this.productSales = {}
   const days = this.selectedPeriod === 'today' ? 0 :
@@ -2726,6 +2725,7 @@ async loadSalesAnalytics() {
       revenue: parseFloat(day.revenue) || 0
     }))
     
+    // This filtering is correct for salesTrend
     if (this.selectedPeriod === 'today') {
       const today = this.getTodayInMalaysia()
       dailySales = dailySales.filter(day => {
@@ -2757,14 +2757,10 @@ async loadSalesAnalytics() {
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
-    // ✅ IMPROVED: Always try to get top stall from data
-    // First try: From API response
     if (data.topStall && data.topStall !== '-') {
       this.consolidatedSales.topStall = data.topStall
       this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
     } else {
-      // Second try: From stallPerformance (will be loaded separately)
-      // We'll keep the values and update them when stallPerformance loads
       this.consolidatedSales.topStall = '-'
       this.consolidatedSales.topRevenue = 0
     }
@@ -2782,7 +2778,6 @@ async loadSalesAnalytics() {
   }
 },
 
-    // Update loadStallPerformance to also update consolidatedSales
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
@@ -2803,24 +2798,16 @@ async loadStallPerformance() {
     const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
+    
     let stallData = res.data || []
     if (!Array.isArray(stallData)) {
       stallData = [stallData]
     }
-    if (this.selectedPeriod === 'today') {
-      const today = this.getTodayInMalaysia()
-      const hasTodaySales = this.salesTrend.some(day => {
-        const dayDate = new Date(day.date)
-        dayDate.setHours(0, 0, 0, 0)
-        return dayDate.getTime() === today.getTime()
-      })
-      if (!hasTodaySales) {
-        stallData = []
-      }
-    }
+    
+    // ✅ REMOVED the broken filter - API data is already correct
     this.stallPerformance = stallData
     
-    // ✅ UPDATE: If stallPerformance has data, update consolidatedSales
+    // Update consolidatedSales
     if (stallData.length > 0) {
       let topStall = null
       let maxRevenue = 0
