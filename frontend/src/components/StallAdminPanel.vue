@@ -1252,15 +1252,14 @@ export default {
   },
 
   displayStalls() {
-    // First, filter to only stalls with sales
     const stallsWithSales = this.stallPerformance.filter(stall => 
       (stall.revenue || 0) > 0 || (stall.items || 0) > 0
     )
     
     if (this.showAllStalls) {
-      return stallsWithSales  // Show ALL stalls with sales
+      return stallsWithSales
     }
-    return stallsWithSales.slice(0, 5)  // Show only top 5 stalls with sales
+    return stallsWithSales.slice(0, 5)
   },
     
     displayMenuItems() {
@@ -1414,10 +1413,9 @@ export default {
     },
 
 // =============================================
-// TOP STALL HELPERS - PERMANENT FIX
+// TOP STALL HELPERS
 // =============================================
 getTopStallName() {
-  // PRIMARY: Try stallPerformance first
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let topStall = null
     let maxRevenue = 0
@@ -1435,16 +1433,13 @@ getTopStallName() {
     }
   }
   
-  // FALLBACK 1: Use consolidatedSales from API
   if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
     return this.consolidatedSales.topStall
   }
   
-  // FALLBACK 2: Check if any stall has sales in salesTrend
   if (this.salesTrend && this.salesTrend.length > 0) {
     const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
     if (totalRevenue > 0 && this.stalls.length > 0) {
-      // If we have sales but no stall data, show first stall
       return this.stalls[0]?.name || '-'
     }
   }
@@ -1453,7 +1448,6 @@ getTopStallName() {
 },
 
 getTopStallRevenue() {
-  // PRIMARY: Try stallPerformance first
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let maxRevenue = 0
     
@@ -1469,12 +1463,10 @@ getTopStallRevenue() {
     }
   }
   
-  // FALLBACK 1: Use consolidatedSales from API
   if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
     return this.consolidatedSales.topRevenue
   }
   
-  // FALLBACK 2: Calculate from salesTrend
   if (this.salesTrend && this.salesTrend.length > 0) {
     return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
   }
@@ -1510,7 +1502,7 @@ getTopStallStatusClass() {
 },
 
 // =============================================
-// SPARKLINE HELPER - WITH DATA VALIDATION
+// SPARKLINE HELPER
 // =============================================
 getSparklinePoints(data) {
   if (!data || data.length === 0) {
@@ -1821,7 +1813,7 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  // ✅ FIX: For Today, convert UTC to Malaysia time
+  // ✅ PERMANENT FIX: For Today, show hour grouping
   if (this.selectedPeriod === 'today') {
     if (day.label) return day.label
     const date = new Date(day.date)
@@ -1830,11 +1822,12 @@ getBestDayName() {
     // Add 8 hours for Malaysia time
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
     
-    return malaysiaTime.toLocaleTimeString('en-MY', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true
-    })
+    // Show as "4:00 PM", "5:00 PM", etc.
+    const hours = malaysiaTime.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    
+    return `${hours12}:00 ${ampm}`
   }
   
   return this.formatShortDate(day.date) || '-'
@@ -1862,7 +1855,6 @@ viewStallDetails(stall) {
   this.stallDetailModal = true
   this.selectedStallId = stall.id
   
-  // ✅ Pass the selected period
   this.fetchStallDetails(stall.id, this.selectedPeriod)
   
   this.$nextTick(() => {
@@ -1872,7 +1864,6 @@ viewStallDetails(stall) {
 
 async fetchStallDetails(stallId, period = 'week') {
   try {
-    // Calculate days based on period
     const days = period === 'today' ? 1 :
                  period === 'week' ? 7 :
                  period === 'month' ? 30 :
@@ -1927,7 +1918,6 @@ initStallDetailChart(stallId, period = 'week') {
     return
   }
 
-  // Calculate days based on period
   const days = period === 'today' ? 1 :
                period === 'week' ? 7 :
                period === 'month' ? 30 :
@@ -1943,7 +1933,6 @@ initStallDetailChart(stallId, period = 'week') {
     const data = response.data || {}
     const salesData = data.dailySales || []
 
-    // If no data, show empty state
     if (!salesData || salesData.length === 0) {
       const option = {
         title: {
@@ -1960,7 +1949,6 @@ initStallDetailChart(stallId, period = 'week') {
 
     const chartDays = salesData.map(d => {
       const date = new Date(d.date)
-      // For today, show time; for other periods show date
       if (period === 'today') {
         return date.toLocaleTimeString('en-MY', { 
           hour: '2-digit', 
@@ -1968,21 +1956,18 @@ initStallDetailChart(stallId, period = 'week') {
           timeZone: 'Asia/Kuala_Lumpur'
         })
       }
-      // For week, show day names
       if (period === 'week') {
         return date.toLocaleDateString('en-MY', { 
           weekday: 'short',
           timeZone: 'Asia/Kuala_Lumpur'
         })
       }
-      // For month, show day numbers
       if (period === 'month') {
         return date.toLocaleDateString('en-MY', { 
           day: 'numeric',
           timeZone: 'Asia/Kuala_Lumpur'
         })
       }
-      // For longer periods, show month names
       return date.toLocaleDateString('en-MY', { 
         month: 'short',
         timeZone: 'Asia/Kuala_Lumpur'
@@ -2220,11 +2205,11 @@ updateChart() {
       const date = new Date(d.date)
       if (!isNaN(date.getTime())) {
         const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-        return malaysiaTime.toLocaleTimeString('en-MY', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true
-        })
+        // ✅ PERMANENT FIX: Show as "4:00 PM", "5:00 PM", etc.
+        const hours = malaysiaTime.getHours()
+        const ampm = hours >= 12 ? 'PM' : 'AM'
+        const hours12 = hours % 12 || 12
+        return `${hours12}:00 ${ampm}`
       }
     }
     return this.formatShortDate(d.date)
@@ -2252,14 +2237,13 @@ updateChart() {
         if (dateStr && !dateStr.includes('W')) {
           const date = new Date(dateStr)
           if (!isNaN(date.getTime())) {
-            // ✅ FIX: For today, show Malaysia time
             if (this.selectedPeriod === 'today') {
               const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-              formattedDate = malaysiaTime.toLocaleTimeString('en-MY', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true
-              })
+              // ✅ PERMANENT FIX: Tooltip shows hour grouping (4:00 PM, 5:00 PM, etc.)
+              const hours = malaysiaTime.getHours()
+              const ampm = hours >= 12 ? 'PM' : 'AM'
+              const hours12 = hours % 12 || 12
+              formattedDate = `${hours12}:00 ${ampm}`
             } else {
               const day = date.getDate()
               const month = date.toLocaleDateString('en-MY', { month: 'short' })
@@ -2377,13 +2361,14 @@ updateChart() {
       if (this.salesTrend.length === 0) return 0
       return Math.max(...this.salesTrend.map(d => d.revenue || 0))
     },
-    getPeakDay() {
+    
+getPeakDay() {
   if (this.salesTrend.length === 0) return ''
   const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return ''
   
-  // ✅ FIX: For Today, convert UTC to Malaysia time
+  // ✅ PERMANENT FIX: For Today, show hour grouping
   if (this.selectedPeriod === 'today') {
     const date = new Date(day.date)
     if (isNaN(date.getTime())) return ''
@@ -2391,11 +2376,12 @@ updateChart() {
     // Add 8 hours for Malaysia time
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
     
-    return malaysiaTime.toLocaleTimeString('en-MY', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true
-    })
+    // Show as "4:00 PM", "5:00 PM", etc.
+    const hours = malaysiaTime.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    
+    return `${hours12}:00 ${ampm}`
   }
   
   return this.formatShortDate(day.date)
@@ -2773,31 +2759,24 @@ async loadSalesAnalytics() {
     
     console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
     
-    // ✅ FIX: For today, we need to handle timezone properly
     if (this.selectedPeriod === 'today') {
-      // IMPORTANT: The API returns UTC dates. We need to check if today's data exists.
-      // Option 1: Use the API's today (UTC) - get today's UTC date
       const now = new Date()
       const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
       const todayUTCStr = todayUTC.toISOString().split('T')[0]
       
       console.log('📊 Today UTC string:', todayUTCStr)
       
-      // Also check for yesterday in UTC (in case the server is behind)
       const yesterdayUTC = new Date(todayUTC)
       yesterdayUTC.setUTCDate(yesterdayUTC.getUTCDate() - 1)
       const yesterdayUTCStr = yesterdayUTC.toISOString().split('T')[0]
       
       console.log('📊 Yesterday UTC string:', yesterdayUTCStr)
       
-      // Filter by comparing date strings (UTC)
-      // Try today first, then yesterday
       let filteredSales = dailySales.filter(day => {
         const dayDate = day.date.split('T')[0]
         return dayDate === todayUTCStr
       })
       
-      // If no data for today, try yesterday (in case of timezone difference)
       if (filteredSales.length === 0) {
         console.log('📊 No data for today, trying yesterday...')
         filteredSales = dailySales.filter(day => {
@@ -2811,19 +2790,15 @@ async loadSalesAnalytics() {
       console.log('📊 Daily sales after today filter:', dailySales.length, 'records')
     }
     
-    // For month view - group by week
     if (this.selectedPeriod === 'month') {
       dailySales = this.groupSalesByWeek(dailySales)
     } 
-    // For quarter and halfyear - group by month
     else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
       dailySales = this.groupSalesByMonth(dailySales)
     } 
-    // For year - group by month
     else if (this.selectedPeriod === 'year') {
       dailySales = this.groupSalesByMonth(dailySales)
     } 
-    // For custom - smart grouping
     else if (this.selectedPeriod === 'custom') {
       dailySales = this.groupSalesCustom(dailySales)
     }
@@ -2832,7 +2807,6 @@ async loadSalesAnalytics() {
     
     console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
     
-    // Calculate totals
     const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
     const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
     
@@ -2843,7 +2817,6 @@ async loadSalesAnalytics() {
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
-    // Top stall from API
     if (data.topStall && data.topStall !== '-') {
       this.consolidatedSales.topStall = data.topStall
       this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
@@ -2855,7 +2828,6 @@ async loadSalesAnalytics() {
     this.productSales = data.productSales || {}
     await this.loadMenuPerformance()
     
-    // ✅ Force chart update
     if (this.salesTrend.length > 0) {
       this.$nextTick(() => {
         this.initChart()
@@ -2902,10 +2874,8 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ REMOVED the broken filter - API data is already correct
     this.stallPerformance = stallData
     
-    // Update consolidatedSales
     if (stallData.length > 0) {
       let topStall = null
       let maxRevenue = 0
