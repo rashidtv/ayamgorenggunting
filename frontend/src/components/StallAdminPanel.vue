@@ -1425,38 +1425,43 @@ export default {
       return 'poor'
     },
 
-    // =============================================
-    // SPARKLINE HELPER - FIXED
-    // =============================================
-    getSparklinePoints(data) {
-      if (!data || data.length === 0) {
-        return '0,40 200,40'
-      }
-      
-      const cleanData = data.map(v => {
-        const val = parseFloat(v)
-        return isNaN(val) ? 0 : val
-      })
-      
-      if (cleanData.every(v => v === 0)) {
-        return '0,40 200,40'
-      }
-      
-      const points = cleanData.map((value, index) => {
-        const x = (index / (cleanData.length - 1)) * 200
-        const max = Math.max(...cleanData, 1)
-        const min = Math.min(...cleanData, 0)
-        const range = max - min || 1
-        const y = 40 - ((value - min) / range) * 35
-        return `${x},${y}`
-      })
-      
-      const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
-      points.push(`${lastX},40`)
-      points.push(`0,40`)
-      
-      return points.join(' ')
-    },
+// =============================================
+// SPARKLINE HELPER - WITH DATA VALIDATION
+// =============================================
+getSparklinePoints(data) {
+  // If no data or empty array, return flat line
+  if (!data || data.length === 0) {
+    return '0,40 200,40'
+  }
+  
+  // Clean data: convert to numbers, replace NaN/undefined/null with 0
+  const cleanData = data.map(v => {
+    const val = parseFloat(v)
+    return isNaN(val) || val === null || val === undefined ? 0 : val
+  })
+  
+  // If all values are 0, return flat line (skip rendering)
+  if (cleanData.every(v => v === 0)) {
+    return '0,40 200,40'
+  }
+  
+  // Calculate points for the sparkline
+  const points = cleanData.map((value, index) => {
+    const x = (index / (cleanData.length - 1)) * 200
+    const max = Math.max(...cleanData, 1)
+    const min = Math.min(...cleanData, 0)
+    const range = max - min || 1
+    const y = 40 - ((value - min) / range) * 35
+    return `${x},${y}`
+  })
+  
+  // Add final point to close the area
+  const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
+  points.push(`${lastX},40`)
+  points.push(`0,40`)
+  
+  return points.join(' ')
+},
 
     // =============================================
     // STALL PERFORMANCE - STATUS EMOJI
@@ -2471,73 +2476,76 @@ export default {
       }
     },
 
-    async loadSalesAnalytics() {
-      this.productSales = {}
-      const days = this.selectedPeriod === 'today' ? 0 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
-      const apiDays = this.selectedPeriod === 'today' ? 1 : days
-      
-      try {
-        const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        const data = res.data || {}
-        
-        let dailySales = (data.dailySales || []).map(day => ({
-          ...day,
-          items: parseInt(day.items) || 0,
-          revenue: parseFloat(day.revenue) || 0
-        }))
-        
-        if (this.selectedPeriod === 'today') {
-          const today = this.getTodayInMalaysia()
-          dailySales = dailySales.filter(day => {
-            const dayDate = new Date(day.date)
-            dayDate.setHours(0, 0, 0, 0)
-            return dayDate.getTime() === today.getTime()
-          })
-        }
-        
-        if (this.selectedPeriod === 'month') {
-          dailySales = this.groupSalesByWeek(dailySales)
-        } else if (this.selectedPeriod === 'quarter') {
-          dailySales = this.groupSalesByMonth(dailySales)
-        } else if (this.selectedPeriod === 'halfyear') {
-          dailySales = this.groupSalesByMonth(dailySales)
-        } else if (this.selectedPeriod === 'year') {
-          dailySales = this.groupSalesByMonth(dailySales)
-        } else if (this.selectedPeriod === 'custom') {
-          dailySales = this.groupSalesCustom(dailySales)
-        }
-        
-        this.salesTrend = dailySales
-        
-        const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
-        const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
-        
-        this.consolidatedSales.totalItems = totalItems
-        this.consolidatedSales.totalRevenue = totalRevenue
-        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-          totalRevenue / this.stalls.length : 0
-        this.consolidatedSales.topStall = data.topStall || '-'
-        this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-        this.productSales = data.productSales || {}
-        await this.loadMenuPerformance()
-      } catch (err) {
-        console.error('Failed to load sales analytics:', err)
-        this.salesTrend = []
-        this.consolidatedSales.totalItems = 0
-        this.consolidatedSales.totalRevenue = 0
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-        this.productSales = {}
-      }
-    },
+async loadSalesAnalytics() {
+  this.productSales = {}
+  const days = this.selectedPeriod === 'today' ? 0 :
+               this.selectedPeriod === 'week' ? 7 :
+               this.selectedPeriod === 'month' ? 30 :
+               this.selectedPeriod === 'quarter' ? 90 :
+               this.selectedPeriod === 'halfyear' ? 180 :
+               this.selectedPeriod === 'year' ? 365 :
+               this.customDays || 30
+  const apiDays = this.selectedPeriod === 'today' ? 1 : days
+  
+  try {
+    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    const data = res.data || {}
+    
+    let dailySales = (data.dailySales || []).map(day => ({
+      ...day,
+      items: parseInt(day.items) || 0,
+      revenue: parseFloat(day.revenue) || 0
+    }))
+    
+    if (this.selectedPeriod === 'today') {
+      const today = this.getTodayInMalaysia()
+      dailySales = dailySales.filter(day => {
+        const dayDate = new Date(day.date)
+        dayDate.setHours(0, 0, 0, 0)
+        return dayDate.getTime() === today.getTime()
+      })
+    }
+    
+    if (this.selectedPeriod === 'month') {
+      dailySales = this.groupSalesByWeek(dailySales)
+    } else if (this.selectedPeriod === 'quarter') {
+      dailySales = this.groupSalesByMonth(dailySales)
+    } else if (this.selectedPeriod === 'halfyear') {
+      dailySales = this.groupSalesByMonth(dailySales)
+    } else if (this.selectedPeriod === 'year') {
+      dailySales = this.groupSalesByMonth(dailySales)
+    } else if (this.selectedPeriod === 'custom') {
+      dailySales = this.groupSalesCustom(dailySales)
+    }
+    
+    this.salesTrend = dailySales
+    
+    const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
+    const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+    
+    this.consolidatedSales.totalItems = totalItems
+    this.consolidatedSales.totalRevenue = totalRevenue
+    this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+      totalRevenue / this.stalls.length : 0
+    
+    // Store raw data from API as fallback
+    this.consolidatedSales.topStall = data.topStall || '-'
+    this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+    
+    this.productSales = data.productSales || {}
+    await this.loadMenuPerformance()
+  } catch (err) {
+    console.error('Failed to load sales analytics:', err)
+    this.salesTrend = []
+    this.consolidatedSales.totalItems = 0
+    this.consolidatedSales.totalRevenue = 0
+    this.consolidatedSales.topStall = '-'
+    this.consolidatedSales.topRevenue = 0
+    this.productSales = {}
+  }
+},
 
     async loadStallPerformance() {
       const days = this.selectedPeriod === 'today' ? 0 :
