@@ -146,7 +146,7 @@
           </div>
         </div>
 
-<!-- KPI Cards with Sparkline - CENTER ALIGNED -->
+<!-- KPI Cards with Sparkline -->
 <div class="kpi-grid">
   <!-- Revenue -->
   <div class="kpi-card" style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);">
@@ -156,6 +156,9 @@
     <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
       <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
       {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+    </div>
+    <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+      {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
     </div>
     <div class="sparkline-container">
       <svg viewBox="0 0 200 40" preserveAspectRatio="none">
@@ -170,9 +173,6 @@
           :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
         />
       </svg>
-    </div>
-    <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-      {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
     </div>
   </div>
 
@@ -203,9 +203,6 @@
         />
       </svg>
     </div>
-    <div class="kpi-trend-label" :class="getItemsChange() >= 0 ? 'positive' : 'negative'">
-      {{ getItemsChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
-    </div>
   </div>
 
   <!-- Average per Stall -->
@@ -231,30 +228,24 @@
         />
       </svg>
     </div>
-    <div class="kpi-trend-label neutral">
-      {{ stalls.length > 0 ? `${stalls.length} active stalls` : 'No stalls' }}
-    </div>
   </div>
 
   <!-- Top Stall - Clickable to Stall Performance -->
   <div class="kpi-card highlight clickable" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);" @click="switchTabWithSubTab('stalls', 'performance')">
     <div class="kpi-icon">🏆</div>
-    <div class="kpi-value" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</div>
+    <div class="kpi-value" style="font-size: 1.4rem;">{{ getTopStallName() }}</div>
     <div class="kpi-label">Top Stall</div>
-    <div class="kpi-change" v-if="consolidatedSales.topRevenue">
+    <div class="kpi-change" v-if="getTopStallRevenue() > 0">
       <span class="trend-icon">🏆</span>
-      {{ formatCurrency(consolidatedSales.topRevenue || 0) }}
+      {{ formatCurrency(getTopStallRevenue()) }}
     </div>
     <div class="kpi-change neutral" v-else>
       <span class="trend-icon">•</span>
       No sales yet
     </div>
-    <!-- Status Badge for Top Stall -->
-    <div class="kpi-status-badge" v-if="consolidatedSales.topRevenue" :class="getStallStatusClass({ revenue: consolidatedSales.topRevenue })">
-      {{ getStallStatusEmoji({ revenue: consolidatedSales.topRevenue }) }} {{ getStallStatus({ revenue: consolidatedSales.topRevenue }) }}
-    </div>
-    <div class="kpi-status-badge neutral" v-else>
-      ⚪ No Sales
+    <!-- Status Badge for Top Stall - Based on revenue -->
+    <div class="kpi-status-badge" :class="getTopStallStatusClass()">
+      {{ getTopStallStatusEmoji() }} {{ getTopStallStatusText() }}
     </div>
     <div class="sparkline-container">
       <svg viewBox="0 0 200 40" preserveAspectRatio="none">
@@ -269,9 +260,6 @@
           style="fill: rgba(245, 158, 11, 0.1);"
         />
       </svg>
-    </div>
-    <div class="kpi-trend-label neutral">
-      {{ consolidatedSales.topStall !== '-' ? 'Top performer' : 'No sales yet' }}
     </div>
   </div>
 </div>
@@ -1386,6 +1374,67 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// TOP STALL HELPERS (For KPI Card)
+// =============================================
+getTopStallName() {
+  if (this.selectedPeriod === 'today') {
+    // For today, check if there's any sales today
+    const today = this.getTodayInMalaysia()
+    const hasTodaySales = this.salesTrend.some(day => {
+      const dayDate = new Date(day.date)
+      dayDate.setHours(0, 0, 0, 0)
+      return dayDate.getTime() === today.getTime()
+    })
+    if (!hasTodaySales) {
+      return '-'
+    }
+  }
+  return this.consolidatedSales.topStall || '-'
+},
+
+getTopStallRevenue() {
+  if (this.selectedPeriod === 'today') {
+    const today = this.getTodayInMalaysia()
+    const hasTodaySales = this.salesTrend.some(day => {
+      const dayDate = new Date(day.date)
+      dayDate.setHours(0, 0, 0, 0)
+      return dayDate.getTime() === today.getTime()
+    })
+    if (!hasTodaySales) {
+      return 0
+    }
+  }
+  return this.consolidatedSales.topRevenue || 0
+},
+
+getTopStallStatusText() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'No Sales'
+  if (revenue > 1000) return 'Excellent'
+  if (revenue > 500) return 'Good'
+  if (revenue > 100) return 'Average'
+  return 'Poor'
+},
+
+getTopStallStatusEmoji() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return '⚪'
+  if (revenue > 1000) return '🟢'
+  if (revenue > 500) return '🔵'
+  if (revenue > 100) return '🟡'
+  return '🔴'
+},
+
+getTopStallStatusClass() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'no-sales'
+  if (revenue > 1000) return 'excellent'
+  if (revenue > 500) return 'good'
+  if (revenue > 100) return 'average'
+  return 'poor'
+},
     // =============================================
     // TAB NAVIGATION WITH SUB-TAB
     // =============================================
@@ -1402,23 +1451,29 @@ export default {
     // =============================================
     // SPARKLINE HELPER
     // =============================================
-    getSparklinePoints(data) {
-      if (!data || data.length === 0) {
-        return '0,40 200,40'
-      }
-      const points = data.map((value, index) => {
-        const x = (index / (data.length - 1)) * 200
-        const max = Math.max(...data, 1)
-        const min = Math.min(...data, 0)
-        const range = max - min || 1
-        const y = 40 - ((value - min) / range) * 35
-        return `${x},${y}`
-      })
-      const lastX = (data.length - 1) / (data.length - 1) * 200
-      points.push(`${lastX},40`)
-      points.push(`0,40`)
-      return points.join(' ')
-    },
+   getSparklinePoints(data) {
+  if (!data || data.length === 0) {
+    return '0,40 200,40'
+  }
+  
+  // Filter out NaN, null, undefined values
+  const cleanData = data.map(v => (isNaN(v) || v === null || v === undefined) ? 0 : v)
+  
+  const points = cleanData.map((value, index) => {
+    const x = (index / (cleanData.length - 1)) * 200
+    const max = Math.max(...cleanData, 1)
+    const min = Math.min(...cleanData, 0)
+    const range = max - min || 1
+    const y = 40 - ((value - min) / range) * 35
+    return `${x},${y}`
+  })
+  
+  const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
+  points.push(`${lastX},40`)
+  points.push(`0,40`)
+  
+  return points.join(' ')
+},
 
     // =============================================
     // STALL PERFORMANCE - STATUS EMOJI
@@ -3542,35 +3597,36 @@ export default {
 .kpi-card {
   background: var(--surface);
   border-radius: 16px;
-  padding: 1.25rem 1.25rem 1rem;
+  padding: 1.25rem 1rem;
   border: 1px solid var(--border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-height: 140px;
-  text-align: center;  /* ← CENTER ALIGNED */
+  min-height: 100px;  /* Same as stats cards */
+  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;  /* ← CENTER ALIGNED */
+  align-items: center;
+  justify-content: center;
 }
 
 .kpi-card .kpi-icon {
-  font-size: 1.8rem;
-  margin-bottom: 0.2rem;
+  font-size: 2rem;  /* Same as stats cards (was 1.8rem) */
+  margin-bottom: 0.15rem;
   display: block;
 }
 
 .kpi-card .kpi-value {
-  font-size: 1.8rem;
+  font-size: 1.8rem;  /* Same as stats cards (was 1.8rem) */
   font-weight: 700;
   color: var(--text);
-  margin: 0.1rem 0;
+  margin: 0.05rem 0;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .kpi-card .kpi-label {
-  font-size: 0.7rem;
+  font-size: 0.7rem;  /* Same as stats cards */
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3579,9 +3635,9 @@ export default {
 }
 
 .kpi-card .kpi-change {
-  font-size: 0.7rem;
+  font-size: 0.65rem;  /* Same as stats cards */
   font-weight: 600;
-  margin-top: 0.3rem;
+  margin-top: 0.15rem;
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
@@ -3591,17 +3647,24 @@ export default {
 
 /* Status Badge - NEW */
 .kpi-card .kpi-status-badge {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  padding: 0.1rem 0.6rem;
+  padding: 0.05rem 0.5rem;
   border-radius: 20px;
-  margin-top: 0.2rem;
+  margin-top: 0.1rem;
   display: inline-block;
 }
 
 .kpi-card .kpi-status-badge.excellent {
   background: #d1fae5;
   color: #059669;
+}
+
+.kpi-card .kpi-trend-label {
+  font-size: 0.5rem;
+  font-weight: 500;
+  margin-top: 0.05rem;
+  opacity: 0.7;
 }
 
 .kpi-card .kpi-status-badge.good {
