@@ -2690,16 +2690,17 @@ updateChart() {
     },
     
     async loadLowStock() {
-      try {
-        const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
-          headers: { Authorization: `Bearer ${this.token}` } 
-        })
-        this.lowStock = res.data
-        console.log('✅ Low stock loaded:', this.lowStock.length)
-      } catch (err) {
-        console.error('Failed to load low stock:', err)
-        this.lowStock = []
-    },
+  try {
+    const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+      headers: { Authorization: `Bearer ${this.token}` } 
+    })
+    this.lowStock = res.data
+    console.log('✅ Low stock loaded:', this.lowStock.length)
+  } catch (err) {
+    console.error('Failed to load low stock:', err)
+    this.lowStock = []
+  }
+},
 
 async loadSalesAnalytics() {
   this.productSales = {}
