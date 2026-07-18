@@ -2078,7 +2078,7 @@ initStallDetailChart(stallId, period = 'week') {
     // =============================================
     // GROUPING HELPERS
     // =============================================
- groupSalesByWeek(dailySales) {
+groupSalesByWeek(dailySales) {
   if (!dailySales || dailySales.length === 0) return []
   
   const grouped = {}
@@ -2090,13 +2090,14 @@ initStallDetailChart(stallId, period = 'week') {
     const key = `${year}-W${weekNumber}`
     
     if (!grouped[key]) {
+      // ✅ Get the ISO week start (Monday)
       const weekStart = this.getWeekStart(date)
       
-      // ✅ Calculate week end (add 6 days)
+      // ✅ Calculate week end (Sunday - 6 days from Monday)
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
       
-      // ✅ Store week start and end - NO IF STATEMENT INSIDE OBJECT
+      // ✅ Use the ISO week number for the key
       grouped[key] = {
         date: weekStart.toISOString().split('T')[0],
         weekEnd: weekEnd.toISOString().split('T')[0],
@@ -2167,13 +2168,19 @@ initStallDetailChart(stallId, period = 'week') {
       return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
     },
 
-    getWeekStart(date) {
+getWeekStart(date) {
   const d = new Date(date)
-  const day = d.getDay()  // 0 = Sunday, 1 = Monday
+  const day = d.getDay()  // 0 = Sunday, 1 = Monday, etc.
+  
   // ✅ Calculate difference to Monday (1)
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  const weekStart = new Date(d.setDate(diff))
+  // If Sunday (0), go back 6 days to Monday
+  // If Monday (1), go back 0 days
+  // If Tuesday (2), go back 1 day, etc.
+  const diff = (day === 0) ? -6 : (1 - day)
+  const weekStart = new Date(d)
+  weekStart.setDate(d.getDate() + diff)
   weekStart.setHours(0, 0, 0, 0)
+  
   return weekStart
 },
     
