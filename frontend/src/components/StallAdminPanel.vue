@@ -1817,15 +1817,19 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  // ✅ PERMANENT FIX: For Today, convert UTC to Malaysia time
+  // ✅ FIX: For Today, convert UTC to Malaysia time
   if (this.selectedPeriod === 'today') {
     if (day.label) return day.label
     const date = new Date(day.date)
-    return date.toLocaleTimeString('en-MY', { 
+    if (isNaN(date.getTime())) return '-'
+    
+    // Add 8 hours for Malaysia time
+    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    
+    return malaysiaTime.toLocaleTimeString('en-MY', { 
       hour: '2-digit', 
       minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kuala_Lumpur'
+      hour12: true
     })
   }
   
@@ -2360,11 +2364,28 @@ updateChart() {
       return Math.max(...this.salesTrend.map(d => d.revenue || 0))
     },
     getPeakDay() {
-      if (this.salesTrend.length === 0) return ''
-      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
-      const day = this.salesTrend.find(d => d.revenue === max)
-      return day ? this.formatShortDate(day.date) : ''
-    },
+  if (this.salesTrend.length === 0) return ''
+  const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+  const day = this.salesTrend.find(d => d.revenue === max)
+  if (!day) return ''
+  
+  // ✅ FIX: For Today, convert UTC to Malaysia time
+  if (this.selectedPeriod === 'today') {
+    const date = new Date(day.date)
+    if (isNaN(date.getTime())) return ''
+    
+    // Add 8 hours for Malaysia time
+    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    
+    return malaysiaTime.toLocaleTimeString('en-MY', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+  
+  return this.formatShortDate(day.date)
+},
     getAverageRevenue() {
       if (this.salesTrend.length === 0) return 0
       const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
