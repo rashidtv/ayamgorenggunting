@@ -1385,45 +1385,81 @@ export default {
       this.dropdownOpen = false
     },
 
-    // =============================================
-    // TOP STALL HELPERS - FIXED
-    // =============================================
-    getTopStallName() {
-      // Always use the top stall from consolidatedSales
-      return this.consolidatedSales.topStall || '-'
-    },
+// =============================================
+// TOP STALL HELPERS - PERMANENT FIX
+// =============================================
+getTopStallName() {
+  // Primary: Use stallPerformance
+  if (this.stallPerformance && this.stallPerformance.length > 0) {
+    // Find stall with highest revenue
+    let topStall = null
+    let maxRevenue = 0
+    
+    for (const stall of this.stallPerformance) {
+      const revenue = parseFloat(stall.revenue) || 0
+      if (revenue > maxRevenue) {
+        maxRevenue = revenue
+        topStall = stall
+      }
+    }
+    
+    // If we found a stall with revenue > 0, return its name
+    if (topStall && maxRevenue > 0) {
+      return topStall.name || topStall.stall_name || '-'
+    }
+  }
+  
+  // Fallback: Use consolidatedSales
+  return this.consolidatedSales.topStall || '-'
+},
 
-    getTopStallRevenue() {
-      // Always use the top revenue from consolidatedSales
-      return this.consolidatedSales.topRevenue || 0
-    },
+getTopStallRevenue() {
+  // Primary: Use stallPerformance
+  if (this.stallPerformance && this.stallPerformance.length > 0) {
+    let maxRevenue = 0
+    
+    for (const stall of this.stallPerformance) {
+      const revenue = parseFloat(stall.revenue) || 0
+      if (revenue > maxRevenue) {
+        maxRevenue = revenue
+      }
+    }
+    
+    if (maxRevenue > 0) {
+      return maxRevenue
+    }
+  }
+  
+  // Fallback: Use consolidatedSales
+  return this.consolidatedSales.topRevenue || 0
+},
 
-    getTopStallStatusText() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return 'No Sales'
-      if (revenue > 1000) return 'Excellent'
-      if (revenue > 500) return 'Good'
-      if (revenue > 100) return 'Average'
-      return 'Poor'
-    },
+getTopStallStatusText() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'No Sales'
+  if (revenue > 1000) return 'Excellent'
+  if (revenue > 500) return 'Good'
+  if (revenue > 100) return 'Average'
+  return 'Poor'
+},
 
-    getTopStallStatusEmoji() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return '⚪'
-      if (revenue > 1000) return '🟢'
-      if (revenue > 500) return '🔵'
-      if (revenue > 100) return '🟡'
-      return '🔴'
-    },
+getTopStallStatusEmoji() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return '⚪'
+  if (revenue > 1000) return '🟢'
+  if (revenue > 500) return '🔵'
+  if (revenue > 100) return '🟡'
+  return '🔴'
+},
 
-    getTopStallStatusClass() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return 'no-sales'
-      if (revenue > 1000) return 'excellent'
-      if (revenue > 500) return 'good'
-      if (revenue > 100) return 'average'
-      return 'poor'
-    },
+getTopStallStatusClass() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'no-sales'
+  if (revenue > 1000) return 'excellent'
+  if (revenue > 500) return 'good'
+  if (revenue > 100) return 'average'
+  return 'poor'
+},
 
 // =============================================
 // SPARKLINE HELPER - WITH DATA VALIDATION
