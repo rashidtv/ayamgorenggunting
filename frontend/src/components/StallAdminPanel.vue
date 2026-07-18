@@ -1769,10 +1769,13 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
     const date = new Date(dateStr)
-    if (!isNaN(date.getTime())) {
-      // ✅ Show the week start date
+      if (!isNaN(date.getTime())) {
+      // ✅ Show the week start date (Monday) as "Jul 6"
       const weekStart = this.getWeekStart(date)
-      return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
+      return weekStart.toLocaleDateString('en-MY', { 
+        day: 'numeric', 
+        month: 'short' 
+      })
     }
     return dateStr
   }
@@ -2097,8 +2100,9 @@ groupSalesByWeek(dailySales) {
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
       
+      // ✅ Store week start date (not the sale date)
       grouped[key] = {
-        date: weekStart.toISOString().split('T')[0],  // ← This is the key fix!
+        date: weekStart.toISOString().split('T')[0],  // ← Use weekStart, not day.date!
         weekEnd: weekEnd.toISOString().split('T')[0],
         label: `W${weekNumber}`,
         displayLabel: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
@@ -2331,35 +2335,46 @@ updateChart() {
           const date = new Date(dateStr)
           if (!isNaN(date.getTime())) {
             if (this.selectedPeriod === 'today') {
+              // ✅ Show "4:00 PM" for today view
               const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
               const hours = malaysiaTime.getHours()
               const ampm = hours >= 12 ? 'PM' : 'AM'
               const hours12 = hours % 12 || 12
               formattedDate = `${hours12}:00 ${ampm}`
             } else if (this.selectedPeriod === 'month') {
-        // ✅ Fix: Use ISO week start (Monday)
-        const weekStart = this.getWeekStart(date)
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekEnd.getDate() + 6)
-         formattedDate = date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          year: 'numeric' 
-        })
-      } else {
-        const day = date.getDate()
-        const month = date.toLocaleDateString('en-MY', { month: 'short' })
-        const year = date.getFullYear()
-        const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-        formattedDate = `${day}${suffix} ${month} ${year}`
-      }
-    }
-  }
+              // ✅ Show week range for month view: "Jul 6 - Jul 12"
+              if (data[index]?.displayLabel) {
+                formattedDate = data[index].displayLabel
+              } else {
+                const weekStart = this.getWeekStart(date)
+                const weekEnd = new Date(weekStart)
+                weekEnd.setDate(weekEnd.getDate() + 6)
+                formattedDate = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`
+              }
+            } else if (this.selectedPeriod === 'quarter' || 
+                       this.selectedPeriod === 'halfyear' || 
+                       this.selectedPeriod === 'year') {
+              // ✅ Show "Jul 2026" for quarter/halfyear/year views
+              formattedDate = date.toLocaleDateString('en-MY', { 
+                month: 'short', 
+                year: 'numeric' 
+              })
+            } else {
+              // ✅ Default: show full date
+              const day = date.getDate()
+              const month = date.toLocaleDateString('en-MY', { month: 'short' })
+              const year = date.getFullYear()
+              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+              formattedDate = `${day}${suffix} ${month} ${year}`
+            }
+          }
+        }
         
-         return `
-    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-  `
+        return `
+          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+        `
       }.bind(this)
     },
     grid: {
