@@ -2703,20 +2703,24 @@ updateChart() {
 },
 
 async loadSalesAnalytics() {
-  this.productSales = {}
-  const days = this.selectedPeriod === 'today' ? 0 :
-               this.selectedPeriod === 'week' ? 7 :
-               this.selectedPeriod === 'month' ? 30 :
-               this.selectedPeriod === 'quarter' ? 90 :
-               this.selectedPeriod === 'halfyear' ? 180 :
-               this.selectedPeriod === 'year' ? 365 :
-               this.customDays || 30
-  const apiDays = this.selectedPeriod === 'today' ? 1 : days
-  
   try {
+    const days = this.selectedPeriod === 'today' ? 0 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.customDays || 30
+    const apiDays = this.selectedPeriod === 'today' ? 1 : days
+    
+    console.log('📊 Loading sales analytics for days:', apiDays, 'period:', this.selectedPeriod)
+    
     const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
+    
+    console.log('📊 Sales analytics response:', res.data)
+    
     const data = res.data || {}
     
     let dailySales = (data.dailySales || []).map(day => ({
@@ -2725,18 +2729,24 @@ async loadSalesAnalytics() {
       revenue: parseFloat(day.revenue) || 0
     }))
     
-    // ✅ FIX: For today, compare dates correctly
+    console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
+    
+    // ✅ FIX: For today, compare dates correctly using UTC
     if (this.selectedPeriod === 'today') {
       // Get today's date in UTC
       const todayUTC = new Date()
       todayUTC.setHours(0, 0, 0, 0)
       const todayUTCStr = todayUTC.toISOString().split('T')[0]
       
+      console.log('📊 Today UTC string:', todayUTCStr)
+      
       // Filter by comparing date strings (UTC)
       dailySales = dailySales.filter(day => {
         const dayDate = day.date.split('T')[0]
         return dayDate === todayUTCStr
       })
+      
+      console.log('📊 Daily sales after today filter:', dailySales.length, 'records')
     }
     
     // For month view - group by week
@@ -2758,16 +2768,20 @@ async loadSalesAnalytics() {
     
     this.salesTrend = dailySales
     
+    console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
+    
     // Calculate totals
-    const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
-    const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
+    const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
+    
+    console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
     
     this.consolidatedSales.totalItems = totalItems
     this.consolidatedSales.totalRevenue = totalRevenue
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
-    // Top stall from API (keep existing logic)
+    // Top stall from API
     if (data.topStall && data.topStall !== '-') {
       this.consolidatedSales.topStall = data.topStall
       this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
@@ -2787,8 +2801,10 @@ async loadSalesAnalytics() {
       })
     }
     
+    console.log('✅ Sales analytics loaded successfully')
+    
   } catch (err) {
-    console.error('Failed to load sales analytics:', err)
+    console.error('❌ Failed to load sales analytics:', err)
     this.salesTrend = []
     this.consolidatedSales.totalItems = 0
     this.consolidatedSales.totalRevenue = 0
