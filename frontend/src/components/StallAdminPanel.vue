@@ -1741,9 +1741,22 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
+  
+  // ✅ For today, show Malaysia time (UTC+8) for display only
+  if (this.selectedPeriod === 'today') {
+    // Convert UTC to Malaysia time for display
+    return date.toLocaleTimeString('en-MY', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kuala_Lumpur'
+    })
+  }
+  
   // For custom range, show smart labels
   if (this.selectedPeriod === 'custom') {
-    const date = new Date(dateStr)
     return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
@@ -1751,33 +1764,18 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
-    const date = new Date(dateStr)
     return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
   // For week grouping in month view
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
-    const date = new Date(dateStr)
     return date.toLocaleDateString('en-MY', { day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
   }
-  
-  const date = new Date(dateStr)
   
   // For week view, show day names
   if (this.selectedPeriod === 'week') {
     return date.toLocaleDateString('en-MY', { weekday: 'short', timeZone: 'Asia/Kuala_Lumpur' })
-  }
-  
-  // ✅ PERMANENT FIX: For today, ALWAYS convert UTC to Malaysia time
-  if (this.selectedPeriod === 'today') {
-    // Format time in Malaysia timezone (UTC+8)
-    return date.toLocaleTimeString('en-MY', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kuala_Lumpur'  // ← This converts UTC to MYT
-    })
   }
   
   return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
