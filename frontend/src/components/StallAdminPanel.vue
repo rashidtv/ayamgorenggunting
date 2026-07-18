@@ -1741,28 +1741,30 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  // ✅ Permanent fix: Today view shows Malaysia time (UTC+8)
+  // ✅ PERMANENT FIX: For today, show hour grouping (4:00 PM, 5:00 PM, etc.)
   if (this.selectedPeriod === 'today') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     
-    // Direct +8 hours - permanent, future-proof
+    // Add 8 hours for Malaysia time
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
     
-    return malaysiaTime.toLocaleTimeString('en-MY', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true
-    })
+    // Show as "4:00 PM", "5:00 PM", etc.
+    const hours = malaysiaTime.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    
+    return `${hours12}:00 ${ampm}`
   }
   
-  // All other periods - unchanged, backward compatible
+  // For custom range, show smart labels
   if (this.selectedPeriod === 'custom') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
   }
   
+  // For quarter, halfyear, year - show month names
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
@@ -1771,6 +1773,7 @@ formatShortDate(dateStr) {
     return date.toLocaleDateString('en-MY', { month: 'short' })
   }
   
+  // For week grouping in month view
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
     const date = new Date(dateStr)
@@ -1778,13 +1781,14 @@ formatShortDate(dateStr) {
     return date.toLocaleDateString('en-MY', { day: 'numeric' })
   }
   
+  // For week view, show day names
   if (this.selectedPeriod === 'week') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { weekday: 'short' })
   }
   
-  // Default fallback - unchanged
+  // Default fallback
   const date = new Date(dateStr)
   if (isNaN(date.getTime())) return dateStr
   return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
