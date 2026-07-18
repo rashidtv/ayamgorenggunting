@@ -1769,8 +1769,12 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
     const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { day: 'numeric' })
+    if (!isNaN(date.getTime())) {
+      // ✅ Show the week start date
+      const weekStart = this.getWeekStart(date)
+      return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
+    }
+    return dateStr
   }
   
   // For week view, show day names
@@ -2075,29 +2079,43 @@ initStallDetailChart(stallId, period = 'week') {
     // GROUPING HELPERS
     // =============================================
     groupSalesByWeek(dailySales) {
-      if (!dailySales || dailySales.length === 0) return []
-      const grouped = {}
-      dailySales.forEach(day => {
-        const date = new Date(day.date)
-        const weekNumber = this.getWeekNumber(date)
-        const year = date.getFullYear()
-        const key = `${year}-W${weekNumber}`
-        if (!grouped[key]) {
-          const weekStart = this.getWeekStart(date)
-          grouped[key] = {
-            date: weekStart.toISOString().split('T')[0],
-            label: `W${weekNumber}`,
-            revenue: 0,
-            items: 0,
-            weekNumber: weekNumber,
-            year: year
-          }
-        }
-        grouped[key].revenue += day.revenue || 0
-        grouped[key].items += day.items || 0
-      })
-      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-    },
+  if (!dailySales || dailySales.length === 0) return []
+  
+  const grouped = {}
+  
+  dailySales.forEach(day => {
+    const date = new Date(day.date)
+    const weekNumber = this.getWeekNumber(date)
+    const year = date.getFullYear()
+    const key = `${year}-W${weekNumber}`
+    
+    if (!grouped[key]) {
+      const weekStart = this.getWeekStart(date)
+      
+      // ✅ Calculate week end (add 6 days)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      
+      // ✅ Store week start and end
+      grouped[key] = {
+        date: weekStart.toISOString().split('T')[0],
+        weekEnd: weekEnd.toISOString().split('T')[0],
+        label: `W${weekNumber}`,
+        // ✅ Show date range on hover/tooltip
+        displayLabel: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
+        revenue: 0,
+        items: 0,
+        weekNumber: weekNumber,if (!isNaN(date.getTime())) {
+        year: year
+      }
+    }
+    
+    grouped[key].revenue += day.revenue || 0
+    grouped[key].items += day.items || 0
+  })
+  
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
 
     groupSalesByMonth(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
@@ -2151,13 +2169,14 @@ initStallDetailChart(stallId, period = 'week') {
     },
 
     getWeekStart(date) {
-      const d = new Date(date)
-      const day = d.getDay()
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-      const weekStart = new Date(d.setDate(diff))
-      weekStart.setHours(0, 0, 0, 0)
-      return weekStart
-    },
+  const d = new Date(date)
+  const day = d.getDay()  // 0 = Sunday, 1 = Monday
+  // ✅ Calculate difference to Monday (1)
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const weekStart = new Date(d.setDate(diff))
+  weekStart.setHours(0, 0, 0, 0)
+  return weekStart
+},
     
     // =============================================
     // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
@@ -2275,7 +2294,6 @@ updateChart() {
       const date = new Date(d.date)
       if (!isNaN(date.getTime())) {
         const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-        // ✅ Show as "4:00 PM", "5:00 PM", etc.
         const hours = malaysiaTime.getHours()
         const ampm = hours >= 12 ? 'PM' : 'AM'
         const hours12 = hours % 12 || 12
@@ -2309,11 +2327,16 @@ updateChart() {
           if (!isNaN(date.getTime())) {
             if (this.selectedPeriod === 'today') {
               const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-              // ✅ Show hour grouping (4:00 PM, 5:00 PM, etc.)
               const hours = malaysiaTime.getHours()
               const ampm = hours >= 12 ? 'PM' : 'AM'
               const hours12 = hours % 12 || 12
               formattedDate = `${hours12}:00 ${ampm}`
+            } else if (this.selectedPeriod === 'month') {
+              // ✅ Show week range for month view
+              const weekStart = this.getWeekStart(date)
+              const weekEnd = new Date(weekStart)
+              weekEnd.setDate(weekEnd.getDate() + 6)
+              formattedDate = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`
             } else {
               const day = date.getDate()
               const month = date.toLocaleDateString('en-MY', { month: 'short' })
