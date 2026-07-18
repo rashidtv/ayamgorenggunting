@@ -2078,7 +2078,7 @@ initStallDetailChart(stallId, period = 'week') {
     // =============================================
     // GROUPING HELPERS
     // =============================================
-    groupSalesByWeek(dailySales) {
+ groupSalesByWeek(dailySales) {
   if (!dailySales || dailySales.length === 0) return []
   
   const grouped = {}
@@ -2096,16 +2096,15 @@ initStallDetailChart(stallId, period = 'week') {
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
       
-      // ✅ Store week start and end
+      // ✅ Store week start and end - NO IF STATEMENT INSIDE OBJECT
       grouped[key] = {
         date: weekStart.toISOString().split('T')[0],
         weekEnd: weekEnd.toISOString().split('T')[0],
         label: `W${weekNumber}`,
-        // ✅ Show date range on hover/tooltip
         displayLabel: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
         revenue: 0,
         items: 0,
-        weekNumber: weekNumber,if (!isNaN(date.getTime())) {
+        weekNumber: weekNumber,
         year: year
       }
     }
