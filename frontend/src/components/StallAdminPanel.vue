@@ -85,72 +85,58 @@
       <!-- ===== DASHBOARD TAB ===== -->
       <div v-if="activeTab === 'dashboard'" class="tab-panel">
         
-<!-- ===== STATS CARDS - GLASSMORPHISM ===== -->
+<!-- Stats Cards -->
 <div class="stats-grid">
-  <!-- My Stalls - Clickable with Total/Active/Inactive -->
+  <!-- My Stalls - Clickable to Stalls Tab -->
   <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
     <div class="stat-icon">🏪</div>
     <div class="stat-content">
-      <!-- Total Number - Big -->
       <span class="stat-number">{{ stalls.length }}</span>
       <span class="stat-label">My Stalls</span>
-      <!-- Active/Inactive Breakdown -->
       <div class="stat-breakdown">
-        <span class="stat-breakdown-item active">
-          <span class="breakdown-dot active">●</span>
-          {{ stalls.filter(s => s.is_active).length }} Active
-        </span>
+        <span class="stat-breakdown-item active">● {{ stalls.filter(s => s.is_active).length }} Active</span>
         <span class="stat-breakdown-divider">·</span>
-        <span class="stat-breakdown-item inactive">
-          <span class="breakdown-dot inactive">○</span>
-          {{ stalls.filter(s => !s.is_active).length }} Inactive
-        </span>
+        <span class="stat-breakdown-item inactive">○ {{ stalls.filter(s => !s.is_active).length }} Inactive</span>
       </div>
       <span class="stat-sub-label">{{ stalls.length }} Total Stalls</span>
     </div>
-    <div class="stat-trend up">
-      <span class="trend-arrow">↑</span> 12%
-    </div>
+    <div class="stat-trend up">↑ 12%</div>
     <div class="stat-hover">Click to view →</div>
   </div>
   
-  <!-- My Users - Clickable -->
+  <!-- My Users - Clickable to Users Tab -->
   <div class="stat-card glass clickable" style="--stat-color: #7c3aed; --stat-color-alpha: rgba(124, 58, 237, 0.15);" @click="switchTab('users')">
     <div class="stat-icon">👥</div>
     <div class="stat-content">
       <span class="stat-number">{{ users.length }}</span>
       <span class="stat-label">My Users</span>
     </div>
-    <div class="stat-trend up">
-      <span class="trend-arrow">↑</span> 8%
+    <div class="stat-trend up">↑ 8%</div>
+    <div class="stat-hover">Click to view →</div>
+  </div>
+  
+  <!-- Menu Sold - Clickable to Menu Tab (Performance sub-tab) -->
+  <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTabWithSubTab('menu', 'performance')">
+    <div class="stat-icon">📈</div>
+    <div class="stat-content">
+      <span class="stat-number">{{ formatNumber(consolidatedSales.totalItems || 0) }}</span>
+      <span class="stat-label">Menu Sold</span>
+    </div>
+    <div class="stat-trend" :class="getItemsChange() >= 0 ? 'up' : 'down'">
+      {{ getItemsChange() >= 0 ? '↑' : '↓' }} {{ Math.abs(getItemsChange()).toFixed(1) }}%
     </div>
     <div class="stat-hover">Click to view →</div>
   </div>
   
-  <!-- Menu Items - Clickable to Menu Assignment -->
-  <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTab('menu-assignment')">
-    <div class="stat-icon">📋</div>
+  <!-- Top Stall - Clickable to Stalls Tab (Performance sub-tab) -->
+  <div class="stat-card glass clickable highlight" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTabWithSubTab('stalls', 'performance')">
+    <div class="stat-icon">🏆</div>
     <div class="stat-content">
-      <span class="stat-number">{{ menuItems.length }}</span>
-      <span class="stat-label">Menu Items</span>
+      <span class="stat-number" style="font-size: 1.4rem;">{{ consolidatedSales.topStall || '-' }}</span>
+      <span class="stat-label">Top Stall</span>
+      <span class="stat-sub-label" v-if="consolidatedSales.topRevenue">{{ formatCurrency(consolidatedSales.topRevenue || 0) }}</span>
     </div>
-    <div class="stat-trend neutral">
-      <span class="trend-arrow">•</span> {{ menuItems.length > 0 ? 'Active' : 'None' }}
-    </div>
-    <div class="stat-hover">Click to manage →</div>
-  </div>
-  
-  <!-- Low Stock - Clickable to Inventory -->
-  <div class="stat-card glass clickable" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTab('inventory')">
-    <div class="stat-icon">⚠️</div>
-    <div class="stat-content">
-      <span class="stat-number">{{ lowStock.length }}</span>
-      <span class="stat-label">Low Stock Alerts</span>
-    </div>
-    <div class="stat-trend" :class="lowStock.length > 0 ? 'down' : 'up'">
-      <span class="trend-arrow">{{ lowStock.length > 0 ? '⚠' : '✓' }}</span>
-      {{ lowStock.length > 0 ? `${lowStock.length} items` : 'All good' }}
-    </div>
+    <div class="stat-trend neutral">🏆</div>
     <div class="stat-hover">Click to view →</div>
   </div>
 </div>
@@ -350,6 +336,9 @@
               <h3>🏆 Stall Performance</h3>
               <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
             </div>
+            <button @click="switchTabWithSubTab('stalls', 'performance')" class="btn-modern secondary small">
+      View All →
+    </button>
           </div>
           <div class="card-modern-body stall-performance-table-container">
             <div v-if="stallPerformance.length === 0" class="empty-state-modern">
@@ -417,6 +406,9 @@
               <h3>🍗 Menu Performance</h3>
               <span class="card-subtitle">Top selling items for {{ getPeriodLabel() }}</span>
             </div>
+            <button @click="switchTabWithSubTab('menu', 'performance')" class="btn-modern secondary small">
+      View All →
+    </button>
           </div>
           <div class="card-modern-body menu-performance-table-container">
             <div v-if="menuPerformance.length === 0" class="empty-state-modern">
@@ -586,62 +578,152 @@
         </div>
       </div>
 
-      <!-- ===== STALLS TAB ===== -->
-      <div v-if="activeTab === 'stalls'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>🏪 Stall Management</h3>
-              <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-            </div>
-            <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+<!-- ===== STALLS TAB ===== -->
+<div v-if="activeTab === 'stalls'" class="tab-panel">
+  <!-- Sub-tabs -->
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'management' }"
+      @click="stallSubTab = 'management'"
+    >
+      🏪 Stall Management
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'performance' }"
+      @click="stallSubTab = 'performance'"
+    >
+      📊 Stall Performance
+    </button>
+  </div>
+  
+  <!-- Stall Management -->
+  <div v-if="stallSubTab === 'management'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>🏪 Stall Management</h3>
+          <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+        </div>
+        <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+      </div>
+      <div class="card-modern-body">
+        <div class="filter-bar">
+          <div class="filter-search">
+            <input 
+              type="text" 
+              v-model="stallSearch" 
+              placeholder="Search stalls..." 
+              class="filter-input"
+            />
           </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <input 
-                  type="text" 
-                  v-model="stallSearch" 
-                  placeholder="Search stalls..." 
-                  class="filter-input"
-                />
-              </div>
-              <select v-model="stallStatusFilter" class="filter-select">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+          <select v-model="stallStatusFilter" class="filter-select">
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
 
-            <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-              <span>🏪</span>
-              <p>No stalls found</p>
-            </div>
+        <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+          <span>🏪</span>
+          <p>No stalls found</p>
+        </div>
 
-            <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-              <div class="list-item-content">
-                <span class="list-item-index">{{ index + 1 }}</span>
-                <div class="list-item-info">
-                  <span class="list-item-name">{{ s.name }}</span>
-                  <span class="list-item-code">{{ s.code }}</span>
-                </div>
-                <span class="list-item-company">{{ s.company_name || '-' }}</span>
-                <span class="list-item-users">{{ s.user_count || 0 }} users</span>
-                <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-                  {{ s.is_active ? 'Active' : 'Inactive' }}
-                </span>
-                <div class="list-item-actions">
-                  <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
-                    {{ s.is_active ? '⏸️' : '▶️' }}
-                  </button>
-                  <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
-                </div>
-              </div>
+        <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
+          <div class="list-item-content">
+            <span class="list-item-index">{{ index + 1 }}</span>
+            <div class="list-item-info">
+              <span class="list-item-name">{{ s.name }}</span>
+              <span class="list-item-code">{{ s.code }}</span>
+            </div>
+            <span class="list-item-company">{{ s.company_name || '-' }}</span>
+            <span class="list-item-users">{{ s.user_count || 0 }} users</span>
+            <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
+              {{ s.is_active ? 'Active' : 'Inactive' }}
+            </span>
+            <div class="list-item-actions">
+              <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
+              <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
+                {{ s.is_active ? '⏸️' : '▶️' }}
+              </button>
+              <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+  
+  <!-- Stall Performance - Full List -->
+  <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📊 Stall Performance</h3>
+          <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
+        </div>
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+      </div>
+      <div class="card-modern-body stall-performance-table-container">
+        <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+          <span>📊</span>
+          <p>No sales data available for {{ getPeriodLabel() }}</p>
+        </div>
+        
+        <!-- Full Stall Performance Table -->
+        <div v-else class="stall-table-wrapper">
+          <!-- Table Headers -->
+          <div class="stall-table-header">
+            <span class="stall-table-header-rank">Rank</span>
+            <span class="stall-table-header-name">Stall</span>
+            <span class="stall-table-header-revenue">Revenue</span>
+            <span class="stall-table-header-status">Status</span>
+            <span class="stall-table-header-details">Details</span>
+          </div>
+          
+          <!-- Table Rows - ALL STALLS -->
+          <div class="stall-table-body">
+            <div 
+              v-for="(stall, index) in stallPerformance" 
+              :key="stall.id" 
+              class="stall-table-row clickable-item"
+              @click="viewStallDetails(stall)"
+            >
+              <!-- Rank -->
+              <span class="stall-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
+              
+              <!-- Stall Name + Bar -->
+              <span class="stall-table-name">
+                <span class="stall-name-text">{{ stall.name }}</span>
+                <span class="stall-name-bar">
+                  <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                </span>
+              </span>
+              
+              <!-- Revenue -->
+              <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+              
+              <!-- Status with Color & Emoji -->
+              <span class="stall-table-status">
+                <span :class="['status-indicator', getStallStatusClass(stall)]">
+                  {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+                </span>
+              </span>
+              
+              <!-- Details -->
+              <span class="stall-table-details">👆</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
@@ -694,94 +776,185 @@
         </div>
       </div>
 
-      <!-- ===== MENU ASSIGNMENT TAB ===== -->
-      <div v-if="activeTab === 'menu-assignment'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>📋 Menu Assignment</h3>
-              <span class="card-subtitle">Assign menu items to stalls</span>
-            </div>
-            <button @click="loadMenuAssignments" class="btn-modern secondary small">
-              ⟳ Refresh
+<!-- ===== MENU TAB ===== -->
+<div v-if="activeTab === 'menu'" class="tab-panel">
+  <!-- Sub-tabs -->
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'assignment' }"
+      @click="menuSubTab = 'assignment'"
+    >
+      📋 Menu Assignment
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'performance' }"
+      @click="menuSubTab = 'performance'"
+    >
+      📊 Menu Performance
+    </button>
+  </div>
+  
+  <!-- Menu Assignment -->
+  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📋 Menu Assignment</h3>
+          <span class="card-subtitle">Assign menu items to stalls</span>
+        </div>
+        <button @click="loadMenuAssignments" class="btn-modern secondary small">
+          ⟳ Refresh
+        </button>
+      </div>
+      <div class="card-modern-body">
+        <!-- Select Stall -->
+        <div class="filter-bar">
+          <div class="filter-search">
+            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+              <option value="">-- Select a stall --</option>
+              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                {{ stall.name }} ({{ stall.code }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Menu Assignment List -->
+        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+          <span>🏪</span>
+          <p>Please select a stall to manage its menu</p>
+        </div>
+
+        <div v-else-if="loadingMenuAssignments" class="loading-state small">
+          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+          <p>Loading menu assignments...</p>
+        </div>
+
+        <div v-else class="menu-assignment-list">
+          <div class="assignment-header">
+            <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
+            <button @click="selectAllMenus" class="btn-modern secondary small">
+              ✅ Select All
+            </button>
+            <button @click="deselectAllMenus" class="btn-modern secondary small">
+              ❌ Deselect All
             </button>
           </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-                <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-                  <option value="">-- Select a stall --</option>
-                  <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                    {{ stall.name }} ({{ stall.code }})
-                  </option>
-                </select>
-              </div>
-            </div>
 
-            <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-              <span>🏪</span>
-              <p>Please select a stall to manage its menu</p>
-            </div>
+          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+            <span>📋</span>
+            <p>No menu items available. Please contact your administrator to create menu items.</p>
+          </div>
 
-            <div v-else-if="loadingMenuAssignments" class="loading-state small">
-              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-              <p>Loading menu assignments...</p>
-            </div>
-
-            <div v-else class="menu-assignment-list">
-              <div class="assignment-header">
-                <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-                <button @click="selectAllMenus" class="btn-modern secondary small">
-                  ✅ Select All
-                </button>
-                <button @click="deselectAllMenus" class="btn-modern secondary small">
-                  ❌ Deselect All
-                </button>
-              </div>
-
-              <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-                <span>📋</span>
-                <p>No menu items available. Please contact your administrator to create menu items.</p>
-              </div>
-
-              <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
-                <div class="assignment-item-content">
-                  <div class="assignment-item-info">
-                    <div class="assignment-item-checkbox">
-                      <input 
-                        type="checkbox" 
-                        :id="`menu-${item.item_name}`" 
-                        v-model="menuAssignments[item.item_name]"
-                        :disabled="savingAssignment"
-                      />
-                      <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                        <span class="assignment-item-name">{{ item.item_name }}</span>
-                        <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                        <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                      </label>
-                    </div>
-                  </div>
+          <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
+            <div class="assignment-item-content">
+              <div class="assignment-item-info">
+                <div class="assignment-item-checkbox">
+                  <input 
+                    type="checkbox" 
+                    :id="`menu-${item.item_name}`" 
+                    v-model="menuAssignments[item.item_name]"
+                    :disabled="savingAssignment"
+                  />
+                  <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                    <span class="assignment-item-name">{{ item.item_name }}</span>
+                    <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                    <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                  </label>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div v-if="selectedAssignmentStall" class="assignment-actions">
-                <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-                  {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-                </button>
-                <button @click="resetMenuAssignments" class="btn-modern secondary">
-                  ↩ Reset
-                </button>
-              </div>
+          <div v-if="selectedAssignmentStall" class="assignment-actions">
+            <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+              {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+            </button>
+            <button @click="resetMenuAssignments" class="btn-modern secondary">
+              ↩ Reset
+            </button>
+          </div>
 
-              <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-                {{ savedAssignmentMessage }}
-              </div>
+          <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+            {{ savedAssignmentMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Menu Performance - Full List -->
+  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📊 Menu Performance</h3>
+          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+        </div>
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+      </div>
+      <div class="card-modern-body menu-performance-table-container">
+        <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+          <span>📊</span>
+          <p>No sales data available for {{ getPeriodLabel() }}</p>
+        </div>
+        
+        <!-- Full Menu Performance Table -->
+        <div v-else class="menu-table-wrapper">
+          <!-- Table Headers -->
+          <div class="menu-table-header">
+            <span class="menu-table-header-rank">Rank</span>
+            <span class="menu-table-header-name">Menu</span>
+            <span class="menu-table-header-revenue">Revenue</span>
+            <span class="menu-table-header-status">Status</span>
+            <span class="menu-table-header-details">Details</span>
+          </div>
+          
+          <!-- Table Rows - ALL MENU ITEMS -->
+          <div class="menu-table-body">
+            <div 
+              v-for="(item, index) in menuPerformance" 
+              :key="item.name" 
+              class="menu-table-row clickable-item"
+              @click="viewMenuItemDetails(item)"
+            >
+              <!-- Rank -->
+              <span class="menu-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
+              
+              <!-- Menu Name + Bar -->
+              <span class="menu-table-name">
+                <span class="menu-name-text">{{ item.name }}</span>
+                <span class="menu-name-bar">
+                  <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                </span>
+              </span>
+              
+              <!-- Revenue -->
+              <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              
+              <!-- Status with Color & Emoji -->
+              <span class="menu-table-status">
+                <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                  {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                </span>
+              </span>
+              
+              <!-- Details -->
+              <span class="menu-table-details">👆</span>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- ============================================ -->
     <!-- STALL MODAL                                  -->
@@ -1014,7 +1187,7 @@ export default {
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu-assignment', label: 'Menu Assignment', icon: '📋' }
+        { id: 'menu', label: 'Menu', icon: '📋' }
       ],
       
       chartFullscreen: false,
@@ -1022,6 +1195,8 @@ export default {
       chartWindow: 7,
       chartInstance: null,
       isChartInitialized: false,
+      stallSubTab: 'management',  // 'management' or 'performance'
+      menuSubTab: 'assignment',   // 'assignment' or 'performance'
       
       dropdownOpen: false,
       periodDropdownOpen: false,
@@ -1241,6 +1416,22 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// TAB NAVIGATION WITH SUB-TAB
+// =============================================
+switchTabWithSubTab(tabId, subTabId) {
+  this.activeTab = tabId
+  
+  // Set sub-tab based on which tab we're going to
+  if (tabId === 'stalls') {
+    this.stallSubTab = subTabId || 'management' // 'management' or 'performance'
+  } else if (tabId === 'menu') {
+    this.menuSubTab = subTabId || 'assignment' // 'assignment' or 'performance'
+  }
+  
+  this.dropdownOpen = false
+},
 
     // =============================================
 // SPARKLINE HELPER
@@ -5810,6 +6001,60 @@ getSparklinePoints(data) {
 
   .sparkline-container {
     height: 20px;
+  }
+}
+
+/* ============================================ */
+/* SUB-TABS                                     */
+/* ============================================ */
+.sub-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--background);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.sub-tab {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.sub-tab:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.sub-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.sub-tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@media (max-width: 600px) {
+  .sub-tabs {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  
+  .sub-tab {
+    width: 100%;
+    text-align: center;
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
   }
 }
 
