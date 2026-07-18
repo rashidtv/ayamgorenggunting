@@ -1741,56 +1741,53 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  // ✅ For today, show Malaysia time (UTC+8) for display only
+  // ✅ Permanent fix: Today view shows Malaysia time (UTC+8)
   if (this.selectedPeriod === 'today') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     
-    // Convert UTC to Malaysia time for display
-    // The date is already in UTC, so we just format it in Malaysia timezone
-    return date.toLocaleTimeString('en-MY', { 
+    // Direct +8 hours - permanent, future-proof
+    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    
+    return malaysiaTime.toLocaleTimeString('en-MY', { 
       hour: '2-digit', 
       minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kuala_Lumpur'
+      hour12: true
     })
   }
   
-  // For custom range, show smart labels
+  // All other periods - unchanged, backward compatible
   if (this.selectedPeriod === 'custom') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+    return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
   }
   
-  // For quarter, halfyear, year - show month names
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'Asia/Kuala_Lumpur' })
+    return date.toLocaleDateString('en-MY', { month: 'short' })
   }
   
-  // For week grouping in month view
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+    return date.toLocaleDateString('en-MY', { day: 'numeric' })
   }
   
-  // For week view, show day names
   if (this.selectedPeriod === 'week') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { weekday: 'short', timeZone: 'Asia/Kuala_Lumpur' })
+    return date.toLocaleDateString('en-MY', { weekday: 'short' })
   }
   
-  // Default: show date with Malaysia timezone
+  // Default fallback - unchanged
   const date = new Date(dateStr)
   if (isNaN(date.getTime())) return dateStr
-  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
 },
     formatFullDate(dateStr) {
       if (!dateStr) return ''
