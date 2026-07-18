@@ -2725,30 +2725,40 @@ async loadSalesAnalytics() {
       revenue: parseFloat(day.revenue) || 0
     }))
     
-    // This filtering is correct for salesTrend
+    // ✅ FIX: For today, compare dates correctly
     if (this.selectedPeriod === 'today') {
-      const today = this.getTodayInMalaysia()
+      // Get today's date in UTC
+      const todayUTC = new Date()
+      todayUTC.setHours(0, 0, 0, 0)
+      const todayUTCStr = todayUTC.toISOString().split('T')[0]
+      
+      // Filter by comparing date strings (UTC)
       dailySales = dailySales.filter(day => {
-        const dayDate = new Date(day.date)
-        dayDate.setHours(0, 0, 0, 0)
-        return dayDate.getTime() === today.getTime()
+        const dayDate = day.date.split('T')[0]
+        return dayDate === todayUTCStr
       })
     }
     
+    // For month view - group by week
     if (this.selectedPeriod === 'month') {
       dailySales = this.groupSalesByWeek(dailySales)
-    } else if (this.selectedPeriod === 'quarter') {
+    } 
+    // For quarter and halfyear - group by month
+    else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
       dailySales = this.groupSalesByMonth(dailySales)
-    } else if (this.selectedPeriod === 'halfyear') {
+    } 
+    // For year - group by month
+    else if (this.selectedPeriod === 'year') {
       dailySales = this.groupSalesByMonth(dailySales)
-    } else if (this.selectedPeriod === 'year') {
-      dailySales = this.groupSalesByMonth(dailySales)
-    } else if (this.selectedPeriod === 'custom') {
+    } 
+    // For custom - smart grouping
+    else if (this.selectedPeriod === 'custom') {
       dailySales = this.groupSalesCustom(dailySales)
     }
     
     this.salesTrend = dailySales
     
+    // Calculate totals
     const totalRevenue = dailySales.reduce((sum, d) => sum + d.revenue, 0)
     const totalItems = dailySales.reduce((sum, d) => sum + d.items, 0)
     
@@ -2757,6 +2767,7 @@ async loadSalesAnalytics() {
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
+    // Top stall from API (keep existing logic)
     if (data.topStall && data.topStall !== '-') {
       this.consolidatedSales.topStall = data.topStall
       this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
@@ -2767,6 +2778,15 @@ async loadSalesAnalytics() {
     
     this.productSales = data.productSales || {}
     await this.loadMenuPerformance()
+    
+    // ✅ Force chart update
+    if (this.salesTrend.length > 0) {
+      this.$nextTick(() => {
+        this.initChart()
+        this.updateChart()
+      })
+    }
+    
   } catch (err) {
     console.error('Failed to load sales analytics:', err)
     this.salesTrend = []
@@ -2776,7 +2796,7 @@ async loadSalesAnalytics() {
     this.consolidatedSales.topRevenue = 0
     this.productSales = {}
   }
-},
+}
 
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
