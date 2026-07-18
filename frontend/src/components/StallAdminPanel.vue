@@ -1465,23 +1465,25 @@ getTopStallStatusClass() {
 // SPARKLINE HELPER - WITH DATA VALIDATION
 // =============================================
 getSparklinePoints(data) {
-  // If no data or empty array, return flat line
   if (!data || data.length === 0) {
     return '0,40 200,40'
   }
   
-  // Clean data: convert to numbers, replace NaN/undefined/null with 0
   const cleanData = data.map(v => {
     const val = parseFloat(v)
     return isNaN(val) || val === null || val === undefined ? 0 : val
   })
   
-  // If all values are 0, return flat line (skip rendering)
   if (cleanData.every(v => v === 0)) {
     return '0,40 200,40'
   }
   
-  // Calculate points for the sparkline
+  if (cleanData.length === 1) {
+    const value = cleanData[0]
+    const y = 40 - ((value - 0) / (value || 1)) * 35
+    return `0,${y} 200,${y}`
+  }
+  
   const points = cleanData.map((value, index) => {
     const x = (index / (cleanData.length - 1)) * 200
     const max = Math.max(...cleanData, 1)
@@ -1491,7 +1493,6 @@ getSparklinePoints(data) {
     return `${x},${y}`
   })
   
-  // Add final point to close the area
   const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
   points.push(`${lastX},40`)
   points.push(`0,40`)
@@ -1690,29 +1691,52 @@ getSparklinePoints(data) {
       return new Intl.NumberFormat('en-MY').format(rounded)
     },
     formatShortDate(dateStr) {
-      if (!dateStr) return ''
-      if (this.selectedPeriod === 'custom') {
-        const date = new Date(dateStr)
-        return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
-      }
-      if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear' || this.selectedPeriod === 'year') {
-        const date = new Date(dateStr)
-        return date.toLocaleDateString('en-MY', { month: 'short' })
-      }
-      if (this.selectedPeriod === 'month') {
-        if (dateStr.includes('W')) return dateStr
-        const date = new Date(dateStr)
-        return date.toLocaleDateString('en-MY', { day: 'numeric' })
-      }
-      const date = new Date(dateStr)
-      if (this.selectedPeriod === 'week') {
-        return date.toLocaleDateString('en-MY', { weekday: 'short' })
-      }
-      if (this.selectedPeriod === 'today') {
-        return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })
-      }
-      return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
-    },
+  if (!dateStr) return ''
+  
+  // For custom range, show smart labels
+  if (this.selectedPeriod === 'custom') {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+  }
+  
+  // For quarter, halfyear, year - show month names
+  if (this.selectedPeriod === 'quarter' || 
+      this.selectedPeriod === 'halfyear' || 
+      this.selectedPeriod === 'year') {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'Asia/Kuala_Lumpur' })
+  }
+  
+  // For week grouping in month view
+  if (this.selectedPeriod === 'month') {
+    if (dateStr.includes('W')) return dateStr
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-MY', { day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+  }
+  
+  const date = new Date(dateStr)
+  
+  // For week view, show day names
+  if (this.selectedPeriod === 'week') {
+    return date.toLocaleDateString('en-MY', { weekday: 'short', timeZone: 'Asia/Kuala_Lumpur' })
+  }
+  
+  // For today, show time with Malaysia timezone
+  if (this.selectedPeriod === 'today') {
+    // If dateStr is already a time string like "8am", return it
+    if (typeof dateStr === 'string' && (dateStr.includes('am') || dateStr.includes('pm'))) {
+      return dateStr
+    }
+    // Format time in Malaysia timezone (UTC+8)
+    return date.toLocaleTimeString('en-MY', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'Asia/Kuala_Lumpur'
+    })
+  }
+  
+  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'Asia/Kuala_Lumpur' })
+},
     formatFullDate(dateStr) {
       if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('en-MY', { 
@@ -1736,11 +1760,24 @@ getSparklinePoints(data) {
     // CHART STATS
     // =============================================
     getBestDayName() {
-      if (this.salesTrend.length === 0) return '-'
-      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
-      const day = this.salesTrend.find(d => d.revenue === max)
-      return day ? this.formatShortDate(day.date) : '-'
-    },
+  if (this.salesTrend.length === 0) return '-'
+  const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+  const day = this.salesTrend.find(d => d.revenue === max)
+  if (!day) return '-'
+  
+  // For Today view, show time with Malaysia timezone
+  if (this.selectedPeriod === 'today') {
+    if (day.label) return day.label
+    const date = new Date(day.date)
+    return date.toLocaleTimeString('en-MY', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'Asia/Kuala_Lumpur'
+    })
+  }
+  
+  return this.formatShortDate(day.date) || '-'
+},
 
     getBestDayRevenue() {
       if (this.salesTrend.length === 0) return 0
@@ -2010,140 +2047,158 @@ getSparklinePoints(data) {
       window.addEventListener('resize', this.handleChartResize)
     },
     
-    updateChart() {
-      if (!this.chartInstance) return
-      const data = this.chartVisibleData
-      if (data.length === 0) {
-        const option = {
-          title: {
-            text: `No sales data for ${this.getPeriodLabel()}`,
-            left: 'center',
-            top: 'center',
-            textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+updateChart() {
+  if (!this.chartInstance) return
+  const data = this.chartVisibleData
+  if (data.length === 0) {
+    const option = {
+      title: {
+        text: `No sales data for ${this.getPeriodLabel()}`,
+        left: 'center',
+        top: 'center',
+        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+      }
+    }
+    this.chartInstance.setOption(option, true)
+    return
+  }
+  
+  const dates = data.map(d => d.label || this.formatShortDate(d.date))
+  const revenues = data.map(d => d.revenue || 0)
+  const chartWidth = this.$refs.chartRef?.clientWidth || 0
+  const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      padding: [6, 10],
+      textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
+      formatter: function(params) {
+        const index = params[0]?.dataIndex || 0
+        const revenue = data[index]?.revenue || 0
+        const itemsCount = data[index]?.items || 0
+        const dateStr = data[index]?.date || data[index]?.label || ''
+        let formattedDate = dateStr
+        
+        if (dateStr && !dateStr.includes('W')) {
+          const date = new Date(dateStr)
+          if (!isNaN(date.getTime())) {
+            // Check if this is Today view (checking if data has hourly entries)
+            const isTodayView = this.selectedPeriod === 'today'
+            
+            if (isTodayView) {
+              // For Today view, show time with Malaysia timezone
+              formattedDate = date.toLocaleTimeString('en-MY', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'Asia/Kuala_Lumpur'
+              })
+            } else {
+              // For other views, show date with Malaysia timezone
+              const day = date.getDate()
+              const month = date.toLocaleDateString('en-MY', { 
+                month: 'short', 
+                timeZone: 'Asia/Kuala_Lumpur' 
+              })
+              const year = date.getFullYear()
+              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+              formattedDate = `${day}${suffix} ${month} ${year}`
+            }
           }
         }
-        this.chartInstance.setOption(option, true)
-        return
-      }
-      
-      const dates = data.map(d => d.label || this.formatShortDate(d.date))
-      const revenues = data.map(d => d.revenue || 0)
-      const chartWidth = this.$refs.chartRef?.clientWidth || 0
-      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
-      
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderColor: '#e2e8f0',
-          borderWidth: 1,
-          padding: [6, 10],
-          textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-          formatter: function(params) {
-            const index = params[0]?.dataIndex || 0
-            const revenue = data[index]?.revenue || 0
-            const itemsCount = data[index]?.items || 0
-            const dateStr = data[index]?.date || data[index]?.label || ''
-            let formattedDate = dateStr
-            if (dateStr && !dateStr.includes('W')) {
-              const date = new Date(dateStr)
-              if (!isNaN(date.getTime())) {
-                const day = date.getDate()
-                const month = date.toLocaleDateString('en-MY', { month: 'short' })
-                const year = date.getFullYear()
-                const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-                formattedDate = `${day}${suffix} ${month} ${year}`
-              }
-            }
-            return `
-              <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-              <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-            `
-          }
-        },
-        grid: {
-          left: chartWidth < 400 ? '5%' : '3%',
-          right: chartWidth < 400 ? '5%' : '4%',
-          bottom: '12%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: dates,
-          axisLine: { lineStyle: { color: '#e2e8f0' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: chartWidth < 400 ? 9 : 11,
-            fontWeight: 500,
-            interval: labelInterval,
-            rotate: chartWidth < 400 ? 30 : 0,
-            margin: 12,
-            showMaxLabel: true,
-            showMinLabel: true
-          },
-          axisTick: { show: false },
-          splitLine: { show: false }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: chartWidth < 400 ? 9 : 11,
-            formatter: function(value) {
-              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
-              return 'RM' + value
-            }
-          },
-          name: chartWidth > 500 ? 'Revenue (RM)' : '',
-          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
-        },
-        series: [
-          {
-            name: 'Revenue',
-            type: 'bar',
-            data: revenues,
-            barWidth: chartWidth < 400 ? '35%' : '55%',
-            itemStyle: {
-              borderRadius: [4, 4, 0, 0],
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: '#F94908' },
-                  { offset: 1, color: '#fa6a2e' }
-                ]
-              }
-            },
-            emphasis: { itemStyle: { color: '#d63d07' } }
-          },
-          {
-            name: 'Trend Line',
-            type: 'line',
-            data: revenues,
-            smooth: false,
-            lineStyle: { color: '#F94908', width: 2.5, type: 'solid' },
-            symbol: 'circle',
-            symbolSize: chartWidth < 400 ? 5 : 7,
-            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
-            areaStyle: {
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
-                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
-                ]
-              }
-            },
-            z: 10
-          }
-        ]
-      }
-      this.chartInstance.setOption(option, true)
+        
+        return `
+          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+        `
+      }.bind(this)
     },
+    grid: {
+      left: chartWidth < 400 ? '5%' : '3%',
+      right: chartWidth < 400 ? '5%' : '4%',
+      bottom: '12%',
+      top: '8%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: chartWidth < 400 ? 9 : 11,
+        fontWeight: 500,
+        interval: labelInterval,
+        rotate: chartWidth < 400 ? 30 : 0,
+        margin: 12,
+        showMaxLabel: true,
+        showMinLabel: true
+      },
+      axisTick: { show: false },
+      splitLine: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: chartWidth < 400 ? 9 : 11,
+        formatter: function(value) {
+          if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
+          return 'RM' + value
+        }
+      },
+      name: chartWidth > 500 ? 'Revenue (RM)' : '',
+      nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
+    },
+    series: [
+      {
+        name: 'Revenue',
+        type: 'bar',
+        data: revenues,
+        barWidth: chartWidth < 400 ? '35%' : '55%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#d63d07' } }
+      },
+      {
+        name: 'Trend Line',
+        type: 'line',
+        data: revenues,
+        smooth: false,
+        lineStyle: { color: '#F94908', width: 2.5, type: 'solid' },
+        symbol: 'circle',
+        symbolSize: chartWidth < 400 ? 5 : 7,
+        itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
+              { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+            ]
+          }
+        },
+        z: 10
+      }
+    ]
+  }
+  this.chartInstance.setOption(option, true)
+},
     
     handleChartResize() {
       if (this.chartInstance) {
