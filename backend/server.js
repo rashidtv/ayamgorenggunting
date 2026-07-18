@@ -526,12 +526,28 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     let dayRange = days ? parseInt(days) : 7;
 
     let startDate;
-    if (dayRange === 1) {
+    
+    // ✅ FIX: For week view, start from Monday
+    if (dayRange === 7) {
+      // Calculate the Monday of the current week
+      const now = new Date();
+      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+      // Calculate days to subtract to get to Monday
+      const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - daysToMonday);
+      monday.setHours(0, 0, 0, 0);
+      startDate = monday;
+      
+      console.log('📊 Week view from Monday:', startDate);
+    } else if (dayRange === 1) {
+      // Today view - start at midnight Malaysia time
       const now = new Date();
       const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
       malaysiaToday.setHours(0, 0, 0, 0);
       startDate = malaysiaToday;
     } else {
+      // Other views (Month, Quarter, Year, Custom) - subtract days
       startDate = new Date();
       startDate.setDate(startDate.getDate() - dayRange);
     }
@@ -559,28 +575,35 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ FIXED: Separate handling for week view (Monday first)
+      // ✅ QUERY: Week view uses Monday start, others use date range
       let dailyRes;
       
       if (dayRange === 7) {
-        // Week view - order by Monday first
+        // Week view - data already starts from Monday
         dailyRes = await pool.query(`
           SELECT 
             DATE(created_at) as date, 
             COALESCE(SUM(price), 0) as revenue, 
-            COUNT(*) as items,
-            EXTRACT(DOW FROM created_at) as day_of_week
+            COUNT(*) as items
           FROM sales
           WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-          GROUP BY DATE(created_at), EXTRACT(DOW FROM created_at)
-          ORDER BY 
-            CASE 
-              WHEN EXTRACT(DOW FROM created_at) = 0 THEN 7
-              ELSE EXTRACT(DOW FROM created_at)
-            END
+          GROUP BY DATE(created_at)
+          ORDER BY date
+        `, [stallIds, startDate]);
+      } else if (dayRange === 1) {
+        // Today view - group by hour
+        dailyRes = await pool.query(`
+          SELECT 
+            DATE_TRUNC('hour', created_at) as date, 
+            COALESCE(SUM(price), 0) as revenue, 
+            COUNT(*) as items
+          FROM sales
+          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+          GROUP BY DATE_TRUNC('hour', created_at)
+          ORDER BY date
         `, [stallIds, startDate]);
       } else {
-        // Today, Month, Quarter, Year, Custom - keep as-is
+        // Other views - group by day
         dailyRes = await pool.query(`
           SELECT 
             DATE(created_at) as date, 
@@ -666,28 +689,35 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     
     console.log('📊 Sales analytics for stalls:', stallIds, 'days:', dayRange)
 
-    // ✅ FIXED: Separate handling for week view (Monday first)
+    // ✅ QUERY: Week view uses Monday start, others use date range
     let dailyRes;
     
     if (dayRange === 7) {
-      // Week view - order by Monday first
+      // Week view - data already starts from Monday
       dailyRes = await pool.query(`
         SELECT 
           DATE(created_at) as date, 
           COALESCE(SUM(price), 0) as revenue, 
-          COUNT(*) as items,
-          EXTRACT(DOW FROM created_at) as day_of_week
+          COUNT(*) as items
         FROM sales
         WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-        GROUP BY DATE(created_at), EXTRACT(DOW FROM created_at)
-        ORDER BY 
-          CASE 
-            WHEN EXTRACT(DOW FROM created_at) = 0 THEN 7
-            ELSE EXTRACT(DOW FROM created_at)
-          END
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `, [stallIds, startDate]);
+    } else if (dayRange === 1) {
+      // Today view - group by hour
+      dailyRes = await pool.query(`
+        SELECT 
+          DATE_TRUNC('hour', created_at) as date, 
+          COALESCE(SUM(price), 0) as revenue, 
+          COUNT(*) as items
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY DATE_TRUNC('hour', created_at)
+        ORDER BY date
       `, [stallIds, startDate]);
     } else {
-      // Today, Month, Quarter, Year, Custom - keep as-is
+      // Other views - group by day
       dailyRes = await pool.query(`
         SELECT 
           DATE(created_at) as date, 
