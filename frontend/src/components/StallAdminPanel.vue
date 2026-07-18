@@ -2209,7 +2209,23 @@ updateChart() {
     return
   }
   
-  const dates = data.map(d => d.label || this.formatShortDate(d.date))
+  // Chart x-axis labels
+  const dates = data.map(d => {
+    if (d.label) return d.label
+    if (this.selectedPeriod === 'today') {
+      const date = new Date(d.date)
+      if (!isNaN(date.getTime())) {
+        const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+        return malaysiaTime.toLocaleTimeString('en-MY', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true
+        })
+      }
+    }
+    return this.formatShortDate(d.date)
+  })
+  
   const revenues = data.map(d => d.revenue || 0)
   const chartWidth = this.$refs.chartRef?.clientWidth || 0
   const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
@@ -2223,45 +2239,39 @@ updateChart() {
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
       formatter: function(params) {
-  const index = params[0]?.dataIndex || 0
-  const revenue = data[index]?.revenue || 0
-  const itemsCount = data[index]?.items || 0
-  const dateStr = data[index]?.date || data[index]?.label || ''
-  let formattedDate = dateStr
-  
-  if (dateStr && !dateStr.includes('W')) {
-    const date = new Date(dateStr)
-    if (!isNaN(date.getTime())) {
-      const isTodayView = this.selectedPeriod === 'today'
-      
-      if (isTodayView) {
-        // ✅ PERMANENT FIX: Convert UTC to Malaysia time
-        formattedDate = date.toLocaleTimeString('en-MY', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'Asia/Kuala_Lumpur'
-        })
-      } else {
-        // For other views, show date with Malaysia timezone
-        const day = date.getDate()
-        const month = date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          timeZone: 'Asia/Kuala_Lumpur' 
-        })
-        const year = date.getFullYear()
-        const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-        formattedDate = `${day}${suffix} ${month} ${year}`
-      }
-    }
-  }
-  
-  return `
-    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-  `
-}.bind(this)
+        const index = params[0]?.dataIndex || 0
+        const revenue = data[index]?.revenue || 0
+        const itemsCount = data[index]?.items || 0
+        const dateStr = data[index]?.date || data[index]?.label || ''
+        let formattedDate = dateStr
+        
+        if (dateStr && !dateStr.includes('W')) {
+          const date = new Date(dateStr)
+          if (!isNaN(date.getTime())) {
+            // ✅ FIX: For today, show Malaysia time
+            if (this.selectedPeriod === 'today') {
+              const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+              formattedDate = malaysiaTime.toLocaleTimeString('en-MY', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true
+              })
+            } else {
+              const day = date.getDate()
+              const month = date.toLocaleDateString('en-MY', { month: 'short' })
+              const year = date.getFullYear()
+              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+              formattedDate = `${day}${suffix} ${month} ${year}`
+            }
+          }
+        }
+        
+        return `
+          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+        `
+      }.bind(this)
     },
     grid: {
       left: chartWidth < 400 ? '5%' : '3%',
