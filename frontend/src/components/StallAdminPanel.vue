@@ -1749,17 +1749,14 @@ formatShortDate(dateStr) {
     return date.toLocaleDateString('en-MY', { weekday: 'short', timeZone: 'Asia/Kuala_Lumpur' })
   }
   
-  // For today, show time with Malaysia timezone
+  // ✅ PERMANENT FIX: For today, ALWAYS convert UTC to Malaysia time
   if (this.selectedPeriod === 'today') {
-    // If dateStr is already a time string like "8am", return it
-    if (typeof dateStr === 'string' && (dateStr.includes('am') || dateStr.includes('pm'))) {
-      return dateStr
-    }
     // Format time in Malaysia timezone (UTC+8)
     return date.toLocaleTimeString('en-MY', { 
       hour: '2-digit', 
       minute: '2-digit',
-      timeZone: 'Asia/Kuala_Lumpur'
+      hour12: true,
+      timeZone: 'Asia/Kuala_Lumpur'  // ← This converts UTC to MYT
     })
   }
   
@@ -1793,13 +1790,14 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  // For Today view, show time with Malaysia timezone
+  // ✅ PERMANENT FIX: For Today, convert UTC to Malaysia time
   if (this.selectedPeriod === 'today') {
     if (day.label) return day.label
     const date = new Date(day.date)
     return date.toLocaleTimeString('en-MY', { 
       hour: '2-digit', 
       minute: '2-digit',
+      hour12: true,
       timeZone: 'Asia/Kuala_Lumpur'
     })
   }
@@ -2194,44 +2192,45 @@ updateChart() {
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
       formatter: function(params) {
-        const index = params[0]?.dataIndex || 0
-        const revenue = data[index]?.revenue || 0
-        const itemsCount = data[index]?.items || 0
-        const dateStr = data[index]?.date || data[index]?.label || ''
-        let formattedDate = dateStr
-        
-        if (dateStr && !dateStr.includes('W')) {
-          const date = new Date(dateStr)
-          if (!isNaN(date.getTime())) {
-            const isTodayView = this.selectedPeriod === 'today'
-            
-            if (isTodayView) {
-              // For Today view, show time with Malaysia timezone
-              formattedDate = date.toLocaleTimeString('en-MY', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'Asia/Kuala_Lumpur'
-              })
-            } else {
-              // For other views, show date with Malaysia timezone
-              const day = date.getDate()
-              const month = date.toLocaleDateString('en-MY', { 
-                month: 'short', 
-                timeZone: 'Asia/Kuala_Lumpur' 
-              })
-              const year = date.getFullYear()
-              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-              formattedDate = `${day}${suffix} ${month} ${year}`
-            }
-          }
-        }
-        
-        return `
-          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-        `
-      }.bind(this)
+  const index = params[0]?.dataIndex || 0
+  const revenue = data[index]?.revenue || 0
+  const itemsCount = data[index]?.items || 0
+  const dateStr = data[index]?.date || data[index]?.label || ''
+  let formattedDate = dateStr
+  
+  if (dateStr && !dateStr.includes('W')) {
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      const isTodayView = this.selectedPeriod === 'today'
+      
+      if (isTodayView) {
+        // ✅ PERMANENT FIX: Convert UTC to Malaysia time
+        formattedDate = date.toLocaleTimeString('en-MY', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kuala_Lumpur'
+        })
+      } else {
+        // For other views, show date with Malaysia timezone
+        const day = date.getDate()
+        const month = date.toLocaleDateString('en-MY', { 
+          month: 'short', 
+          timeZone: 'Asia/Kuala_Lumpur' 
+        })
+        const year = date.getFullYear()
+        const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+        formattedDate = `${day}${suffix} ${month} ${year}`
+      }
+    }
+  }
+  
+  return `
+    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+  `
+}.bind(this)
     },
     grid: {
       left: chartWidth < 400 ? '5%' : '3%',
