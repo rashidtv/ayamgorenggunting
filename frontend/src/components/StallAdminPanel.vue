@@ -1417,9 +1417,8 @@ export default {
 // TOP STALL HELPERS - PERMANENT FIX
 // =============================================
 getTopStallName() {
-  // Primary: Use stallPerformance
+  // PRIMARY: Try stallPerformance first
   if (this.stallPerformance && this.stallPerformance.length > 0) {
-    // Find stall with highest revenue
     let topStall = null
     let maxRevenue = 0
     
@@ -1431,18 +1430,30 @@ getTopStallName() {
       }
     }
     
-    // If we found a stall with revenue > 0, return its name
     if (topStall && maxRevenue > 0) {
       return topStall.name || topStall.stall_name || '-'
     }
   }
   
-  // Fallback: Use consolidatedSales
-  return this.consolidatedSales.topStall || '-'
+  // FALLBACK 1: Use consolidatedSales from API
+  if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
+    return this.consolidatedSales.topStall
+  }
+  
+  // FALLBACK 2: Check if any stall has sales in salesTrend
+  if (this.salesTrend && this.salesTrend.length > 0) {
+    const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    if (totalRevenue > 0 && this.stalls.length > 0) {
+      // If we have sales but no stall data, show first stall
+      return this.stalls[0]?.name || '-'
+    }
+  }
+  
+  return '-'
 },
 
 getTopStallRevenue() {
-  // Primary: Use stallPerformance
+  // PRIMARY: Try stallPerformance first
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let maxRevenue = 0
     
@@ -1458,8 +1469,17 @@ getTopStallRevenue() {
     }
   }
   
-  // Fallback: Use consolidatedSales
-  return this.consolidatedSales.topRevenue || 0
+  // FALLBACK 1: Use consolidatedSales from API
+  if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
+    return this.consolidatedSales.topRevenue
+  }
+  
+  // FALLBACK 2: Calculate from salesTrend
+  if (this.salesTrend && this.salesTrend.length > 0) {
+    return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+  }
+  
+  return 0
 },
 
 getTopStallStatusText() {
@@ -2682,6 +2702,7 @@ updateChart() {
       }
     },
 
+// Also update the loadSalesAnalytics method to better handle the data:
 async loadSalesAnalytics() {
   this.productSales = {}
   const days = this.selectedPeriod === 'today' ? 0 :
@@ -2736,9 +2757,17 @@ async loadSalesAnalytics() {
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
-    // Store raw data from API as fallback
-    this.consolidatedSales.topStall = data.topStall || '-'
-    this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+    // ✅ IMPROVED: Always try to get top stall from data
+    // First try: From API response
+    if (data.topStall && data.topStall !== '-') {
+      this.consolidatedSales.topStall = data.topStall
+      this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+    } else {
+      // Second try: From stallPerformance (will be loaded separately)
+      // We'll keep the values and update them when stallPerformance loads
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+    }
     
     this.productSales = data.productSales || {}
     await this.loadMenuPerformance()
@@ -2753,48 +2782,69 @@ async loadSalesAnalytics() {
   }
 },
 
-    async loadStallPerformance() {
-      const days = this.selectedPeriod === 'today' ? 0 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
-      const apiDays = this.selectedPeriod === 'today' ? 1 : days
-      
-      try {
-        const stallIds = this.stalls.map(s => s.id)
-        if (!stallIds || stallIds.length === 0) {
-          this.stallPerformance = []
-          return
-        }
-        
-        const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        let stallData = res.data || []
-        if (!Array.isArray(stallData)) {
-          stallData = [stallData]
-        }
-        if (this.selectedPeriod === 'today') {
-          const today = this.getTodayInMalaysia()
-          const hasTodaySales = this.salesTrend.some(day => {
-            const dayDate = new Date(day.date)
-            dayDate.setHours(0, 0, 0, 0)
-            return dayDate.getTime() === today.getTime()
-          })
-          if (!hasTodaySales) {
-            stallData = []
-          }
-        }
-        this.stallPerformance = stallData
-        console.log('✅ Stall performance loaded:', this.stallPerformance.length)
-      } catch (err) {
-        console.error('Failed to load stall performance:', err)
-        this.stallPerformance = []
+    // Update loadStallPerformance to also update consolidatedSales
+async loadStallPerformance() {
+  const days = this.selectedPeriod === 'today' ? 0 :
+               this.selectedPeriod === 'week' ? 7 :
+               this.selectedPeriod === 'month' ? 30 :
+               this.selectedPeriod === 'quarter' ? 90 :
+               this.selectedPeriod === 'halfyear' ? 180 :
+               this.selectedPeriod === 'year' ? 365 :
+               this.customDays || 30
+  const apiDays = this.selectedPeriod === 'today' ? 1 : days
+  
+  try {
+    const stallIds = this.stalls.map(s => s.id)
+    if (!stallIds || stallIds.length === 0) {
+      this.stallPerformance = []
+      return
+    }
+    
+    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    let stallData = res.data || []
+    if (!Array.isArray(stallData)) {
+      stallData = [stallData]
+    }
+    if (this.selectedPeriod === 'today') {
+      const today = this.getTodayInMalaysia()
+      const hasTodaySales = this.salesTrend.some(day => {
+        const dayDate = new Date(day.date)
+        dayDate.setHours(0, 0, 0, 0)
+        return dayDate.getTime() === today.getTime()
+      })
+      if (!hasTodaySales) {
+        stallData = []
       }
-    },
+    }
+    this.stallPerformance = stallData
+    
+    // ✅ UPDATE: If stallPerformance has data, update consolidatedSales
+    if (stallData.length > 0) {
+      let topStall = null
+      let maxRevenue = 0
+      
+      for (const stall of stallData) {
+        const revenue = parseFloat(stall.revenue) || 0
+        if (revenue > maxRevenue) {
+          maxRevenue = revenue
+          topStall = stall
+        }
+      }
+      
+      if (topStall && maxRevenue > 0) {
+        this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
+        this.consolidatedSales.topRevenue = maxRevenue
+      }
+    }
+    
+    console.log('✅ Stall performance loaded:', this.stallPerformance.length)
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+  }
+},
 
     async loadMenuPerformance() {
       try {
