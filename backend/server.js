@@ -526,15 +526,15 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     let dayRange = days ? parseInt(days) : 7;
 
     let startDate;
-if (dayRange === 1) {
-  const now = new Date();
-  const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-  malaysiaToday.setHours(0, 0, 0, 0);
-  startDate = malaysiaToday;
-} else {
-  startDate = new Date();
-  startDate.setDate(startDate.getDate() - dayRange);
-}
+    if (dayRange === 1) {
+      const now = new Date();
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+      malaysiaToday.setHours(0, 0, 0, 0);
+      startDate = malaysiaToday;
+    } else {
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - dayRange);
+    }
 
     // ============================================================
     // SUPER ADMIN / SUPER SUPER ADMIN
@@ -559,16 +559,39 @@ if (dayRange === 1) {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      const dailyRes = await pool.query(`
-        SELECT 
-          DATE(created_at) as date, 
-          COALESCE(SUM(price), 0) as revenue, 
-          COUNT(*) as items
-        FROM sales
-        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-        GROUP BY DATE(created_at)
-        ORDER BY date
-      `, [stallIds, startDate]);
+      // ✅ FIXED: Separate handling for week view (Monday first)
+      let dailyRes;
+      
+      if (dayRange === 7) {
+        // Week view - order by Monday first
+        dailyRes = await pool.query(`
+          SELECT 
+            DATE(created_at) as date, 
+            COALESCE(SUM(price), 0) as revenue, 
+            COUNT(*) as items,
+            EXTRACT(DOW FROM created_at) as day_of_week
+          FROM sales
+          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+          GROUP BY DATE(created_at), EXTRACT(DOW FROM created_at)
+          ORDER BY 
+            CASE 
+              WHEN EXTRACT(DOW FROM created_at) = 0 THEN 7
+              ELSE EXTRACT(DOW FROM created_at)
+            END
+        `, [stallIds, startDate]);
+      } else {
+        // Today, Month, Quarter, Year, Custom - keep as-is
+        dailyRes = await pool.query(`
+          SELECT 
+            DATE(created_at) as date, 
+            COALESCE(SUM(price), 0) as revenue, 
+            COUNT(*) as items
+          FROM sales
+          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+          GROUP BY DATE(created_at)
+          ORDER BY date
+        `, [stallIds, startDate]);
+      }
 
       const productRes = await pool.query(`
         SELECT 
@@ -622,22 +645,18 @@ if (dayRange === 1) {
     // STALL ADMIN / CASHIER
     // ============================================================
     
-    // ✅ GET ALL assigned stalls for the user
     let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
     
-    // If no assigned stalls, try to get from database
     if (stallIds.length === 0) {
       const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
       stallIds = assRes.rows.map(r => r.stall_id);
     }
     
-    // If still no stalls, return empty
     if (stallIds.length === 0) {
       console.log('⚠️ No stalls assigned to user:', req.user.id)
       return res.json({ dailySales: [], productSales: {}, totalItems: 0, totalRevenue: 0, topStall: '-' });
     }
     
-    // ✅ If a specific stallId is requested, validate it's in the assigned list
     if (targetStallId) {
       if (!stallIds.includes(targetStallId)) {
         return res.status(403).json({ error: 'Access denied' });
@@ -647,19 +666,40 @@ if (dayRange === 1) {
     
     console.log('📊 Sales analytics for stalls:', stallIds, 'days:', dayRange)
 
-    // Get daily sales for all assigned stalls
-    const dailyRes = await pool.query(`
-      SELECT 
-        DATE(created_at) as date, 
-        COALESCE(SUM(price), 0) as revenue, 
-        COUNT(*) as items
-      FROM sales
-      WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-      GROUP BY DATE(created_at)
-      ORDER BY date
-    `, [stallIds, startDate]);
+    // ✅ FIXED: Separate handling for week view (Monday first)
+    let dailyRes;
+    
+    if (dayRange === 7) {
+      // Week view - order by Monday first
+      dailyRes = await pool.query(`
+        SELECT 
+          DATE(created_at) as date, 
+          COALESCE(SUM(price), 0) as revenue, 
+          COUNT(*) as items,
+          EXTRACT(DOW FROM created_at) as day_of_week
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY DATE(created_at), EXTRACT(DOW FROM created_at)
+        ORDER BY 
+          CASE 
+            WHEN EXTRACT(DOW FROM created_at) = 0 THEN 7
+            ELSE EXTRACT(DOW FROM created_at)
+          END
+      `, [stallIds, startDate]);
+    } else {
+      // Today, Month, Quarter, Year, Custom - keep as-is
+      dailyRes = await pool.query(`
+        SELECT 
+          DATE(created_at) as date, 
+          COALESCE(SUM(price), 0) as revenue, 
+          COUNT(*) as items
+        FROM sales
+        WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `, [stallIds, startDate]);
+    }
 
-    // Get product sales breakdown
     const productRes = await pool.query(`
       SELECT 
         item_name, 
@@ -687,7 +727,6 @@ if (dayRange === 1) {
       WHERE stall_id = ANY($1::int[]) AND created_at >= $2
     `, [stallIds, startDate]);
 
-    // Get top performing stall among assigned stalls
     const topStallRes = await pool.query(`
       SELECT 
         s.name as stall_name,
