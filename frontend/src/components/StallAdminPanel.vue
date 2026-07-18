@@ -2699,7 +2699,6 @@ updateChart() {
       } catch (err) {
         console.error('Failed to load low stock:', err)
         this.lowStock = []
-      }
     },
 
 async loadSalesAnalytics() {
@@ -2796,7 +2795,7 @@ async loadSalesAnalytics() {
     this.consolidatedSales.topRevenue = 0
     this.productSales = {}
   }
-}
+},
 
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
