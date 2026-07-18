@@ -327,17 +327,14 @@
           </div>
         </div>
 
-        <!-- ===== STALL PERFORMANCE ===== -->
+
 <!-- ===== STALL PERFORMANCE ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
       <h3>🏆 Stall Performance</h3>
-      <span class="card-subtitle">
-        {{ displayStalls.length }} stall{{ displayStalls.length !== 1 ? 's' : '' }} with sales for {{ getPeriodLabel() }}
-      </span>
+      <span class="card-subtitle">{{ stallPerformanceSubtitle }}</span>
     </div>
-    <!-- ✅ View All button - ALWAYS visible (like Menu Performance) -->
     <button 
       @click="switchTabWithSubTab('stalls', 'performance')" 
       class="btn-modern secondary small"
@@ -1246,6 +1243,14 @@ export default {
   },
 
   computed: {
+
+    stallPerformanceSubtitle() {
+    const count = this.displayStalls.length
+    if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
+    if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
+    return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
+  },
+
   displayStalls() {
     // First, filter to only stalls with sales
     const stallsWithSales = this.stallPerformance.filter(stall => 
@@ -1815,7 +1820,7 @@ getBestDayName() {
     getTotalItems() {
       return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
     },
-    
+
 // =============================================
 // STALL DETAILS - WITH PERIOD SUPPORT
 // =============================================
@@ -1865,6 +1870,15 @@ async fetchStallDetails(stallId, period = 'week') {
   }
 },
 
+closeStallDetailModal() {
+  this.stallDetailModal = false
+  this.selectedStall = null
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+},
+
 initStallDetailChart(stallId, period = 'week') {
   if (!this.$refs.stallDetailChartRef) return
 
@@ -1911,7 +1925,7 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
-    const days = salesData.map(d => {
+    const chartDays = salesData.map(d => {
       const date = new Date(d.date)
       // For today, show time; for other periods show date
       if (period === 'today') {
@@ -1957,7 +1971,7 @@ initStallDetailChart(stallId, period = 'week') {
           const index = params[0]?.dataIndex || 0
           const revenue = parseFloat(revenues[index]) || 0
           const itemsCount = parseInt(items[index]) || 0
-          const dateLabel = days[index] || ''
+          const dateLabel = chartDays[index] || ''
           return `
             <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${dateLabel}</div>
             <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
@@ -1978,7 +1992,7 @@ initStallDetailChart(stallId, period = 'week') {
       },
       xAxis: {
         type: 'category',
-        data: days,
+        data: chartDays,
         axisLine: { lineStyle: { color: '#e2e8f0' } },
         axisLabel: { 
           color: '#94a3b8', 
@@ -2179,45 +2193,45 @@ updateChart() {
       borderWidth: 1,
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-formatter: function(params) {
-  const index = params[0]?.dataIndex || 0
-  const revenue = data[index]?.revenue || 0
-  const itemsCount = data[index]?.items || 0
-  const dateStr = data[index]?.date || data[index]?.label || ''
-  let formattedDate = dateStr
-  
-  if (dateStr && !dateStr.includes('W')) {
-    const date = new Date(dateStr)
-    if (!isNaN(date.getTime())) {
-      const isTodayView = this.selectedPeriod === 'today'
-      
-      if (isTodayView) {
-        // For Today view, show time with Malaysia timezone
-        formattedDate = date.toLocaleTimeString('en-MY', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'Asia/Kuala_Lumpur'
-        })
-      } else {
-        // For other views, show date with Malaysia timezone
-        const day = date.getDate()
-        const month = date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          timeZone: 'Asia/Kuala_Lumpur' 
-        })
-        const year = date.getFullYear()
-        const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-        formattedDate = `${day}${suffix} ${month} ${year}`
-      }
-    }
-  }
-  
-  return `
-    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-  `
-}.bind(this)
+      formatter: function(params) {
+        const index = params[0]?.dataIndex || 0
+        const revenue = data[index]?.revenue || 0
+        const itemsCount = data[index]?.items || 0
+        const dateStr = data[index]?.date || data[index]?.label || ''
+        let formattedDate = dateStr
+        
+        if (dateStr && !dateStr.includes('W')) {
+          const date = new Date(dateStr)
+          if (!isNaN(date.getTime())) {
+            const isTodayView = this.selectedPeriod === 'today'
+            
+            if (isTodayView) {
+              // For Today view, show time with Malaysia timezone
+              formattedDate = date.toLocaleTimeString('en-MY', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'Asia/Kuala_Lumpur'
+              })
+            } else {
+              // For other views, show date with Malaysia timezone
+              const day = date.getDate()
+              const month = date.toLocaleDateString('en-MY', { 
+                month: 'short', 
+                timeZone: 'Asia/Kuala_Lumpur' 
+              })
+              const year = date.getFullYear()
+              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+              formattedDate = `${day}${suffix} ${month} ${year}`
+            }
+          }
+        }
+        
+        return `
+          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+        `
+      }.bind(this)
     },
     grid: {
       left: chartWidth < 400 ? '5%' : '3%',
