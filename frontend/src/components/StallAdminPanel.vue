@@ -328,6 +328,7 @@
         </div>
 
         <!-- ===== STALL PERFORMANCE ===== -->
+<!-- ===== STALL PERFORMANCE ===== -->
 <div class="card-modern">
   <div class="card-modern-header">
     <div>
@@ -336,9 +337,8 @@
         {{ displayStalls.length }} stall{{ displayStalls.length !== 1 ? 's' : '' }} with sales for {{ getPeriodLabel() }}
       </span>
     </div>
-    <!-- Show View All button only if there are more than 5 stalls with sales -->
+    <!-- ✅ View All button - ALWAYS visible (like Menu Performance) -->
     <button 
-      v-if="stallPerformance.filter(s => (s.revenue || 0) > 0 || (s.items || 0) > 0).length > 5"
       @click="switchTabWithSubTab('stalls', 'performance')" 
       class="btn-modern secondary small"
     >
@@ -1246,7 +1246,7 @@ export default {
   },
 
   computed: {
-      displayStalls() {
+  displayStalls() {
     // First, filter to only stalls with sales
     const stallsWithSales = this.stallPerformance.filter(stall => 
       (stall.revenue || 0) > 0 || (stall.items || 0) > 0
