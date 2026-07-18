@@ -328,65 +328,83 @@
         </div>
 
         <!-- ===== STALL PERFORMANCE ===== -->
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>🏆 Stall Performance</h3>
-              <span class="card-subtitle">Ranked by revenue for {{ getPeriodLabel() }}</span>
-            </div>
-            <button @click="switchTabWithSubTab('stalls', 'performance')" class="btn-modern secondary small">
-              View All →
-            </button>
-          </div>
-          <div class="card-modern-body stall-performance-table-container">
-            <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-              <span>📊</span>
-              <p>No sales data available for {{ getPeriodLabel() }}</p>
-            </div>
-            
-            <div v-else class="stall-table-wrapper">
-              <div class="stall-table-header">
-                <span class="stall-table-header-rank">Rank</span>
-                <span class="stall-table-header-name">Stall</span>
-                <span class="stall-table-header-revenue">Revenue</span>
-                <span class="stall-table-header-status">Status</span>
-                <span class="stall-table-header-details">Details</span>
-              </div>
-              
-              <div class="stall-table-body">
-                <div 
-                  v-for="(stall, index) in displayStalls" 
-                  :key="stall.id" 
-                  class="stall-table-row clickable-item"
-                  @click="viewStallDetails(stall)"
-                >
-                  <span class="stall-table-rank">
-                    <span class="rank-number" :class="getRankClass(index)">
-                      {{ index + 1 }}
-                    </span>
-                  </span>
-                  
-                  <span class="stall-table-name">
-                    <span class="stall-name-text">{{ stall.name }}</span>
-                    <span class="stall-name-bar">
-                      <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-                    </span>
-                  </span>
-                  
-                  <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-                  
-                  <span class="stall-table-status">
-                    <span :class="['status-indicator', getStallStatusClass(stall)]">
-                      {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
-                    </span>
-                  </span>
-                  
-                  <span class="stall-table-details">👆</span>
-                </div>
-              </div>
-            </div>
-          </div>
+<div class="card-modern">
+  <div class="card-modern-header">
+    <div>
+      <h3>🏆 Stall Performance</h3>
+      <span class="card-subtitle">
+        {{ displayStalls.length }} stall{{ displayStalls.length !== 1 ? 's' : '' }} with sales for {{ getPeriodLabel() }}
+      </span>
+    </div>
+    <!-- Show View All button only if there are more than 5 stalls with sales -->
+    <button 
+      v-if="stallPerformance.filter(s => (s.revenue || 0) > 0 || (s.items || 0) > 0).length > 5"
+      @click="switchTabWithSubTab('stalls', 'performance')" 
+      class="btn-modern secondary small"
+    >
+      View All →
+    </button>
+  </div>
+  <div class="card-modern-body stall-performance-table-container">
+    <!-- Show empty state when no stalls have sales -->
+    <div v-if="displayStalls.length === 0" class="empty-state-modern">
+      <span>📊</span>
+      <p>No stall sales for {{ getPeriodLabel() }}</p>
+      <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
+        Try selecting a different period
+      </p>
+    </div>
+    
+    <div v-else class="stall-table-wrapper">
+      <!-- Table Headers -->
+      <div class="stall-table-header">
+        <span class="stall-table-header-rank">Rank</span>
+        <span class="stall-table-header-name">Stall</span>
+        <span class="stall-table-header-revenue">Revenue</span>
+        <span class="stall-table-header-status">Status</span>
+        <span class="stall-table-header-details">Details</span>
+      </div>
+      
+      <!-- Table Rows -->
+      <div class="stall-table-body">
+        <div 
+          v-for="(stall, index) in displayStalls" 
+          :key="stall.id" 
+          class="stall-table-row clickable-item"
+          @click="viewStallDetails(stall)"
+        >
+          <!-- Rank -->
+          <span class="stall-table-rank">
+            <span class="rank-number" :class="getRankClass(index)">
+              {{ index + 1 }}
+            </span>
+          </span>
+          
+          <!-- Stall Name + Bar -->
+          <span class="stall-table-name">
+            <span class="stall-name-text">{{ stall.name }}</span>
+            <span class="stall-name-bar">
+              <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+            </span>
+          </span>
+          
+          <!-- Revenue -->
+          <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+          
+          <!-- Status with Color & Emoji -->
+          <span class="stall-table-status">
+            <span :class="['status-indicator', getStallStatusClass(stall)]">
+              {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+            </span>
+          </span>
+          
+          <!-- Details -->
+          <span class="stall-table-details">👆</span>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
 
         <!-- ===== MENU PERFORMANCE ===== -->
         <div class="card-modern">
@@ -1228,12 +1246,17 @@ export default {
   },
 
   computed: {
-    displayStalls() {
-      if (this.showAllStalls) {
-        return this.stallPerformance
-      }
-      return this.stallPerformance.slice(0, 5)
-    },
+      displayStalls() {
+    // First, filter to only stalls with sales
+    const stallsWithSales = this.stallPerformance.filter(stall => 
+      (stall.revenue || 0) > 0 || (stall.items || 0) > 0
+    )
+    
+    if (this.showAllStalls) {
+      return stallsWithSales  // Show ALL stalls with sales
+    }
+    return stallsWithSales.slice(0, 5)  // Show only top 5 stalls with sales
+  },
     
     displayMenuItems() {
       if (this.showAllMenuItems) {
@@ -1690,7 +1713,7 @@ getSparklinePoints(data) {
       const rounded = Math.round(num)
       return new Intl.NumberFormat('en-MY').format(rounded)
     },
-    formatShortDate(dateStr) {
+formatShortDate(dateStr) {
   if (!dateStr) return ''
   
   // For custom range, show smart labels
@@ -1759,7 +1782,7 @@ getSparklinePoints(data) {
     // =============================================
     // CHART STATS
     // =============================================
-    getBestDayName() {
+getBestDayName() {
   if (this.salesTrend.length === 0) return '-'
   const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
   const day = this.salesTrend.find(d => d.revenue === max)
@@ -2076,46 +2099,45 @@ updateChart() {
       borderWidth: 1,
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-      formatter: function(params) {
-        const index = params[0]?.dataIndex || 0
-        const revenue = data[index]?.revenue || 0
-        const itemsCount = data[index]?.items || 0
-        const dateStr = data[index]?.date || data[index]?.label || ''
-        let formattedDate = dateStr
-        
-        if (dateStr && !dateStr.includes('W')) {
-          const date = new Date(dateStr)
-          if (!isNaN(date.getTime())) {
-            // Check if this is Today view (checking if data has hourly entries)
-            const isTodayView = this.selectedPeriod === 'today'
-            
-            if (isTodayView) {
-              // For Today view, show time with Malaysia timezone
-              formattedDate = date.toLocaleTimeString('en-MY', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'Asia/Kuala_Lumpur'
-              })
-            } else {
-              // For other views, show date with Malaysia timezone
-              const day = date.getDate()
-              const month = date.toLocaleDateString('en-MY', { 
-                month: 'short', 
-                timeZone: 'Asia/Kuala_Lumpur' 
-              })
-              const year = date.getFullYear()
-              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-              formattedDate = `${day}${suffix} ${month} ${year}`
-            }
-          }
-        }
-        
-        return `
-          <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-          <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-          <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-        `
-      }.bind(this)
+formatter: function(params) {
+  const index = params[0]?.dataIndex || 0
+  const revenue = data[index]?.revenue || 0
+  const itemsCount = data[index]?.items || 0
+  const dateStr = data[index]?.date || data[index]?.label || ''
+  let formattedDate = dateStr
+  
+  if (dateStr && !dateStr.includes('W')) {
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      const isTodayView = this.selectedPeriod === 'today'
+      
+      if (isTodayView) {
+        // For Today view, show time with Malaysia timezone
+        formattedDate = date.toLocaleTimeString('en-MY', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Asia/Kuala_Lumpur'
+        })
+      } else {
+        // For other views, show date with Malaysia timezone
+        const day = date.getDate()
+        const month = date.toLocaleDateString('en-MY', { 
+          month: 'short', 
+          timeZone: 'Asia/Kuala_Lumpur' 
+        })
+        const year = date.getFullYear()
+        const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+        formattedDate = `${day}${suffix} ${month} ${year}`
+      }
+    }
+  }
+  
+  return `
+    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+  `
+}.bind(this)
     },
     grid: {
       left: chartWidth < 400 ? '5%' : '3%',
