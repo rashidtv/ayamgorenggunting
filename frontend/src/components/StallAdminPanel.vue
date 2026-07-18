@@ -2731,20 +2731,40 @@ async loadSalesAnalytics() {
     
     console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
     
-    // ✅ FIX: For today, compare dates correctly using UTC
+    // ✅ FIX: For today, we need to handle timezone properly
     if (this.selectedPeriod === 'today') {
-      // Get today's date in UTC
-      const todayUTC = new Date()
-      todayUTC.setHours(0, 0, 0, 0)
+      // IMPORTANT: The API returns UTC dates. We need to check if today's data exists.
+      // Option 1: Use the API's today (UTC) - get today's UTC date
+      const now = new Date()
+      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
       const todayUTCStr = todayUTC.toISOString().split('T')[0]
       
       console.log('📊 Today UTC string:', todayUTCStr)
       
+      // Also check for yesterday in UTC (in case the server is behind)
+      const yesterdayUTC = new Date(todayUTC)
+      yesterdayUTC.setUTCDate(yesterdayUTC.getUTCDate() - 1)
+      const yesterdayUTCStr = yesterdayUTC.toISOString().split('T')[0]
+      
+      console.log('📊 Yesterday UTC string:', yesterdayUTCStr)
+      
       // Filter by comparing date strings (UTC)
-      dailySales = dailySales.filter(day => {
+      // Try today first, then yesterday
+      let filteredSales = dailySales.filter(day => {
         const dayDate = day.date.split('T')[0]
         return dayDate === todayUTCStr
       })
+      
+      // If no data for today, try yesterday (in case of timezone difference)
+      if (filteredSales.length === 0) {
+        console.log('📊 No data for today, trying yesterday...')
+        filteredSales = dailySales.filter(day => {
+          const dayDate = day.date.split('T')[0]
+          return dayDate === yesterdayUTCStr
+        })
+      }
+      
+      dailySales = filteredSales
       
       console.log('📊 Daily sales after today filter:', dailySales.length, 'records')
     }
