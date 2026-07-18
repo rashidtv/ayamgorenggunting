@@ -232,7 +232,7 @@
           <!-- Top Stall - Clickable to Stall Performance -->
           <div class="kpi-card highlight clickable" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);" @click="switchTabWithSubTab('stalls', 'performance')">
             <div class="kpi-icon">🏆</div>
-            <div class="kpi-value" style="font-size: 1.4rem;">{{ getTopStallName() }}</div>
+            <div class="kpi-value kpi-value-topstall">{{ getTopStallName() }}</div>
             <div class="kpi-label">Top Stall</div>
             <div class="kpi-change" v-if="getTopStallRevenue() > 0">
               <span class="trend-icon">🏆</span>
@@ -1386,30 +1386,16 @@ export default {
     },
 
     // =============================================
-    // TOP STALL HELPERS
+    // TOP STALL HELPERS - FIXED
     // =============================================
     getTopStallName() {
-      const topStall = this.consolidatedSales.topStall || '-'
-      // For today, check if there are sales
-      if (this.selectedPeriod === 'today') {
-        const hasSales = this.salesTrend.some(day => day.revenue > 0)
-        if (!hasSales) {
-          return '-'
-        }
-      }
-      return topStall
+      // Always use the top stall from consolidatedSales
+      return this.consolidatedSales.topStall || '-'
     },
 
     getTopStallRevenue() {
-      const revenue = this.consolidatedSales.topRevenue || 0
-      // For today, check if there are sales
-      if (this.selectedPeriod === 'today') {
-        const hasSales = this.salesTrend.some(day => day.revenue > 0)
-        if (!hasSales) {
-          return 0
-        }
-      }
-      return revenue
+      // Always use the top revenue from consolidatedSales
+      return this.consolidatedSales.topRevenue || 0
     },
 
     getTopStallStatusText() {
@@ -1440,7 +1426,7 @@ export default {
     },
 
     // =============================================
-    // SPARKLINE HELPER
+    // SPARKLINE HELPER - FIXED
     // =============================================
     getSparklinePoints(data) {
       if (!data || data.length === 0) {
@@ -3641,6 +3627,11 @@ export default {
   line-height: 1.2;
 }
 
+/* Top Stall special class - same size as others */
+.kpi-card .kpi-value-topstall {
+  font-size: 1.8rem !important;  /* FORCE same size as other KPI values */
+}
+
 .kpi-card .kpi-label {
   font-size: 0.7rem;  /* MATCHES .stat-card.glass .stat-label */
   color: var(--text-secondary);
@@ -3778,6 +3769,9 @@ export default {
   .kpi-card .kpi-value {
     font-size: 1.5rem;
   }
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.5rem !important;
+  }
   .kpi-card .sparkline-container {
     height: 30px;
   }
@@ -3799,6 +3793,9 @@ export default {
   }
   .kpi-card .kpi-value {
     font-size: 1.2rem;
+  }
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.2rem !important;
   }
   .kpi-card .kpi-label {
     font-size: 0.6rem;
@@ -3831,6 +3828,9 @@ export default {
   }
   .kpi-card .kpi-value {
     font-size: 1rem;
+  }
+  .kpi-card .kpi-value-topstall {
+    font-size: 1rem !important;
   }
   .kpi-card .kpi-icon {
     font-size: 1.2rem;
