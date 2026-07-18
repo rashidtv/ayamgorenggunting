@@ -1815,138 +1815,218 @@ getBestDayName() {
     getTotalItems() {
       return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
     },
+    
+// =============================================
+// STALL DETAILS - WITH PERIOD SUPPORT
+// =============================================
+viewStallDetails(stall) {
+  this.selectedStall = stall
+  this.stallDetailModal = true
+  this.selectedStallId = stall.id
+  
+  // ✅ Pass the selected period
+  this.fetchStallDetails(stall.id, this.selectedPeriod)
+  
+  this.$nextTick(() => {
+    this.initStallDetailChart(stall.id, this.selectedPeriod)
+  })
+},
 
-    // =============================================
-    // STALL DETAILS
-    // =============================================
-    viewStallDetails(stall) {
-      this.selectedStall = stall
-      this.stallDetailModal = true
-      this.fetchStallDetails(stall.id)
-      this.$nextTick(() => {
-        this.initStallDetailChart()
-      })
-    },
+async fetchStallDetails(stallId, period = 'week') {
+  try {
+    // Calculate days based on period
+    const days = period === 'today' ? 1 :
+                 period === 'week' ? 7 :
+                 period === 'month' ? 30 :
+                 period === 'quarter' ? 90 :
+                 period === 'halfyear' ? 180 :
+                 period === 'year' ? 365 :
+                 this.customDays || 30
+    
+    const res = await axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    const data = res.data || {}
+    if (data && data.length > 0) {
+      const stallData = data[0]
+      this.selectedStall.items = parseInt(stallData.items_sold) || 0
+      this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
+      this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
+    }
+    
+    const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
+    if (stallIndex !== -1) {
+      this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
+    }
+    
+  } catch (err) {
+    console.error('Failed to fetch stall details:', err)
+  }
+},
 
-    async fetchStallDetails(stallId) {
-      try {
-        const res = await axios.get(`${API_BASE}/stall-performance?days=7&stallId=${stallId}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
+initStallDetailChart(stallId, period = 'week') {
+  if (!this.$refs.stallDetailChartRef) return
+
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+
+  this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+
+  if (!stallId) {
+    console.warn('No stall ID found for detail chart')
+    return
+  }
+
+  // Calculate days based on period
+  const days = period === 'today' ? 1 :
+               period === 'week' ? 7 :
+               period === 'month' ? 30 :
+               period === 'quarter' ? 90 :
+               period === 'halfyear' ? 180 :
+               period === 'year' ? 365 :
+               this.customDays || 30
+
+  axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
+    headers: { Authorization: `Bearer ${this.token}` }
+  })
+  .then(response => {
+    const data = response.data || {}
+    const salesData = data.dailySales || []
+
+    // If no data, show empty state
+    if (!salesData || salesData.length === 0) {
+      const option = {
+        title: {
+          text: `No sales data for ${this.getPeriodLabel()}`,
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+        }
+      }
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+      return
+    }
+
+    const days = salesData.map(d => {
+      const date = new Date(d.date)
+      // For today, show time; for other periods show date
+      if (period === 'today') {
+        return date.toLocaleTimeString('en-MY', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Asia/Kuala_Lumpur'
         })
-        const data = res.data || {}
-        if (data && data.length > 0) {
-          const stallData = data[0]
-          this.selectedStall.items = parseInt(stallData.items_sold) || 0
-          this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
-          this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
-        }
-        const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
-        if (stallIndex !== -1) {
-          this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
-        }
-      } catch (err) {
-        console.error('Failed to fetch stall details:', err)
       }
-    },
-
-    closeStallDetailModal() {
-      this.stallDetailModal = false
-      this.selectedStall = null
-      if (this.stallDetailChartInstance) {
-        this.stallDetailChartInstance.dispose()
-        this.stallDetailChartInstance = null
+      // For week, show day names
+      if (period === 'week') {
+        return date.toLocaleDateString('en-MY', { 
+          weekday: 'short',
+          timeZone: 'Asia/Kuala_Lumpur'
+        })
       }
-    },
-
-    initStallDetailChart() {
-      if (!this.$refs.stallDetailChartRef) return
-      if (this.stallDetailChartInstance) {
-        this.stallDetailChartInstance.dispose()
-        this.stallDetailChartInstance = null
+      // For month, show day numbers
+      if (period === 'month') {
+        return date.toLocaleDateString('en-MY', { 
+          day: 'numeric',
+          timeZone: 'Asia/Kuala_Lumpur'
+        })
       }
-      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-      const stallId = this.selectedStall?.id
-      if (!stallId) return
-
-      axios.get(`${API_BASE}/sales-analytics?days=7&stallId=${stallId}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
+      // For longer periods, show month names
+      return date.toLocaleDateString('en-MY', { 
+        month: 'short',
+        timeZone: 'Asia/Kuala_Lumpur'
       })
-      .then(response => {
-        const data = response.data || {}
-        const salesData = data.dailySales || []
-        const days = salesData.map(d => this.formatShortDate(d.date))
-        const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-        const items = salesData.map(d => parseInt(d.items) || 0)
+    })
+    
+    const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
+    const items = salesData.map(d => parseInt(d.items) || 0)
 
-        const finalDays = days.length > 0 ? days : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        const finalRevenues = revenues.length > 0 ? revenues : Array.from({length: 7}, () => 0)
-
-        const option = {
-          tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(255,255,255,0.95)',
-            borderColor: '#e2e8f0',
-            borderWidth: 1,
-            padding: [8, 12],
-            textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
-            formatter: function(params) {
-              const index = params[0]?.dataIndex || 0
-              const revenue = parseFloat(finalRevenues[index]) || 0
-              const itemsCount = parseInt(items[index]) || 0
-              return `
-                <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-                  RM ${revenue.toFixed(2)}
-                </div>
-                <div style="font-size:11px;color:#64748b;">
-                  ${itemsCount} items sold
-                </div>
-              `
-            }
-          },
-          grid: {
-            left: '3%',
-            right: '4%',
-            bottom: '3%',
-            top: '8%',
-            containLabel: true
-          },
-          xAxis: {
-            type: 'category',
-            data: finalDays,
-            axisLine: { lineStyle: { color: '#e2e8f0' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
-          },
-          yAxis: {
-            type: 'value',
-            splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, formatter: (value) => 'RM' + value },
-            name: 'Revenue (RM)',
-            nameTextStyle: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
-          },
-          series: [{
-            type: 'bar',
-            data: finalRevenues,
-            barWidth: '40%',
-            itemStyle: {
-              borderRadius: [4, 4, 0, 0],
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: '#F94908' },
-                  { offset: 1, color: '#fa6a2e' }
-                ]
-              }
-            }
-          }]
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const revenue = parseFloat(revenues[index]) || 0
+          const itemsCount = parseInt(items[index]) || 0
+          const dateLabel = days[index] || ''
+          return `
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${dateLabel}</div>
+            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+              RM ${revenue.toFixed(2)}
+            </div>
+            <div style="font-size:11px;color:#64748b;">
+              ${itemsCount} items sold
+            </div>
+          `
         }
-        this.stallDetailChartInstance.setOption(option)
-        this.stallDetailChartInstance.resize()
-      })
-      .catch(err => {
-        console.error('Failed to load stall detail chart data:', err)
-      })
-    },
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: days,
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500,
+          rotate: period === 'today' || period === 'month' ? 30 : 0
+        }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          formatter: (value) => 'RM' + value
+        },
+        name: 'Revenue (RM)',
+        nameTextStyle: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: revenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
+          }
+        }
+      }]
+    }
+
+    this.stallDetailChartInstance.setOption(option)
+    this.stallDetailChartInstance.resize()
+  })
+  .catch(err => {
+    console.error('Failed to load stall detail chart data:', err)
+  })
+},
     
     // =============================================
     // HELPER
