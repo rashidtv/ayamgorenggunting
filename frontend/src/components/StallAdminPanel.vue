@@ -1759,15 +1759,15 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  // ✅ PERMANENT FIX: For today, show hour grouping (4:00 PM, 5:00 PM, etc.)
+  // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
   if (this.selectedPeriod === 'today') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     
-    // Add 8 hours for Malaysia time
+    // Add 8 hours for Malaysia time (UTC+8)
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
     
-    // Show as "4:00 PM", "5:00 PM", etc.
+    // ✅ Always show :00 to group by hour
     const hours = malaysiaTime.getHours()
     const ampm = hours >= 12 ? 'PM' : 'AM'
     const hours12 = hours % 12 || 12
@@ -1796,24 +1796,19 @@ formatShortDate(dateStr) {
     if (dateStr.includes('W')) return dateStr
     const date = new Date(dateStr)
     if (!isNaN(date.getTime())) {
-      // ✅ Show the week start date (Monday)
       const weekStart = this.getWeekStart(date)
       return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
     }
     return dateStr
   }
   
-  // For week view, show day names
+  // For week view, show day names (Monday first)
   if (this.selectedPeriod === 'week') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     
-    // ✅ Get the day of week (Sunday = 0, Monday = 1)
     const dayOfWeek = date.getDay()
-    // ✅ Map to day names starting from Monday
     const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    
-    // If Sunday (0), it should be the last day (index 6)
     return orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
   }
   
