@@ -2273,23 +2273,22 @@ updateChart() {
     return
   }
   
- // In updateChart() - Chart x-axis labels
-const dates = data.map(d => {
-  if (d.label) return d.label
-  if (this.selectedPeriod === 'today') {
-    const date = new Date(d.date)
-    if (!isNaN(date.getTime())) {
-      // ✅ Add 8 hours for Malaysia time
-      const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-      // ✅ Show as "12:00 PM" (top of the hour)
-      const hours = malaysiaTime.getHours()
-      const ampm = hours >= 12 ? 'PM' : 'AM'
-      const hours12 = hours % 12 || 12
-      return `${hours12}:00 ${ampm}`
+  // ✅ FIX: Chart x-axis labels - convert UTC to Malaysia time
+  const dates = data.map(d => {
+    if (d.label) return d.label
+    if (this.selectedPeriod === 'today') {
+      const date = new Date(d.date)
+      if (!isNaN(date.getTime())) {
+        // ✅ Add 8 hours for Malaysia time
+        const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+        const hours = malaysiaTime.getHours()
+        const ampm = hours >= 12 ? 'PM' : 'AM'
+        const hours12 = hours % 12 || 12
+        return `${hours12}:00 ${ampm}`
+      }
     }
-  }
-  return this.formatShortDate(d.date)
-})
+    return this.formatShortDate(d.date)
+  })
   
   const revenues = data.map(d => d.revenue || 0)
   const chartWidth = this.$refs.chartRef?.clientWidth || 0
@@ -2314,7 +2313,7 @@ const dates = data.map(d => {
           const date = new Date(dateStr)
           if (!isNaN(date.getTime())) {
             if (this.selectedPeriod === 'today') {
-              // ✅ FIX: Tooltip shows Malaysia time
+              // ✅ Tooltip shows Malaysia time with minutes
               const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
               const hours = malaysiaTime.getHours()
               const ampm = hours >= 12 ? 'PM' : 'AM'
@@ -2322,7 +2321,6 @@ const dates = data.map(d => {
               const minutes = String(malaysiaTime.getMinutes()).padStart(2, '0')
               formattedDate = `${hours12}:${minutes} ${ampm}`
             } else if (this.selectedPeriod === 'month') {
-              // Show week range for month view
               if (data[index]?.displayLabel) {
                 formattedDate = data[index].displayLabel
               } else {
