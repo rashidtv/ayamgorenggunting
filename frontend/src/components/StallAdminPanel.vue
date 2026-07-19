@@ -5928,4 +5928,65 @@ async loadStallPerformance() {
   opacity: 0.7;
 }
 
+/* ============================================ */
+/* KPI STATS - MATCH MAIN STATS SUBTEXT        */
+/* ============================================ */
+
+/* ✅ Match subtext (change/trend) to Main Stats breakdown */
+.kpi-card .kpi-change {
+  font-size: 0.75rem;  /* ← Match Main Stats breakdown (was 0.6rem) */
+  font-weight: 600;
+  margin-top: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+}
+
+/* ✅ Match trend label to Main Stats sub-label */
+.kpi-card .kpi-trend-label {
+  font-size: 0.65rem;  /* ← Match Main Stats sub-label (was 0.5rem) */
+  font-weight: 500;
+  margin-top: 0.05rem;
+  opacity: 0.7;
+}
+
+/* ✅ Match status badge to Main Stats sub-label */
+.kpi-card .kpi-status-badge {
+  font-size: 0.65rem;  /* ← Match Main Stats sub-label (was 0.6rem) */
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 20px;
+  margin-top: 0.1rem;
+  display: inline-block;
+}
+
+/* ✅ Ensure icon matches exactly */
+.kpi-card .kpi-icon {
+  font-size: 2rem;  /* ← Already matching */
+  margin-bottom: 0.15rem;  /* ← Match Main Stats spacing */
+  display: block;
+}
+
+/* ✅ Ensure value matches exactly */
+.kpi-card .kpi-value {
+  font-size: 1.8rem;  /* ← Already matching */
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.05rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ✅ Ensure label matches exactly */
+.kpi-card .kpi-label {
+  font-size: 0.7rem;  /* ← Already matching */
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
+}
+
 </style>
