@@ -1462,13 +1462,23 @@ getTopStallName() {
 },
 
 getTopStallRevenue() {
+  // PRIMARY: Try stallPerformance first - BUT filter for today
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let maxRevenue = 0
     
     for (const stall of this.stallPerformance) {
       const revenue = parseFloat(stall.revenue) || 0
-      if (revenue > maxRevenue) {
-        maxRevenue = revenue
+      // ✅ For today view, this already only has today's data
+      if (this.selectedPeriod === 'today') {
+        // stallPerformance is already filtered for today
+        if (revenue > maxRevenue) {
+          maxRevenue = revenue
+        }
+      } else {
+        // For other periods, use as-is
+        if (revenue > maxRevenue) {
+          maxRevenue = revenue
+        }
       }
     }
     
@@ -1477,10 +1487,12 @@ getTopStallRevenue() {
     }
   }
   
+  // FALLBACK 1: Use consolidatedSales from API (already filtered for today)
   if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
     return this.consolidatedSales.topRevenue
   }
   
+  // FALLBACK 2: Calculate from salesTrend
   if (this.salesTrend && this.salesTrend.length > 0) {
     return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
   }
@@ -2261,23 +2273,23 @@ updateChart() {
     return
   }
   
-  // ✅ FIX: Chart x-axis labels - convert to Malaysia time
-  const dates = data.map(d => {
-    if (d.label) return d.label
-    if (this.selectedPeriod === 'today') {
-      const date = new Date(d.date)
-      if (!isNaN(date.getTime())) {
-        // ✅ Add 8 hours for Malaysia time
-        const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-        // ✅ Show as "12:00 PM" (top of the hour)
-        const hours = malaysiaTime.getHours()
-        const ampm = hours >= 12 ? 'PM' : 'AM'
-        const hours12 = hours % 12 || 12
-        return `${hours12}:00 ${ampm}`
-      }
+ // In updateChart() - Chart x-axis labels
+const dates = data.map(d => {
+  if (d.label) return d.label
+  if (this.selectedPeriod === 'today') {
+    const date = new Date(d.date)
+    if (!isNaN(date.getTime())) {
+      // ✅ Add 8 hours for Malaysia time
+      const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+      // ✅ Show as "12:00 PM" (top of the hour)
+      const hours = malaysiaTime.getHours()
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      const hours12 = hours % 12 || 12
+      return `${hours12}:00 ${ampm}`
     }
-    return this.formatShortDate(d.date)
-  })
+  }
+  return this.formatShortDate(d.date)
+})
   
   const revenues = data.map(d => d.revenue || 0)
   const chartWidth = this.$refs.chartRef?.clientWidth || 0
@@ -2927,7 +2939,7 @@ async loadStallPerformance() {
                this.selectedPeriod === 'halfyear' ? 180 :
                this.selectedPeriod === 'year' ? 365 :
                this.customDays || 30
-  const apiDays = this.selectedPeriod === 'today' ? 1 : days
+  const apiDays = this.selectedPeriod === 'today' ? 1 : days  // ✅ For today, use 1 day
   
   try {
     const stallIds = this.stalls.map(s => s.id)
@@ -2936,6 +2948,7 @@ async loadStallPerformance() {
       return
     }
     
+    // ✅ API call with days=1 for today
     const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
       headers: { Authorization: `Bearer ${this.token}` }
     })
@@ -2945,7 +2958,7 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ For today: Only keep stalls with revenue > 0 OR items > 0
+    // ✅ For today: Only keep stalls with revenue > 0
     if (this.selectedPeriod === 'today') {
       stallData = stallData.filter(stall => {
         const revenue = parseFloat(stall.revenue) || 0
@@ -2955,28 +2968,6 @@ async loadStallPerformance() {
     }
     
     this.stallPerformance = stallData
-    
-    // ✅ Update Top Stall
-    if (stallData.length > 0) {
-      let topStall = null
-      let maxRevenue = 0
-      
-      for (const stall of stallData) {
-        const revenue = parseFloat(stall.revenue) || 0
-        if (revenue > maxRevenue) {
-          maxRevenue = revenue
-          topStall = stall
-        }
-      }
-      
-      if (topStall && maxRevenue > 0) {
-        this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
-        this.consolidatedSales.topRevenue = maxRevenue
-      }
-    } else {
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-    }
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
   } catch (err) {
