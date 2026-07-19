@@ -1763,6 +1763,22 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'today') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
+       // ✅ ADD THIS to see what the API returns
+    console.log('🔍 ORIGINAL DATE:', dateStr)
+    console.log('🔍 DATE HOURS:', date.getHours())
+    
+    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    console.log('🔍 MALAYSIA HOURS:', malaysiaTime.getHours())
+    
+    const hours = malaysiaTime.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    
+    const result = `${hours12}:00 ${ampm}`
+    console.log('🔍 RESULT:', result)
+    
+    return result
+  }
     
     // Add 8 hours for Malaysia time (UTC+8)
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
