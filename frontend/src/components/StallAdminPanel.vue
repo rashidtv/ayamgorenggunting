@@ -1763,13 +1763,16 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'today') {
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
-       // ✅ ADD THIS to see what the API returns
+    
+    // ✅ ADD THIS to see what the API returns (you can remove later)
     console.log('🔍 ORIGINAL DATE:', dateStr)
     console.log('🔍 DATE HOURS:', date.getHours())
     
+    // Add 8 hours for Malaysia time (UTC+8)
     const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
     console.log('🔍 MALAYSIA HOURS:', malaysiaTime.getHours())
     
+    // ✅ Always show :00 to group by hour
     const hours = malaysiaTime.getHours()
     const ampm = hours >= 12 ? 'PM' : 'AM'
     const hours12 = hours % 12 || 12
@@ -1778,17 +1781,6 @@ formatShortDate(dateStr) {
     console.log('🔍 RESULT:', result)
     
     return result
-  }
-    
-    // Add 8 hours for Malaysia time (UTC+8)
-    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-    
-    // ✅ Always show :00 to group by hour
-    const hours = malaysiaTime.getHours()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const hours12 = hours % 12 || 12
-    
-    return `${hours12}:00 ${ampm}`
   }
   
   // For custom range, show smart labels
