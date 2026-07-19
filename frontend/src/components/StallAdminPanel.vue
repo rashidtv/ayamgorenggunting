@@ -2986,48 +2986,40 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ CRITICAL FIX: For today, ONLY keep stalls with revenue > 0
+    // ✅ For today: ONLY show stalls with revenue > 0
     if (this.selectedPeriod === 'today') {
-      // Keep only stalls that actually have sales today
       stallData = stallData.filter(stall => {
         const revenue = parseFloat(stall.revenue) || 0
         const items = parseInt(stall.items) || 0
-        // Only keep if revenue > 0 OR items > 0
         return revenue > 0 || items > 0
       })
     }
     
-    // ✅ If no data for today, clear everything
-    if (this.selectedPeriod === 'today' && stallData.length === 0) {
+    // ✅ If no data, clear everything
+    if (stallData.length === 0) {
       this.stallPerformance = []
       this.consolidatedSales.topStall = '-'
       this.consolidatedSales.topRevenue = 0
-      console.log('✅ Stall performance loaded: 0 (no sales today)')
+      console.log('✅ Stall performance loaded: 0')
       return
     }
     
     this.stallPerformance = stallData
     
-    // Update consolidatedSales
-    if (stallData.length > 0) {
-      let topStall = null
-      let maxRevenue = 0
-      
-      for (const stall of stallData) {
-        const revenue = parseFloat(stall.revenue) || 0
-        if (revenue > maxRevenue) {
-          maxRevenue = revenue
-          topStall = stall
-        }
+    // Update top stall
+    let topStall = null
+    let maxRevenue = 0
+    for (const stall of stallData) {
+      const revenue = parseFloat(stall.revenue) || 0
+      if (revenue > maxRevenue) {
+        maxRevenue = revenue
+        topStall = stall
       }
-      
-      if (topStall && maxRevenue > 0) {
-        this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
-        this.consolidatedSales.topRevenue = maxRevenue
-      } else {
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-      }
+    }
+    
+    if (topStall && maxRevenue > 0) {
+      this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
+      this.consolidatedSales.topRevenue = maxRevenue
     } else {
       this.consolidatedSales.topStall = '-'
       this.consolidatedSales.topRevenue = 0
