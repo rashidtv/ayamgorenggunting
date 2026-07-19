@@ -2261,13 +2261,15 @@ updateChart() {
     return
   }
   
-  // Chart x-axis labels
+  // ✅ FIX: Chart x-axis labels - convert to Malaysia time
   const dates = data.map(d => {
     if (d.label) return d.label
     if (this.selectedPeriod === 'today') {
       const date = new Date(d.date)
       if (!isNaN(date.getTime())) {
+        // ✅ Add 8 hours for Malaysia time
         const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+        // ✅ Show as "12:00 PM" (top of the hour)
         const hours = malaysiaTime.getHours()
         const ampm = hours >= 12 ? 'PM' : 'AM'
         const hours12 = hours % 12 || 12
@@ -2300,13 +2302,15 @@ updateChart() {
           const date = new Date(dateStr)
           if (!isNaN(date.getTime())) {
             if (this.selectedPeriod === 'today') {
+              // ✅ FIX: Tooltip shows Malaysia time
               const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
               const hours = malaysiaTime.getHours()
               const ampm = hours >= 12 ? 'PM' : 'AM'
               const hours12 = hours % 12 || 12
-              formattedDate = `${hours12}:00 ${ampm}`
+              const minutes = String(malaysiaTime.getMinutes()).padStart(2, '0')
+              formattedDate = `${hours12}:${minutes} ${ampm}`
             } else if (this.selectedPeriod === 'month') {
-              // ✅ Show week range for month view
+              // Show week range for month view
               if (data[index]?.displayLabel) {
                 formattedDate = data[index].displayLabel
               } else {
@@ -2318,7 +2322,6 @@ updateChart() {
             } else if (this.selectedPeriod === 'quarter' || 
                        this.selectedPeriod === 'halfyear' || 
                        this.selectedPeriod === 'year') {
-              // ✅ Show "Jul 2026" for quarter/halfyear/year views
               formattedDate = date.toLocaleDateString('en-MY', { 
                 month: 'short', 
                 year: 'numeric' 
