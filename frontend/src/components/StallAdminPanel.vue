@@ -6537,4 +6537,26 @@ async loadStallPerformance() {
   }
 }
 
+/* ============================================ */
+/* KPI CARDS - TOP STALL FONT FIX              */
+/* ============================================ */
+
+/* ✅ FIX: Top Stall value - EXACTLY the same as other values */
+.kpi-card .kpi-value-topstall {
+  font-size: 1.8rem !important;  /* ← SAME as other values */
+  font-weight: 700 !important;   /* ← SAME as other values */
+  color: var(--text) !important; /* ← SAME as other values */
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  min-height: 2.4rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ If you want to make it optically match, slightly adjust letter spacing */
+.kpi-card .kpi-value-topstall {
+  letter-spacing: -0.5px !important;  /* ← Makes letters appear more compact */
+}
+
 </style>
