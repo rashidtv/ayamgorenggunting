@@ -5851,4 +5851,81 @@ async loadStallPerformance() {
   margin-top: 0.05rem;
 }
 
+/* ============================================ */
+/* MAIN STATS - MATCH KPI STATS EXACTLY        */
+/* ============================================ */
+
+/* ✅ Match icon size exactly */
+.stat-card.glass .stat-icon {
+  font-size: 2rem;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0.15rem;
+  display: block;
+}
+
+/* ✅ Match number size exactly */
+.stat-card.glass .stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0.05rem 0;
+}
+
+/* ✅ Match label size exactly */
+.stat-card.glass .stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
+}
+
+/* ✅ Make breakdown text bigger */
+.stat-card.glass .stat-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;  /* ← Bigger */
+}
+
+.stat-card.glass .stat-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 500;
+}
+
+.stat-card.glass .stat-breakdown-item.active {
+  color: #10b981;
+}
+
+.stat-card.glass .stat-breakdown-item.inactive {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.stat-card.glass .stat-breakdown-divider {
+  color: var(--text-tertiary);
+  opacity: 0.3;
+  font-size: 0.5rem;
+}
+
+/* ✅ Make sub-label text bigger */
+.stat-card.glass .stat-sub-label {
+  display: block;
+  font-size: 0.65rem;  /* ← Bigger */
+  color: var(--text-tertiary);
+  font-weight: 400;
+  margin-top: 0.05rem;
+  opacity: 0.7;
+}
+
 </style>
