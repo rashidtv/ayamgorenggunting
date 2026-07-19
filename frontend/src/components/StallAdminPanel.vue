@@ -2200,71 +2200,27 @@ initStallDetailChart(stallId, period = 'week') {
     // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
     // =============================================
     splitTodayIntoHours(dailySales) {
-      if (!dailySales || dailySales.length === 0) return []
-      
-      // ✅ If data already has multiple records with different hours, use as-is
-      if (dailySales.length > 1) {
-        return dailySales
-      }
-      
-      // If only one record, split it into hourly buckets
-      const dayData = dailySales[0]
-      if (!dayData) return []
-      
-      const totalRevenue = dayData.revenue || 0
-      const totalItems = dayData.items || 0
-      
-      if (totalRevenue === 0 && totalItems === 0) return []
-      
-      // ✅ Define business hours (10 AM - 10 PM Malaysia time)
-      const businessHours = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
-      
-      // ✅ Distribute revenue across hours with a realistic pattern
-      // Peak hours: 12 PM, 1 PM, 2 PM (lunch) and 6 PM, 7 PM, 8 PM (dinner)
-      const distribution = {}
-      
-      // Create a weighted distribution
-      let totalWeight = 0
-      const weights = {}
-      
-      businessHours.forEach(hour => {
-        let weight = 1
-        // Lunch peak (12-2 PM)
-        if (hour >= 12 && hour <= 14) weight = 2.5
-        // Dinner peak (6-8 PM)
-        else if (hour >= 18 && hour <= 20) weight = 2.5
-        // Morning (10-11 AM)
-        else if (hour >= 10 && hour <= 11) weight = 1.2
-        // Afternoon (3-5 PM)
-        else if (hour >= 15 && hour <= 17) weight = 1.5
-        // Late evening (9-10 PM)
-        else if (hour >= 21 && hour <= 22) weight = 0.8
-        
-        weights[hour] = weight
-        totalWeight += weight
-      })
-      
-      // Distribute the revenue
-      const today = new Date()
-      
-      businessHours.forEach(hour => {
-        const malaysiaTime = new Date(today)
-        malaysiaTime.setHours(hour, 0, 0, 0)
-        const utcTime = new Date(malaysiaTime.getTime() - (8 * 60 * 60 * 1000))
-        
-        const ratio = weights[hour] / totalWeight
-        const revenue = parseFloat((totalRevenue * ratio).toFixed(2))
-        const items = Math.round(totalItems * ratio)
-        
-        distribution[hour] = {
-          date: utcTime.toISOString(),
-          revenue: revenue,
-          items: items
-        }
-      })
-      
-      return Object.values(distribution)
-    },
+  if (!dailySales || dailySales.length === 0) return []
+  
+  // ✅ If data already has multiple records, use as-is
+  if (dailySales.length > 1) {
+    return dailySales
+  }
+  
+  const dayData = dailySales[0]
+  if (!dayData) return []
+  
+  const totalRevenue = dayData.revenue || 0
+  const totalItems = dayData.items || 0
+  
+  // ✅ If there's REAL data, return it AS-IS
+  if (totalRevenue > 0 || totalItems > 0) {
+    return dailySales
+  }
+  
+  // ✅ No data → return empty
+  return []
+},
     
     // =============================================
     // ECHARTS - Professional Chart
@@ -2986,32 +2942,18 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ PERMANENT FIX: For today, cross-check with salesTrend
+    // ✅ For today: Only keep stalls with revenue > 0 OR items > 0
     if (this.selectedPeriod === 'today') {
-      // Check if salesTrend has any data for today
-      const hasTodaySales = this.salesTrend && this.salesTrend.length > 0
-      const todayRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-      
-      // If no sales today, clear everything
-      if (!hasTodaySales || todayRevenue === 0) {
-        this.stallPerformance = []
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-        console.log('✅ Stall performance loaded: 0 (no sales today)')
-        return
-      }
-      
-      // If there are sales, filter stalls with revenue > 0 AND items > 0
       stallData = stallData.filter(stall => {
         const revenue = parseFloat(stall.revenue) || 0
         const items = parseInt(stall.items) || 0
-        return revenue > 0 && items > 0
+        return revenue > 0 || items > 0
       })
     }
     
     this.stallPerformance = stallData
     
-    // Update consolidatedSales
+    // ✅ Update Top Stall
     if (stallData.length > 0) {
       let topStall = null
       let maxRevenue = 0
@@ -3027,9 +2969,6 @@ async loadStallPerformance() {
       if (topStall && maxRevenue > 0) {
         this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
         this.consolidatedSales.topRevenue = maxRevenue
-      } else {
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
       }
     } else {
       this.consolidatedSales.topStall = '-'
