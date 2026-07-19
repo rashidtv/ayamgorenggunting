@@ -2781,25 +2781,37 @@ getPeakDay() {
     async refreshAllData() {
       await this.loadData()
     },
-    async loadData() {
-      try {
-        console.log('🔄 Loading stall admin data...')
-        await this.loadStalls()
-        await Promise.all([
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadSalesAnalytics(),
-          this.loadStallPerformance(),
-          this.loadMenuItems()
-        ])
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        console.error('Load data error:', err)
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
+async loadData() {
+  try {
+    console.log('🔄 Loading stall admin data...')
+    
+    // ✅ Clear previous data when loading new period
+    if (this.selectedPeriod === 'today') {
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+    }
+    
+    await this.loadStalls()
+    await Promise.all([
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadSalesAnalytics(),
+      this.loadStallPerformance(),
+      this.loadMenuItems()
+    ])
+    await this.loadAllStallsInventory()
+    this.resetChartNavigation()
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
     
     async loadStalls() {
       try {
@@ -2974,35 +2986,29 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ CRITICAL FIX: For today, filter to only stalls with revenue today
+    // ✅ CRITICAL FIX: For today, ONLY keep stalls with revenue > 0
     if (this.selectedPeriod === 'today') {
-      // Get today's date in Malaysia time
-      const now = new Date()
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }))
-      const todayStr = malaysiaToday.toISOString().split('T')[0]
-      
-      // Filter to only today's data
+      // Keep only stalls that actually have sales today
       stallData = stallData.filter(stall => {
-        // Check if the stall has revenue or items for today
-        // The API might return a date field, or we check if revenue > 0
-        const hasRevenue = (stall.revenue || 0) > 0
-        const hasItems = (stall.items || 0) > 0
-        
-        // If the API returns a date field, check it
-        if (stall.date) {
-          const stallDate = new Date(stall.date)
-          const stallDateStr = stallDate.toISOString().split('T')[0]
-          return stallDateStr === todayStr && (hasRevenue || hasItems)
-        }
-        
-        // Otherwise, only keep if revenue > 0
-        return hasRevenue || hasItems
+        const revenue = parseFloat(stall.revenue) || 0
+        const items = parseInt(stall.items) || 0
+        // Only keep if revenue > 0 OR items > 0
+        return revenue > 0 || items > 0
       })
+    }
+    
+    // ✅ If no data for today, clear everything
+    if (this.selectedPeriod === 'today' && stallData.length === 0) {
+      this.stallPerformance = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      console.log('✅ Stall performance loaded: 0 (no sales today)')
+      return
     }
     
     this.stallPerformance = stallData
     
-    // ✅ Update top stall only if there is data
+    // Update consolidatedSales
     if (stallData.length > 0) {
       let topStall = null
       let maxRevenue = 0
@@ -3034,7 +3040,7 @@ async loadStallPerformance() {
   }
 },
 
-    async loadMenuPerformance() {
+async loadMenuPerformance() {
   try {
     const productSales = this.productSales || {}
     
@@ -3053,22 +3059,32 @@ async loadStallPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ CRITICAL FIX: For today, we already filtered by revenue > 0
-    // If productSales is empty, filteredItems will be empty
-    // This is already correct because productSales comes from the sales-analytics API
+    // ✅ CRITICAL FIX: For today, only show items sold today
+    if (this.selectedPeriod === 'today') {
+      // If productSales is empty OR filteredItems is empty, clear menuPerformance
+      if (Object.keys(productSales).length === 0 || filteredItems.length === 0) {
+        this.menuPerformance = []
+        console.log('📊 Menu performance for today: 0 items (no sales)')
+        return
+      }
+      
+      // Keep only items with revenue > 0
+      const todayItems = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
+      this.menuPerformance = todayItems
+      console.log('📊 Menu performance for today:', this.menuPerformance.length, 'items')
+      return
+    }
     
     if (filteredItems.length > 0) {
       this.menuPerformance = filteredItems
       return
     }
     
-    // If productSales has keys but no items with revenue > 0, clear menuPerformance
     if (Object.keys(productSales).length > 0) {
       this.menuPerformance = []
       return
     }
     
-    // If productSales is empty, fetch from menu-performance API
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
@@ -3081,7 +3097,6 @@ async loadStallPerformance() {
       headers: { Authorization: `Bearer ${this.token}` }
     })
     
-    // ✅ CRITICAL FIX: Filter by date for today view
     let menuData = (res.data || [])
       .filter(item => {
         const quantity = parseInt(item.quantity) || 0
@@ -3096,16 +3111,17 @@ async loadStallPerformance() {
       .sort((a, b) => b.quantity - a.quantity)
     
     // ✅ For today, ensure we only show today's data
-    // The menu-performance API should already filter by days
-    // But if it doesn't, we filter here
     if (this.selectedPeriod === 'today') {
-      // The API with days=1 should already filter to today
-      // But if not, we keep the filter
-      // This is a safety net
-      console.log('📊 Today menu items (filtered):', menuData.length)
+      // If no data, clear menuPerformance
+      if (menuData.length === 0) {
+        this.menuPerformance = []
+        console.log('📊 Menu performance for today: 0 items (no sales)')
+        return
+      }
+      this.menuPerformance = menuData
+    } else {
+      this.menuPerformance = menuData
     }
-    
-    this.menuPerformance = menuData
     
     console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
   } catch (err) {
