@@ -5989,4 +5989,240 @@ async loadStallPerformance() {
   margin-top: 0.05rem;
 }
 
+/* ============================================ */
+/* KPI CARDS - COMPLETE FIX                    */
+/* ============================================ */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ✅ FIX: Consistent card sizing and alignment */
+.kpi-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem 1rem;
+  border: 2px solid var(--border);  /* ← Stronger border */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 140px;  /* ← Fixed height for alignment */
+  
+  /* ✅ FIX: Use flexbox for perfect alignment */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;  /* ← Start from top for consistency */
+  
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ✅ FIX: Hover effect - only border change, no transform */
+.kpi-card:hover {
+  border-color: var(--kpi-color, var(--primary));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ FIX: Clickable cards */
+.kpi-card.clickable {
+  cursor: pointer;
+}
+
+.kpi-card.clickable:hover {
+  border-color: var(--kpi-color);
+  box-shadow: 0 4px 16px var(--kpi-color-alpha);
+}
+
+/* ✅ FIX: Highlight card (Top Stall) */
+.kpi-card.highlight {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+  border-color: rgba(245, 158, 11, 0.3);  /* ← Stronger border */
+}
+
+.kpi-card.highlight:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+}
+
+/* ✅ FIX: Icon alignment - ALL icons same size and alignment */
+.kpi-card .kpi-icon {
+  font-size: 2rem;
+  margin-bottom: 0.15rem;
+  display: block;
+  line-height: 1;  /* ← Fix emoji baseline issues */
+  height: 2.2rem;  /* ← Fixed height for alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ FIX: Value alignment - ALL values same size and alignment */
+.kpi-card .kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.05rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  min-height: 2.4rem;  /* ← Fixed height for alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ FIX: Top Stall value - EXACTLY the same as other values */
+.kpi-card .kpi-value-topstall {
+  font-size: 1.8rem !important;  /* ← SAME as other values */
+  font-weight: 700 !important;   /* ← SAME as other values */
+  color: var(--text) !important; /* ← SAME as other values */
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  min-height: 2.4rem;  /* ← SAME fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ FIX: Label alignment - ALL labels same size */
+.kpi-card .kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
+  min-height: 1.2rem;  /* ← Fixed height for alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ FIX: Change/trend text - consistent size */
+.kpi-card .kpi-change {
+  font-size: 0.6rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  min-height: 1.5rem;  /* ← Fixed height for alignment */
+}
+
+.kpi-card .kpi-change .trend-icon {
+  font-size: 0.6rem;
+}
+
+.kpi-card .kpi-change.positive {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.kpi-card .kpi-change.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.kpi-card .kpi-change.neutral {
+  color: var(--text-secondary);
+  background: var(--background);
+}
+
+/* ✅ FIX: Status badge - consistent size */
+.kpi-card .kpi-status-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 20px;
+  margin-top: 0.1rem;
+  display: inline-block;
+  min-height: 1.5rem;  /* ← Fixed height for alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ FIX: Trend label - consistent size */
+.kpi-card .kpi-trend-label {
+  font-size: 0.5rem;
+  font-weight: 500;
+  margin-top: 0.05rem;
+  opacity: 0.7;
+  min-height: 1rem;  /* ← Fixed height for alignment */
+}
+
+.kpi-card .kpi-trend-label.positive {
+  color: #10b981;
+}
+
+.kpi-card .kpi-trend-label.negative {
+  color: #ef4444;
+}
+
+.kpi-card .kpi-trend-label.neutral {
+  color: var(--text-tertiary);
+}
+
+/* ✅ FIX: Status badge colors */
+.kpi-card .kpi-status-badge.excellent {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.kpi-card .kpi-status-badge.good {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.kpi-card .kpi-status-badge.average {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.kpi-card .kpi-status-badge.poor {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.kpi-card .kpi-status-badge.no-sales {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.kpi-card .kpi-status-badge.neutral {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ✅ FIX: Sparkline container - consistent position */
+.kpi-card .sparkline-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35px;
+  opacity: 0.4;
+}
+
+.kpi-card .sparkline-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.kpi-card .sparkline-container .sparkline-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kpi-card .sparkline-container .sparkline-area {
+  opacity: 0.3;
+}
+
 </style>
