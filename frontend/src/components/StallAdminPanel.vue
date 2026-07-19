@@ -6374,4 +6374,167 @@ async loadStallPerformance() {
   }
 }
 
+/* ============================================ */
+/* KPI CARDS - RESPONSIVE (KEEP HORIZONTAL)    */
+/* ============================================ */
+
+/* ✅ Keep horizontal at all screen sizes */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);  /* ← ALWAYS 4 columns */
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ✅ Responsive: Reduce sizes but keep 4 columns */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    gap: 1rem;
+  }
+  
+  .kpi-card {
+    min-height: 120px;
+    padding: 1rem;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1.6rem;
+    height: 1.8rem;
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.5rem;
+    min-height: 2rem;
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.65rem;
+    min-height: 1rem;
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.55rem;
+    min-height: 1.2rem;
+    padding: 0.05rem 0.4rem;
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.55rem;
+    min-height: 1.2rem;
+    padding: 0.05rem 0.4rem;
+  }
+  
+  .kpi-card .kpi-trend-label {
+    font-size: 0.45rem;
+    min-height: 0.8rem;
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 30px;
+  }
+}
+
+/* ✅ Mobile: Keep 4 columns, just smaller */
+@media (max-width: 768px) {
+  .kpi-grid {
+    gap: 0.75rem;
+  }
+  
+  .kpi-card {
+    min-height: 100px;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1.2rem;
+    height: 1.4rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.2rem;  /* ← Keep readable */
+    min-height: 1.6rem;
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.6rem;
+    min-height: 0.9rem;
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.5rem;
+    min-height: 1rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.5rem;
+    min-height: 1rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .kpi-card .kpi-trend-label {
+    font-size: 0.4rem;
+    min-height: 0.7rem;
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 25px;
+  }
+}
+
+/* ✅ Small phones: Keep 4 columns, even smaller */
+@media (max-width: 480px) {
+  .kpi-grid {
+    gap: 0.5rem;
+  }
+  
+  .kpi-card {
+    min-height: 85px;
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1rem;
+    height: 1.2rem;
+    margin-bottom: 0.05rem;
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 0.95rem;  /* ← Still readable */
+    min-height: 1.2rem;
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.5rem;
+    min-height: 0.7rem;
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.4rem;
+    min-height: 0.8rem;
+    padding: 0.05rem 0.2rem;
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.4rem;
+    min-height: 0.8rem;
+    padding: 0.05rem 0.2rem;
+  }
+  
+  .kpi-card .kpi-trend-label {
+    display: none;  /* ← Hide on very small screens */
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 20px;
+    opacity: 0.2;
+  }
+}
+
 </style>
