@@ -6559,4 +6559,68 @@ async loadStallPerformance() {
   letter-spacing: -0.5px !important;  /* ← Makes letters appear more compact */
 }
 
+/* ============================================ */
+/* TOP STALL CARD - MATCH OTHER KPI CARDS      */
+/* ============================================ */
+
+/* ✅ Make Top Stall value match other values */
+.kpi-card .kpi-value-topstall {
+  /* Use the SAME styling as .kpi-value */
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  min-height: 2.4rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ Hide the extra "No sales yet" text when there is revenue */
+.kpi-card .kpi-change.neutral {
+  display: none;  /* Hide empty state if revenue exists */
+}
+
+/* ✅ Only show the neutral text when there are NO sales */
+.kpi-card.highlight .kpi-change.neutral {
+  display: inline-flex;  /* Show only when no revenue */
+}
+
+/* ✅ Adjust badge to match other cards */
+.kpi-card .kpi-status-badge {
+  font-size: 0.6rem;  /* Match other cards */
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 20px;
+  margin-top: 0.1rem;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ Make the revenue text in Top Stall match other change text */
+.kpi-card.highlight .kpi-change {
+  font-size: 0.6rem;  /* Match other KPI cards */
+  font-weight: 600;
+  margin-top: 0.1rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  min-height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* ✅ Fix the empty state in Top Stall card */
+.kpi-card.highlight .kpi-change:only-child {
+  display: none;  /* Hide when there's no sales */
+}
+
+/* ✅ Remove extra spacing when there are no sales */
+.kpi-card.highlight .kpi-value-topstall:has(+ .kpi-change.neutral) {
+  margin-bottom: 0.5rem;  /* Add spacing when no sales */
+}
+
 </style>
