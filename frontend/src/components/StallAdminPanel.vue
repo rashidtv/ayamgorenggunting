@@ -1761,59 +1761,91 @@ formatShortDate(dateStr) {
   
   // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
   if (this.selectedPeriod === 'today') {
-    // ✅ Parse the date string as UTC (add 'Z' to force UTC parsing)
-    const date = new Date(dateStr + 'Z')
-    if (isNaN(date.getTime())) return dateStr
+    // ✅ Parse the date string as UTC using regex
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!dateParts) return dateStr;
     
-    // ✅ Get hours from UTC date (already in Malaysia time since we force UTC)
-    const hours = date.getHours()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const hours12 = hours % 12 || 12
+    const year = parseInt(dateParts[1]);
+    const month = parseInt(dateParts[2]) - 1; // Month is 0-indexed in JS
+    const day = parseInt(dateParts[3]);
+    const hour = parseInt(dateParts[4]);
+    const minute = parseInt(dateParts[5]);
+    const second = parseInt(dateParts[6]);
     
-    return `${hours12}:00 ${ampm}`
+    // ✅ Create UTC date
+    const utcDate = new Date(Date.UTC(year, month, day, hour, minute, second));
+    
+    // ✅ Get hours from UTC date
+    const hours = utcDate.getUTCHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    
+    return `${hours12}:00 ${ampm}`;
   }
   
   // For custom range, show smart labels
   if (this.selectedPeriod === 'custom') {
-    const date = new Date(dateStr + 'Z')
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!dateParts) return dateStr;
+    const date = new Date(Date.UTC(
+      parseInt(dateParts[1]),
+      parseInt(dateParts[2]) - 1,
+      parseInt(dateParts[3])
+    ));
+    return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
   
   // For quarter, halfyear, year - show month names
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
-    const date = new Date(dateStr + 'Z')
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('en-MY', { month: 'short' })
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})/);
+    if (!dateParts) return dateStr;
+    const date = new Date(Date.UTC(
+      parseInt(dateParts[1]),
+      parseInt(dateParts[2]) - 1,
+      1
+    ));
+    return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
   }
   
   // For week grouping in month view
   if (this.selectedPeriod === 'month') {
-    if (dateStr.includes('W')) return dateStr
-    const date = new Date(dateStr + 'Z')
-    if (!isNaN(date.getTime())) {
-      const weekStart = this.getWeekStart(date)
-      return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
-    }
-    return dateStr
+    if (dateStr.includes('W')) return dateStr;
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!dateParts) return dateStr;
+    const date = new Date(Date.UTC(
+      parseInt(dateParts[1]),
+      parseInt(dateParts[2]) - 1,
+      parseInt(dateParts[3])
+    ));
+    const weekStart = this.getWeekStart(date);
+    return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   }
   
   // For week view, show day names (Monday first)
   if (this.selectedPeriod === 'week') {
-    const date = new Date(dateStr + 'Z')
-    if (isNaN(date.getTime())) return dateStr
-    
-    const dayOfWeek = date.getDay()
-    const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    return orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!dateParts) return dateStr;
+    const date = new Date(Date.UTC(
+      parseInt(dateParts[1]),
+      parseInt(dateParts[2]) - 1,
+      parseInt(dateParts[3])
+    ));
+    const dayOfWeek = date.getUTCDay();
+    const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1];
   }
   
   // Default fallback
-  const date = new Date(dateStr + 'Z')
-  if (isNaN(date.getTime())) return dateStr
-  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+  const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!dateParts) return dateStr;
+  const date = new Date(Date.UTC(
+    parseInt(dateParts[1]),
+    parseInt(dateParts[2]) - 1,
+    parseInt(dateParts[3])
+  ));
+  return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
 },
     formatFullDate(dateStr) {
       if (!dateStr) return ''
