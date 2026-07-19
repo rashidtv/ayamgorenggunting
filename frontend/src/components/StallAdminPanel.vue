@@ -6623,4 +6623,57 @@ async loadStallPerformance() {
   margin-bottom: 0.5rem;  /* Add spacing when no sales */
 }
 
+/* ============================================ */
+/* FIX: TOP STALL CARD - ALIGN WITH OTHERS     */
+/* ============================================ */
+
+/* ✅ Fix the stall name font - make it match other KPI values */
+.kpi-card .kpi-value-topstall {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  line-height: 1.2 !important;
+  min-height: 2.4rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ✅ Fix the revenue text under Top Stall - match other KPI changes */
+.kpi-card.highlight .kpi-change {
+  font-size: 0.6rem !important;
+  font-weight: 600 !important;
+  min-height: 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 0.1rem !important;
+  padding: 0.1rem 0.5rem !important;
+  border-radius: 12px !important;
+}
+
+/* ✅ Fix the badge - match other KPI badges */
+.kpi-card.highlight .kpi-status-badge {
+  font-size: 0.6rem !important;
+  font-weight: 600 !important;
+  min-height: 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 0.1rem !important;
+  padding: 0.05rem 0.5rem !important;
+  border-radius: 20px !important;
+}
+
+/* ✅ Fix icon alignment - match other KPI icons */
+.kpi-card.highlight .kpi-icon {
+  font-size: 2rem !important;
+  height: 2.2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 0.15rem !important;
+}
+
 </style>
