@@ -3650,7 +3650,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* STATS GRID (TOP ROW) - GLASS CARDS          */
+/* STATS GRID - GLASS CARDS                    */
 /* ============================================ */
 .stats-grid {
   display: grid;
@@ -3660,21 +3660,22 @@ async loadStallPerformance() {
 }
 
 .stat-card.glass {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 1.25rem 1rem;
+  height: 150px;
+  min-height: unset;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 1rem 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-height: 140px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
@@ -3746,36 +3747,50 @@ async loadStallPerformance() {
 
 .stat-card.glass .stat-icon {
   font-size: 2rem;
-  margin-bottom: 0.15rem;
-  display: block;
+  line-height: 1;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.1rem;
+  flex-shrink: 0;
 }
 
 .stat-card.glass .stat-number {
-  display: block;
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   letter-spacing: -0.02em;
-  margin: 0.05rem 0;
+  flex-shrink: 0;
 }
 
 .stat-card.glass .stat-label {
-  display: block;
   font-size: 0.7rem;
   color: var(--text-secondary);
-  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-top: 0.05rem;
+  font-weight: 500;
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-card.glass .stat-breakdown {
+  font-size: 0.65rem;
+  font-weight: 500;
+  height: 1.5rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
-  margin-top: 0.15rem;
-  font-size: 0.75rem;
+  flex-shrink: 0;
 }
 
 .stat-card.glass .stat-breakdown-item {
@@ -3801,12 +3816,15 @@ async loadStallPerformance() {
 }
 
 .stat-card.glass .stat-sub-label {
-  display: block;
   font-size: 0.65rem;
+  font-weight: 500;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-tertiary);
-  font-weight: 400;
-  margin-top: 0.05rem;
   opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .stat-card.glass .stat-trend {
@@ -3843,7 +3861,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* KPI CARDS (SECOND ROW) - FULLY ALIGNED      */
+/* KPI CARDS - PERMANENT FIX                   */
 /* ============================================ */
 .kpi-grid {
   display: grid;
@@ -3853,19 +3871,20 @@ async loadStallPerformance() {
 }
 
 .kpi-card {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 1.25rem 1rem;
-  border: 2px solid var(--border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  min-height: 140px;
+  height: 150px;
+  min-height: unset;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 1rem 0.75rem;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -3896,38 +3915,39 @@ async loadStallPerformance() {
 
 .kpi-card .kpi-icon {
   font-size: 2rem;
-  margin-bottom: 0.15rem;
   line-height: 1;
-  height: 2.2rem;
+  height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 0.1rem;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-value {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--text);
-  margin: 0.05rem 0;
-  letter-spacing: -0.02em;
   line-height: 1.2;
-  min-height: 2.4rem;
+  height: 2.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
-/* ✅ Top Stall Value - EXACTLY THE SAME as other values */
 .kpi-card .kpi-value-topstall {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
   line-height: 1.2;
-  min-height: 2.4rem;
+  height: 2.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-label {
@@ -3936,23 +3956,22 @@ async loadStallPerformance() {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
-  margin-top: 0.05rem;
-  min-height: 1.2rem;
+  height: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-change {
-  font-size: 0.6rem;
-  font-weight: 600;
-  margin-top: 0.1rem;
-  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 500;
+  height: 1.5rem;
+  display: flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  min-height: 1.5rem;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-change .trend-icon {
@@ -3962,28 +3981,34 @@ async loadStallPerformance() {
 .kpi-card .kpi-change.positive {
   color: #10b981;
   background: rgba(16, 185, 129, 0.08);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
 }
 
 .kpi-card .kpi-change.negative {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
 }
 
 .kpi-card .kpi-change.neutral {
   color: var(--text-secondary);
   background: var(--background);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
 }
 
 .kpi-card .kpi-status-badge {
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 0.05rem 0.5rem;
-  border-radius: 20px;
-  margin-top: 0.1rem;
-  min-height: 1.5rem;
-  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 500;
+  height: 1.5rem;
+  display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0.05rem 0.5rem;
+  border-radius: 20px;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-status-badge.excellent {
@@ -4017,11 +4042,14 @@ async loadStallPerformance() {
 }
 
 .kpi-card .kpi-trend-label {
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  margin-top: 0.05rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.7;
-  min-height: 1rem;
+  flex-shrink: 0;
 }
 
 .kpi-card .kpi-trend-label.positive {
@@ -4062,7 +4090,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* RESPONSIVE - BOTH ROWS MATCH                 */
+/* RESPONSIVE - KPI & STATS CARDS              */
 /* ============================================ */
 @media (max-width: 1024px) {
   .stats-grid,
@@ -4073,46 +4101,36 @@ async loadStallPerformance() {
   
   .stat-card.glass,
   .kpi-card {
-    min-height: 120px;
-    padding: 1rem;
+    height: 130px;
+    padding: 0.75rem;
   }
   
   .stat-card.glass .stat-icon,
   .kpi-card .kpi-icon {
     font-size: 1.6rem;
-    height: 1.8rem;
+    height: 2.2rem;
   }
   
   .stat-card.glass .stat-number,
   .kpi-card .kpi-value,
   .kpi-card .kpi-value-topstall {
     font-size: 1.5rem;
-    min-height: 2rem;
+    height: 2rem;
   }
   
   .stat-card.glass .stat-label,
   .kpi-card .kpi-label {
     font-size: 0.65rem;
-    min-height: 1rem;
+    height: 1rem;
   }
   
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.65rem;
-  }
-  
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.55rem;
-  }
-  
+  .stat-card.glass .stat-breakdown,
+  .stat-card.glass .stat-sub-label,
   .kpi-card .kpi-change,
-  .kpi-card .kpi-status-badge {
-    font-size: 0.55rem;
-    min-height: 1.2rem;
-  }
-  
+  .kpi-card .kpi-status-badge,
   .kpi-card .kpi-trend-label {
-    font-size: 0.45rem;
-    min-height: 0.8rem;
+    font-size: 0.55rem;
+    height: 1.2rem;
   }
   
   .kpi-card .sparkline-container {
@@ -4196,186 +4214,42 @@ async loadStallPerformance() {
   
   .stat-card.glass,
   .kpi-card {
-    min-height: 100px;
-    padding: 0.75rem;
+    height: 110px;
+    padding: 0.5rem;
     border-radius: 12px;
   }
   
   .stat-card.glass .stat-icon,
   .kpi-card .kpi-icon {
     font-size: 1.4rem;
-    height: 1.6rem;
+    height: 1.8rem;
   }
   
   .stat-card.glass .stat-number,
   .kpi-card .kpi-value,
   .kpi-card .kpi-value-topstall {
     font-size: 1.2rem;
-    min-height: 1.6rem;
+    height: 1.8rem;
   }
   
   .stat-card.glass .stat-label,
   .kpi-card .kpi-label {
     font-size: 0.6rem;
-    min-height: 0.9rem;
+    height: 0.9rem;
   }
   
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.55rem;
-  }
-  
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.5rem;
-  }
-  
+  .stat-card.glass .stat-breakdown,
+  .stat-card.glass .stat-sub-label,
   .kpi-card .kpi-change,
-  .kpi-card .kpi-status-badge {
-    font-size: 0.5rem;
-    min-height: 1rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
+  .kpi-card .kpi-status-badge,
   .kpi-card .kpi-trend-label {
-    font-size: 0.4rem;
-    min-height: 0.7rem;
+    font-size: 0.5rem;
+    height: 1rem;
   }
   
   .kpi-card .sparkline-container {
     height: 25px;
     opacity: 0.3;
-  }
-  
-  .stall-performance-table-container,
-  .menu-performance-table-container {
-    max-height: 320px;
-    padding: 0.25rem;
-  }
-  
-  .stall-table-header,
-  .menu-table-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-table-header-rank,
-  .menu-table-header-rank {
-    min-width: 30px;
-  }
-  
-  .stall-table-header-revenue,
-  .menu-table-header-revenue {
-    min-width: 50px;
-  }
-  
-  .stall-table-header-status,
-  .menu-table-header-status {
-    min-width: 60px;
-  }
-  
-  .stall-table-header-details,
-  .menu-table-header-details {
-    min-width: 30px;
-  }
-  
-  .stall-table-row,
-  .menu-table-row {
-    gap: 0.3rem;
-    padding: 0.25rem 0.3rem;
-  }
-  
-  .stall-table-rank,
-  .menu-table-rank {
-    min-width: 30px;
-  }
-  
-  .rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .stall-table-name,
-  .menu-table-name {
-    min-width: 50px;
-  }
-  
-  .stall-name-text,
-  .menu-name-text {
-    font-size: 0.7rem;
-  }
-  
-  .stall-table-revenue,
-  .menu-table-revenue {
-    min-width: 50px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-table-status,
-  .menu-table-status {
-    min-width: 60px;
-  }
-  
-  .status-indicator {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
-    gap: 0.15rem;
-  }
-  
-  .stall-table-details,
-  .menu-table-details {
-    min-width: 30px;
-    font-size: 0.7rem;
-  }
-  
-  .stall-breakdown-header {
-    gap: 0.3rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.5rem;
-  }
-  
-  .stall-breakdown-header-name {
-    min-width: 50px;
-  }
-  
-  .stall-breakdown-header-revenue {
-    min-width: 60px;
-  }
-  
-  .stall-breakdown-header-quantity {
-    min-width: 50px;
-  }
-  
-  .stall-breakdown-header-bar {
-    min-width: 40px;
-  }
-  
-  .stall-breakdown-item {
-    gap: 0.3rem;
-    padding: 0.3rem 0.3rem;
-    flex-wrap: wrap;
-  }
-  
-  .stall-breakdown-name {
-    min-width: 50px;
-    font-size: 0.75rem;
-    flex: 1;
-  }
-  
-  .stall-breakdown-revenue {
-    min-width: 60px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-quantity {
-    min-width: 50px;
-    font-size: 0.75rem;
-  }
-  
-  .stall-breakdown-bar-wrapper {
-    min-width: 40px;
-    flex: 1;
-    width: 100%;
   }
 }
 
@@ -4387,7 +4261,7 @@ async loadStallPerformance() {
   
   .stat-card.glass,
   .kpi-card {
-    min-height: 80px;
+    height: 95px;
     padding: 0.5rem;
     border-radius: 10px;
   }
@@ -4395,39 +4269,29 @@ async loadStallPerformance() {
   .stat-card.glass .stat-icon,
   .kpi-card .kpi-icon {
     font-size: 1.2rem;
-    height: 1.4rem;
+    height: 1.6rem;
   }
   
   .stat-card.glass .stat-number,
   .kpi-card .kpi-value,
   .kpi-card .kpi-value-topstall {
     font-size: 1rem;
-    min-height: 1.4rem;
+    height: 1.4rem;
   }
   
   .stat-card.glass .stat-label,
   .kpi-card .kpi-label {
     font-size: 0.55rem;
-    min-height: 0.8rem;
+    height: 0.8rem;
   }
   
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.5rem;
-  }
-  
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.45rem;
-  }
-  
+  .stat-card.glass .stat-breakdown,
+  .stat-card.glass .stat-sub-label,
   .kpi-card .kpi-change,
-  .kpi-card .kpi-status-badge {
-    font-size: 0.45rem;
-    min-height: 0.9rem;
-    padding: 0.05rem 0.2rem;
-  }
-  
+  .kpi-card .kpi-status-badge,
   .kpi-card .kpi-trend-label {
-    display: none;
+    font-size: 0.45rem;
+    height: 0.9rem;
   }
   
   .kpi-card .sparkline-container {
@@ -4435,71 +4299,8 @@ async loadStallPerformance() {
     opacity: 0.2;
   }
   
-  .list-item-content {
-    gap: 0.35rem;
-  }
-  
-  .list-item-name {
-    font-size: 0.75rem;
-  }
-  
-  .list-item-btn {
-    font-size: 0.75rem;
-  }
-  
-  .empty-state-modern span {
-    font-size: 1.5rem;
-  }
-  
-  .action-buttons {
-    flex-direction: row;
-    width: 100%;
-  }
-  
-  .header-action-btn {
-    flex: 1;
-    justify-content: center;
-  }
-  
-  .dropdown-toggle {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.6rem;
-  }
-  
-  .dropdown-label {
-    font-size: 0.8rem;
-  }
-  
-  .stat-card.glass .stat-hover {
+  .kpi-card .kpi-trend-label {
     display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .stall-table-header-revenue,
-  .menu-table-header-revenue {
-    min-width: 40px;
-  }
-  
-  .stall-table-header-status,
-  .menu-table-header-status {
-    min-width: 50px;
-  }
-  
-  .stall-table-revenue,
-  .menu-table-revenue {
-    min-width: 40px;
-    font-size: 0.65rem;
-  }
-  
-  .stall-table-status,
-  .menu-table-status {
-    min-width: 50px;
-  }
-  
-  .status-indicator {
-    font-size: 0.45rem;
-    padding: 0.05rem 0.2rem;
   }
 }
 
@@ -4856,7 +4657,7 @@ async loadStallPerformance() {
 
 .stall-name-text {
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -4882,7 +4683,7 @@ async loadStallPerformance() {
   min-width: 70px;
   text-align: right;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text);
 }
 
@@ -4894,7 +4695,7 @@ async loadStallPerformance() {
   gap: 0.25rem;
   padding: 0.15rem 0.5rem;
   border-radius: 20px;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -5001,23 +4802,6 @@ async loadStallPerformance() {
 
 .menu-table-rank { min-width: 40px; text-align: center; }
 
-.rank-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 0.7rem;
-  background: var(--background);
-  color: var(--text-secondary);
-}
-
-.rank-number.gold { background: #fbbf24; color: #78350f; }
-.rank-number.silver { background: #d1d5db; color: #374151; }
-.rank-number.bronze { background: #f59e0b; color: #78350f; }
-
 .menu-table-name {
   flex: 1;
   display: flex;
@@ -5028,7 +4812,7 @@ async loadStallPerformance() {
 
 .menu-name-text {
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -5054,7 +4838,7 @@ async loadStallPerformance() {
   min-width: 70px;
   text-align: right;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text);
 }
 
@@ -5948,4 +5732,114 @@ async loadStallPerformance() {
 .stall-breakdown-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .stall-breakdown-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
+/* ============================================ */
+/* RESPONSIVE - MOBILE                         */
+/* ============================================ */
+@media (max-width: 600px) {
+  .stall-breakdown-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
+  .stall-breakdown-header-name { min-width: 50px; }
+  .stall-breakdown-header-revenue { min-width: 60px; }
+  .stall-breakdown-header-quantity { min-width: 50px; }
+  .stall-breakdown-header-bar { min-width: 40px; }
+  .stall-breakdown-item { gap: 0.3rem; padding: 0.3rem 0.3rem; flex-wrap: wrap; }
+  .stall-breakdown-name { min-width: 50px; font-size: 0.75rem; flex: 1; }
+  .stall-breakdown-revenue { min-width: 60px; font-size: 0.75rem; }
+  .stall-breakdown-quantity { min-width: 50px; font-size: 0.75rem; }
+  .stall-breakdown-bar-wrapper { min-width: 40px; flex: 1; width: 100%; }
+  
+  .stall-performance-table-container,
+  .menu-performance-table-container { max-height: 320px; padding: 0.25rem; }
+  
+  .stall-table-header,
+  .menu-table-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
+  .stall-table-header-rank,
+  .menu-table-header-rank { min-width: 30px; }
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 50px; }
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 60px; }
+  .stall-table-header-details,
+  .menu-table-header-details { min-width: 30px; }
+  
+  .stall-table-row,
+  .menu-table-row { gap: 0.3rem; padding: 0.25rem 0.3rem; }
+  .stall-table-rank,
+  .menu-table-rank { min-width: 30px; }
+  .rank-number { width: 22px; height: 22px; font-size: 0.6rem; }
+  .stall-table-name,
+  .menu-table-name { min-width: 50px; }
+  .stall-name-text,
+  .menu-name-text { font-size: 0.7rem; }
+  .stall-table-revenue,
+  .menu-table-revenue { min-width: 50px; font-size: 0.7rem; }
+  .stall-table-status,
+  .menu-table-status { min-width: 60px; }
+  .status-indicator { font-size: 0.5rem; padding: 0.05rem 0.3rem; gap: 0.15rem; }
+  .stall-table-details,
+  .menu-table-details { min-width: 30px; font-size: 0.7rem; }
+}
+
+@media (max-width: 400px) {
+  .stall-table-header-revenue,
+  .menu-table-header-revenue { min-width: 40px; }
+  .stall-table-header-status,
+  .menu-table-header-status { min-width: 50px; }
+  .stall-table-revenue,
+  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
+  .stall-table-status,
+  .menu-table-status { min-width: 50px; }
+  .status-indicator { font-size: 0.45rem; padding: 0.05rem 0.2rem; }
+}
+
+/* ============================================ */
+/* RESPONSIVE - GENERAL                         */
+/* ============================================ */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .stat-card { padding: 0.5rem; }
+  .stat-number { font-size: 1.1rem; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .kpi-value { font-size: 1.1rem; }
+  .echarts-container { height: 200px; }
+  .chart-wrapper { min-height: 200px; }
+  .chart-modern-body { padding: 0.75rem; }
+  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
+  .chart-modern-stat-value { font-size: 0.8rem; }
+  .filter-bar { flex-direction: column; }
+  .filter-search { min-width: unset; }
+  .filter-select { min-width: unset; }
+  .inventory-items-grid { grid-template-columns: 1fr; }
+  .inventory-stall-header { flex-direction: column; align-items: flex-start; }
+  .modal-form-row { grid-template-columns: 1fr; }
+  .modal-modern { width: 95%; }
+  .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
+  .assignment-header { flex-direction: column; align-items: stretch; }
+  .assignment-count { margin-right: 0; text-align: center; }
+  .assignment-item-label { font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
+  .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
+  .stat-number { font-size: 0.95rem; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .kpi-card { padding: 0.5rem; }
+  .kpi-value { font-size: 0.95rem; }
+  .echarts-container { height: 160px; }
+  .chart-wrapper { min-height: 160px; }
+  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.25rem; padding: 0.35rem; }
+  .chart-modern-stat { padding: 0.15rem; }
+  .chart-modern-stat-value { font-size: 0.75rem; }
+  .chart-modern-stat-label { font-size: 0.5rem; }
+  .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
+  .list-item-content { gap: 0.35rem; }
+  .list-item-name { font-size: 0.75rem; }
+  .list-item-btn { font-size: 0.75rem; }
+  .empty-state-modern span { font-size: 1.5rem; }
+  .action-buttons { flex-direction: row; width: 100%; }
+  .header-action-btn { flex: 1; justify-content: center; }
+  .dropdown-toggle { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+  .dropdown-label { font-size: 0.8rem; }
+}
 </style>
