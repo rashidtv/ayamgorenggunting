@@ -1761,31 +1761,21 @@ formatShortDate(dateStr) {
   
   // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
   if (this.selectedPeriod === 'today') {
-    const date = new Date(dateStr)
+    // ✅ Parse the date string as UTC (add 'Z' to force UTC parsing)
+    const date = new Date(dateStr + 'Z')
     if (isNaN(date.getTime())) return dateStr
     
-    // ✅ ADD THIS to see what the API returns (you can remove later)
-    console.log('🔍 ORIGINAL DATE:', dateStr)
-    console.log('🔍 DATE HOURS:', date.getHours())
-    
-    // Add 8 hours for Malaysia time (UTC+8)
-    const malaysiaTime = date
-    console.log('🔍 MALAYSIA HOURS:', malaysiaTime.getHours())
-    
-    // ✅ Always show :00 to group by hour
-    const hours = malaysiaTime.getHours()
+    // ✅ Get hours from UTC date (already in Malaysia time since we force UTC)
+    const hours = date.getHours()
     const ampm = hours >= 12 ? 'PM' : 'AM'
     const hours12 = hours % 12 || 12
     
-    const result = `${hours12}:00 ${ampm}`
-    console.log('🔍 RESULT:', result)
-    
-    return result
+    return `${hours12}:00 ${ampm}`
   }
   
   // For custom range, show smart labels
   if (this.selectedPeriod === 'custom') {
-    const date = new Date(dateStr)
+    const date = new Date(dateStr + 'Z')
     if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric' })
   }
@@ -1794,7 +1784,7 @@ formatShortDate(dateStr) {
   if (this.selectedPeriod === 'quarter' || 
       this.selectedPeriod === 'halfyear' || 
       this.selectedPeriod === 'year') {
-    const date = new Date(dateStr)
+    const date = new Date(dateStr + 'Z')
     if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('en-MY', { month: 'short' })
   }
@@ -1802,7 +1792,7 @@ formatShortDate(dateStr) {
   // For week grouping in month view
   if (this.selectedPeriod === 'month') {
     if (dateStr.includes('W')) return dateStr
-    const date = new Date(dateStr)
+    const date = new Date(dateStr + 'Z')
     if (!isNaN(date.getTime())) {
       const weekStart = this.getWeekStart(date)
       return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
@@ -1812,7 +1802,7 @@ formatShortDate(dateStr) {
   
   // For week view, show day names (Monday first)
   if (this.selectedPeriod === 'week') {
-    const date = new Date(dateStr)
+    const date = new Date(dateStr + 'Z')
     if (isNaN(date.getTime())) return dateStr
     
     const dayOfWeek = date.getDay()
@@ -1821,7 +1811,7 @@ formatShortDate(dateStr) {
   }
   
   // Default fallback
-  const date = new Date(dateStr)
+  const date = new Date(dateStr + 'Z')
   if (isNaN(date.getTime())) return dateStr
   return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
 },
