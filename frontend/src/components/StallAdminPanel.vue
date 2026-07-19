@@ -1769,7 +1769,7 @@ formatShortDate(dateStr) {
     console.log('🔍 DATE HOURS:', date.getHours())
     
     // Add 8 hours for Malaysia time (UTC+8)
-    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    const malaysiaTime = date
     console.log('🔍 MALAYSIA HOURS:', malaysiaTime.getHours())
     
     // ✅ Always show :00 to group by hour
@@ -1860,7 +1860,7 @@ getBestDayName() {
     if (isNaN(date.getTime())) return '-'
     
     // Add 8 hours for Malaysia time
-    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    const malaysiaTime = date
     
     // Show as "4:00 PM", "5:00 PM", etc.
     const hours = malaysiaTime.getHours()
@@ -2307,7 +2307,7 @@ updateChart() {
           if (!isNaN(date.getTime())) {
             if (this.selectedPeriod === 'today') {
               // ✅ Tooltip shows Malaysia time with minutes
-              const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+              const malaysiaTime = date
               const hours = malaysiaTime.getHours()
               const ampm = hours >= 12 ? 'PM' : 'AM'
               const hours12 = hours % 12 || 12
@@ -2459,7 +2459,7 @@ getPeakDay() {
     if (isNaN(date.getTime())) return ''
     
     // Add 8 hours for Malaysia time
-    const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    const malaysiaTime = date
     
     // Show as "4:00 PM", "5:00 PM", etc.
     const hours = malaysiaTime.getHours()
