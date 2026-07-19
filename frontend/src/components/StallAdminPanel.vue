@@ -6225,4 +6225,153 @@ async loadStallPerformance() {
   opacity: 0.3;
 }
 
+/* ============================================ */
+/* KPI CARDS - RESPONSIVE FIXES                */
+/* ============================================ */
+
+/* ✅ Tablet: Reduce card height and font sizes */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);  /* 2 columns on tablet */
+    gap: 1rem;
+  }
+  
+  .kpi-card {
+    min-height: 120px;  /* ← Reduced from 140px */
+    padding: 1rem;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1.6rem;
+    height: 1.8rem;  /* ← Reduced from 2.2rem */
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.5rem;  /* ← Reduced from 1.8rem */
+    min-height: 2rem;  /* ← Reduced from 2.4rem */
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.65rem;  /* ← Reduced from 0.7rem */
+    min-height: 1rem;  /* ← Reduced from 1.2rem */
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.55rem;  /* ← Reduced from 0.6rem */
+    min-height: 1.2rem;  /* ← Reduced from 1.5rem */
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.55rem;  /* ← Reduced from 0.6rem */
+    min-height: 1.2rem;  /* ← Reduced from 1.5rem */
+  }
+  
+  .kpi-card .kpi-trend-label {
+    font-size: 0.45rem;  /* ← Reduced from 0.5rem */
+    min-height: 0.8rem;  /* ← Reduced from 1rem */
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 30px;  /* ← Reduced from 35px */
+  }
+}
+
+/* ✅ Mobile: Further reduce card height and font sizes */
+@media (max-width: 600px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);  /* Keep 2 columns */
+    gap: 0.75rem;
+  }
+  
+  .kpi-card {
+    min-height: 100px;  /* ← Reduced from 120px */
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1.2rem;
+    height: 1.4rem;  /* ← Reduced from 1.8rem */
+    margin-bottom: 0.1rem;
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 1.1rem;  /* ← Reduced from 1.5rem */
+    min-height: 1.5rem;  /* ← Reduced from 2rem */
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.55rem;  /* ← Reduced from 0.65rem */
+    min-height: 0.8rem;  /* ← Reduced from 1rem */
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.5rem;  /* ← Reduced from 0.55rem */
+    min-height: 1rem;  /* ← Reduced from 1.2rem */
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.5rem;  /* ← Reduced from 0.55rem */
+    min-height: 1rem;  /* ← Reduced from 1.2rem */
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .kpi-card .kpi-trend-label {
+    display: none;  /* ← Hide on mobile to save space */
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 25px;  /* ← Reduced from 30px */
+    opacity: 0.3;
+  }
+}
+
+/* ✅ Small phones: Single column */
+@media (max-width: 400px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;  /* Keep 2 columns on small phones */
+    gap: 0.5rem;
+  }
+  
+  .kpi-card {
+    min-height: 85px;  /* ← Reduced from 100px */
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+  
+  .kpi-card .kpi-icon {
+    font-size: 1rem;
+    height: 1.2rem;
+  }
+  
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 0.95rem;  /* ← Reduced from 1.1rem */
+    min-height: 1.2rem;
+  }
+  
+  .kpi-card .kpi-label {
+    font-size: 0.5rem;
+    min-height: 0.7rem;
+  }
+  
+  .kpi-card .kpi-change {
+    font-size: 0.45rem;
+    min-height: 0.8rem;
+  }
+  
+  .kpi-card .kpi-status-badge {
+    font-size: 0.45rem;
+    min-height: 0.8rem;
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 20px;
+    opacity: 0.2;
+  }
+}
+
 </style>
