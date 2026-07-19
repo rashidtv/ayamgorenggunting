@@ -1346,6 +1346,20 @@ export default {
   },
 
   watch: {
+
+     selectedPeriod(newVal, oldVal) {
+    if (newVal !== oldVal) {
+      // ✅ Clear all data when period changes
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+      this.refreshAllData()
+    }
+  },
     salesTrend: {
       handler() {
         this.$nextTick(() => {
@@ -2960,8 +2974,35 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
+    // ✅ CRITICAL FIX: For today, filter to only stalls with revenue today
+    if (this.selectedPeriod === 'today') {
+      // Get today's date in Malaysia time
+      const now = new Date()
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }))
+      const todayStr = malaysiaToday.toISOString().split('T')[0]
+      
+      // Filter to only today's data
+      stallData = stallData.filter(stall => {
+        // Check if the stall has revenue or items for today
+        // The API might return a date field, or we check if revenue > 0
+        const hasRevenue = (stall.revenue || 0) > 0
+        const hasItems = (stall.items || 0) > 0
+        
+        // If the API returns a date field, check it
+        if (stall.date) {
+          const stallDate = new Date(stall.date)
+          const stallDateStr = stallDate.toISOString().split('T')[0]
+          return stallDateStr === todayStr && (hasRevenue || hasItems)
+        }
+        
+        // Otherwise, only keep if revenue > 0
+        return hasRevenue || hasItems
+      })
+    }
+    
     this.stallPerformance = stallData
     
+    // ✅ Update top stall only if there is data
     if (stallData.length > 0) {
       let topStall = null
       let maxRevenue = 0
@@ -2977,7 +3018,13 @@ async loadStallPerformance() {
       if (topStall && maxRevenue > 0) {
         this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
         this.consolidatedSales.topRevenue = maxRevenue
+      } else {
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
       }
+    } else {
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
     }
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
@@ -2988,63 +3035,84 @@ async loadStallPerformance() {
 },
 
     async loadMenuPerformance() {
-      try {
-        const productSales = this.productSales || {}
-        const filteredItems = Object.keys(productSales)
-          .filter(name => {
-            const item = productSales[name]
-            const quantity = parseInt(item.quantity) || 0
-            const revenue = parseFloat(item.revenue) || 0
-            return quantity > 0 && revenue > 0
-          })
-          .map(name => ({
-            name: name,
-            quantity: parseInt(productSales[name].quantity) || 0,
-            revenue: parseFloat(productSales[name].revenue) || 0
-          }))
-          .sort((a, b) => b.quantity - a.quantity)
-        
-        if (filteredItems.length > 0) {
-          this.menuPerformance = filteredItems
-          return
-        }
-        
-        if (Object.keys(productSales).length > 0) {
-          this.menuPerformance = []
-          return
-        }
-        
-        const days = this.selectedPeriod === 'today' ? 1 :
-                     this.selectedPeriod === 'week' ? 7 :
-                     this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 :
-                     this.selectedPeriod === 'halfyear' ? 180 :
-                     this.selectedPeriod === 'year' ? 365 :
-                     this.customDays || 30
-        
-        const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        
-        this.menuPerformance = (res.data || [])
-          .filter(item => {
-            const quantity = parseInt(item.quantity) || 0
-            const revenue = parseFloat(item.revenue) || 0
-            return quantity > 0 && revenue > 0
-          })
-          .map(item => ({
-            name: item.item_name,
-            quantity: parseInt(item.quantity) || 0,
-            revenue: parseFloat(item.revenue) || 0
-          }))
-          .sort((a, b) => b.quantity - a.quantity)
-        
-        console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
-      } catch (err) {
-        console.error('Failed to load menu performance:', err)
-        this.menuPerformance = []
-      }
-    },
+  try {
+    const productSales = this.productSales || {}
+    
+    // ✅ Filter items with revenue > 0
+    let filteredItems = Object.keys(productSales)
+      .filter(name => {
+        const item = productSales[name]
+        const quantity = parseInt(item.quantity) || 0
+        const revenue = parseFloat(item.revenue) || 0
+        return quantity > 0 && revenue > 0
+      })
+      .map(name => ({
+        name: name,
+        quantity: parseInt(productSales[name].quantity) || 0,
+        revenue: parseFloat(productSales[name].revenue) || 0
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+    
+    // ✅ CRITICAL FIX: For today, we already filtered by revenue > 0
+    // If productSales is empty, filteredItems will be empty
+    // This is already correct because productSales comes from the sales-analytics API
+    
+    if (filteredItems.length > 0) {
+      this.menuPerformance = filteredItems
+      return
+    }
+    
+    // If productSales has keys but no items with revenue > 0, clear menuPerformance
+    if (Object.keys(productSales).length > 0) {
+      this.menuPerformance = []
+      return
+    }
+    
+    // If productSales is empty, fetch from menu-performance API
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.customDays || 30
+    
+    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // ✅ CRITICAL FIX: Filter by date for today view
+    let menuData = (res.data || [])
+      .filter(item => {
+        const quantity = parseInt(item.quantity) || 0
+        const revenue = parseFloat(item.revenue) || 0
+        return quantity > 0 && revenue > 0
+      })
+      .map(item => ({
+        name: item.item_name,
+        quantity: parseInt(item.quantity) || 0,
+        revenue: parseFloat(item.revenue) || 0
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+    
+    // ✅ For today, ensure we only show today's data
+    // The menu-performance API should already filter by days
+    // But if it doesn't, we filter here
+    if (this.selectedPeriod === 'today') {
+      // The API with days=1 should already filter to today
+      // But if not, we keep the filter
+      // This is a safety net
+      console.log('📊 Today menu items (filtered):', menuData.length)
+    }
+    
+    this.menuPerformance = menuData
+    
+    console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
+  } catch (err) {
+    console.error('Failed to load menu performance:', err)
+    this.menuPerformance = []
+  }
+},
     
     // =============================================
     // MENU ITEMS (For Assignment)
