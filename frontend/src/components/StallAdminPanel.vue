@@ -3390,6 +3390,7 @@ async loadStallPerformance() {
 </script>
 
 <style scoped>
+
 /* ============================================ */
 /* CSS VARIABLES                                */
 /* ============================================ */
@@ -3410,7 +3411,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* CONTROLS SECTION - BELOW BANNER              */
+/* CONTROLS SECTION                            */
 /* ============================================ */
 .controls-section {
   margin-bottom: 1.25rem;
@@ -3428,7 +3429,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* DROPDOWNS - WHITE BACKGROUND                 */
+/* DROPDOWNS                                   */
 /* ============================================ */
 .tab-dropdown {
   position: relative;
@@ -3649,7 +3650,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* STATS GRID - GLASSMORPHISM STYLE            */
+/* STATS GRID (TOP ROW) - GLASS CARDS          */
 /* ============================================ */
 .stats-grid {
   display: grid;
@@ -3658,7 +3659,6 @@ async loadStallPerformance() {
   margin-bottom: 1.5rem;
 }
 
-/* Glass Card */
 .stat-card.glass {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(20px);
@@ -3667,12 +3667,14 @@ async loadStallPerformance() {
   border-radius: 16px;
   padding: 1.25rem 1rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  text-align: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-height: 100px;
+  min-height: 140px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
@@ -3744,29 +3746,8 @@ async loadStallPerformance() {
 
 .stat-card.glass .stat-icon {
   font-size: 2rem;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.stat-card.glass:hover .stat-icon {
-  transform: scale(1.08) rotate(-3deg);
-  background: var(--stat-color, #2563eb);
-  border-color: var(--stat-color, #2563eb);
-  color: white;
-  box-shadow: 0 4px 15px var(--stat-color-alpha, rgba(37, 99, 235, 0.3));
-}
-
-.stat-card.glass .stat-content {
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 0.15rem;
+  display: block;
 }
 
 .stat-card.glass .stat-number {
@@ -3774,8 +3755,9 @@ async loadStallPerformance() {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.1;
+  line-height: 1.2;
   letter-spacing: -0.02em;
+  margin: 0.05rem 0;
 }
 
 .stat-card.glass .stat-label {
@@ -3793,7 +3775,7 @@ async loadStallPerformance() {
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.15rem;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .stat-card.glass .stat-breakdown-item {
@@ -3812,10 +3794,6 @@ async loadStallPerformance() {
   opacity: 0.6;
 }
 
-.stat-card.glass .breakdown-dot {
-  font-size: 0.5rem;
-}
-
 .stat-card.glass .stat-breakdown-divider {
   color: var(--text-tertiary);
   opacity: 0.3;
@@ -3824,7 +3802,7 @@ async loadStallPerformance() {
 
 .stat-card.glass .stat-sub-label {
   display: block;
-  font-size: 0.55rem;
+  font-size: 0.65rem;
   color: var(--text-tertiary);
   font-weight: 400;
   margin-top: 0.05rem;
@@ -3846,10 +3824,6 @@ async loadStallPerformance() {
   white-space: nowrap;
 }
 
-.stat-card.glass .stat-trend .trend-arrow {
-  font-size: 0.6rem;
-}
-
 .stat-card.glass .stat-trend.up { 
   color: #10b981; 
   background: rgba(16, 185, 129, 0.15);
@@ -3869,104 +3843,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* RESPONSIVE - GLASSMORPHISM                  */
-/* ============================================ */
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-  .stat-card.glass {
-    padding: 1rem;
-    min-height: 85px;
-    gap: 0.75rem;
-  }
-  .stat-card.glass .stat-icon {
-    font-size: 1.6rem;
-    width: 40px;
-    height: 40px;
-  }
-  .stat-card.glass .stat-number {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-  .stat-card.glass {
-    padding: 0.75rem;
-    min-height: 70px;
-    gap: 0.5rem;
-    border-radius: 12px;
-  }
-  .stat-card.glass .stat-icon {
-    font-size: 1.2rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-  }
-  .stat-card.glass .stat-number {
-    font-size: 1.2rem;
-  }
-  .stat-card.glass .stat-label {
-    font-size: 0.55rem;
-  }
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.5rem;
-  }
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.45rem;
-  }
-  .stat-card.glass .stat-trend {
-    font-size: 0.5rem;
-    padding: 0.1rem 0.4rem;
-  }
-  .stat-card.glass .stat-hover {
-    display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-  .stat-card.glass {
-    padding: 0.5rem;
-    min-height: 60px;
-    gap: 0.35rem;
-    border-radius: 10px;
-  }
-  .stat-card.glass .stat-icon {
-    font-size: 1rem;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-  }
-  .stat-card.glass .stat-number {
-    font-size: 1rem;
-  }
-  .stat-card.glass .stat-label {
-    font-size: 0.45rem;
-    letter-spacing: 0.2px;
-  }
-  .stat-card.glass .stat-breakdown {
-    font-size: 0.4rem;
-  }
-  .stat-card.glass .stat-sub-label {
-    font-size: 0.4rem;
-  }
-  .stat-card.glass .stat-trend {
-    font-size: 0.4rem;
-    padding: 0.05rem 0.3rem;
-  }
-}
-
-/* ============================================ */
-/* KPI CARDS - MATCHING STATS CARDS SIZE       */
+/* KPI CARDS (SECOND ROW) - FULLY ALIGNED      */
 /* ============================================ */
 .kpi-grid {
   display: grid;
@@ -3979,22 +3856,23 @@ async loadStallPerformance() {
   background: var(--surface);
   border-radius: 16px;
   padding: 1.25rem 1rem;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-height: 100px;
-  text-align: center;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .kpi-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--kpi-color);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--kpi-color, var(--primary));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: none;
 }
 
 .kpi-card.clickable {
@@ -4003,51 +3881,70 @@ async loadStallPerformance() {
 
 .kpi-card.clickable:hover {
   border-color: var(--kpi-color);
-  box-shadow: 0 8px 24px var(--kpi-color-alpha);
+  box-shadow: 0 4px 16px var(--kpi-color-alpha);
 }
 
 .kpi-card.highlight {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
-  border-color: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .kpi-card.highlight:hover {
   border-color: #f59e0b;
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
 }
 
-/* KPI - MATCH STATS CARD SIZES */
 .kpi-card .kpi-icon {
-  font-size: 2rem;  /* MATCHES .stat-card.glass .stat-icon */
+  font-size: 2rem;
   margin-bottom: 0.15rem;
-  display: block;
+  line-height: 1;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .kpi-card .kpi-value {
-  font-size: 1.8rem;  /* MATCHES .stat-card.glass .stat-number */
+  font-size: 1.8rem;
   font-weight: 700;
   color: var(--text);
   margin: 0.05rem 0;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Top Stall special class - same size as others */
+/* ✅ Top Stall Value - EXACTLY THE SAME as other values */
 .kpi-card .kpi-value-topstall {
-  font-size: 1.8rem !important;  /* FORCE same size as other KPI values */
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .kpi-card .kpi-label {
-  font-size: 0.7rem;  /* MATCHES .stat-card.glass .stat-label */
+  font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
   margin-top: 0.05rem;
+  min-height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .kpi-card .kpi-change {
-  font-size: 0.6rem;  /* MATCHES .stat-card.glass .stat-trend */
+  font-size: 0.6rem;
   font-weight: 600;
   margin-top: 0.1rem;
   display: inline-flex;
@@ -4055,6 +3952,7 @@ async loadStallPerformance() {
   gap: 0.2rem;
   padding: 0.1rem 0.5rem;
   border-radius: 12px;
+  min-height: 1.5rem;
 }
 
 .kpi-card .kpi-change .trend-icon {
@@ -4082,7 +3980,10 @@ async loadStallPerformance() {
   padding: 0.05rem 0.5rem;
   border-radius: 20px;
   margin-top: 0.1rem;
-  display: inline-block;
+  min-height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .kpi-card .kpi-status-badge.excellent {
@@ -4120,6 +4021,7 @@ async loadStallPerformance() {
   font-weight: 500;
   margin-top: 0.05rem;
   opacity: 0.7;
+  min-height: 1rem;
 }
 
 .kpi-card .kpi-trend-label.positive {
@@ -4140,7 +4042,7 @@ async loadStallPerformance() {
   left: 0;
   right: 0;
   height: 35px;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .kpi-card .sparkline-container svg {
@@ -4160,88 +4062,444 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* RESPONSIVE - KPI CARDS                      */
+/* RESPONSIVE - BOTH ROWS MATCH                 */
 /* ============================================ */
 @media (max-width: 1024px) {
+  .stats-grid,
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
+  
+  .stat-card.glass,
   .kpi-card {
-    min-height: 85px;
+    min-height: 120px;
     padding: 1rem;
   }
-  .kpi-card .kpi-value {
-    font-size: 1.5rem;
+  
+  .stat-card.glass .stat-icon,
+  .kpi-card .kpi-icon {
+    font-size: 1.6rem;
+    height: 1.8rem;
   }
+  
+  .stat-card.glass .stat-number,
+  .kpi-card .kpi-value,
   .kpi-card .kpi-value-topstall {
-    font-size: 1.5rem !important;
+    font-size: 1.5rem;
+    min-height: 2rem;
   }
+  
+  .stat-card.glass .stat-label,
+  .kpi-card .kpi-label {
+    font-size: 0.65rem;
+    min-height: 1rem;
+  }
+  
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.65rem;
+  }
+  
+  .stat-card.glass .stat-sub-label {
+    font-size: 0.55rem;
+  }
+  
+  .kpi-card .kpi-change,
+  .kpi-card .kpi-status-badge {
+    font-size: 0.55rem;
+    min-height: 1.2rem;
+  }
+  
+  .kpi-card .kpi-trend-label {
+    font-size: 0.45rem;
+    min-height: 0.8rem;
+  }
+  
   .kpi-card .sparkline-container {
     height: 30px;
   }
 }
 
+@media (max-width: 768px) {
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .tab-dropdown,
+  .period-dropdown-wrapper {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .action-buttons {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .filter-bar {
+    flex-direction: column;
+  }
+  
+  .filter-search {
+    min-width: unset;
+  }
+  
+  .filter-select {
+    min-width: unset;
+  }
+  
+  .inventory-items-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .inventory-stall-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .modal-form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-modern {
+    width: 95%;
+  }
+  
+  .chart-modern-nav-label {
+    min-width: 60px;
+    font-size: 0.6rem;
+  }
+  
+  .assignment-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .assignment-count {
+    margin-right: 0;
+    text-align: center;
+  }
+  
+  .assignment-item-label {
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 600px) {
+  .stats-grid,
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
   }
+  
+  .stat-card.glass,
   .kpi-card {
-    min-height: 70px;
+    min-height: 100px;
     padding: 0.75rem;
     border-radius: 12px;
   }
+  
+  .stat-card.glass .stat-icon,
   .kpi-card .kpi-icon {
     font-size: 1.4rem;
-    margin-bottom: 0.1rem;
+    height: 1.6rem;
   }
-  .kpi-card .kpi-value {
-    font-size: 1.2rem;
-  }
+  
+  .stat-card.glass .stat-number,
+  .kpi-card .kpi-value,
   .kpi-card .kpi-value-topstall {
-    font-size: 1.2rem !important;
+    font-size: 1.2rem;
+    min-height: 1.6rem;
   }
+  
+  .stat-card.glass .stat-label,
   .kpi-card .kpi-label {
     font-size: 0.6rem;
+    min-height: 0.9rem;
   }
-  .kpi-card .kpi-change {
+  
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.55rem;
+  }
+  
+  .stat-card.glass .stat-sub-label {
     font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
   }
+  
+  .kpi-card .kpi-change,
   .kpi-card .kpi-status-badge {
     font-size: 0.5rem;
+    min-height: 1rem;
     padding: 0.05rem 0.3rem;
   }
+  
+  .kpi-card .kpi-trend-label {
+    font-size: 0.4rem;
+    min-height: 0.7rem;
+  }
+  
+  .kpi-card .sparkline-container {
+    height: 25px;
+    opacity: 0.3;
+  }
+  
+  .stall-performance-table-container,
+  .menu-performance-table-container {
+    max-height: 320px;
+    padding: 0.25rem;
+  }
+  
+  .stall-table-header,
+  .menu-table-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-table-header-rank,
+  .menu-table-header-rank {
+    min-width: 30px;
+  }
+  
+  .stall-table-header-revenue,
+  .menu-table-header-revenue {
+    min-width: 50px;
+  }
+  
+  .stall-table-header-status,
+  .menu-table-header-status {
+    min-width: 60px;
+  }
+  
+  .stall-table-header-details,
+  .menu-table-header-details {
+    min-width: 30px;
+  }
+  
+  .stall-table-row,
+  .menu-table-row {
+    gap: 0.3rem;
+    padding: 0.25rem 0.3rem;
+  }
+  
+  .stall-table-rank,
+  .menu-table-rank {
+    min-width: 30px;
+  }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-table-name,
+  .menu-table-name {
+    min-width: 50px;
+  }
+  
+  .stall-name-text,
+  .menu-name-text {
+    font-size: 0.7rem;
+  }
+  
+  .stall-table-revenue,
+  .menu-table-revenue {
+    min-width: 50px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-table-status,
+  .menu-table-status {
+    min-width: 60px;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+    gap: 0.15rem;
+  }
+  
+  .stall-table-details,
+  .menu-table-details {
+    min-width: 30px;
+    font-size: 0.7rem;
+  }
+  
+  .stall-breakdown-header {
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.5rem;
+  }
+  
+  .stall-breakdown-header-name {
+    min-width: 50px;
+  }
+  
+  .stall-breakdown-header-revenue {
+    min-width: 60px;
+  }
+  
+  .stall-breakdown-header-quantity {
+    min-width: 50px;
+  }
+  
+  .stall-breakdown-header-bar {
+    min-width: 40px;
+  }
+  
+  .stall-breakdown-item {
+    gap: 0.3rem;
+    padding: 0.3rem 0.3rem;
+    flex-wrap: wrap;
+  }
+  
+  .stall-breakdown-name {
+    min-width: 50px;
+    font-size: 0.75rem;
+    flex: 1;
+  }
+  
+  .stall-breakdown-revenue {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-quantity {
+    min-width: 50px;
+    font-size: 0.75rem;
+  }
+  
+  .stall-breakdown-bar-wrapper {
+    min-width: 40px;
+    flex: 1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid,
+  .kpi-grid {
+    gap: 0.5rem;
+  }
+  
+  .stat-card.glass,
+  .kpi-card {
+    min-height: 80px;
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+  
+  .stat-card.glass .stat-icon,
+  .kpi-card .kpi-icon {
+    font-size: 1.2rem;
+    height: 1.4rem;
+  }
+  
+  .stat-card.glass .stat-number,
+  .kpi-card .kpi-value,
+  .kpi-card .kpi-value-topstall {
+    font-size: 1rem;
+    min-height: 1.4rem;
+  }
+  
+  .stat-card.glass .stat-label,
+  .kpi-card .kpi-label {
+    font-size: 0.55rem;
+    min-height: 0.8rem;
+  }
+  
+  .stat-card.glass .stat-breakdown {
+    font-size: 0.5rem;
+  }
+  
+  .stat-card.glass .stat-sub-label {
+    font-size: 0.45rem;
+  }
+  
+  .kpi-card .kpi-change,
+  .kpi-card .kpi-status-badge {
+    font-size: 0.45rem;
+    min-height: 0.9rem;
+    padding: 0.05rem 0.2rem;
+  }
+  
   .kpi-card .kpi-trend-label {
     display: none;
   }
+  
   .kpi-card .sparkline-container {
-    height: 25px;
-    opacity: 0.4;
+    height: 20px;
+    opacity: 0.2;
+  }
+  
+  .list-item-content {
+    gap: 0.35rem;
+  }
+  
+  .list-item-name {
+    font-size: 0.75rem;
+  }
+  
+  .list-item-btn {
+    font-size: 0.75rem;
+  }
+  
+  .empty-state-modern span {
+    font-size: 1.5rem;
+  }
+  
+  .action-buttons {
+    flex-direction: row;
+    width: 100%;
+  }
+  
+  .header-action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .dropdown-toggle {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .dropdown-label {
+    font-size: 0.8rem;
+  }
+  
+  .stat-card.glass .stat-hover {
+    display: none;
   }
 }
 
 @media (max-width: 400px) {
-  .kpi-grid {
-    gap: 0.5rem;
+  .stall-table-header-revenue,
+  .menu-table-header-revenue {
+    min-width: 40px;
   }
-  .kpi-card {
-    min-height: 60px;
-    padding: 0.5rem;
-    border-radius: 10px;
+  
+  .stall-table-header-status,
+  .menu-table-header-status {
+    min-width: 50px;
   }
-  .kpi-card .kpi-value {
-    font-size: 1rem;
+  
+  .stall-table-revenue,
+  .menu-table-revenue {
+    min-width: 40px;
+    font-size: 0.65rem;
   }
-  .kpi-card .kpi-value-topstall {
-    font-size: 1rem !important;
+  
+  .stall-table-status,
+  .menu-table-status {
+    min-width: 50px;
   }
-  .kpi-card .kpi-icon {
-    font-size: 1.2rem;
-  }
-  .kpi-card .sparkline-container {
-    height: 20px;
+  
+  .status-indicator {
+    font-size: 0.45rem;
+    padding: 0.05rem 0.2rem;
   }
 }
 
@@ -5689,991 +5947,5 @@ async loadStallPerformance() {
 .stall-breakdown-bar-wrapper { flex: 1.5; min-width: 60px; display: flex; align-items: center; }
 .stall-breakdown-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .stall-breakdown-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE                         */
-/* ============================================ */
-@media (max-width: 600px) {
-  .stall-breakdown-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
-  .stall-breakdown-header-name { min-width: 50px; }
-  .stall-breakdown-header-revenue { min-width: 60px; }
-  .stall-breakdown-header-quantity { min-width: 50px; }
-  .stall-breakdown-header-bar { min-width: 40px; }
-  .stall-breakdown-item { gap: 0.3rem; padding: 0.3rem 0.3rem; flex-wrap: wrap; }
-  .stall-breakdown-name { min-width: 50px; font-size: 0.75rem; flex: 1; }
-  .stall-breakdown-revenue { min-width: 60px; font-size: 0.75rem; }
-  .stall-breakdown-quantity { min-width: 50px; font-size: 0.75rem; }
-  .stall-breakdown-bar-wrapper { min-width: 40px; flex: 1; width: 100%; }
-  
-  .stall-performance-table-container,
-  .menu-performance-table-container { max-height: 320px; padding: 0.25rem; }
-  
-  .stall-table-header,
-  .menu-table-header { gap: 0.3rem; padding: 0.2rem 0.3rem; font-size: 0.5rem; }
-  .stall-table-header-rank,
-  .menu-table-header-rank { min-width: 30px; }
-  .stall-table-header-revenue,
-  .menu-table-header-revenue { min-width: 50px; }
-  .stall-table-header-status,
-  .menu-table-header-status { min-width: 60px; }
-  .stall-table-header-details,
-  .menu-table-header-details { min-width: 30px; }
-  
-  .stall-table-row,
-  .menu-table-row { gap: 0.3rem; padding: 0.25rem 0.3rem; }
-  .stall-table-rank,
-  .menu-table-rank { min-width: 30px; }
-  .rank-number { width: 22px; height: 22px; font-size: 0.6rem; }
-  .stall-table-name,
-  .menu-table-name { min-width: 50px; }
-  .stall-name-text,
-  .menu-name-text { font-size: 0.7rem; }
-  .stall-table-revenue,
-  .menu-table-revenue { min-width: 50px; font-size: 0.7rem; }
-  .stall-table-status,
-  .menu-table-status { min-width: 60px; }
-  .status-indicator { font-size: 0.5rem; padding: 0.05rem 0.3rem; gap: 0.15rem; }
-  .stall-table-details,
-  .menu-table-details { min-width: 30px; font-size: 0.7rem; }
-}
-
-@media (max-width: 400px) {
-  .stall-table-header-revenue,
-  .menu-table-header-revenue { min-width: 40px; }
-  .stall-table-header-status,
-  .menu-table-header-status { min-width: 50px; }
-  .stall-table-revenue,
-  .menu-table-revenue { min-width: 40px; font-size: 0.65rem; }
-  .stall-table-status,
-  .menu-table-status { min-width: 50px; }
-  .status-indicator { font-size: 0.45rem; padding: 0.05rem 0.2rem; }
-}
-
-/* ============================================ */
-/* RESPONSIVE - GENERAL                         */
-/* ============================================ */
-@media (max-width: 768px) {
-  .controls-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  .tab-dropdown,
-  .period-dropdown-wrapper {
-    min-width: unset;
-    width: 100%;
-  }
-  .action-buttons {
-    margin-left: 0;
-    justify-content: center;
-  }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); }
-  .stat-card { padding: 0.75rem; }
-  .stat-number { font-size: 1.1rem; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .kpi-value { font-size: 1.1rem; }
-  .echarts-container { height: 200px; }
-  .chart-wrapper { min-height: 200px; }
-  .chart-modern-body { padding: 0.75rem; }
-  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
-  .chart-modern-stat-value { font-size: 0.8rem; }
-  .filter-bar { flex-direction: column; }
-  .filter-search { min-width: unset; }
-  .filter-select { min-width: unset; }
-  .inventory-items-grid { grid-template-columns: 1fr; }
-  .inventory-stall-header { flex-direction: column; align-items: flex-start; }
-  .modal-form-row { grid-template-columns: 1fr; }
-  .modal-modern { width: 95%; }
-  .chart-modern-nav-label { min-width: 60px; font-size: 0.6rem; }
-  .assignment-header { flex-direction: column; align-items: stretch; }
-  .assignment-count { margin-right: 0; text-align: center; }
-  .assignment-item-label { font-size: 0.8rem; }
-}
-
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .stat-card { padding: 0.5rem; flex-direction: column; text-align: center; gap: 0.25rem; }
-  .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
-  .stat-number { font-size: 0.95rem; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .kpi-card { padding: 0.5rem; }
-  .kpi-value { font-size: 0.95rem; }
-  .echarts-container { height: 160px; }
-  .chart-wrapper { min-height: 160px; }
-  .chart-modern-stats { grid-template-columns: repeat(2, 1fr); gap: 0.25rem; padding: 0.35rem; }
-  .chart-modern-stat { padding: 0.15rem; }
-  .chart-modern-stat-value { font-size: 0.75rem; }
-  .chart-modern-stat-label { font-size: 0.5rem; }
-  .chart-modern-nav-label { min-width: 50px; font-size: 0.55rem; }
-  .list-item-content { gap: 0.35rem; }
-  .list-item-name { font-size: 0.75rem; }
-  .list-item-btn { font-size: 0.75rem; }
-  .empty-state-modern span { font-size: 1.5rem; }
-  .action-buttons { flex-direction: row; width: 100%; }
-  .header-action-btn { flex: 1; justify-content: center; }
-  .dropdown-toggle { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
-  .dropdown-label { font-size: 0.8rem; }
-}
-
-/* ============================================ */
-/* MAIN STATS - MATCH KPI STATS EXACTLY        */
-/* ============================================ */
-
-/* ✅ Match icon size exactly */
-.stat-card.glass .stat-icon {
-  font-size: 2rem;
-  width: auto;
-  height: auto;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  margin-bottom: 0.15rem;
-  display: block;
-}
-
-/* ✅ Match number size exactly */
-.stat-card.glass .stat-number {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  margin: 0.05rem 0;
-}
-
-/* ✅ Match label size exactly */
-.stat-card.glass .stat-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  margin-top: 0.05rem;
-}
-
-/* ============================================ */
-/* MAIN STATS - MATCH KPI STATS EXACTLY        */
-/* ============================================ */
-
-/* ✅ Match icon size exactly */
-.stat-card.glass .stat-icon {
-  font-size: 2rem;
-  width: auto;
-  height: auto;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  margin-bottom: 0.15rem;
-  display: block;
-}
-
-/* ✅ Match number size exactly */
-.stat-card.glass .stat-number {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  margin: 0.05rem 0;
-}
-
-/* ✅ Match label size exactly */
-.stat-card.glass .stat-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  margin-top: 0.05rem;
-}
-
-/* ✅ Make breakdown text bigger */
-.stat-card.glass .stat-breakdown {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.15rem;
-  font-size: 0.75rem;  /* ← Bigger */
-}
-
-.stat-card.glass .stat-breakdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  font-weight: 500;
-}
-
-.stat-card.glass .stat-breakdown-item.active {
-  color: #10b981;
-}
-
-.stat-card.glass .stat-breakdown-item.inactive {
-  color: var(--text-tertiary);
-  opacity: 0.6;
-}
-
-.stat-card.glass .stat-breakdown-divider {
-  color: var(--text-tertiary);
-  opacity: 0.3;
-  font-size: 0.5rem;
-}
-
-/* ✅ Make sub-label text bigger */
-.stat-card.glass .stat-sub-label {
-  display: block;
-  font-size: 0.65rem;  /* ← Bigger */
-  color: var(--text-tertiary);
-  font-weight: 400;
-  margin-top: 0.05rem;
-  opacity: 0.7;
-}
-
-/* ============================================ */
-/* KPI STATS - MATCH MAIN STATS SUBTEXT        */
-/* ============================================ */
-
-/* ✅ Match subtext (change/trend) to Main Stats breakdown */
-.kpi-card .kpi-change {
-  font-size: 0.75rem;  /* ← Match Main Stats breakdown (was 0.6rem) */
-  font-weight: 600;
-  margin-top: 0.1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-}
-
-/* ✅ Match trend label to Main Stats sub-label */
-.kpi-card .kpi-trend-label {
-  font-size: 0.65rem;  /* ← Match Main Stats sub-label (was 0.5rem) */
-  font-weight: 500;
-  margin-top: 0.05rem;
-  opacity: 0.7;
-}
-
-/* ✅ Match status badge to Main Stats sub-label */
-.kpi-card .kpi-status-badge {
-  font-size: 0.65rem;  /* ← Match Main Stats sub-label (was 0.6rem) */
-  font-weight: 600;
-  padding: 0.05rem 0.5rem;
-  border-radius: 20px;
-  margin-top: 0.1rem;
-  display: inline-block;
-}
-
-/* ✅ Ensure icon matches exactly */
-.kpi-card .kpi-icon {
-  font-size: 2rem;  /* ← Already matching */
-  margin-bottom: 0.15rem;  /* ← Match Main Stats spacing */
-  display: block;
-}
-
-/* ✅ Ensure value matches exactly */
-.kpi-card .kpi-value {
-  font-size: 1.8rem;  /* ← Already matching */
-  font-weight: 700;
-  color: var(--text);
-  margin: 0.05rem 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-/* ✅ Ensure label matches exactly */
-.kpi-card .kpi-label {
-  font-size: 0.7rem;  /* ← Already matching */
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  margin-top: 0.05rem;
-}
-
-/* ============================================ */
-/* KPI CARDS - COMPLETE FIX                    */
-/* ============================================ */
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-/* ✅ FIX: Consistent card sizing and alignment */
-.kpi-card {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 1.25rem 1rem;
-  border: 2px solid var(--border);  /* ← Stronger border */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  min-height: 140px;  /* ← Fixed height for alignment */
-  
-  /* ✅ FIX: Use flexbox for perfect alignment */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;  /* ← Start from top for consistency */
-  
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* ✅ FIX: Hover effect - only border change, no transform */
-.kpi-card:hover {
-  border-color: var(--kpi-color, var(--primary));
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-/* ✅ FIX: Clickable cards */
-.kpi-card.clickable {
-  cursor: pointer;
-}
-
-.kpi-card.clickable:hover {
-  border-color: var(--kpi-color);
-  box-shadow: 0 4px 16px var(--kpi-color-alpha);
-}
-
-/* ✅ FIX: Highlight card (Top Stall) */
-.kpi-card.highlight {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
-  border-color: rgba(245, 158, 11, 0.3);  /* ← Stronger border */
-}
-
-.kpi-card.highlight:hover {
-  border-color: #f59e0b;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
-}
-
-/* ✅ FIX: Icon alignment - ALL icons same size and alignment */
-.kpi-card .kpi-icon {
-  font-size: 2rem;
-  margin-bottom: 0.15rem;
-  display: block;
-  line-height: 1;  /* ← Fix emoji baseline issues */
-  height: 2.2rem;  /* ← Fixed height for alignment */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ FIX: Value alignment - ALL values same size and alignment */
-.kpi-card .kpi-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0.05rem 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  min-height: 2.4rem;  /* ← Fixed height for alignment */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ FIX: Top Stall value - EXACTLY the same as other values */
-.kpi-card .kpi-value-topstall {
-  font-size: 1.8rem !important;  /* ← SAME as other values */
-  font-weight: 700 !important;   /* ← SAME as other values */
-  color: var(--text) !important; /* ← SAME as other values */
-  letter-spacing: -0.02em !important;
-  line-height: 1.2 !important;
-  min-height: 2.4rem;  /* ← SAME fixed height */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ FIX: Label alignment - ALL labels same size */
-.kpi-card .kpi-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-  margin-top: 0.05rem;
-  min-height: 1.2rem;  /* ← Fixed height for alignment */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ FIX: Change/trend text - consistent size */
-.kpi-card .kpi-change {
-  font-size: 0.6rem;
-  font-weight: 600;
-  margin-top: 0.1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  min-height: 1.5rem;  /* ← Fixed height for alignment */
-}
-
-.kpi-card .kpi-change .trend-icon {
-  font-size: 0.6rem;
-}
-
-.kpi-card .kpi-change.positive {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
-}
-
-.kpi-card .kpi-change.negative {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
-}
-
-.kpi-card .kpi-change.neutral {
-  color: var(--text-secondary);
-  background: var(--background);
-}
-
-/* ✅ FIX: Status badge - consistent size */
-.kpi-card .kpi-status-badge {
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 0.05rem 0.5rem;
-  border-radius: 20px;
-  margin-top: 0.1rem;
-  display: inline-block;
-  min-height: 1.5rem;  /* ← Fixed height for alignment */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ FIX: Trend label - consistent size */
-.kpi-card .kpi-trend-label {
-  font-size: 0.5rem;
-  font-weight: 500;
-  margin-top: 0.05rem;
-  opacity: 0.7;
-  min-height: 1rem;  /* ← Fixed height for alignment */
-}
-
-.kpi-card .kpi-trend-label.positive {
-  color: #10b981;
-}
-
-.kpi-card .kpi-trend-label.negative {
-  color: #ef4444;
-}
-
-.kpi-card .kpi-trend-label.neutral {
-  color: var(--text-tertiary);
-}
-
-/* ✅ FIX: Status badge colors */
-.kpi-card .kpi-status-badge.excellent {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.kpi-card .kpi-status-badge.good {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.kpi-card .kpi-status-badge.average {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.kpi-card .kpi-status-badge.poor {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.kpi-card .kpi-status-badge.no-sales {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.kpi-card .kpi-status-badge.neutral {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-/* ✅ FIX: Sparkline container - consistent position */
-.kpi-card .sparkline-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 35px;
-  opacity: 0.4;
-}
-
-.kpi-card .sparkline-container svg {
-  width: 100%;
-  height: 100%;
-}
-
-.kpi-card .sparkline-container .sparkline-line {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.kpi-card .sparkline-container .sparkline-area {
-  opacity: 0.3;
-}
-
-/* ============================================ */
-/* KPI CARDS - RESPONSIVE FIXES                */
-/* ============================================ */
-
-/* ✅ Tablet: Reduce card height and font sizes */
-@media (max-width: 1024px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);  /* 2 columns on tablet */
-    gap: 1rem;
-  }
-  
-  .kpi-card {
-    min-height: 120px;  /* ← Reduced from 140px */
-    padding: 1rem;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1.6rem;
-    height: 1.8rem;  /* ← Reduced from 2.2rem */
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 1.5rem;  /* ← Reduced from 1.8rem */
-    min-height: 2rem;  /* ← Reduced from 2.4rem */
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.65rem;  /* ← Reduced from 0.7rem */
-    min-height: 1rem;  /* ← Reduced from 1.2rem */
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.55rem;  /* ← Reduced from 0.6rem */
-    min-height: 1.2rem;  /* ← Reduced from 1.5rem */
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.55rem;  /* ← Reduced from 0.6rem */
-    min-height: 1.2rem;  /* ← Reduced from 1.5rem */
-  }
-  
-  .kpi-card .kpi-trend-label {
-    font-size: 0.45rem;  /* ← Reduced from 0.5rem */
-    min-height: 0.8rem;  /* ← Reduced from 1rem */
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 30px;  /* ← Reduced from 35px */
-  }
-}
-
-/* ✅ Mobile: Further reduce card height and font sizes */
-@media (max-width: 600px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);  /* Keep 2 columns */
-    gap: 0.75rem;
-  }
-  
-  .kpi-card {
-    min-height: 100px;  /* ← Reduced from 120px */
-    padding: 0.75rem;
-    border-radius: 12px;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1.2rem;
-    height: 1.4rem;  /* ← Reduced from 1.8rem */
-    margin-bottom: 0.1rem;
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 1.1rem;  /* ← Reduced from 1.5rem */
-    min-height: 1.5rem;  /* ← Reduced from 2rem */
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.55rem;  /* ← Reduced from 0.65rem */
-    min-height: 0.8rem;  /* ← Reduced from 1rem */
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.5rem;  /* ← Reduced from 0.55rem */
-    min-height: 1rem;  /* ← Reduced from 1.2rem */
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.5rem;  /* ← Reduced from 0.55rem */
-    min-height: 1rem;  /* ← Reduced from 1.2rem */
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .kpi-card .kpi-trend-label {
-    display: none;  /* ← Hide on mobile to save space */
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 25px;  /* ← Reduced from 30px */
-    opacity: 0.3;
-  }
-}
-
-/* ✅ Small phones: Single column */
-@media (max-width: 400px) {
-  .kpi-grid {
-    grid-template-columns: 1fr 1fr;  /* Keep 2 columns on small phones */
-    gap: 0.5rem;
-  }
-  
-  .kpi-card {
-    min-height: 85px;  /* ← Reduced from 100px */
-    padding: 0.5rem;
-    border-radius: 10px;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1rem;
-    height: 1.2rem;
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 0.95rem;  /* ← Reduced from 1.1rem */
-    min-height: 1.2rem;
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.5rem;
-    min-height: 0.7rem;
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.45rem;
-    min-height: 0.8rem;
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.45rem;
-    min-height: 0.8rem;
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 20px;
-    opacity: 0.2;
-  }
-}
-
-/* ============================================ */
-/* KPI CARDS - RESPONSIVE (KEEP HORIZONTAL)    */
-/* ============================================ */
-
-/* ✅ Keep horizontal at all screen sizes */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);  /* ← ALWAYS 4 columns */
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-/* ✅ Responsive: Reduce sizes but keep 4 columns */
-@media (max-width: 1024px) {
-  .kpi-grid {
-    gap: 1rem;
-  }
-  
-  .kpi-card {
-    min-height: 120px;
-    padding: 1rem;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1.6rem;
-    height: 1.8rem;
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 1.5rem;
-    min-height: 2rem;
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.65rem;
-    min-height: 1rem;
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.55rem;
-    min-height: 1.2rem;
-    padding: 0.05rem 0.4rem;
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.55rem;
-    min-height: 1.2rem;
-    padding: 0.05rem 0.4rem;
-  }
-  
-  .kpi-card .kpi-trend-label {
-    font-size: 0.45rem;
-    min-height: 0.8rem;
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 30px;
-  }
-}
-
-/* ✅ Mobile: Keep 4 columns, just smaller */
-@media (max-width: 768px) {
-  .kpi-grid {
-    gap: 0.75rem;
-  }
-  
-  .kpi-card {
-    min-height: 100px;
-    padding: 0.75rem;
-    border-radius: 12px;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1.2rem;
-    height: 1.4rem;
-    margin-bottom: 0.1rem;
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 1.2rem;  /* ← Keep readable */
-    min-height: 1.6rem;
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.6rem;
-    min-height: 0.9rem;
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.5rem;
-    min-height: 1rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.5rem;
-    min-height: 1rem;
-    padding: 0.05rem 0.3rem;
-  }
-  
-  .kpi-card .kpi-trend-label {
-    font-size: 0.4rem;
-    min-height: 0.7rem;
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 25px;
-  }
-}
-
-/* ✅ Small phones: Keep 4 columns, even smaller */
-@media (max-width: 480px) {
-  .kpi-grid {
-    gap: 0.5rem;
-  }
-  
-  .kpi-card {
-    min-height: 85px;
-    padding: 0.5rem;
-    border-radius: 10px;
-  }
-  
-  .kpi-card .kpi-icon {
-    font-size: 1rem;
-    height: 1.2rem;
-    margin-bottom: 0.05rem;
-  }
-  
-  .kpi-card .kpi-value,
-  .kpi-card .kpi-value-topstall {
-    font-size: 0.95rem;  /* ← Still readable */
-    min-height: 1.2rem;
-  }
-  
-  .kpi-card .kpi-label {
-    font-size: 0.5rem;
-    min-height: 0.7rem;
-  }
-  
-  .kpi-card .kpi-change {
-    font-size: 0.4rem;
-    min-height: 0.8rem;
-    padding: 0.05rem 0.2rem;
-  }
-  
-  .kpi-card .kpi-status-badge {
-    font-size: 0.4rem;
-    min-height: 0.8rem;
-    padding: 0.05rem 0.2rem;
-  }
-  
-  .kpi-card .kpi-trend-label {
-    display: none;  /* ← Hide on very small screens */
-  }
-  
-  .kpi-card .sparkline-container {
-    height: 20px;
-    opacity: 0.2;
-  }
-}
-
-/* ============================================ */
-/* KPI CARDS - TOP STALL FONT FIX              */
-/* ============================================ */
-
-/* ✅ FIX: Top Stall value - EXACTLY the same as other values */
-.kpi-card .kpi-value-topstall {
-  font-size: 1.8rem !important;  /* ← SAME as other values */
-  font-weight: 700 !important;   /* ← SAME as other values */
-  color: var(--text) !important; /* ← SAME as other values */
-  letter-spacing: -0.02em !important;
-  line-height: 1.2 !important;
-  min-height: 2.4rem !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ If you want to make it optically match, slightly adjust letter spacing */
-.kpi-card .kpi-value-topstall {
-  letter-spacing: -0.5px !important;  /* ← Makes letters appear more compact */
-}
-
-/* ============================================ */
-/* TOP STALL CARD - MATCH OTHER KPI CARDS      */
-/* ============================================ */
-
-/* ✅ Make Top Stall value match other values */
-.kpi-card .kpi-value-topstall {
-  /* Use the SAME styling as .kpi-value */
-  font-size: 1.8rem !important;
-  font-weight: 700 !important;
-  color: var(--text) !important;
-  letter-spacing: -0.02em !important;
-  line-height: 1.2 !important;
-  min-height: 2.4rem !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ Hide the extra "No sales yet" text when there is revenue */
-.kpi-card .kpi-change.neutral {
-  display: none;  /* Hide empty state if revenue exists */
-}
-
-/* ✅ Only show the neutral text when there are NO sales */
-.kpi-card.highlight .kpi-change.neutral {
-  display: inline-flex;  /* Show only when no revenue */
-}
-
-/* ✅ Adjust badge to match other cards */
-.kpi-card .kpi-status-badge {
-  font-size: 0.6rem;  /* Match other cards */
-  font-weight: 600;
-  padding: 0.05rem 0.5rem;
-  border-radius: 20px;
-  margin-top: 0.1rem;
-  min-height: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ✅ Make the revenue text in Top Stall match other change text */
-.kpi-card.highlight .kpi-change {
-  font-size: 0.6rem;  /* Match other KPI cards */
-  font-weight: 600;
-  margin-top: 0.1rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 12px;
-  min-height: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-/* ✅ Fix the empty state in Top Stall card */
-.kpi-card.highlight .kpi-change:only-child {
-  display: none;  /* Hide when there's no sales */
-}
-
-/* ✅ Remove extra spacing when there are no sales */
-.kpi-card.highlight .kpi-value-topstall:has(+ .kpi-change.neutral) {
-  margin-bottom: 0.5rem;  /* Add spacing when no sales */
-}
-
-/* ============================================ */
-/* FIX: TOP STALL CARD - ALIGN WITH OTHERS     */
-/* ============================================ */
-
-/* ✅ Fix the stall name font - make it match other KPI values */
-.kpi-card .kpi-value-topstall {
-  font-size: 1.8rem !important;
-  font-weight: 700 !important;
-  color: var(--text) !important;
-  line-height: 1.2 !important;
-  min-height: 2.4rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  letter-spacing: -0.02em !important;
-}
-
-/* ✅ Fix the revenue text under Top Stall - match other KPI changes */
-.kpi-card.highlight .kpi-change {
-  font-size: 0.6rem !important;
-  font-weight: 600 !important;
-  min-height: 1.5rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-top: 0.1rem !important;
-  padding: 0.1rem 0.5rem !important;
-  border-radius: 12px !important;
-}
-
-/* ✅ Fix the badge - match other KPI badges */
-.kpi-card.highlight .kpi-status-badge {
-  font-size: 0.6rem !important;
-  font-weight: 600 !important;
-  min-height: 1.5rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-top: 0.1rem !important;
-  padding: 0.05rem 0.5rem !important;
-  border-radius: 20px !important;
-}
-
-/* ✅ Fix icon alignment - match other KPI icons */
-.kpi-card.highlight .kpi-icon {
-  font-size: 2rem !important;
-  height: 2.2rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-bottom: 0.15rem !important;
-}
 
 </style>
