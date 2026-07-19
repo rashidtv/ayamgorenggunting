@@ -2273,20 +2273,10 @@ updateChart() {
     return
   }
   
-  // ✅ FIX: Chart x-axis labels - convert UTC to Malaysia time
+  // ✅ FIX: Use formatShortDate to convert UTC to Malaysia time
   const dates = data.map(d => {
     if (d.label) return d.label
-    if (this.selectedPeriod === 'today') {
-      const date = new Date(d.date)
-      if (!isNaN(date.getTime())) {
-        // ✅ Add 8 hours for Malaysia time
-        const malaysiaTime = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-        const hours = malaysiaTime.getHours()
-        const ampm = hours >= 12 ? 'PM' : 'AM'
-        const hours12 = hours % 12 || 12
-        return `${hours12}:00 ${ampm}`
-      }
-    }
+    // ✅ Call formatShortDate which handles Malaysia time conversion
     return this.formatShortDate(d.date)
   })
   
