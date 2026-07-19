@@ -5814,4 +5814,41 @@ async loadStallPerformance() {
   .dropdown-toggle { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
   .dropdown-label { font-size: 0.8rem; }
 }
+
+/* ============================================ */
+/* MAIN STATS - MATCH KPI STATS EXACTLY        */
+/* ============================================ */
+
+/* ✅ Match icon size exactly */
+.stat-card.glass .stat-icon {
+  font-size: 2rem;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0.15rem;
+  display: block;
+}
+
+/* ✅ Match number size exactly */
+.stat-card.glass .stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0.05rem 0;
+}
+
+/* ✅ Match label size exactly */
+.stat-card.glass .stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.05rem;
+}
+
 </style>
