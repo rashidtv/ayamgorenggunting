@@ -1875,21 +1875,25 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  // ✅ PERMANENT FIX: For Today, show hour grouping
+  // ✅ Use the same UTC parsing as formatShortDate
   if (this.selectedPeriod === 'today') {
     if (day.label) return day.label
-    const date = new Date(day.date)
-    if (isNaN(date.getTime())) return '-'
+    const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!dateParts) return '-';
     
-    // Add 8 hours for Malaysia time
-    const malaysiaTime = date
+    const year = parseInt(dateParts[1]);
+    const month = parseInt(dateParts[2]) - 1;
+    const dayNum = parseInt(dateParts[3]);
+    const hour = parseInt(dateParts[4]);
+    const minute = parseInt(dateParts[5]);
+    const second = parseInt(dateParts[6]);
     
-    // Show as "4:00 PM", "5:00 PM", etc.
-    const hours = malaysiaTime.getHours()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const hours12 = hours % 12 || 12
+    const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
+    const hours = utcDate.getUTCHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
     
-    return `${hours12}:00 ${ampm}`
+    return `${hours12}:00 ${ampm}`;
   }
   
   return this.formatShortDate(day.date) || '-'
@@ -2325,38 +2329,69 @@ updateChart() {
         let formattedDate = dateStr
         
         if (dateStr && !dateStr.includes('W')) {
-          const date = new Date(dateStr)
-          if (!isNaN(date.getTime())) {
-            if (this.selectedPeriod === 'today') {
-              // ✅ Tooltip shows Malaysia time with minutes
-              const malaysiaTime = date
-              const hours = malaysiaTime.getHours()
-              const ampm = hours >= 12 ? 'PM' : 'AM'
-              const hours12 = hours % 12 || 12
-              const minutes = String(malaysiaTime.getMinutes()).padStart(2, '0')
-              formattedDate = `${hours12}:${minutes} ${ampm}`
-            } else if (this.selectedPeriod === 'month') {
-              if (data[index]?.displayLabel) {
-                formattedDate = data[index].displayLabel
-              } else {
-                const weekStart = this.getWeekStart(date)
-                const weekEnd = new Date(weekStart)
-                weekEnd.setDate(weekEnd.getDate() + 6)
-                formattedDate = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`
+          if (this.selectedPeriod === 'today') {
+            // ✅ FIX: Parse UTC date correctly for Malaysia time
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+            if (dateParts) {
+              const year = parseInt(dateParts[1]);
+              const month = parseInt(dateParts[2]) - 1;
+              const dayNum = parseInt(dateParts[3]);
+              const hour = parseInt(dateParts[4]);
+              const minute = parseInt(dateParts[5]);
+              const second = parseInt(dateParts[6]);
+              
+              const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
+              const hours = utcDate.getUTCHours();
+              const ampm = hours >= 12 ? 'PM' : 'AM';
+              const hours12 = hours % 12 || 12;
+              const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+              formattedDate = `${hours12}:${minutes} ${ampm}`;
+            }
+          } else if (this.selectedPeriod === 'month') {
+            // ✅ Show week range for month view
+            if (data[index]?.displayLabel) {
+              formattedDate = data[index].displayLabel
+            } else {
+              const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+              if (dateParts) {
+                const year = parseInt(dateParts[1]);
+                const month = parseInt(dateParts[2]) - 1;
+                const dayNum = parseInt(dateParts[3]);
+                const date = new Date(Date.UTC(year, month, dayNum));
+                const weekStart = this.getWeekStart(date);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                formattedDate = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`;
               }
-            } else if (this.selectedPeriod === 'quarter' || 
-                       this.selectedPeriod === 'halfyear' || 
-                       this.selectedPeriod === 'year') {
+            }
+          } else if (this.selectedPeriod === 'quarter' || 
+                     this.selectedPeriod === 'halfyear' || 
+                     this.selectedPeriod === 'year') {
+            // ✅ Show month and year
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})/);
+            if (dateParts) {
+              const year = parseInt(dateParts[1]);
+              const month = parseInt(dateParts[2]) - 1;
+              const date = new Date(Date.UTC(year, month, 1));
               formattedDate = date.toLocaleDateString('en-MY', { 
                 month: 'short', 
-                year: 'numeric' 
-              })
-            } else {
-              const day = date.getDate()
-              const month = date.toLocaleDateString('en-MY', { month: 'short' })
-              const year = date.getFullYear()
-              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-              formattedDate = `${day}${suffix} ${month} ${year}`
+                year: 'numeric',
+                timeZone: 'UTC'
+              });
+            }
+          } else {
+            // ✅ Default: show full date
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateParts) {
+              const year = parseInt(dateParts[1]);
+              const month = parseInt(dateParts[2]) - 1;
+              const dayNum = parseInt(dateParts[3]);
+              const date = new Date(Date.UTC(year, month, dayNum));
+              const day = date.getUTCDate();
+              const monthName = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+              const yearNum = date.getUTCFullYear();
+              const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10];
+              formattedDate = `${day}${suffix} ${monthName} ${yearNum}`;
             }
           }
         }
@@ -2475,20 +2510,24 @@ getPeakDay() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return ''
   
-  // ✅ For Today, show hour grouping
+  // ✅ Use the same UTC parsing as formatShortDate
   if (this.selectedPeriod === 'today') {
-    const date = new Date(day.date)
-    if (isNaN(date.getTime())) return ''
+    const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!dateParts) return '';
     
-    // Add 8 hours for Malaysia time
-    const malaysiaTime = date
+    const year = parseInt(dateParts[1]);
+    const month = parseInt(dateParts[2]) - 1;
+    const dayNum = parseInt(dateParts[3]);
+    const hour = parseInt(dateParts[4]);
+    const minute = parseInt(dateParts[5]);
+    const second = parseInt(dateParts[6]);
     
-    // Show as "4:00 PM", "5:00 PM", etc.
-    const hours = malaysiaTime.getHours()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const hours12 = hours % 12 || 12
+    const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
+    const hours = utcDate.getUTCHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
     
-    return `${hours12}:00 ${ampm}`
+    return `${hours12}:00 ${ampm}`;
   }
   
   return this.formatShortDate(day.date)
