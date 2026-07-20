@@ -513,43 +513,59 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       // ✅ FIX: For today view, return Malaysia time (UTC+8)
       let dailyRes;
       
-      if (dayRange === 1) {
-        // Today view - return Malaysia time (UTC+8)
-        dailyRes = await pool.query(`
-          SELECT 
-            DATE_TRUNC('hour', created_at + INTERVAL '8 hours') as date,
-            COALESCE(SUM(price), 0) as revenue, 
-            COUNT(*) as items
-          FROM sales
-          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-          GROUP BY DATE_TRUNC('hour', created_at + INTERVAL '8 hours')
-          ORDER BY date
-        `, [stallIds, startDate]);
-      } else if (dayRange === 7) {
-        // Week view - group by day, order by Monday first
-        dailyRes = await pool.query(`
-          SELECT 
-            DATE(created_at) as date, 
-            COALESCE(SUM(price), 0) as revenue, 
-            COUNT(*) as items
-          FROM sales
-          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-          GROUP BY DATE(created_at)
-          ORDER BY date
-        `, [stallIds, startDate]);
-      } else {
-        // Other views - group by day
-        dailyRes = await pool.query(`
-          SELECT 
-            DATE(created_at) as date, 
-            COALESCE(SUM(price), 0) as revenue, 
-            COUNT(*) as items
-          FROM sales
-          WHERE stall_id = ANY($1::int[]) AND created_at >= $2
-          GROUP BY DATE(created_at)
-          ORDER BY date
-        `, [stallIds, startDate]);
-      }
+     if (dayRange === 1) {
+  // Today view - return Malaysia time (UTC+8)
+  dailyRes = await pool.query(`
+    SELECT 
+      DATE_TRUNC('hour', created_at + INTERVAL '8 hours') as date,
+      COALESCE(SUM(price), 0) as revenue, 
+      COUNT(*) as items
+    FROM sales
+    WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+    GROUP BY DATE_TRUNC('hour', created_at + INTERVAL '8 hours')
+    ORDER BY date
+  `, [stallIds, startDate]);
+  
+} else if (dayRange === 7) {
+  // ✅ FIX: Week view - calculate Monday and Sunday of current week
+  const now = new Date();
+  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - daysToMonday);
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  console.log('📊 Week view range:', monday.toISOString(), 'to', sunday.toISOString());
+  
+  // ✅ Query with both start AND end date
+  dailyRes = await pool.query(`
+    SELECT 
+      DATE(created_at) as date, 
+      COALESCE(SUM(price), 0) as revenue, 
+      COUNT(*) as items
+    FROM sales
+    WHERE stall_id = ANY($1::int[]) AND created_at >= $2 AND created_at <= $3
+    GROUP BY DATE(created_at)
+    ORDER BY date
+  `, [stallIds, monday, sunday]);
+  
+} else {
+  // Other views - group by day
+  dailyRes = await pool.query(`
+    SELECT 
+      DATE(created_at) as date, 
+      COALESCE(SUM(price), 0) as revenue, 
+      COUNT(*) as items
+    FROM sales
+    WHERE stall_id = ANY($1::int[]) AND created_at >= $2
+    GROUP BY DATE(created_at)
+    ORDER BY date
+  `, [stallIds, startDate]);
+}
 
       const productRes = await pool.query(`
         SELECT 
