@@ -2013,31 +2013,45 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
+    // ✅ FIX: Parse UTC dates correctly for Malaysia time
     const chartDays = salesData.map(d => {
-      const date = new Date(d.date)
+      // Parse UTC date string
+      const dateParts = d.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+      if (!dateParts) return d.date;
+      
+      const year = parseInt(dateParts[1]);
+      const month = parseInt(dateParts[2]) - 1;
+      const dayNum = parseInt(dateParts[3]);
+      const hour = parseInt(dateParts[4]);
+      const minute = parseInt(dateParts[5]);
+      const second = parseInt(dateParts[6]);
+      
+      const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
+      
       if (period === 'today') {
-        return date.toLocaleTimeString('en-MY', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'Asia/Kuala_Lumpur'
-        })
+        // ✅ Show Malaysia time (UTC+8)
+        const hours = utcDate.getUTCHours();
+        const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12;
+        return `${hours12}:${minutes} ${ampm}`;
       }
       if (period === 'week') {
-        return date.toLocaleDateString('en-MY', { 
+        return utcDate.toLocaleDateString('en-MY', { 
           weekday: 'short',
-          timeZone: 'Asia/Kuala_Lumpur'
-        })
+          timeZone: 'UTC'
+        });
       }
       if (period === 'month') {
-        return date.toLocaleDateString('en-MY', { 
+        return utcDate.toLocaleDateString('en-MY', { 
           day: 'numeric',
-          timeZone: 'Asia/Kuala_Lumpur'
-        })
+          timeZone: 'UTC'
+        });
       }
-      return date.toLocaleDateString('en-MY', { 
+      return utcDate.toLocaleDateString('en-MY', { 
         month: 'short',
-        timeZone: 'Asia/Kuala_Lumpur'
-      })
+        timeZone: 'UTC'
+      });
     })
     
     const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
