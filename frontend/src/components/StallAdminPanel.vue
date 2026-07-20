@@ -2937,6 +2937,42 @@ async loadSalesAnalytics() {
       console.log('📊 After hourly split:', dailySales.length, 'records')
     }
     
+    // ✅ DYNAMIC FIX: For week view, filter to current week only
+    if (this.selectedPeriod === 'week') {
+      // ✅ Get current date in UTC
+      const now = new Date();
+      
+      // ✅ Calculate the day of the week (0 = Sunday, 1 = Monday, ...)
+      const dayOfWeek = now.getUTCDay();
+      
+      // ✅ Calculate days to Monday (1 = Monday)
+      // If today is Sunday (0), go back 6 days to Monday
+      // Otherwise, go back (dayOfWeek - 1) days
+      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+      
+      // ✅ Calculate Monday of current week
+      const monday = new Date(now);
+      monday.setUTCDate(now.getUTCDate() - daysToMonday);
+      monday.setUTCHours(0, 0, 0, 0);
+      
+      // ✅ Calculate Sunday of current week (Monday + 6 days)
+      const sunday = new Date(monday);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
+      sunday.setUTCHours(23, 59, 59, 999);
+      
+      console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString());
+      
+      // ✅ Filter sales to only include dates within this week
+      dailySales = dailySales.filter(day => {
+        const date = new Date(day.date);
+        // Compare using UTC timestamps
+        const timestamp = date.getTime();
+        return timestamp >= monday.getTime() && timestamp <= sunday.getTime();
+      });
+      
+      console.log('📊 Filtered to current week:', dailySales.length, 'records');
+    }
+    
     // For month view - group by week
     if (this.selectedPeriod === 'month') {
       dailySales = this.groupSalesByWeek(dailySales)
