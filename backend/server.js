@@ -46,13 +46,14 @@ function getDateRange(days, period = null) {
   return { startDate, endDate, type: 'other', label: `${dayRange} days` };
 }
 
-function buildDateCondition(dateRange, paramStart) {
+function buildDateCondition(dateRange, paramStart, tableAlias = 'sales') {
   const { startDate, endDate } = dateRange;
   
   const start = startDate ? startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const end = endDate ? endDate.toISOString() : new Date().toISOString();
   
-  const condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
+  // ✅ QUALIFY the column with table alias
+  const condition = `${tableAlias}.created_at >= $${paramStart} AND ${tableAlias}.created_at <= $${paramStart + 1}`;
   const params = [start, end];
   
   return { condition, params };
@@ -549,31 +550,31 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build query with consistent date filtering
+      // ✅ Build query with consistent date filtering - QUALIFY column names
       let dailyQuery = `
         SELECT 
-          DATE(created_at) as date, 
-          COALESCE(SUM(price), 0) as revenue, 
+          DATE(sales.created_at) as date, 
+          COALESCE(SUM(sales.price), 0) as revenue, 
           COUNT(*) as items
         FROM sales
-        WHERE stall_id = ANY($1::int[])
+        WHERE sales.stall_id = ANY($1::int[])
       `;
       
       let productQuery = `
         SELECT 
-          item_name, 
+          sales.item_name, 
           COUNT(*) as quantity,
-          COALESCE(SUM(price), 0) as revenue
+          COALESCE(SUM(sales.price), 0) as revenue
         FROM sales
-        WHERE stall_id = ANY($1::int[])
+        WHERE sales.stall_id = ANY($1::int[])
       `;
       
       let totalQuery = `
         SELECT 
-          COALESCE(SUM(price), 0) as total_revenue,
+          COALESCE(SUM(sales.price), 0) as total_revenue,
           COUNT(*) as total_items
         FROM sales
-        WHERE stall_id = ANY($1::int[])
+        WHERE sales.stall_id = ANY($1::int[])
       `;
       
       let topStallQuery = `
@@ -588,16 +589,16 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering using helper
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering using helper - QUALIFY column
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       dailyQuery += ` AND ${condition}`;
       productQuery += ` AND ${condition}`;
       totalQuery += ` AND ${condition}`;
       topStallQuery += ` AND ${condition}`;
       params.push(...dateParams);
       
-      dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-      productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
+      dailyQuery += ` GROUP BY DATE(sales.created_at) ORDER BY date`;
+      productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
       topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
       
       const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
@@ -646,31 +647,31 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Same queries for stall admin
+    // ✅ Same queries for stall admin - QUALIFY column names
     let dailyQuery = `
       SELECT 
-        DATE(created_at) as date, 
-        COALESCE(SUM(price), 0) as revenue, 
+        DATE(sales.created_at) as date, 
+        COALESCE(SUM(sales.price), 0) as revenue, 
         COUNT(*) as items
       FROM sales
-      WHERE stall_id = ANY($1::int[])
+      WHERE sales.stall_id = ANY($1::int[])
     `;
     
     let productQuery = `
       SELECT 
-        item_name, 
+        sales.item_name, 
         COUNT(*) as quantity,
-        COALESCE(SUM(price), 0) as revenue
+        COALESCE(SUM(sales.price), 0) as revenue
       FROM sales
-      WHERE stall_id = ANY($1::int[])
+      WHERE sales.stall_id = ANY($1::int[])
     `;
     
     let totalQuery = `
       SELECT 
-        COALESCE(SUM(price), 0) as total_revenue,
+        COALESCE(SUM(sales.price), 0) as total_revenue,
         COUNT(*) as total_items
       FROM sales
-      WHERE stall_id = ANY($1::int[])
+      WHERE sales.stall_id = ANY($1::int[])
     `;
     
     let topStallQuery = `
@@ -685,16 +686,16 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     const params2 = [stallIds];
     let paramCount2 = 2;
     
-    // ✅ Add date filtering using helper
-    const { condition: condition2, params: dateParams2 } = buildDateCondition(dateRange, paramCount2);
+    // ✅ Add date filtering using helper - QUALIFY column
+    const { condition: condition2, params: dateParams2 } = buildDateCondition(dateRange, paramCount2, 'sales');
     dailyQuery += ` AND ${condition2}`;
     productQuery += ` AND ${condition2}`;
     totalQuery += ` AND ${condition2}`;
     topStallQuery += ` AND ${condition2}`;
     params2.push(...dateParams2);
     
-    dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-    productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
+    dailyQuery += ` GROUP BY DATE(sales.created_at) ORDER BY date`;
+    productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
     topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
     
     const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
@@ -2061,8 +2062,8 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [itemName, stallIds];
       let paramCount = 3;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with s.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 's');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
@@ -2091,8 +2092,8 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [targetStallId];
       let paramCount = 2;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
@@ -2127,8 +2128,8 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [companyId];
       let paramCount = 2;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
@@ -2164,8 +2165,8 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
     const params = [stallIds];
     let paramCount = 2;
     
-    // ✅ Add date filtering
-    const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+    // ✅ Add date filtering - QUALIFY with sales.
+    const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
     query += ` AND (${condition})`;
     params.push(...dateParams);
     
@@ -2207,7 +2208,7 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
         }
       }
       
-      // ✅ Build query with consistent date filtering
+      // ✅ Build query with consistent date filtering - QUALIFY column names
       let query = `
         SELECT 
           s.id,
@@ -2226,14 +2227,14 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       params.push(ids);
       paramCount++;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       conditions.push(`(${condition})`);
       params.push(...dateParams);
       
       query += ` WHERE ${conditions.join(' AND ')}`;
       query += ` GROUP BY s.id, s.name, s.is_active`;
-      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`; // ✅ Only stalls with revenue
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`;
       query += ` ORDER BY revenue DESC`;
       
       const result = await pool.query(query, params);
@@ -2268,8 +2269,8 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       params.push(targetStallId);
       paramCount++;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       conditions.push(`(${condition})`);
       params.push(...dateParams);
       
@@ -2314,8 +2315,8 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [companyId];
       let paramCount = 2;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
@@ -2353,8 +2354,8 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
@@ -2392,8 +2393,8 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [stallId];
       let paramCount = 2;
       
-      // ✅ Add date filtering
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      // ✅ Add date filtering - QUALIFY with sales.
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
