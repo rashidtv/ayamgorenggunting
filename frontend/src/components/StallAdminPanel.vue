@@ -2817,7 +2817,7 @@ async loadData() {
     console.log('🔄 Loading stall admin data...')
     
     // ✅ Clear previous data when loading new period
-    if (this.selectedPeriod === 'today') {
+    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
       this.stallPerformance = []
       this.menuPerformance = []
       this.salesTrend = []
@@ -3053,47 +3053,31 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ FIX: For week view, filter to current week only
-    if (this.selectedPeriod === 'week') {
-      // Calculate current week range (Monday-Sunday)
-      const now = new Date();
-      const dayOfWeek = now.getUTCDay();
-      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
-      
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysToMonday);
-      monday.setUTCHours(0, 0, 0, 0);
-      
-      const sunday = new Date(monday);
-      sunday.setUTCDate(monday.getUTCDate() + 6);
-      sunday.setUTCHours(23, 59, 59, 999);
-      
-      // Filter stalls to only include those with revenue within current week
-      // Since the API might return aggregated data, we need to filter based on the date
-      // But the stall-performance API might not return dates per stall
-      // So we use the salesTrend data which is already filtered for current week
-      
-      // If salesTrend has data for current week, use it to filter
-      if (this.salesTrend && this.salesTrend.length > 0) {
-        const weekRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0);
-        const weekItems = this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0);
-        
-        // If total revenue for week is 0, clear stall performance
-        if (weekRevenue === 0 && weekItems === 0) {
-          this.stallPerformance = [];
-          console.log('✅ Stall performance loaded: 0 (no sales this week)');
-          return;
-        }
-      } else {
-        // If no salesTrend data, clear stall performance
-        this.stallPerformance = [];
-        console.log('✅ Stall performance loaded: 0 (no sales data)');
-        return;
-      }
+    // ✅ CRITICAL FIX: Check if salesTrend has data for this period
+    const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
+    const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
+    const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
+    
+    // ✅ If no sales for this period, clear stall performance
+    if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
+      this.stallPerformance = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      console.log('✅ Stall performance loaded: 0 (no sales for this period)')
+      return
     }
     
-    // ✅ For today: Only keep stalls with revenue > 0
+    // ✅ For today view: Only keep stalls with revenue > 0
     if (this.selectedPeriod === 'today') {
+      stallData = stallData.filter(stall => {
+        const revenue = parseFloat(stall.revenue) || 0
+        const items = parseInt(stall.items) || 0
+        return revenue > 0 || items > 0
+      })
+    }
+    
+    // ✅ For week view: Only keep stalls with revenue > 0
+    if (this.selectedPeriod === 'week') {
       stallData = stallData.filter(stall => {
         const revenue = parseFloat(stall.revenue) || 0
         const items = parseInt(stall.items) || 0
