@@ -2896,6 +2896,126 @@ async loadData() {
   }
 },
 
+async loadSalesAnalytics() {
+  try {
+    const days = this.selectedPeriod === 'today' ? 0 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.customDays || 30
+    const apiDays = this.selectedPeriod === 'today' ? 1 : days
+    
+    console.log('📊 Loading sales analytics for days:', apiDays, 'period:', this.selectedPeriod)
+    
+    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    console.log('📊 Sales analytics response:', res.data)
+    
+    const data = res.data || {}
+    
+    let dailySales = (data.dailySales || []).map(day => ({
+      ...day,
+      items: parseInt(day.items) || 0,
+      revenue: parseFloat(day.revenue) || 0
+    }))
+    
+    console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
+    
+    // ✅ FOR TODAY: Split into hourly buckets
+    if (this.selectedPeriod === 'today') {
+      dailySales = this.splitTodayIntoHours(dailySales)
+      console.log('📊 After hourly split:', dailySales.length, 'records')
+    }
+    
+    // ✅ FOR WEEK: Filter to current week only (Monday-Sunday)
+    if (this.selectedPeriod === 'week') {
+      const now = new Date();
+      const dayOfWeek = now.getUTCDay();
+      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+      
+      const monday = new Date(now);
+      monday.setUTCDate(now.getUTCDate() - daysToMonday);
+      monday.setUTCHours(0, 0, 0, 0);
+      
+      const sunday = new Date(monday);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
+      sunday.setUTCHours(23, 59, 59, 999);
+      
+      console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString());
+      
+      dailySales = dailySales.filter(day => {
+        const date = new Date(day.date);
+        const timestamp = date.getTime();
+        return timestamp >= monday.getTime() && timestamp <= sunday.getTime();
+      });
+      
+      console.log('📊 Filtered to current week:', dailySales.length, 'records');
+    }
+    
+    // For month view - group by week
+    if (this.selectedPeriod === 'month') {
+      dailySales = this.groupSalesByWeek(dailySales)
+    } 
+    else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
+      dailySales = this.groupSalesByMonth(dailySales)
+    } 
+    else if (this.selectedPeriod === 'year') {
+      dailySales = this.groupSalesByMonth(dailySales)
+    } 
+    else if (this.selectedPeriod === 'custom') {
+      dailySales = this.groupSalesCustom(dailySales)
+    }
+    
+    this.salesTrend = dailySales
+    
+    console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
+    
+    // Calculate totals
+    const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
+    
+    console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
+    
+    this.consolidatedSales.totalItems = totalItems
+    this.consolidatedSales.totalRevenue = totalRevenue
+    this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+      totalRevenue / this.stalls.length : 0
+    
+    if (data.topStall && data.topStall !== '-') {
+      this.consolidatedSales.topStall = data.topStall
+      this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+    } else {
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+    }
+    
+    this.productSales = data.productSales || {}
+    await this.loadMenuPerformance()
+    
+    if (this.salesTrend.length > 0) {
+      this.$nextTick(() => {
+        this.initChart()
+        this.updateChart()
+      })
+    }
+    
+    console.log('✅ Sales analytics loaded successfully')
+    
+  } catch (err) {
+    console.error('❌ Failed to load sales analytics:', err)
+    this.salesTrend = []
+    this.consolidatedSales.totalItems = 0
+    this.consolidatedSales.totalRevenue = 0
+    this.consolidatedSales.topStall = '-'
+    this.consolidatedSales.topRevenue = 0
+    this.productSales = {}
+  }
+},
+
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
