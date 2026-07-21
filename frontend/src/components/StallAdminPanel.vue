@@ -1755,14 +1755,17 @@ formatShortDate(dateStr) {
     const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return dateStr;
     
-    // ✅ Use the parsed hour directly (already in UTC)
-    const hour = parseInt(dateParts[4]);
+    // ✅ Extract UTC hour directly from the string
+    const hour = parseInt(dateParts[4]); // UTC hour (0-23)
     
-    // ✅ Malaysia is UTC+8
-    const malaysiaHour = (hour + 8) % 24;
+    // ✅ Convert to Malaysia time (UTC+8)
+    let malaysiaHour = hour + 8;
+    if (malaysiaHour >= 24) malaysiaHour -= 24;
+    
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     
+    // ✅ Show the hour with ":00" for consistent display
     return `${hours12}:00 ${ampm}`;
   }
   
