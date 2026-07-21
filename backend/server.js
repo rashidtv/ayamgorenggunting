@@ -8,62 +8,6 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// ============================================
-// DATE RANGE HELPER - Simplified & Robust
-// ============================================
-function getDateRange(days, period = null) {
-  const dayRange = parseInt(days) || 7;
-  
-  // TODAY
-  if (dayRange === 1 || period === 'today') {
-    const now = new Date();
-    const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-    malaysiaToday.setHours(0, 0, 0, 0);
-    const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-    const endDate = new Date(startDate);
-    endDate.setUTCHours(23, 59, 59, 999);
-    return { startDate, endDate, type: 'today', label: 'Today' };
-  }
-  
-  // WEEK
-  if (dayRange === 7 || period === 'week') {
-    const now = new Date();
-    const currentDay = now.getUTCDay();
-    const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - daysToMonday);
-    monday.setUTCHours(0, 0, 0, 0);
-    const sunday = new Date(monday);
-    sunday.setUTCDate(monday.getUTCDate() + 6);
-    sunday.setUTCHours(23, 59, 59, 999);
-    return { startDate: monday, endDate: sunday, type: 'week', label: 'Week' };
-  }
-  
-  // OTHER (month, quarter, halfyear, year, custom)
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - dayRange);
-  const endDate = new Date();
-  return { startDate, endDate, type: 'other', label: `${dayRange} days` };
-}
-
-// Helper to build date conditions for SQL queries
-function buildDateCondition(dateRange, paramStart) {
-  const { startDate, endDate, type } = dateRange;
-  
-  let condition = '';
-  let params = [];
-  
-  if (type === 'today' || type === 'week') {
-    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
-    params = [startDate.toISOString(), endDate ? endDate.toISOString() : startDate.toISOString()];
-  } else {
-    // ✅ FIX: Always use 2 parameters
-    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
-    params = [startDate.toISOString(), new Date().toISOString()];
-  }
-  
-  return { condition, params };
-}
 
 // Email service
 const {
