@@ -1749,23 +1749,19 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
+  // ✅ For today, show Malaysia time (UTC+8)
   if (this.selectedPeriod === 'today') {
-    // ✅ Parse the date string as UTC using regex
     const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return dateStr;
     
-    // ✅ Extract UTC hour directly from the string
-    const hour = parseInt(dateParts[4]); // UTC hour (0-23)
-    
-    // ✅ Convert to Malaysia time (UTC+8)
+    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    const hour = parseInt(dateParts[4]);
     let malaysiaHour = hour + 8;
     if (malaysiaHour >= 24) malaysiaHour -= 24;
     
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     
-    // ✅ Show the hour with ":00" for consistent display
     return `${hours12}:00 ${ampm}`;
   }
   
@@ -1861,23 +1857,18 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  // ✅ Use the same UTC parsing as formatShortDate
   if (this.selectedPeriod === 'today') {
     if (day.label) return day.label
     const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return '-';
     
-    const year = parseInt(dateParts[1]);
-    const month = parseInt(dateParts[2]) - 1;
-    const dayNum = parseInt(dateParts[3]);
+    // ✅ Extract UTC hour and add 8 hours for Malaysia
     const hour = parseInt(dateParts[4]);
-    const minute = parseInt(dateParts[5]);
-    const second = parseInt(dateParts[6]);
+    let malaysiaHour = hour + 8;
+    if (malaysiaHour >= 24) malaysiaHour -= 24;
     
-    const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
-    const hours = utcDate.getUTCHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
+    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
+    const hours12 = malaysiaHour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
@@ -2329,25 +2320,21 @@ updateChart() {
         let formattedDate = dateStr
         
         if (dateStr && !dateStr.includes('W')) {
-          if (this.selectedPeriod === 'today') {
-            // ✅ FIX: Parse UTC date correctly for Malaysia time
-            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-            if (dateParts) {
-              const year = parseInt(dateParts[1]);
-              const month = parseInt(dateParts[2]) - 1;
-              const dayNum = parseInt(dateParts[3]);
-              const hour = parseInt(dateParts[4]);
-              const minute = parseInt(dateParts[5]);
-              const second = parseInt(dateParts[6]);
-              
-              const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
-              const hours = utcDate.getUTCHours();
-              const ampm = hours >= 12 ? 'PM' : 'AM';
-              const hours12 = hours % 12 || 12;
-              const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
-              formattedDate = `${hours12}:${minutes} ${ampm}`;
-            }
-          } else if (this.selectedPeriod === 'month') {
+         // Inside updateChart() - tooltip formatter
+if (this.selectedPeriod === 'today') {
+  const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  if (dateParts) {
+    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    const hour = parseInt(dateParts[4]);
+    let malaysiaHour = hour + 8;
+    if (malaysiaHour >= 24) malaysiaHour -= 24;
+    
+    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
+    const hours12 = malaysiaHour % 12 || 12;
+    const minutes = String(parseInt(dateParts[5])).padStart(2, '0');
+    formattedDate = `${hours12}:${minutes} ${ampm}`;
+  }
+} else if (this.selectedPeriod === 'month') {
             // ✅ Show week range for month view
             if (data[index]?.displayLabel) {
               formattedDate = data[index].displayLabel
@@ -2510,22 +2497,17 @@ getPeakDay() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return ''
   
-  // ✅ Use the same UTC parsing as formatShortDate
   if (this.selectedPeriod === 'today') {
     const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return '';
     
-    const year = parseInt(dateParts[1]);
-    const month = parseInt(dateParts[2]) - 1;
-    const dayNum = parseInt(dateParts[3]);
+    // ✅ Extract UTC hour and add 8 hours for Malaysia
     const hour = parseInt(dateParts[4]);
-    const minute = parseInt(dateParts[5]);
-    const second = parseInt(dateParts[6]);
+    let malaysiaHour = hour + 8;
+    if (malaysiaHour >= 24) malaysiaHour -= 24;
     
-    const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
-    const hours = utcDate.getUTCHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
+    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
+    const hours12 = malaysiaHour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
