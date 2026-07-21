@@ -1830,7 +1830,7 @@ export default {
     this.$emit('show-notification', `Reset ${updated} low stock items to alert levels`, 'success')
     await this.loadAllStallsInventory()
   }
-}
+},
 
       // ✅ Pagination - Go to previous page
   prevPage() {
