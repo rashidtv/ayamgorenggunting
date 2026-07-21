@@ -468,57 +468,45 @@ app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
 
 app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
   try {
-    const { stallId, days, startDate: reqStartDate, endDate: reqEndDate } = req.query;
+    const { stallId, days } = req.query;
     let targetStallId = stallId ? parseInt(stallId) : null;
-    
-    // ============================================================
-    // ✅ NEW: Handle exact date range (for week view)
-    // ============================================================
-    let startDate, endDate;
+    let dayRange = days ? parseInt(days) : 7;
+
+    let startDate;
+    let endDate;
     let useDateRange = false;
     
-    if (reqStartDate && reqEndDate) {
-      // Use exact date range provided by frontend
-      startDate = new Date(reqStartDate);
-      endDate = new Date(reqEndDate);
+    // ============================================================
+    // ✅ FIX: Only change the week (days=7) logic
+    // ============================================================
+    if (dayRange === 7) {
+      // Calculate Monday-Sunday of current week in UTC
+      const now = new Date();
+      const currentDay = now.getUTCDay();
+      const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
+      
+      const monday = new Date(now);
+      monday.setUTCDate(now.getUTCDate() - daysToMonday);
+      monday.setUTCHours(0, 0, 0, 0);
+      
+      const sunday = new Date(monday);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
+      sunday.setUTCHours(23, 59, 59, 999);
+      
+      startDate = monday;
+      endDate = sunday;
       useDateRange = true;
-      console.log('📊 Using exact date range:', startDate.toISOString(), 'to', endDate.toISOString());
+      console.log('📊 Week range (UTC):', startDate.toISOString(), 'to', endDate.toISOString());
+    } else if (dayRange === 1) {
+      // Today view - keep existing logic
+      const now = new Date();
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+      malaysiaToday.setHours(0, 0, 0, 0);
+      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
     } else {
-      // ============================================================
-      // OLD: Fall back to days parameter (backward compatible)
-      // ============================================================
-      let dayRange = days ? parseInt(days) : 7;
-      
-      if (dayRange === 1) {
-        // Today view - calculate Malaysia date in UTC
-        const now = new Date();
-        const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-        malaysiaToday.setHours(0, 0, 0, 0);
-        startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-      } else {
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - dayRange);
-      }
-      
-      // For week view with days=7, calculate exact Monday-Sunday
-      if (dayRange === 7) {
-        const now = new Date();
-        const currentDay = now.getUTCDay();
-        const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-        
-        const monday = new Date(now);
-        monday.setUTCDate(now.getUTCDate() - daysToMonday);
-        monday.setUTCHours(0, 0, 0, 0);
-        
-        const sunday = new Date(monday);
-        sunday.setUTCDate(monday.getUTCDate() + 6);
-        sunday.setUTCHours(23, 59, 59, 999);
-        
-        startDate = monday;
-        endDate = sunday;
-        useDateRange = true;
-        console.log('📊 Week range (UTC):', startDate.toISOString(), 'to', endDate.toISOString());
-      }
+      // Other views - keep existing logic
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - dayRange);
     }
 
     // ============================================================
@@ -583,7 +571,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering if we have a date range
+      // ✅ FIX: Always have a valid date condition
       if (useDateRange && startDate && endDate) {
         const dateCondition = ` AND created_at >= $${paramCount} AND created_at <= $${paramCount + 1}`;
         dailyQuery += dateCondition;
@@ -591,7 +579,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         totalQuery += dateCondition;
         topStallQuery += dateCondition;
         params.push(startDate.toISOString(), endDate.toISOString());
-        paramCount += 2;
       } else if (startDate) {
         const dateCondition = ` AND created_at >= $${paramCount}`;
         dailyQuery += dateCondition;
@@ -599,7 +586,16 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         totalQuery += dateCondition;
         topStallQuery += dateCondition;
         params.push(startDate.toISOString());
-        paramCount += 1;
+      } else {
+        // ✅ FALLBACK: If no date condition, use last 7 days
+        const fallbackDate = new Date();
+        fallbackDate.setDate(fallbackDate.getDate() - 7);
+        const dateCondition = ` AND created_at >= $${paramCount}`;
+        dailyQuery += dateCondition;
+        productQuery += dateCondition;
+        totalQuery += dateCondition;
+        topStallQuery += dateCondition;
+        params.push(fallbackDate.toISOString());
       }
       
       dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
@@ -632,7 +628,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     }
 
     // ============================================================
-    // STALL ADMIN / CASHIER
+    // STALL ADMIN / CASHIER - SAME FIX APPLIED
     // ============================================================
     let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
     
@@ -652,7 +648,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Build queries with date filtering (same as above)
+    // ✅ Build queries with date filtering (same pattern)
     let dailyQuery = `
       SELECT 
         DATE(created_at) as date, 
@@ -698,7 +694,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       totalQuery += dateCondition;
       topStallQuery += dateCondition;
       params2.push(startDate.toISOString(), endDate.toISOString());
-      paramCount2 += 2;
     } else if (startDate) {
       const dateCondition = ` AND created_at >= $${paramCount2}`;
       dailyQuery += dateCondition;
@@ -706,7 +701,16 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       totalQuery += dateCondition;
       topStallQuery += dateCondition;
       params2.push(startDate.toISOString());
-      paramCount2 += 1;
+    } else {
+      // ✅ FALLBACK
+      const fallbackDate = new Date();
+      fallbackDate.setDate(fallbackDate.getDate() - 7);
+      const dateCondition = ` AND created_at >= $${paramCount2}`;
+      dailyQuery += dateCondition;
+      productQuery += dateCondition;
+      totalQuery += dateCondition;
+      topStallQuery += dateCondition;
+      params2.push(fallbackDate.toISOString());
     }
     
     dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
