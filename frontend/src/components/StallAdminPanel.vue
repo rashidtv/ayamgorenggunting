@@ -2812,26 +2812,20 @@ async loadData() {
   try {
     console.log('🔄 Loading stall admin data...')
     
-    // ✅ Clear previous data when loading new period
-    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-      this.stallPerformance = []
-      this.menuPerformance = []
-      this.salesTrend = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      this.consolidatedSales.totalRevenue = 0
-      this.consolidatedSales.totalItems = 0
-    }
-    
+    // ✅ Step 1: Load stalls (needed for everything)
     await this.loadStalls()
+    
+    // ✅ Step 2: Load sales analytics FIRST (critical)
+    await this.loadSalesAnalytics()
+    
+    // ✅ Step 3: Load everything else in parallel
     await Promise.all([
       this.loadUsers(),
       this.loadLowStock(),
-      this.loadSalesAnalytics(),
-      this.loadStallPerformance(),
+      this.loadStallPerformance(),  // Now has salesTrend data
       this.loadMenuItems()
     ])
-    await this.loadAllStallsInventory()
+    
     this.resetChartNavigation()
     this.$emit('show-notification', 'Data refreshed', 'success')
   } catch (err) {
@@ -3026,6 +3020,7 @@ async loadStallPerformance() {
     const stallIds = this.stalls.map(s => s.id)
     if (!stallIds || stallIds.length === 0) {
       this.stallPerformance = []
+      console.log('✅ Stall performance loaded: 0 (no stalls)')
       return
     }
     
@@ -3038,22 +3033,7 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ CRITICAL: Check if salesTrend has data for this period
-    const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
-    const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
-    const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
-    
-    // ✅ If no sales for this period, clear everything
-    if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
-      this.stallPerformance = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      console.log('✅ Stall performance loaded: 0 (no sales for this period)')
-      return
-    }
-    
-    // ✅ Filter stalls to only include those with revenue > 0
-    // This works for both today and week view
+    // ✅ Filter to only stalls with sales
     stallData = stallData.filter(stall => {
       const revenue = parseFloat(stall.revenue) || 0
       const items = parseInt(stall.items) || 0
@@ -3062,24 +3042,17 @@ async loadStallPerformance() {
     
     this.stallPerformance = stallData
     
-    // ✅ Update top stall based on filtered data
+    // ✅ Update top stall from stall data
     if (stallData.length > 0) {
-      let topStall = null
-      let maxRevenue = 0
-      for (const stall of stallData) {
+      let topStall = stallData.reduce((max, stall) => {
         const revenue = parseFloat(stall.revenue) || 0
-        if (revenue > maxRevenue) {
-          maxRevenue = revenue
-          topStall = stall
-        }
-      }
-      if (topStall && maxRevenue > 0) {
+        return revenue > (parseFloat(max.revenue) || 0) ? stall : max
+      }, stallData[0])
+      
+      if (topStall && parseFloat(topStall.revenue) > 0) {
         this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
-        this.consolidatedSales.topRevenue = maxRevenue
+        this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
       }
-    } else {
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
     }
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
