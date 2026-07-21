@@ -4144,7 +4144,7 @@ async loadMenuPerformance() {
       }
     }
   }
-}
+
 </script>
 
 <style scoped>
