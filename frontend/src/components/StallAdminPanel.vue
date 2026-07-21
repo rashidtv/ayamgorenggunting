@@ -1862,11 +1862,9 @@ getBestDayName() {
     const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return '-';
     
-    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
     const hour = parseInt(dateParts[4]);
-    let malaysiaHour = hour + 8;
-    if (malaysiaHour >= 24) malaysiaHour -= 24;
-    
+    const malaysiaHour = (hour + 8) % 24;
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     
@@ -2324,11 +2322,9 @@ updateChart() {
 if (this.selectedPeriod === 'today') {
   const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
   if (dateParts) {
-    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
     const hour = parseInt(dateParts[4]);
-    let malaysiaHour = hour + 8;
-    if (malaysiaHour >= 24) malaysiaHour -= 24;
-    
+    const malaysiaHour = (hour + 8) % 24;
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     const minutes = String(parseInt(dateParts[5])).padStart(2, '0');
@@ -2501,11 +2497,9 @@ getPeakDay() {
     const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return '';
     
-    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
     const hour = parseInt(dateParts[4]);
-    let malaysiaHour = hour + 8;
-    if (malaysiaHour >= 24) malaysiaHour -= 24;
-    
+    const malaysiaHour = (hour + 8) % 24;
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     
