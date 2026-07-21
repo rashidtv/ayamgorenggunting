@@ -465,7 +465,7 @@
         </div>
       </div>
 
-     <!-- ===== INVENTORY TAB ===== -->
+<!-- ===== INVENTORY TAB ===== -->
 <div v-if="activeTab === 'inventory'" class="tab-panel">
   <div class="card-modern">
     <div class="card-modern-header">
@@ -487,7 +487,7 @@
     </div>
     <div class="card-modern-body">
       
-      <!-- ✅ Stats Cards -->
+      <!-- Stats Cards -->
       <div class="inventory-stats-grid">
         <div class="stat-chip">
           <span class="stat-chip-label">Total Stalls</span>
@@ -507,7 +507,7 @@
         </div>
       </div>
 
-      <!-- ✅ Filter Bar -->
+      <!-- Filter Bar -->
       <div class="filter-bar-modern">
         <div class="filter-search">
           <input 
@@ -545,136 +545,138 @@
         </div>
       </div>
 
-    <!-- ✅ Inventory Table with Pagination -->
-<div v-if="stalls.length === 0" class="empty-state-modern">
-  <span>📦</span>
-  <p>No stalls found. Contact your administrator.</p>
-</div>
+      <!-- Inventory Table with Pagination -->
+      <div v-if="stalls.length === 0" class="empty-state-modern">
+        <span>📦</span>
+        <p>No stalls found. Contact your administrator.</p>
+      </div>
 
-<div v-else>
-  <div class="inventory-table-wrapper">
-    <!-- Table Header -->
-    <div class="inventory-table-header">
-      <div class="inventory-table-cell checkbox">
-        <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
-      </div>
-      <div class="inventory-table-cell name">Stall</div>
-      <div class="inventory-table-cell state">State</div>
-      <div class="inventory-table-cell items">Inventory</div>
-      <div class="inventory-table-cell status">Status</div>
-      <div class="inventory-table-cell actions">Actions</div>
-    </div>
+      <div v-else>
+        <div class="inventory-table-wrapper">
+          <!-- Table Header -->
+          <div class="inventory-table-header">
+            <div class="inventory-table-cell checkbox">
+              <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
+            </div>
+            <div class="inventory-table-cell name">Stall</div>
+            <div class="inventory-table-cell state">State</div>
+            <div class="inventory-table-cell items">Inventory</div>
+            <div class="inventory-table-cell status">Status</div>
+            <div class="inventory-table-cell actions">Actions</div>
+          </div>
 
-    <!-- Table Rows - Paginated -->
-    <div 
-      v-for="stall in paginatedStalls" 
-      :key="stall.id" 
-      class="inventory-table-row"
-      :class="{ selected: selectedStalls.includes(stall.id) }"
-    >
-      <div class="inventory-table-cell checkbox">
-        <input 
-          type="checkbox" 
-          :value="stall.id"
-          v-model="selectedStalls"
-        />
-      </div>
-      <div class="inventory-table-cell name">
-        <span class="stall-name">{{ stall.name }}</span>
-        <span class="stall-code">{{ stall.code }}</span>
-      </div>
-      <div class="inventory-table-cell state">
-        {{ stall.state || '-' }}
-      </div>
-      <div class="inventory-table-cell items">
-        <!-- ✅ Show all inventory items inline -->
-        <div 
-          v-for="item in getStallInventorySummary(stall.id)" 
-          :key="item.material_name" 
-          class="inventory-item-inline"
-          :class="{ 'low': item.current_level <= item.alert_level }"
-        >
-          <span class="item-name">{{ item.material_name }}</span>
-          <span class="item-level">{{ item.current_level }}</span>
-          <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
-          <button 
-            @click="quickUpdateItem(stall.id, item.material_name)" 
-            class="btn-icon tiny"
-            title="Quick Update"
+          <!-- Table Rows - Paginated -->
+          <div 
+            v-for="stall in paginatedStalls" 
+            :key="stall.id" 
+            class="inventory-table-row"
+            :class="{ selected: selectedStalls.includes(stall.id) }"
           >
-            ✏️
+            <div class="inventory-table-cell checkbox">
+              <input 
+                type="checkbox" 
+                :value="stall.id"
+                v-model="selectedStalls"
+              />
+            </div>
+            <div class="inventory-table-cell name">
+              <span class="stall-name">{{ stall.name }}</span>
+              <span class="stall-code">{{ stall.code }}</span>
+            </div>
+            <div class="inventory-table-cell state">
+              {{ stall.state || '-' }}
+            </div>
+            <div class="inventory-table-cell items">
+              <div 
+                v-for="item in getStallInventorySummary(stall.id)" 
+                :key="item.material_name" 
+                class="inventory-item-inline"
+                :class="{ 'low': item.current_level <= item.alert_level }"
+              >
+                <span class="item-name">{{ item.material_name }}</span>
+                <span class="item-level">{{ item.current_level }}</span>
+                <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+                <button 
+                  @click="quickUpdateItem(stall.id, item.material_name)" 
+                  class="btn-icon tiny"
+                  title="Quick Update"
+                >
+                  ✏️
+                </button>
+              </div>
+            </div>
+            <div class="inventory-table-cell status">
+              <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+              </span>
+              <span v-if="hasLowStock(stall.id)" class="status-badge low">
+                ⚠️ Low Stock
+              </span>
+            </div>
+            <div class="inventory-table-cell actions">
+              <button @click="quickUpdateStall(stall.id)" class="btn-icon" title="Quick Update">
+                ⚡
+              </button>
+              <button @click="openStallInventoryModal(stall.id)" class="btn-icon" title="Full Edit">
+                📦
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevPage" 
+              class="pagination-btn"
+              :disabled="currentPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ currentPage }} of {{ totalPages }}
+            </span>
+            <button 
+              @click="nextPage" 
+              class="pagination-btn"
+              :disabled="currentPage >= totalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="inventory-quick-actions">
+          <button 
+            @click="openBulkUpdateModal" 
+            class="btn-modern primary"
+            :disabled="selectedStalls.length === 0"
+          >
+            📦 Quick Update Selected ({{ selectedCount }})
+          </button>
+          <button 
+            @click="resetAllLowStock" 
+            class="btn-modern secondary"
+            :disabled="inventoryStats.lowStock === 0"
+          >
+            🔄 Reset All Low Stock to Alert Level
+          </button>
+          <button 
+            @click="exportInventory" 
+            class="btn-modern secondary small"
+          >
+            ⬇ Export
           </button>
         </div>
-      </div>
-      <div class="inventory-table-cell status">
-        <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-          {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-        </span>
-        <span v-if="hasLowStock(stall.id)" class="status-badge low">
-          ⚠️ Low Stock
-        </span>
-      </div>
-      <div class="inventory-table-cell actions">
-        <button @click="quickUpdateStall(stall.id)" class="btn-icon" title="Quick Update">
-          ⚡
-        </button>
-        <button @click="openStallInventoryModal(stall.id)" class="btn-icon" title="Full Edit">
-          📦
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ Pagination Controls -->
-  <div class="pagination-container">
-    <div class="pagination-info">
-      Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
-    </div>
-    <div class="pagination-controls">
-      <button 
-        @click="prevPage" 
-        class="pagination-btn"
-        :disabled="currentPage <= 1"
-      >
-        ◀ Previous
-      </button>
-      <span class="pagination-page">
-        Page {{ currentPage }} of {{ totalPages }}
-      </span>
-      <button 
-        @click="nextPage" 
-        class="pagination-btn"
-        :disabled="currentPage >= totalPages"
-      >
-        Next ▶
-      </button>
-    </div>
-  </div>
-
-  <!-- ✅ Quick Action Buttons -->
-  <div class="inventory-quick-actions">
-    <button 
-      @click="openBulkUpdateModal" 
-      class="btn-modern primary"
-      :disabled="selectedStalls.length === 0"
-    >
-      📦 Quick Update Selected ({{ selectedCount }})
-    </button>
-    <button 
-      @click="resetAllLowStock" 
-      class="btn-modern secondary"
-      :disabled="inventoryStats.lowStock === 0"
-    >
-      🔄 Reset All Low Stock to Alert Level
-    </button>
-    <button 
-      @click="exportInventory" 
-      class="btn-modern secondary small"
-    >
-      ⬇ Export
-    </button>
-  </div>
-</div>
+      </div> <!-- ← THIS CLOSES THE v-else div -->
+    </div> <!-- ← THIS CLOSES card-modern-body -->
+  </div> <!-- ← THIS CLOSES card-modern -->
+</div> <!-- ← THIS CLOSES inventory tab-panel -->
 
 <!-- ===== QUICK UPDATE MODAL ===== -->
 <div v-if="quickUpdateModal" class="modal-overlay" @click.self="quickUpdateModal=false">
