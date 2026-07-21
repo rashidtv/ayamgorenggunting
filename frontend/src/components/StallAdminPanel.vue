@@ -477,12 +477,6 @@
         <button @click="openBulkUpdateModal" class="btn-modern primary" :disabled="selectedStalls.length === 0">
           📦 Bulk Update ({{ selectedCount }})
         </button>
-        <button @click="loadAllStallsInventory()" class="btn-modern secondary small">
-          ⟳ Refresh
-        </button>
-        <button @click="exportInventory" class="btn-modern secondary small">
-          ⬇ Export
-        </button>
       </div>
     </div>
     <div class="card-modern-body">
@@ -651,28 +645,24 @@
         </div>
 
         <!-- Quick Action Buttons -->
-        <div class="inventory-quick-actions">
-          <button 
-            @click="openBulkUpdateModal" 
-            class="btn-modern primary"
-            :disabled="selectedStalls.length === 0"
-          >
-            📦 Quick Update Selected ({{ selectedCount }})
-          </button>
-          <button 
-            @click="resetAllLowStock" 
-            class="btn-modern secondary"
-            :disabled="inventoryStats.lowStock === 0"
-          >
-            🔄 Reset All Low Stock to Alert Level
-          </button>
-          <button 
-            @click="exportInventory" 
-            class="btn-modern secondary small"
-          >
-            ⬇ Export
-          </button>
-        </div>
+       <!-- Quick Action Buttons - Simplified -->
+<div class="inventory-quick-actions">
+  <button 
+    @click="openBulkUpdateModal" 
+    class="btn-modern primary"
+    :disabled="selectedStalls.length === 0"
+  >
+    📦 Update Selected ({{ selectedCount }})
+  </button>
+  <button 
+    @click="resetAllLowStock" 
+    class="btn-modern secondary"
+    :disabled="inventoryStats.lowStock === 0"
+  >
+    🔄 Reset Low Stock
+  </button>
+</div>
+       
       </div> <!-- ← THIS CLOSES THE v-else div -->
     </div> <!-- ← THIS CLOSES card-modern-body -->
   </div> <!-- ← THIS CLOSES card-modern -->
@@ -1772,8 +1762,86 @@ export default {
       }
     },
 
-    methods: {
-  // ... existing methods ...
+  // ✅ Open Quick Update Modal
+  openStallInventoryModal(stallId) {
+    const stall = this.stalls.find(s => s.id === stallId)
+    if (!stall) return
+    
+    this.quickUpdateStallId = stallId
+    this.quickUpdateStallName = stall.name
+    this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
+      ...item,
+      newLevel: item.current_level
+    }))
+    this.quickUpdateModal = true
+  },
+
+  // ✅ Quick Update Individual Item
+  quickUpdateItem(stallId, materialName) {
+    // Open the modal and scroll to the specific item
+    this.openStallInventoryModal(stallId)
+    // After modal opens, find and focus the input for this material
+    this.$nextTick(() => {
+      const input = document.querySelector(`.quick-update-item input`)
+      if (input) input.focus()
+    })
+  },
+
+  // ✅ Quick Update Item Save
+  async quickUpdateItemSave(stallId, materialName, newLevel) {
+    if (newLevel === undefined || newLevel === null || newLevel === '') {
+      this.$emit('show-notification', 'Please enter a valid value', 'error')
+      return
+    }
+    await this.updateInventoryStock(stallId, materialName, newLevel)
+    // Update the item in the modal
+    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+    if (item) {
+      item.current_level = newLevel
+      item.newLevel = newLevel
+    }
+    this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
+  },
+
+  // ✅ Quick Update Item Add
+  async quickUpdateItemAdd(stallId, materialName, amount) {
+    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+    if (item) {
+      const newLevel = item.current_level + amount
+      await this.quickUpdateItemSave(stallId, materialName, newLevel)
+    }
+  },
+
+  // ✅ Quick Update Save All
+  async quickUpdateSaveAll() {
+    for (const item of this.quickUpdateItems) {
+      if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+        await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
+      }
+    }
+    this.$emit('show-notification', 'All items updated successfully!', 'success')
+    this.quickUpdateModal = false
+    await this.loadAllStallsInventory()
+  },
+
+  // ✅ Reset All Low Stock
+  async resetAllLowStock() {
+    if (!confirm('Reset all low stock items to their alert levels?')) return
+    
+    let updated = 0
+    for (const stall of this.filteredInventoryStalls) {
+      const inventory = this.getStallInventory(stall.id)
+      for (const item of inventory) {
+        if (item.current_level <= item.alert_level) {
+          await this.updateInventoryStock(stall.id, item.material_name, item.alert_level)
+          updated++
+        }
+      }
+    }
+    this.$emit('show-notification', `Reset ${updated} low stock items to alert levels`, 'success')
+    await this.loadAllStallsInventory()
+  }
+},
   
   // ✅ Open Quick Update Modal
   openStallInventoryModal(stallId) {
