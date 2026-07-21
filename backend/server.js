@@ -17,11 +17,18 @@ function getDateRange(days, period = null) {
   // TODAY
   if (dayRange === 1 || period === 'today') {
     const now = new Date();
+    // Get today's date in Malaysia time
     const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
     malaysiaToday.setHours(0, 0, 0, 0);
+    
+    // ✅ Convert to UTC for database query
     const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
+    
+    // ✅ End date is start of tomorrow (UTC) minus 1 millisecond
     const endDate = new Date(startDate);
-    endDate.setUTCHours(23, 59, 59, 999);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    endDate.setUTCMilliseconds(-1);
+    
     return { startDate, endDate, type: 'today', label: 'Today' };
   }
   
