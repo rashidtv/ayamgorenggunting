@@ -2331,29 +2331,34 @@ groupSalesByWeek(dailySales) {
 },
 
     groupSalesByMonth(dailySales) {
-      if (!dailySales || dailySales.length === 0) return []
-      const grouped = {}
-      dailySales.forEach(day => {
-        const date = new Date(day.date)
-        const month = date.getMonth()
-        const year = date.getFullYear()
-        const key = `${year}-${month}`
-        if (!grouped[key]) {
-          const monthName = date.toLocaleDateString('en-MY', { month: 'short' })
-          grouped[key] = {
-            date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
-            label: monthName,
-            revenue: 0,
-            items: 0,
-            month: month,
-            year: year
-          }
-        }
-        grouped[key].revenue += day.revenue || 0
-        grouped[key].items += day.items || 0
+  if (!dailySales || dailySales.length === 0) return []
+  const grouped = {}
+  dailySales.forEach(day => {
+    const date = new Date(day.date)
+    const month = date.getMonth()
+    const year = date.getFullYear()
+    const key = `${year}-${month}`
+    if (!grouped[key]) {
+      // ✅ Add year to the label
+      const label = date.toLocaleDateString('en-MY', { 
+        month: 'short', 
+        year: 'numeric',
+        timeZone: 'UTC'
       })
-      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-    },
+      grouped[key] = {
+        date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+        label: label,  // ✅ Month + Year
+        revenue: 0,
+        items: 0,
+        month: month,
+        year: year
+      }
+    }
+    grouped[key].revenue += day.revenue || 0
+    grouped[key].items += day.items || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
 
     groupSalesCustom(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
