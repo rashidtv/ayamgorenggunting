@@ -3046,7 +3046,7 @@ async loadStallPerformance() {
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
-    // ✅ API now returns only stalls with revenue > 0
+    // ✅ API now returns only stalls with revenue > 0 (backend handles filtering)
     this.stallPerformance = res.data || []
     
     // ✅ Update top stall from stall data (not from salesTrend)
@@ -3054,10 +3054,8 @@ async loadStallPerformance() {
       const topStall = this.stallPerformance[0] // Already sorted by revenue
       this.consolidatedSales.topStall = topStall.name || '-'
       this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
-    } else {
-      // If no stall performance data, don't override top stall from salesTrend
-      // Keep whatever was set by loadSalesAnalytics
     }
+    // If no stall performance data, keep whatever was set by loadSalesAnalytics
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
   } catch (err) {
