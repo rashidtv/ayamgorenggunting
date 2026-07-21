@@ -1413,6 +1413,132 @@ export default {
   },
 
   methods: {
+
+// =============================================
+// STALL DETAIL CHART - GROUPING HELPERS
+// =============================================
+
+groupSalesData(salesData, grouping, period) {
+  if (!salesData || salesData.length === 0) return []
+  
+  if (grouping === 'hour') {
+    return this.groupByHour(salesData)
+  } else if (grouping === 'day') {
+    return this.groupByDay(salesData)
+  } else if (grouping === 'week') {
+    return this.groupByWeek(salesData)
+  } else if (grouping === 'month') {
+    return this.groupByMonth(salesData)
+  }
+  return salesData
+},
+
+groupByHour(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const hour = date.getUTCHours()
+    const key = date.toISOString().split('T')[0] + 'T' + String(hour).padStart(2, '0') + ':00:00.000Z'
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByDay(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const key = date.toISOString().split('T')[0] + 'T00:00:00.000Z'
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByWeek(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const weekStart = this.getWeekStart(date)
+    const key = weekStart.toISOString()
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByMonth(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+// =============================================
+// STALL DETAIL CHART - LABEL FORMATTING
+// =============================================
+
+formatHourLabel(dateStr) {
+  const date = new Date(dateStr)
+  const hour = date.getUTCHours()
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const hours12 = hour % 12 || 12
+  return `${hours12}:00 ${ampm}`
+},
+
+formatDayLabel(dateStr) {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-MY', { 
+    weekday: 'short', 
+    day: 'numeric', 
+    month: 'short',
+    timeZone: 'UTC'
+  })
+},
+
+formatWeekRangeLabel(dateStr) {
+  const date = new Date(dateStr)
+  const weekStart = this.getWeekStart(date)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+  return `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+},
+
+formatMonthLabel(dateStr) {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-MY', { 
+    month: 'short',
+    timeZone: 'UTC'
+  })
+},
+
+getWeekStart(date) {
+  const d = new Date(date)
+  const day = d.getUTCDay()
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1)
+  const weekStart = new Date(d)
+  weekStart.setUTCDate(diff)
+  weekStart.setUTCHours(0, 0, 0, 0)
+  return weekStart
+},
+
     // =============================================
     // TAB NAVIGATION WITH SUB-TAB
     // =============================================
@@ -1963,12 +2089,28 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'year' ? 365 :
                this.customDays || 30
 
+  // ✅ Determine grouping based on period
+  let grouping;
+  let dateFormat;
+
+  if (period === 'today') {
+    grouping = 'hour';
+  } else if (period === 'week') {
+    grouping = 'day';
+  } else if (period === 'month') {
+    grouping = 'week';
+  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+    grouping = 'month';
+  } else {
+    grouping = 'day'; // default
+  }
+
   axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
     const data = response.data || {}
-    const salesData = data.dailySales || []
+    let salesData = data.dailySales || []
 
     if (!salesData || salesData.length === 0) {
       const option = {
@@ -1984,49 +2126,57 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
-    // ✅ FIX: Parse UTC dates correctly for Malaysia time
-    const chartDays = salesData.map(d => {
-      // Parse UTC date string
-      const dateParts = d.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-      if (!dateParts) return d.date;
-      
-      const year = parseInt(dateParts[1]);
-      const month = parseInt(dateParts[2]) - 1;
-      const dayNum = parseInt(dateParts[3]);
-      const hour = parseInt(dateParts[4]);
-      const minute = parseInt(dateParts[5]);
-      const second = parseInt(dateParts[6]);
-      
-      const utcDate = new Date(Date.UTC(year, month, dayNum, hour, minute, second));
-      
+    // ✅ Group data based on the selected period
+    let groupedData = this.groupSalesData(salesData, grouping, period)
+    
+    // ✅ Format labels based on grouping
+    const chartLabels = groupedData.map(item => {
       if (period === 'today') {
-        // ✅ Show Malaysia time (UTC+8)
-        const hours = utcDate.getUTCHours();
-        const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const hours12 = hours % 12 || 12;
-        return `${hours12}:${minutes} ${ampm}`;
+        return this.formatHourLabel(item.date)
+      } else if (period === 'week') {
+        return this.formatDayLabel(item.date)
+      } else if (period === 'month') {
+        return this.formatWeekRangeLabel(item.date)
+      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+        return this.formatMonthLabel(item.date)
       }
-      if (period === 'week') {
-        return utcDate.toLocaleDateString('en-MY', { 
-          weekday: 'short',
-          timeZone: 'UTC'
-        });
-      }
-      if (period === 'month') {
-        return utcDate.toLocaleDateString('en-MY', { 
-          day: 'numeric',
-          timeZone: 'UTC'
-        });
-      }
-      return utcDate.toLocaleDateString('en-MY', { 
-        month: 'short',
-        timeZone: 'UTC'
-      });
+      return item.label || item.date
     })
     
-    const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-    const items = salesData.map(d => parseInt(d.items) || 0)
+    const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
+    const items = groupedData.map(d => parseInt(d.items) || 0)
+
+    // ✅ Build tooltip formatter based on period
+    const tooltipFormatter = (params) => {
+      const index = params[0]?.dataIndex || 0
+      const revenue = parseFloat(revenues[index]) || 0
+      const itemsCount = parseInt(items[index]) || 0
+      const dateLabel = chartLabels[index] || ''
+      
+      let tooltipLabel = dateLabel
+      
+      // ✅ Add date range for week view tooltip
+      if (period === 'week' && groupedData[index]) {
+        const fullDate = new Date(groupedData[index].date)
+        tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric',
+          timeZone: 'UTC'
+        })
+      }
+      
+      return `
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${tooltipLabel}</div>
+        <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+          RM ${revenue.toFixed(2)}
+        </div>
+        <div style="font-size:11px;color:#64748b;">
+          ${itemsCount} items sold
+        </div>
+      `
+    }
 
     const option = {
       tooltip: {
@@ -2036,21 +2186,7 @@ initStallDetailChart(stallId, period = 'week') {
         borderWidth: 1,
         padding: [8, 12],
         textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
-        formatter: function(params) {
-          const index = params[0]?.dataIndex || 0
-          const revenue = parseFloat(revenues[index]) || 0
-          const itemsCount = parseInt(items[index]) || 0
-          const dateLabel = chartDays[index] || ''
-          return `
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${dateLabel}</div>
-            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-              RM ${revenue.toFixed(2)}
-            </div>
-            <div style="font-size:11px;color:#64748b;">
-              ${itemsCount} items sold
-            </div>
-          `
-        }
+        formatter: tooltipFormatter
       },
       grid: {
         left: '3%',
@@ -2061,13 +2197,13 @@ initStallDetailChart(stallId, period = 'week') {
       },
       xAxis: {
         type: 'category',
-        data: chartDays,
+        data: chartLabels,
         axisLine: { lineStyle: { color: '#e2e8f0' } },
         axisLabel: { 
           color: '#94a3b8', 
           fontSize: 11,
           fontWeight: 500,
-          rotate: period === 'today' || period === 'month' ? 30 : 0
+          rotate: (period === 'today' || period === 'month') && chartLabels.length > 7 ? 30 : 0
         }
       },
       yAxis: {
