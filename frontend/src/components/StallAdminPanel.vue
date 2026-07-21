@@ -2306,27 +2306,26 @@ updateChart() {
       borderWidth: 1,
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-      formatter: function(params) {
-        const index = params[0]?.dataIndex || 0
-        const revenue = data[index]?.revenue || 0
-        const itemsCount = data[index]?.items || 0
-        const dateStr = data[index]?.date || data[index]?.label || ''
-        let formattedDate = dateStr
-        
-        if (dateStr && !dateStr.includes('W')) {
-         // Inside updateChart() - tooltip formatter
-if (this.selectedPeriod === 'today') {
-  const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-  if (dateParts) {
-    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
-    const hour = parseInt(dateParts[4]);
-    const malaysiaHour = (hour + 8) % 24;
-    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
-    const hours12 = malaysiaHour % 12 || 12;
-    const minutes = String(parseInt(dateParts[5])).padStart(2, '0');
-    formattedDate = `${hours12}:${minutes} ${ampm}`;
-  }
-} else if (this.selectedPeriod === 'month') {
+formatter: function(params) {
+  const index = params[0]?.dataIndex || 0
+  const revenue = data[index]?.revenue || 0
+  const itemsCount = data[index]?.items || 0
+  const dateStr = data[index]?.date || data[index]?.label || ''
+  let formattedDate = dateStr
+  
+  if (dateStr && !dateStr.includes('W')) {
+    if (this.selectedPeriod === 'today') {
+      // ✅ FIXED: Use the hour directly (already in Malaysia time)
+      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+      if (dateParts) {
+        const hour = parseInt(dateParts[4]);
+        const minute = parseInt(dateParts[5]);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hours12 = hour % 12 || 12;
+        const minutes = String(minute).padStart(2, '0');
+        formattedDate = `${hours12}:${minutes} ${ampm}`;
+      }
+    } else if (this.selectedPeriod === 'month') {
             // ✅ Show week range for month view
             if (data[index]?.displayLabel) {
               formattedDate = data[index].displayLabel
