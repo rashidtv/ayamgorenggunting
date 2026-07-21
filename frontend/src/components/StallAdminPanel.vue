@@ -1430,12 +1430,12 @@ export default {
 // TOP STALL HELPERS
 // =============================================
 getTopStallName() {
-  // ✅ PRIMARY: Use consolidatedSales from API (already filtered for current period)
+  // ✅ PRIMARY: Use consolidatedSales (already filtered for current period)
   if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
     return this.consolidatedSales.topStall
   }
   
-  // ✅ SECONDARY: Use salesTrend (already filtered for current period)
+  // ✅ SECONDARY: Use salesTrend
   if (this.salesTrend && this.salesTrend.length > 0) {
     const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
     if (totalRevenue > 0 && this.stalls.length > 0) {
@@ -1443,11 +1443,10 @@ getTopStallName() {
     }
   }
   
-  // ✅ FALLBACK: Try stallPerformance (for periods other than today/week)
+  // ✅ FALLBACK: Use stallPerformance (total data)
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let topStall = null
     let maxRevenue = 0
-    
     for (const stall of this.stallPerformance) {
       const revenue = parseFloat(stall.revenue) || 0
       if (revenue > maxRevenue) {
@@ -1455,7 +1454,6 @@ getTopStallName() {
         topStall = stall
       }
     }
-    
     if (topStall && maxRevenue > 0) {
       return topStall.name || topStall.stall_name || '-'
     }
@@ -1465,27 +1463,25 @@ getTopStallName() {
 },
 
 getTopStallRevenue() {
-  // ✅ PRIMARY: Use consolidatedSales from API (already filtered for current period)
+  // ✅ PRIMARY: Use consolidatedSales (already filtered for current period)
   if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
     return this.consolidatedSales.topRevenue
   }
   
-  // ✅ SECONDARY: Calculate from salesTrend (already filtered for current period)
+  // ✅ SECONDARY: Use salesTrend (already filtered for current period)
   if (this.salesTrend && this.salesTrend.length > 0) {
     return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
   }
   
-  // ✅ FALLBACK: Try stallPerformance (for periods other than today/week)
+  // ✅ FALLBACK: Use stallPerformance (total data)
   if (this.stallPerformance && this.stallPerformance.length > 0) {
     let maxRevenue = 0
-    
     for (const stall of this.stallPerformance) {
       const revenue = parseFloat(stall.revenue) || 0
       if (revenue > maxRevenue) {
         maxRevenue = revenue
       }
     }
-    
     if (maxRevenue > 0) {
       return maxRevenue
     }
@@ -3126,8 +3122,8 @@ async loadMenuPerformance() {
     
     // ✅ For today or week, only show items with revenue > 0
     if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-      const periodItems = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
-      this.menuPerformance = periodItems
+      const periodItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
+      this.menuPerformance = periodItemsList
       console.log(`📊 Menu performance for ${this.selectedPeriod}:`, this.menuPerformance.length, 'items')
       return
     }
