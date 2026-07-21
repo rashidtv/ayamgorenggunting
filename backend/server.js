@@ -557,7 +557,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build query with consistent date filtering - QUALIFY column names
+      // ✅ Build query with Malaysia timezone (UTC+8)
       let dailyQuery = `
         SELECT 
           DATE(sales.created_at + INTERVAL '8 hours') as date, 
@@ -596,7 +596,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering using helper - QUALIFY column
+      // ✅ Add date filtering using helper
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       dailyQuery += ` AND ${condition}`;
       productQuery += ` AND ${condition}`;
@@ -604,7 +604,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       topStallQuery += ` AND ${condition}`;
       params.push(...dateParams);
       
-      dailyQuery += ` GROUP BY DATE(sales.created_at) ORDER BY date`;
+      // ✅ Group by Malaysia date
+      dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
       productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
       topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
       
@@ -654,10 +655,10 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Same queries for stall admin - QUALIFY column names
+    // ✅ Same queries for stall admin with Malaysia timezone
     let dailyQuery = `
       SELECT 
-        DATE(sales.created_at) as date, 
+        DATE(sales.created_at + INTERVAL '8 hours') as date, 
         COALESCE(SUM(sales.price), 0) as revenue, 
         COUNT(*) as items
       FROM sales
@@ -693,7 +694,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     const params2 = [stallIds];
     let paramCount2 = 2;
     
-    // ✅ Add date filtering using helper - QUALIFY column
+    // ✅ Add date filtering using helper
     const { condition: condition2, params: dateParams2 } = buildDateCondition(dateRange, paramCount2, 'sales');
     dailyQuery += ` AND ${condition2}`;
     productQuery += ` AND ${condition2}`;
@@ -701,7 +702,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     topStallQuery += ` AND ${condition2}`;
     params2.push(...dateParams2);
     
-    dailyQuery += ` GROUP BY DATE(sales.created_at) ORDER BY date`;
+    // ✅ Group by Malaysia date
+    dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
     productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
     topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
     
