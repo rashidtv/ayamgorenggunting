@@ -1385,7 +1385,7 @@ export default {
       { label: 'Add +20', value: 'add20' },
       { label: 'Reset to 0', value: '0' }
     ]
-  },
+  }
       
       chartFullscreen: false,
       chartOffset: 0,
