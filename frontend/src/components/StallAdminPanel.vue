@@ -2896,137 +2896,6 @@ async loadData() {
   }
 },
 
-async loadSalesAnalytics() {
-  try {
-    const days = this.selectedPeriod === 'today' ? 0 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 :
-                 this.selectedPeriod === 'halfyear' ? 180 :
-                 this.selectedPeriod === 'year' ? 365 :
-                 this.customDays || 30
-    const apiDays = this.selectedPeriod === 'today' ? 1 : days
-    
-    console.log('📊 Loading sales analytics for days:', apiDays, 'period:', this.selectedPeriod)
-    
-    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    console.log('📊 Sales analytics response:', res.data)
-    
-    const data = res.data || {}
-    
-    let dailySales = (data.dailySales || []).map(day => ({
-      ...day,
-      items: parseInt(day.items) || 0,
-      revenue: parseFloat(day.revenue) || 0
-    }))
-    
-    console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
-    
-    // ✅ FOR TODAY: Split into hourly buckets
-    if (this.selectedPeriod === 'today') {
-      dailySales = this.splitTodayIntoHours(dailySales)
-      console.log('📊 After hourly split:', dailySales.length, 'records')
-    }
-    
-    // ✅ DYNAMIC FIX: For week view, filter to current week only
-    if (this.selectedPeriod === 'week') {
-      // ✅ Get current date in UTC
-      const now = new Date();
-      
-      // ✅ Calculate the day of the week (0 = Sunday, 1 = Monday, ...)
-      const dayOfWeek = now.getUTCDay();
-      
-      // ✅ Calculate days to Monday (1 = Monday)
-      // If today is Sunday (0), go back 6 days to Monday
-      // Otherwise, go back (dayOfWeek - 1) days
-      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
-      
-      // ✅ Calculate Monday of current week
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysToMonday);
-      monday.setUTCHours(0, 0, 0, 0);
-      
-      // ✅ Calculate Sunday of current week (Monday + 6 days)
-      const sunday = new Date(monday);
-      sunday.setUTCDate(monday.getUTCDate() + 6);
-      sunday.setUTCHours(23, 59, 59, 999);
-      
-      console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString());
-      
-      // ✅ Filter sales to only include dates within this week
-      dailySales = dailySales.filter(day => {
-        const date = new Date(day.date);
-        // Compare using UTC timestamps
-        const timestamp = date.getTime();
-        return timestamp >= monday.getTime() && timestamp <= sunday.getTime();
-      });
-      
-      console.log('📊 Filtered to current week:', dailySales.length, 'records');
-    }
-    
-    // For month view - group by week
-    if (this.selectedPeriod === 'month') {
-      dailySales = this.groupSalesByWeek(dailySales)
-    } 
-    else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
-      dailySales = this.groupSalesByMonth(dailySales)
-    } 
-    else if (this.selectedPeriod === 'year') {
-      dailySales = this.groupSalesByMonth(dailySales)
-    } 
-    else if (this.selectedPeriod === 'custom') {
-      dailySales = this.groupSalesCustom(dailySales)
-    }
-    
-    this.salesTrend = dailySales
-    
-    console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
-    
-    // Calculate totals
-    const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
-    const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
-    
-    console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
-    
-    this.consolidatedSales.totalItems = totalItems
-    this.consolidatedSales.totalRevenue = totalRevenue
-    this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-      totalRevenue / this.stalls.length : 0
-    
-    if (data.topStall && data.topStall !== '-') {
-      this.consolidatedSales.topStall = data.topStall
-      this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-    } else {
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-    }
-    
-    this.productSales = data.productSales || {}
-    await this.loadMenuPerformance()
-    
-    if (this.salesTrend.length > 0) {
-      this.$nextTick(() => {
-        this.initChart()
-        this.updateChart()
-      })
-    }
-    
-    console.log('✅ Sales analytics loaded successfully')
-    
-  } catch (err) {
-    console.error('❌ Failed to load sales analytics:', err)
-    this.salesTrend = []
-    this.consolidatedSales.totalItems = 0
-    this.consolidatedSales.totalRevenue = 0
-    this.consolidatedSales.topStall = '-'
-    this.consolidatedSales.topRevenue = 0
-    this.productSales = {}
-  }
-},
-
 async loadStallPerformance() {
   const days = this.selectedPeriod === 'today' ? 0 :
                this.selectedPeriod === 'week' ? 7 :
@@ -3053,45 +2922,49 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ CRITICAL FIX: For week view, filter to only stalls with revenue in current week
-    if (this.selectedPeriod === 'week') {
-      // Check if salesTrend has data for current week
-      if (this.salesTrend && this.salesTrend.length > 0) {
-        const weekRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0);
-        const weekItems = this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0);
-        
-        // If no revenue or items for the week, clear stall performance
-        if (weekRevenue === 0 && weekItems === 0) {
-          this.stallPerformance = [];
-          console.log('✅ Stall performance loaded: 0 (no sales this week)');
-          return;
-        }
-        
-        // ✅ Filter stalls to only include those with revenue > 0
-        // This ensures only stalls that actually sold something this week are shown
-        stallData = stallData.filter(stall => {
-          const revenue = parseFloat(stall.revenue) || 0
-          const items = parseInt(stall.items) || 0
-          return revenue > 0 && items > 0
-        });
-      } else {
-        // If no salesTrend data, clear stall performance
-        this.stallPerformance = [];
-        console.log('✅ Stall performance loaded: 0 (no sales data)');
-        return;
-      }
+    // ✅ CRITICAL: Check if salesTrend has data for this period
+    const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
+    const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
+    const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
+    
+    // ✅ If no sales for this period, clear everything
+    if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
+      this.stallPerformance = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      console.log('✅ Stall performance loaded: 0 (no sales for this period)')
+      return
     }
     
-    // ✅ For today: Only keep stalls with revenue > 0
-    if (this.selectedPeriod === 'today') {
-      stallData = stallData.filter(stall => {
-        const revenue = parseFloat(stall.revenue) || 0
-        const items = parseInt(stall.items) || 0
-        return revenue > 0 || items > 0
-      })
-    }
+    // ✅ Filter stalls to only include those with revenue > 0
+    // This works for both today and week view
+    stallData = stallData.filter(stall => {
+      const revenue = parseFloat(stall.revenue) || 0
+      const items = parseInt(stall.items) || 0
+      return revenue > 0 || items > 0
+    })
     
     this.stallPerformance = stallData
+    
+    // ✅ Update top stall based on filtered data
+    if (stallData.length > 0) {
+      let topStall = null
+      let maxRevenue = 0
+      for (const stall of stallData) {
+        const revenue = parseFloat(stall.revenue) || 0
+        if (revenue > maxRevenue) {
+          maxRevenue = revenue
+          topStall = stall
+        }
+      }
+      if (topStall && maxRevenue > 0) {
+        this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
+        this.consolidatedSales.topRevenue = maxRevenue
+      }
+    } else {
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+    }
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
   } catch (err) {
@@ -3103,6 +2976,18 @@ async loadStallPerformance() {
 async loadMenuPerformance() {
   try {
     const productSales = this.productSales || {}
+    
+    // ✅ Check if there's any data for this period
+    const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
+    const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
+    const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
+    
+    // ✅ If no sales for this period, clear menu performance
+    if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
+      this.menuPerformance = []
+      console.log('📊 Menu performance: 0 items (no sales for this period)')
+      return
+    }
     
     // ✅ Filter items with revenue > 0
     let filteredItems = Object.keys(productSales)
@@ -3119,44 +3004,11 @@ async loadMenuPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ CRITICAL FIX: For week view, filter to only items sold this week
-    if (this.selectedPeriod === 'week') {
-      // Check if salesTrend has data for current week
-      if (this.salesTrend && this.salesTrend.length > 0) {
-        const weekRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0);
-        const weekItems = this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0);
-        
-        // If no revenue or items for the week, clear menu performance
-        if (weekRevenue === 0 && weekItems === 0) {
-          this.menuPerformance = [];
-          console.log('📊 Menu performance for week: 0 items (no sales)');
-          return;
-        }
-        
-        // ✅ Filter to only items with revenue > 0
-        const weekItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0);
-        this.menuPerformance = weekItemsList;
-        console.log('📊 Menu performance for week:', this.menuPerformance.length, 'items');
-        return;
-      } else {
-        // If no salesTrend data, clear menu performance
-        this.menuPerformance = [];
-        console.log('📊 Menu performance for week: 0 items (no sales data)');
-        return;
-      }
-    }
-    
-    // ✅ For today, only show items sold today
-    if (this.selectedPeriod === 'today') {
-      if (Object.keys(productSales).length === 0 || filteredItems.length === 0) {
-        this.menuPerformance = []
-        console.log('📊 Menu performance for today: 0 items (no sales)')
-        return
-      }
-      
-      const todayItems = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
-      this.menuPerformance = todayItems
-      console.log('📊 Menu performance for today:', this.menuPerformance.length, 'items')
+    // ✅ For today or week, only show items with revenue > 0
+    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+      const periodItems = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
+      this.menuPerformance = periodItems
+      console.log(`📊 Menu performance for ${this.selectedPeriod}:`, this.menuPerformance.length, 'items')
       return
     }
     
@@ -3197,18 +3049,7 @@ async loadMenuPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ For today, ensure we only show today's data
-    if (this.selectedPeriod === 'today') {
-      if (menuData.length === 0) {
-        this.menuPerformance = []
-        console.log('📊 Menu performance for today: 0 items (no sales)')
-        return
-      }
-      this.menuPerformance = menuData
-    } else {
-      this.menuPerformance = menuData
-    }
-    
+    this.menuPerformance = menuData
     console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
   } catch (err) {
     console.error('Failed to load menu performance:', err)
