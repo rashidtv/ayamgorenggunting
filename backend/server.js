@@ -14,68 +14,49 @@ require('dotenv').config();
 function getDateRange(days, period = null) {
   const dayRange = parseInt(days) || 7;
   
-  // TODAY view (days=1)
+  // TODAY
   if (dayRange === 1 || period === 'today') {
     const now = new Date();
     const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
     malaysiaToday.setHours(0, 0, 0, 0);
     const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-    // ✅ For today, endDate is same day end
     const endDate = new Date(startDate);
     endDate.setUTCHours(23, 59, 59, 999);
-    return {
-      startDate: startDate,
-      endDate: endDate,
-      type: 'today',
-      label: 'Today'
-    };
+    return { startDate, endDate, type: 'today', label: 'Today' };
   }
   
-  // WEEK view (days=7)
+  // WEEK
   if (dayRange === 7 || period === 'week') {
     const now = new Date();
     const currentDay = now.getUTCDay();
     const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-    
     const monday = new Date(now);
     monday.setUTCDate(now.getUTCDate() - daysToMonday);
     monday.setUTCHours(0, 0, 0, 0);
-    
     const sunday = new Date(monday);
     sunday.setUTCDate(monday.getUTCDate() + 6);
     sunday.setUTCHours(23, 59, 59, 999);
-    
-    return {
-      startDate: monday,
-      endDate: sunday,
-      type: 'week',
-      label: 'Week'
-    };
+    return { startDate: monday, endDate: sunday, type: 'week', label: 'Week' };
   }
   
-  // OTHER views (month, quarter, halfyear, year, custom)
+  // OTHER (month, quarter, halfyear, year, custom)
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - dayRange);
   const endDate = new Date();
-  return {
-    startDate: startDate,
-    endDate: endDate,
-    type: 'other',
-    label: `${dayRange} days`
-  };
+  return { startDate, endDate, type: 'other', label: `${dayRange} days` };
 }
 
 // Helper to build date conditions for SQL queries
 function buildDateCondition(dateRange, paramStart) {
-  const { startDate, endDate } = dateRange;
+  const { startDate, endDate, type } = dateRange;
   
-  // ✅ Always use both start and end for consistency
-  // This avoids the "null" issue
+  // ✅ SAFETY: Always ensure we have valid dates
+  const start = startDate ? startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const end = endDate ? endDate.toISOString() : new Date().toISOString();
+  
+  // ✅ Always use 2 parameters - no conditional logic
   const condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
-  const params = [
-    startDate ? startDate.toISOString() : new Date().toISOString(),
-    endDate ? endDate.toISOString() : new Date().toISOString()
-  ];
+  const params = [start, end];
   
   return { condition, params };
 }
