@@ -1750,22 +1750,16 @@ formatShortDate(dateStr) {
   if (!dateStr) return ''
   
    // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
-  if (this.selectedPeriod === 'today') {
-    // ✅ Parse the date string as UTC using regex
-    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+   if (this.selectedPeriod === 'today') {
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (!dateParts) return dateStr;
     
-    const year = parseInt(dateParts[1]);
-    const month = parseInt(dateParts[2]) - 1;
-    const day = parseInt(dateParts[3]);
-    const hour = parseInt(dateParts[4]);
-    const minute = parseInt(dateParts[5]);
-    const second = parseInt(dateParts[6]);
-    
-    // ✅ Malaysia is UTC+8
-    const malaysiaHour = (hour + 8) % 24;
-    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
-    const hours12 = malaysiaHour % 12 || 12;
+    // ✅ Date is already in Malaysia time from backend
+    // Just format the date
+    const date = new Date(dateStr);
+    const hours = date.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }

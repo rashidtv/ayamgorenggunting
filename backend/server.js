@@ -560,7 +560,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       // ✅ Build query with consistent date filtering - QUALIFY column names
       let dailyQuery = `
         SELECT 
-          DATE(sales.created_at) as date, 
+          DATE(sales.created_at + INTERVAL '8 hours') as date, 
           COALESCE(SUM(sales.price), 0) as revenue, 
           COUNT(*) as items
         FROM sales
@@ -2070,7 +2070,7 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       let paramCount = 3;
       
       // ✅ Add date filtering - QUALIFY with s.
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 's');
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
