@@ -2111,7 +2111,8 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'quarter' ? 90 :
                period === 'halfyear' ? 180 :
                period === 'year' ? 365 :
-               this.customDays || 30
+               period === 'custom' ? this.customDays || 30 :
+               30
 
   // ✅ Determine grouping based on period
   let grouping;
@@ -2125,6 +2126,16 @@ initStallDetailChart(stallId, period = 'week') {
     grouping = 'week';
   } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
     grouping = 'month';
+  } else if (period === 'custom') {
+    // ✅ For custom date range, decide grouping based on number of days
+    const customDays = this.customDays || 30;
+    if (customDays <= 14) {
+      grouping = 'day';
+    } else if (customDays <= 60) {
+      grouping = 'week';
+    } else {
+      grouping = 'month';
+    }
   } else {
     grouping = 'day'; // default
   }
@@ -2153,21 +2164,29 @@ initStallDetailChart(stallId, period = 'week') {
     // ✅ Group data based on the selected period
     let groupedData = this.groupSalesData(salesData, grouping, period)
     
-    // ✅ Format labels based on grouping
-    // When formatting month labels
-const chartLabels = groupedData.map(item => {
-  if (period === 'today') {
-    return this.formatHourLabel(item.date)
-  } else if (period === 'week') {
-    return this.formatDayLabel(item.date)
-  } else if (period === 'month') {
-    return this.formatWeekRangeLabel(item.date)
-  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-    // ✅ Use the label from grouped data (which includes year)
-    return item.label || this.formatMonthLabel(item.date)
-  }
-  return item.label || item.date
-})
+    // ✅ Format labels based on grouping and period
+    const chartLabels = groupedData.map(item => {
+      if (period === 'today') {
+        return this.formatHourLabel(item.date)
+      } else if (period === 'week') {
+        return this.formatDayLabel(item.date)
+      } else if (period === 'month') {
+        return this.formatWeekRangeLabel(item.date)
+      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+        return this.formatMonthLabel(item.date)
+      } else if (period === 'custom') {
+        // ✅ Format based on the grouping
+        const customDays = this.customDays || 30;
+        if (customDays <= 14) {
+          return this.formatDayLabel(item.date)
+        } else if (customDays <= 60) {
+          return this.formatWeekRangeLabel(item.date)
+        } else {
+          return this.formatMonthLabel(item.date)
+        }
+      }
+      return item.label || item.date
+    })
     
     const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
     const items = groupedData.map(d => parseInt(d.items) || 0)
@@ -2181,7 +2200,7 @@ const chartLabels = groupedData.map(item => {
       
       let tooltipLabel = dateLabel
       
-      // ✅ Add date range for week view tooltip
+      // ✅ Add full date for week view tooltip
       if (period === 'week' && groupedData[index]) {
         const fullDate = new Date(groupedData[index].date)
         tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
@@ -2191,6 +2210,33 @@ const chartLabels = groupedData.map(item => {
           year: 'numeric',
           timeZone: 'UTC'
         })
+      }
+      
+      // ✅ For custom view, show appropriate tooltip
+      if (period === 'custom' && groupedData[index]) {
+        const customDays = this.customDays || 30;
+        const fullDate = new Date(groupedData[index].date)
+        if (customDays <= 14) {
+          tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
+        } else if (customDays <= 60) {
+          // Week range tooltip
+          const weekStart = this.getWeekStart(fullDate)
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekEnd.getDate() + 6)
+          tooltipLabel = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+        } else {
+          tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
+        }
       }
       
       return `
@@ -2203,6 +2249,10 @@ const chartLabels = groupedData.map(item => {
         </div>
       `
     }
+
+    // ✅ Determine label rotation based on label length
+    const maxLabelLength = chartLabels.reduce((max, label) => Math.max(max, label.length), 0)
+    const labelRotate = maxLabelLength > 12 ? 30 : 0
 
     const option = {
       tooltip: {
@@ -2229,7 +2279,7 @@ const chartLabels = groupedData.map(item => {
           color: '#94a3b8', 
           fontSize: 11,
           fontWeight: 500,
-          rotate: (period === 'today' || period === 'month') && chartLabels.length > 7 ? 30 : 0
+          rotate: (period === 'today' || period === 'month' || period === 'custom') && chartLabels.length > 7 ? 30 : 0
         }
       },
       yAxis: {
@@ -2360,23 +2410,30 @@ groupSalesByWeek(dailySales) {
   return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
 },
 
-    groupSalesCustom(dailySales) {
-      if (!dailySales || dailySales.length === 0) return []
-      const days = dailySales.length
-      if (days <= 14) {
-        return dailySales.map(day => ({
-          ...day,
-          label: new Date(day.date).toLocaleDateString('en-MY', { 
-            month: 'short', 
-            day: 'numeric' 
-          })
-        }))
-      }
-      if (days <= 60) {
-        return this.groupSalesByWeek(dailySales)
-      }
-      return this.groupSalesByMonth(dailySales)
-    },
+   groupSalesCustom(dailySales) {
+  if (!dailySales || dailySales.length === 0) return []
+  const days = dailySales.length
+  
+  // ✅ If days <= 14, group by day with proper labels
+  if (days <= 14) {
+    return dailySales.map(day => ({
+      ...day,
+      label: new Date(day.date).toLocaleDateString('en-MY', { 
+        month: 'short', 
+        day: 'numeric',
+        timeZone: 'UTC'
+      })
+    }))
+  }
+  
+  // ✅ If days <= 60, group by week with week ranges
+  if (days <= 60) {
+    return this.groupSalesByWeek(dailySales)
+  }
+  
+  // ✅ If days > 60, group by month with month + year
+  return this.groupSalesByMonth(dailySales)
+},
 
     getWeekNumber(date) {
       const d = new Date(date)
