@@ -557,15 +557,29 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build query with Malaysia timezone (UTC+8)
-      let dailyQuery = `
-        SELECT 
-          DATE(sales.created_at + INTERVAL '8 hours') as date, 
-          COALESCE(SUM(sales.price), 0) as revenue, 
-          COUNT(*) as items
-        FROM sales
-        WHERE sales.stall_id = ANY($1::int[])
-      `;
+      // ✅ Build query based on view type
+      let dailyQuery;
+      if (dateRange.type === 'today') {
+        // ✅ TODAY VIEW: Group by hour
+        dailyQuery = `
+          SELECT 
+            DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') as date, 
+            COALESCE(SUM(sales.price), 0) as revenue, 
+            COUNT(*) as items
+          FROM sales
+          WHERE sales.stall_id = ANY($1::int[])
+        `;
+      } else {
+        // ✅ OTHER VIEWS: Group by date
+        dailyQuery = `
+          SELECT 
+            DATE(sales.created_at + INTERVAL '8 hours') as date, 
+            COALESCE(SUM(sales.price), 0) as revenue, 
+            COUNT(*) as items
+          FROM sales
+          WHERE sales.stall_id = ANY($1::int[])
+        `;
+      }
       
       let productQuery = `
         SELECT 
@@ -604,8 +618,13 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       topStallQuery += ` AND ${condition}`;
       params.push(...dateParams);
       
-      // ✅ Group by Malaysia date
-      dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+      // ✅ Group by appropriate time unit
+      if (dateRange.type === 'today') {
+        dailyQuery += ` GROUP BY DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+      } else {
+        dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+      }
+      
       productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
       topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
       
@@ -635,7 +654,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     }
 
     // ============================================================
-    // STALL ADMIN / CASHIER
+    // STALL ADMIN / CASHIER - Same logic
     // ============================================================
     let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
     
@@ -655,15 +674,27 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Same queries for stall admin with Malaysia timezone
-    let dailyQuery = `
-      SELECT 
-        DATE(sales.created_at + INTERVAL '8 hours') as date, 
-        COALESCE(SUM(sales.price), 0) as revenue, 
-        COUNT(*) as items
-      FROM sales
-      WHERE sales.stall_id = ANY($1::int[])
-    `;
+    // ✅ Same queries for stall admin
+    let dailyQuery;
+    if (dateRange.type === 'today') {
+      dailyQuery = `
+        SELECT 
+          DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') as date, 
+          COALESCE(SUM(sales.price), 0) as revenue, 
+          COUNT(*) as items
+        FROM sales
+        WHERE sales.stall_id = ANY($1::int[])
+      `;
+    } else {
+      dailyQuery = `
+        SELECT 
+          DATE(sales.created_at + INTERVAL '8 hours') as date, 
+          COALESCE(SUM(sales.price), 0) as revenue, 
+          COUNT(*) as items
+        FROM sales
+        WHERE sales.stall_id = ANY($1::int[])
+      `;
+    }
     
     let productQuery = `
       SELECT 
@@ -694,7 +725,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     const params2 = [stallIds];
     let paramCount2 = 2;
     
-    // ✅ Add date filtering using helper
     const { condition: condition2, params: dateParams2 } = buildDateCondition(dateRange, paramCount2, 'sales');
     dailyQuery += ` AND ${condition2}`;
     productQuery += ` AND ${condition2}`;
@@ -702,8 +732,11 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     topStallQuery += ` AND ${condition2}`;
     params2.push(...dateParams2);
     
-    // ✅ Group by Malaysia date
-    dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+    if (dateRange.type === 'today') {
+      dailyQuery += ` GROUP BY DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+    } else {
+      dailyQuery += ` GROUP BY DATE(sales.created_at + INTERVAL '8 hours') ORDER BY date`;
+    }
     productQuery += ` GROUP BY sales.item_name ORDER BY quantity DESC`;
     topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
     

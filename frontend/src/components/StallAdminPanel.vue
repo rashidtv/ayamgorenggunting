@@ -1854,16 +1854,14 @@ getBestDayName() {
   const day = this.salesTrend.find(d => d.revenue === max)
   if (!day) return '-'
   
-  if (this.selectedPeriod === 'today') {
-    if (day.label) return day.label
-    const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-    if (!dateParts) return '-';
+ if (this.selectedPeriod === 'today') {
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!dateParts) return dateStr;
     
-    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
+    // ✅ The date is already in Malaysia time
     const hour = parseInt(dateParts[4]);
-    const malaysiaHour = (hour + 8) % 24;
-    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
-    const hours12 = malaysiaHour % 12 || 12;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hours12 = hour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
