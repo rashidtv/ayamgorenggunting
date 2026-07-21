@@ -545,126 +545,197 @@
         </div>
       </div>
 
-      <!-- ✅ Stall Table -->
-      <div v-if="stalls.length === 0" class="empty-state-modern">
-        <span>📦</span>
-        <p>No stalls found. Contact your administrator.</p>
+    <!-- ✅ Inventory Table with Pagination -->
+<div v-if="stalls.length === 0" class="empty-state-modern">
+  <span>📦</span>
+  <p>No stalls found. Contact your administrator.</p>
+</div>
+
+<div v-else>
+  <div class="inventory-table-wrapper">
+    <!-- Table Header -->
+    <div class="inventory-table-header">
+      <div class="inventory-table-cell checkbox">
+        <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
       </div>
+      <div class="inventory-table-cell name">Stall</div>
+      <div class="inventory-table-cell state">State</div>
+      <div class="inventory-table-cell items">Inventory</div>
+      <div class="inventory-table-cell status">Status</div>
+      <div class="inventory-table-cell actions">Actions</div>
+    </div>
 
-      <div v-else class="inventory-table-wrapper">
-        <!-- Table Header -->
-        <div class="inventory-table-header">
-          <div class="inventory-table-cell checkbox">
-            <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
-          </div>
-          <div class="inventory-table-cell name">Stall</div>
-          <div class="inventory-table-cell state">State</div>
-          <div class="inventory-table-cell items">Items</div>
-          <div class="inventory-table-cell status">Status</div>
-          <div class="inventory-table-cell actions">Actions</div>
-        </div>
-
-        <!-- Table Rows -->
+    <!-- Table Rows - Paginated -->
+    <div 
+      v-for="stall in paginatedStalls" 
+      :key="stall.id" 
+      class="inventory-table-row"
+      :class="{ selected: selectedStalls.includes(stall.id) }"
+    >
+      <div class="inventory-table-cell checkbox">
+        <input 
+          type="checkbox" 
+          :value="stall.id"
+          v-model="selectedStalls"
+        />
+      </div>
+      <div class="inventory-table-cell name">
+        <span class="stall-name">{{ stall.name }}</span>
+        <span class="stall-code">{{ stall.code }}</span>
+      </div>
+      <div class="inventory-table-cell state">
+        {{ stall.state || '-' }}
+      </div>
+      <div class="inventory-table-cell items">
+        <!-- ✅ Show all inventory items inline -->
         <div 
-          v-for="stall in filteredInventoryStalls" 
-          :key="stall.id" 
-          class="inventory-table-row"
-          :class="{ selected: selectedStalls.includes(stall.id) }"
+          v-for="item in getStallInventorySummary(stall.id)" 
+          :key="item.material_name" 
+          class="inventory-item-inline"
+          :class="{ 'low': item.current_level <= item.alert_level }"
         >
-          <div class="inventory-table-cell checkbox">
-            <input 
-              type="checkbox" 
-              :value="stall.id"
-              v-model="selectedStalls"
-            />
-          </div>
-          <div class="inventory-table-cell name">
-            <span class="stall-name">{{ stall.name }}</span>
-            <span class="stall-code">{{ stall.code }}</span>
-          </div>
-          <div class="inventory-table-cell state">
-            {{ stall.state || '-' }}
-          </div>
-          <div class="inventory-table-cell items">
-            <span v-for="item in getStallInventorySummary(stall.id)" :key="item.material_name" class="item-tag">
-              {{ item.material_name }}: {{ item.current_level }}{{ getUnit(item.material_name) }}
-              <span v-if="item.current_level <= item.alert_level" class="item-tag-warning">⚠️</span>
-            </span>
-          </div>
-          <div class="inventory-table-cell status">
-            <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-              {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-            </span>
-            <span v-if="hasLowStock(stall.id)" class="status-badge low">
-              ⚠️ Low Stock
-            </span>
-          </div>
-          <div class="inventory-table-cell actions">
-            <button @click="toggleInventoryStall(stall.id)" class="btn-icon" :title="expandedInventoryStall === stall.id ? 'Collapse' : 'Expand'">
-              {{ expandedInventoryStall === stall.id ? '−' : '+' }}
-            </button>
-            <button @click="quickUpdateStall(stall.id)" class="btn-icon" title="Quick Update">
-              ⚡
-            </button>
-          </div>
+          <span class="item-name">{{ item.material_name }}</span>
+          <span class="item-level">{{ item.current_level }}</span>
+          <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+          <button 
+            @click="quickUpdateItem(stall.id, item.material_name)" 
+            class="btn-icon tiny"
+            title="Quick Update"
+          >
+            ✏️
+          </button>
         </div>
       </div>
+      <div class="inventory-table-cell status">
+        <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+          {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+        </span>
+        <span v-if="hasLowStock(stall.id)" class="status-badge low">
+          ⚠️ Low Stock
+        </span>
+      </div>
+      <div class="inventory-table-cell actions">
+        <button @click="quickUpdateStall(stall.id)" class="btn-icon" title="Quick Update">
+          ⚡
+        </button>
+        <button @click="openStallInventoryModal(stall.id)" class="btn-icon" title="Full Edit">
+          📦
+        </button>
+      </div>
+    </div>
+  </div>
 
-      <!-- ✅ Expanded Inventory Details -->
-      <div v-for="stall in filteredInventoryStalls" :key="'detail-' + stall.id">
-        <div v-if="expandedInventoryStall === stall.id" class="inventory-detail-expanded">
-          <div class="inventory-items-grid">
-            <div 
-              v-for="item in getFilteredInventoryItems(stall.id)" 
-              :key="item.material_name" 
-              class="inventory-item-card"
-              :class="{ 'low': item.current_level <= item.alert_level }"
+  <!-- ✅ Pagination Controls -->
+  <div class="pagination-container">
+    <div class="pagination-info">
+      Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
+    </div>
+    <div class="pagination-controls">
+      <button 
+        @click="prevPage" 
+        class="pagination-btn"
+        :disabled="currentPage <= 1"
+      >
+        ◀ Previous
+      </button>
+      <span class="pagination-page">
+        Page {{ currentPage }} of {{ totalPages }}
+      </span>
+      <button 
+        @click="nextPage" 
+        class="pagination-btn"
+        :disabled="currentPage >= totalPages"
+      >
+        Next ▶
+      </button>
+    </div>
+  </div>
+
+  <!-- ✅ Quick Action Buttons -->
+  <div class="inventory-quick-actions">
+    <button 
+      @click="openBulkUpdateModal" 
+      class="btn-modern primary"
+      :disabled="selectedStalls.length === 0"
+    >
+      📦 Quick Update Selected ({{ selectedCount }})
+    </button>
+    <button 
+      @click="resetAllLowStock" 
+      class="btn-modern secondary"
+      :disabled="inventoryStats.lowStock === 0"
+    >
+      🔄 Reset All Low Stock to Alert Level
+    </button>
+    <button 
+      @click="exportInventory" 
+      class="btn-modern secondary small"
+    >
+      ⬇ Export
+    </button>
+  </div>
+</div>
+
+<!-- ===== QUICK UPDATE MODAL ===== -->
+<div v-if="quickUpdateModal" class="modal-overlay" @click.self="quickUpdateModal=false">
+  <div class="modal-modern modal-sm">
+    <div class="modal-modern-header">
+      <h3>⚡ Quick Update: {{ quickUpdateStallName }}</h3>
+      <button @click="quickUpdateModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div class="quick-update-grid">
+        <div 
+          v-for="item in quickUpdateItems" 
+          :key="item.material_name" 
+          class="quick-update-item"
+        >
+          <div class="quick-update-info">
+            <span class="quick-update-name">{{ item.material_name }}</span>
+            <span class="quick-update-current">
+              Current: {{ item.current_level }}{{ getUnit(item.material_name) }}
+            </span>
+            <span 
+              class="quick-update-status"
+              :class="item.current_level <= item.alert_level ? 'low' : 'ok'"
             >
-              <div class="inventory-item-header">
-                <span class="inventory-item-name">{{ item.material_name }}</span>
-                <span :class="['inventory-item-status', item.current_level <= item.alert_level ? 'low' : 'ok']">
-                  {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
-                </span>
-              </div>
-              <div class="inventory-item-level">
-                <span class="inventory-item-current">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
-                <span class="inventory-item-alert">Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }}</span>
-              </div>
-              <div class="inventory-item-progress">
-                <div class="inventory-progress-track">
-                  <div 
-                    class="inventory-progress-fill" 
-                    :style="{ width: getInventoryPercentage(item) + '%' }"
-                    :class="{ low: item.current_level <= item.alert_level }"
-                  ></div>
-                </div>
-              </div>
-              <div class="inventory-item-actions">
-                <input type="number" v-model.number="item.newLevel" :placeholder="item.current_level" step="0.5" class="inventory-item-input" />
-                <button @click="updateInventoryStock(stall.id, item.material_name, item.newLevel)" class="btn-modern primary small">Update</button>
-                <button @click="quickAddStock(stall.id, item.material_name, 5)" class="btn-modern secondary small">+5</button>
-                <button @click="quickAddStock(stall.id, item.material_name, 1)" class="btn-modern secondary small">+1</button>
-              </div>
-            </div>
+              {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
+            </span>
           </div>
-          <div class="inventory-stall-actions">
-            <button @click="bulkUpdateStallInventory(stall.id)" class="btn-modern primary small">📦 Bulk Update</button>
-            <button @click="resetInventoryToAlert(stall.id)" class="btn-modern secondary small">Reset to Alert</button>
+          <div class="quick-update-actions">
+            <input 
+              type="number" 
+              v-model.number="item.newLevel" 
+              :placeholder="item.current_level"
+              class="filter-input small"
+              step="1"
+              min="0"
+            />
+            <button 
+              @click="quickUpdateItemSave(stallId, item.material_name, item.newLevel)" 
+              class="btn-modern primary small"
+            >
+              Save
+            </button>
+            <button 
+              @click="quickUpdateItemAdd(stallId, item.material_name, 5)" 
+              class="btn-modern secondary small"
+            >
+              +5
+            </button>
+            <button 
+              @click="quickUpdateItemAdd(stallId, item.material_name, 1)" 
+              class="btn-modern secondary small"
+            >
+              +1
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- ✅ Low Stock Alerts -->
-      <div v-if="lowStock.length > 0" class="alerts-section">
-        <h4 class="alerts-title">⚠️ Low Stock Alerts</h4>
-        <div v-for="item in filteredLowStock" :key="item.stall_name + item.material_name" class="alert-row">
-          <span class="alert-row-stall">{{ item.stall_name }}</span>
-          <span class="alert-row-material">{{ item.material_name }}</span>
-          <span class="alert-row-level">{{ item.current_level }}{{ getUnit(item.material_name) }}</span>
-          <span class="alert-row-threshold">(Alert: {{ item.alert_level }}{{ getUnit(item.material_name) }})</span>
-          <button @click="quickAddStockByItem(item)" class="btn-modern primary small">+5</button>
-        </div>
-      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="quickUpdateModal=false" class="btn-modern secondary">Close</button>
+      <button @click="quickUpdateSaveAll" class="btn-modern primary">Save All</button>
     </div>
   </div>
 </div>
@@ -1355,8 +1426,14 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+      currentPage: 1,
+      itemsPerPage: 10,
       selectedStalls: [],
       selectAll: false,
+       quickUpdateModal: false,
+    quickUpdateStallId: null,
+    quickUpdateStallName: '',
+    quickUpdateItems: [],
 
       malaysiaStates: [
         'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
@@ -1464,6 +1541,28 @@ export default {
   },
 
   computed: {
+
+    totalPages() {
+    return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
+  },
+  
+  // ✅ Pagination - Current page items
+  paginatedStalls() {
+    const start = (this.currentPage - 1) * this.itemsPerPage
+    const end = start + this.itemsPerPage
+    return this.filteredInventoryStalls.slice(start, end)
+  },
+  
+  // ✅ Pagination - Start index for display
+  startIndex() {
+    return (this.currentPage - 1) * this.itemsPerPage + 1
+  },
+  
+  // ✅ Pagination - End index for display
+  endIndex() {
+    return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
+  },
+
     inventoryStats() {
       const total = this.filteredInventoryStalls.length
       const active = this.filteredInventoryStalls.filter(s => s.is_active).length
@@ -1598,6 +1697,17 @@ export default {
         this.refreshAllData()
       }
     },
+
+ inventorySearch() {
+    this.resetPagination()
+  },
+  stateFilter() {
+    this.resetPagination()
+  },
+  inventoryFilter() {
+    this.resetPagination()
+  },
+
     salesTrend: {
       handler() {
         this.$nextTick(() => {
@@ -1659,6 +1769,102 @@ export default {
         this.selectedStalls = []
       }
     },
+
+    methods: {
+  // ... existing methods ...
+  
+  // ✅ Open Quick Update Modal
+  openStallInventoryModal(stallId) {
+    const stall = this.stalls.find(s => s.id === stallId)
+    if (!stall) return
+    
+    this.quickUpdateStallId = stallId
+    this.quickUpdateStallName = stall.name
+    this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
+      ...item,
+      newLevel: item.current_level
+    }))
+    this.quickUpdateModal = true
+  },
+  
+  // ✅ Save individual item in quick update
+  async quickUpdateItemSave(stallId, materialName, newLevel) {
+    if (newLevel === undefined || newLevel === null || newLevel === '') {
+      this.$emit('show-notification', 'Please enter a valid value', 'error')
+      return
+    }
+    await this.updateInventoryStock(stallId, materialName, newLevel)
+    // Update the item in the modal
+    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+    if (item) {
+      item.current_level = newLevel
+      item.newLevel = newLevel
+    }
+  },
+  
+  // ✅ Add stock to item in quick update
+  async quickUpdateItemAdd(stallId, materialName, amount) {
+    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+    if (item) {
+      const newLevel = item.current_level + amount
+      await this.quickUpdateItemSave(stallId, materialName, newLevel)
+    }
+  },
+  
+  // ✅ Save all items in quick update
+  async quickUpdateSaveAll() {
+    for (const item of this.quickUpdateItems) {
+      if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+        await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
+      }
+    }
+    this.$emit('show-notification', 'All items updated successfully!', 'success')
+    this.quickUpdateModal = false
+    await this.loadAllStallsInventory()
+  },
+  
+  // ✅ Reset all low stock to alert level
+  async resetAllLowStock() {
+    if (!confirm('Reset all low stock items to their alert levels?')) return
+    
+    let updated = 0
+    for (const stall of this.filteredInventoryStalls) {
+      const inventory = this.getStallInventory(stall.id)
+      for (const item of inventory) {
+        if (item.current_level <= item.alert_level) {
+          await this.updateInventoryStock(stall.id, item.material_name, item.alert_level)
+          updated++
+        }
+      }
+    }
+    this.$emit('show-notification', `Reset ${updated} low stock items to alert levels`, 'success')
+    await this.loadAllStallsInventory()
+  }
+},
+
+      // ✅ Pagination - Go to previous page
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--
+    }
+  },
+  
+  // ✅ Pagination - Go to next page
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++
+    }
+  },
+  
+  // ✅ Pagination - Go to specific page
+  goToPage(page) {
+    this.currentPage = Math.max(1, Math.min(page, this.totalPages))
+  },
+  
+  // ✅ Reset to first page when filters change
+  resetPagination() {
+    this.currentPage = 1
+  },
 
     clearFilters() {
       this.inventorySearch = ''
@@ -7111,6 +7317,254 @@ export default {
   .mode-btn {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* ============================================ */
+/* PAGINATION                                   */
+/* ============================================ */
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pagination-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-btn {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-page {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* ============================================ */
+/* INVENTORY ITEMS INLINE                       */
+/* ============================================ */
+
+.inventory-item-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--background);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  font-size: 0.65rem;
+  margin-right: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
+.inventory-item-inline .item-name {
+  font-weight: 500;
+}
+
+.inventory-item-inline .item-level {
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+.inventory-item-inline .item-warning {
+  color: #ef4444;
+  font-size: 0.6rem;
+}
+
+.inventory-item-inline.low {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.btn-icon.tiny {
+  width: 18px;
+  height: 18px;
+  font-size: 0.6rem;
+}
+
+/* ============================================ */
+/* QUICK UPDATE MODAL                           */
+/* ============================================ */
+
+.modal-sm {
+  max-width: 500px;
+}
+
+.quick-update-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-update-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quick-update-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.quick-update-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.quick-update-current {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.quick-update-status {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 8px;
+}
+
+.quick-update-status.ok {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.quick-update-status.low {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.quick-update-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.quick-update-actions .filter-input.small {
+  width: 50px;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.7rem;
+}
+
+/* ============================================ */
+/* INVENTORY QUICK ACTIONS                      */
+/* ============================================ */
+
+.inventory-quick-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+  
+  .inventory-quick-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .inventory-quick-actions .btn-modern {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .quick-update-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .quick-update-info {
+    justify-content: space-between;
+  }
+  
+  .quick-update-actions {
+    justify-content: flex-start;
+  }
+  
+  .modal-sm {
+    width: 95%;
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .pagination-btn {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+  }
+  
+  .inventory-item-inline {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.2rem;
+  }
+  
+  .quick-update-actions {
+    justify-content: center;
   }
 }
 
