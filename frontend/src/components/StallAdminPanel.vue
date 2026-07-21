@@ -1814,7 +1814,7 @@ bulkUpdatePreview() {
       const el = document.querySelector(`[data-stall-id="${stallId}"]`)
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
-  }
+  },
 }
 
 // =============================================
