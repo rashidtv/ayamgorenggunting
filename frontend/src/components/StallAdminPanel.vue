@@ -1749,13 +1749,15 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-   if (this.selectedPeriod === 'today') {
-    // ✅ The date is already in Malaysia time from backend
-    // Just parse it and display the hour
-    const date = new Date(dateStr);
-    const hours = date.getUTCHours(); // Use UTC hours since the date is already correct
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
+    if (this.selectedPeriod === 'today') {
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!dateParts) return dateStr;
+    
+    // ✅ The date from backend is already in Malaysia time
+    // Just use the hour as-is (it's already correct)
+    const hour = parseInt(dateParts[4]);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hours12 = hour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
