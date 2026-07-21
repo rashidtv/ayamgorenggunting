@@ -1483,7 +1483,18 @@ groupByMonth(salesData) {
     const date = new Date(item.date)
     const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
     if (!grouped[key]) {
-      grouped[key] = { date: key, revenue: 0, items: 0 }
+      // ✅ Create label with month + year
+      const label = date.toLocaleDateString('en-MY', { 
+        month: 'short', 
+        year: 'numeric',
+        timeZone: 'UTC'
+      })
+      grouped[key] = { 
+        date: key, 
+        label: label,
+        revenue: 0, 
+        items: 0 
+      }
     }
     grouped[key].revenue += parseFloat(item.revenue) || 0
     grouped[key].items += parseInt(item.items) || 0
@@ -1535,11 +1546,11 @@ formatWeekRangeLabel(dateStr) {
 formatMonthLabel(dateStr) {
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-MY', { 
-    month: 'short',
+    month: 'short', 
+    year: 'numeric',
     timeZone: 'UTC'
   })
 },
-
 getWeekStart(date) {
   const d = new Date(date)
   const day = d.getUTCDay()
@@ -2141,18 +2152,20 @@ initStallDetailChart(stallId, period = 'week') {
     let groupedData = this.groupSalesData(salesData, grouping, period)
     
     // ✅ Format labels based on grouping
-    const chartLabels = groupedData.map(item => {
-      if (period === 'today') {
-        return this.formatHourLabel(item.date)
-      } else if (period === 'week') {
-        return this.formatDayLabel(item.date)
-      } else if (period === 'month') {
-        return this.formatWeekRangeLabel(item.date)
-      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-        return this.formatMonthLabel(item.date)
-      }
-      return item.label || item.date
-    })
+    // When formatting month labels
+const chartLabels = groupedData.map(item => {
+  if (period === 'today') {
+    return this.formatHourLabel(item.date)
+  } else if (period === 'week') {
+    return this.formatDayLabel(item.date)
+  } else if (period === 'month') {
+    return this.formatWeekRangeLabel(item.date)
+  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+    // ✅ Use the label from grouped data (which includes year)
+    return item.label || this.formatMonthLabel(item.date)
+  }
+  return item.label || item.date
+})
     
     const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
     const items = groupedData.map(d => parseInt(d.items) || 0)
