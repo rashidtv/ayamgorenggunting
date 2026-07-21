@@ -1358,35 +1358,31 @@ export default {
       selectedStalls: [],
       selectAll: false,
 
-          // ✅ New: Malaysian States
-    malaysiaStates: [
-      'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
-      'Johor', 'Kedah', 'Kelantan', 'Melaka', 
-      'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
-      'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
-    ],
-    stateFilter: 'All States',
-    
-    // ✅ New: Bulk Update
-    bulkUpdateModal: false,
-    bulkUpdateMaterials: [],
-    bulkUpdateMode: 'selected', // 'selected' | 'all' | 'low-stock'
-    bulkUpdateProgress: 0,
-    bulkUpdating: false,
-    bulkUpdateType: 'set', // 'set' | 'add' | 'subtract'
-    bulkUpdateValue: 10,
-    
-    // ✅ New: Quick Actions
-    quickActions: [
-      { label: 'Set to Alert Level', value: 'alert' },
-      { label: 'Set to 100', value: '100' },
-      { label: 'Set to 50', value: '50' },
-      { label: 'Add +10', value: 'add10' },
-      { label: 'Add +20', value: 'add20' },
-      { label: 'Reset to 0', value: '0' }
-    ],
-  
+      malaysiaStates: [
+        'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
+        'Johor', 'Kedah', 'Kelantan', 'Melaka', 
+        'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
+        'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
+      ],
+      stateFilter: 'All States',
       
+      bulkUpdateModal: false,
+      bulkUpdateMaterials: [],
+      bulkUpdateMode: 'selected',
+      bulkUpdateProgress: 0,
+      bulkUpdating: false,
+      bulkUpdateType: 'set',
+      bulkUpdateValue: 10,
+      
+      quickActions: [
+        { label: 'Set to Alert Level', value: 'alert' },
+        { label: 'Set to 100', value: '100' },
+        { label: 'Set to 50', value: '50' },
+        { label: 'Add +10', value: 'add10' },
+        { label: 'Add +20', value: 'add20' },
+        { label: 'Reset to 0', value: '0' }
+      ],
+    
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
@@ -1468,46 +1464,41 @@ export default {
   },
 
   computed: {
+    inventoryStats() {
+      const total = this.filteredInventoryStalls.length
+      const active = this.filteredInventoryStalls.filter(s => s.is_active).length
+      const inactive = this.filteredInventoryStalls.filter(s => !s.is_active).length
+      const lowStock = this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id)).length
+      return { total, active, inactive, lowStock }
+    },
 
-    // ✅ Counts for stats cards
-inventoryStats() {
-  const total = this.filteredInventoryStalls.length
-  const active = this.filteredInventoryStalls.filter(s => s.is_active).length
-  const inactive = this.filteredInventoryStalls.filter(s => !s.is_active).length
-  const lowStock = this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id)).length
-  return { total, active, inactive, lowStock }
-},
+    selectedCount() {
+      return this.selectedStalls.length
+    },
 
-// ✅ Selected stalls count
-selectedCount() {
-  return this.selectedStalls.length
-},
-
-// ✅ Bulk update preview
-bulkUpdatePreview() {
-  const stalls = this.bulkUpdateMode === 'all' 
-    ? this.filteredInventoryStalls 
-    : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-  return stalls
-},
+    bulkUpdatePreview() {
+      const stalls = this.bulkUpdateMode === 'all' 
+        ? this.filteredInventoryStalls 
+        : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+      return stalls
+    },
 
     stallPerformanceSubtitle() {
-    const count = this.displayStalls.length
-    if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
-    if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
-    return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
-  },
+      const count = this.displayStalls.length
+      if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
+      if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
+      return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
+    },
 
-  displayStalls() {
-    const stallsWithSales = this.stallPerformance.filter(stall => 
-      (stall.revenue || 0) > 0 || (stall.items || 0) > 0
-    )
-    
-    if (this.showAllStalls) {
-      return stallsWithSales
-    }
-    return stallsWithSales.slice(0, 5)
-  },
+    displayStalls() {
+      const stallsWithSales = this.stallPerformance.filter(stall => 
+        (stall.revenue || 0) > 0 || (stall.items || 0) > 0
+      )
+      if (this.showAllStalls) {
+        return stallsWithSales
+      }
+      return stallsWithSales.slice(0, 5)
+    },
     
     displayMenuItems() {
       if (this.showAllMenuItems) {
@@ -1529,20 +1520,20 @@ bulkUpdatePreview() {
     },
     
     filteredInventoryStalls() {
-  return this.stalls.filter(stall => {
-    const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
-                          this.getStallInventory(stall.id).some(item => 
-                            item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-                          )
-    const matchesState = this.stateFilter === 'All States' || 
-                         (stall.state || '') === this.stateFilter
-    const matchesStatus = this.inventoryFilter === 'all' || 
-                          (this.inventoryFilter === 'active' && stall.is_active) ||
-                          (this.inventoryFilter === 'inactive' && !stall.is_active) ||
-                          (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
-    return matchesSearch && matchesState && matchesStatus
-  })
-},
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+                              this.getStallInventory(stall.id).some(item => 
+                                item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+                              )
+        const matchesState = this.stateFilter === 'All States' || 
+                             (stall.state || '') === this.stateFilter
+        const matchesStatus = this.inventoryFilter === 'all' || 
+                              (this.inventoryFilter === 'active' && stall.is_active) ||
+                              (this.inventoryFilter === 'inactive' && !stall.is_active) ||
+                              (this.inventoryFilter === 'low' && this.hasLowStock(stall.id))
+        return matchesSearch && matchesState && matchesStatus
+      })
+    },
     
     filteredLowStock() {
       if (this.inventorySearch) {
@@ -1568,13 +1559,13 @@ bulkUpdatePreview() {
     filteredUsersList() {
       return this.users.filter(user => {
         if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-          return false;
+          return false
         }
-        const search = this.userSearch.toLowerCase();
+        const search = this.userSearch.toLowerCase()
         const matchesSearch = user.username.toLowerCase().includes(search) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(search));
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter;
-        return matchesSearch && matchesRole;
+                              (user.full_name && user.full_name.toLowerCase().includes(search))
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+        return matchesSearch && matchesRole
       })
     },
     
@@ -1595,20 +1586,18 @@ bulkUpdatePreview() {
   },
 
   watch: {
-
-     selectedPeriod(newVal, oldVal) {
-    if (newVal !== oldVal) {
-      // ✅ Clear all data when period changes
-      this.stallPerformance = []
-      this.menuPerformance = []
-      this.salesTrend = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      this.consolidatedSales.totalRevenue = 0
-      this.consolidatedSales.totalItems = 0
-      this.refreshAllData()
-    }
-  },
+    selectedPeriod(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.stallPerformance = []
+        this.menuPerformance = []
+        this.salesTrend = []
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
+        this.consolidatedSales.totalRevenue = 0
+        this.consolidatedSales.totalItems = 0
+        this.refreshAllData()
+      }
+    },
     salesTrend: {
       handler() {
         this.$nextTick(() => {
@@ -1661,649 +1650,692 @@ bulkUpdatePreview() {
     window.removeEventListener('resize', this.handleChartResize)
   },
 
-methods: {
-
-  // ✅ Toggle Select All
-  toggleSelectAll() {
-    this.selectAll = !this.selectAll
-    if (this.selectAll) {
-      this.selectedStalls = this.filteredInventoryStalls.map(s => s.id)
-    } else {
-      this.selectedStalls = []
-    }
-  },
-
-  // ✅ Clear Filters
-  clearFilters() {
-    this.inventorySearch = ''
-    this.stateFilter = 'All States'
-    this.inventoryFilter = 'all'
-  },
-
-  // ✅ Open Bulk Update Modal
-  openBulkUpdateModal() {
-    const materialSet = new Set()
-    const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-    
-    stalls.forEach(stall => {
-      const inventory = this.getStallInventory(stall.id)
-      inventory.forEach(item => {
-        materialSet.add(item.material_name)
-      })
-    })
-
-    this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
-      name: name,
-      selected: true,
-      operation: 'set',
-      value: 10
-    }))
-
-    this.bulkUpdateModal = true
-  },
-
-  // ✅ Apply Quick Action
-  applyQuickAction(action) {
-    this.bulkUpdateMaterials.forEach(material => {
-      let value = 0
-      switch (action.value) {
-        case 'alert':
-          const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
-          if (firstStall) {
-            const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
-            value = item ? item.alert_level : 10
-          }
-          break
-        case '100':
-          value = 100
-          break
-        case '50':
-          value = 50
-          break
-        case 'add10':
-          material.operation = 'add'
-          value = 10
-          break
-        case 'add20':
-          material.operation = 'add'
-          value = 20
-          break
-        case '0':
-          value = 0
-          break
-        default:
-          value = parseInt(action.value) || 10
+  methods: {
+    toggleSelectAll() {
+      this.selectAll = !this.selectAll
+      if (this.selectAll) {
+        this.selectedStalls = this.filteredInventoryStalls.map(s => s.id)
+      } else {
+        this.selectedStalls = []
       }
-      material.value = value
-      material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
-    })
-  },
+    },
 
-  // ✅ Execute Bulk Update
-  async executeBulkUpdate() {
-    this.bulkUpdating = true
-    this.bulkUpdateProgress = 0
+    clearFilters() {
+      this.inventorySearch = ''
+      this.stateFilter = 'All States'
+      this.inventoryFilter = 'all'
+    },
 
-    const stalls = this.bulkUpdateMode === 'all' 
-      ? this.filteredInventoryStalls 
-      : this.bulkUpdateMode === 'low-stock'
-        ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
-        : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-
-    const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
-    const total = stalls.length * selectedMaterials.length
-    let completed = 0
-
-    try {
-      for (const stall of stalls) {
-        for (const material of selectedMaterials) {
-          let newLevel = material.value
-          
-          const inventory = this.getStallInventory(stall.id)
-          const item = inventory.find(i => i.material_name === material.name)
-          
-          if (item) {
-            if (material.operation === 'add') {
-              newLevel = item.current_level + material.value
-            } else if (material.operation === 'subtract') {
-              newLevel = Math.max(0, item.current_level - material.value)
-            }
-          }
-          
-          await this.updateInventoryStock(stall.id, material.name, newLevel)
-          completed++
-          this.bulkUpdateProgress = Math.round((completed / total) * 100)
-        }
-      }
+    openBulkUpdateModal() {
+      const materialSet = new Set()
+      const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
       
-      this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
-      this.bulkUpdateModal = false
-    } catch (err) {
-      this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
-    } finally {
-      this.bulkUpdating = false
-      this.bulkUpdateProgress = 0
-      await this.loadAllStallsInventory()
-    }
-  },
-
-  // ✅ Export Inventory
-  exportInventory() {
-    this.exportCurrentTab()
-  },
-
-  // ✅ Quick Add Stock by Item (for alerts)
-  async quickAddStockByItem(item) {
-    await this.quickAddStock(
-      this.stalls.find(s => s.name === item.stall_name)?.id,
-      item.material_name,
-      5
-    )
-  },
-
-  // ✅ Quick Update Single Stall
-  quickUpdateStall(stallId) {
-    this.toggleInventoryStall(stallId)
-    this.$nextTick(() => {
-      const el = document.querySelector(`[data-stall-id="${stallId}"]`)
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-  },
-
-  // =============================================
-  // STALL DETAIL CHART - GROUPING HELPERS
-  // =============================================
-
-  groupSalesData(salesData, grouping, period) {
-    if (!salesData || salesData.length === 0) return []
-    
-    if (grouping === 'hour') {
-      return this.groupByHour(salesData)
-    } else if (grouping === 'day') {
-      return this.groupByDay(salesData)
-    } else if (grouping === 'week') {
-      return this.groupByWeek(salesData)
-    } else if (grouping === 'month') {
-      return this.groupByMonth(salesData)
-    }
-    return salesData
-  },
-
-  groupByHour(salesData) {
-    const grouped = {}
-    salesData.forEach(item => {
-      const date = new Date(item.date)
-      const hour = date.getUTCHours()
-      const key = date.toISOString().split('T')[0] + 'T' + String(hour).padStart(2, '0') + ':00:00.000Z'
-      if (!grouped[key]) {
-        grouped[key] = { date: key, revenue: 0, items: 0 }
-      }
-      grouped[key].revenue += parseFloat(item.revenue) || 0
-      grouped[key].items += parseInt(item.items) || 0
-    })
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
-
-  groupByDay(salesData) {
-    const grouped = {}
-    salesData.forEach(item => {
-      const date = new Date(item.date)
-      const key = date.toISOString().split('T')[0] + 'T00:00:00.000Z'
-      if (!grouped[key]) {
-        grouped[key] = { date: key, revenue: 0, items: 0 }
-      }
-      grouped[key].revenue += parseFloat(item.revenue) || 0
-      grouped[key].items += parseInt(item.items) || 0
-    })
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
-
-  groupByWeek(salesData) {
-    const grouped = {}
-    salesData.forEach(item => {
-      const date = new Date(item.date)
-      const weekStart = this.getWeekStart(date)
-      const key = weekStart.toISOString()
-      if (!grouped[key]) {
-        grouped[key] = { date: key, revenue: 0, items: 0 }
-      }
-      grouped[key].revenue += parseFloat(item.revenue) || 0
-      grouped[key].items += parseInt(item.items) || 0
-    })
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
-
-  groupByMonth(salesData) {
-    const grouped = {}
-    salesData.forEach(item => {
-      const date = new Date(item.date)
-      const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
-      if (!grouped[key]) {
-        const label = date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          year: 'numeric',
-          timeZone: 'UTC'
+      stalls.forEach(stall => {
+        const inventory = this.getStallInventory(stall.id)
+        inventory.forEach(item => {
+          materialSet.add(item.material_name)
         })
-        grouped[key] = { 
-          date: key, 
-          label: label,
-          revenue: 0, 
-          items: 0 
+      })
+
+      this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
+        name: name,
+        selected: true,
+        operation: 'set',
+        value: 10
+      }))
+
+      this.bulkUpdateModal = true
+    },
+
+    applyQuickAction(action) {
+      this.bulkUpdateMaterials.forEach(material => {
+        let value = 0
+        switch (action.value) {
+          case 'alert':
+            const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
+            if (firstStall) {
+              const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
+              value = item ? item.alert_level : 10
+            }
+            break
+          case '100':
+            value = 100
+            break
+          case '50':
+            value = 50
+            break
+          case 'add10':
+            material.operation = 'add'
+            value = 10
+            break
+          case 'add20':
+            material.operation = 'add'
+            value = 20
+            break
+          case '0':
+            value = 0
+            break
+          default:
+            value = parseInt(action.value) || 10
         }
-      }
-      grouped[key].revenue += parseFloat(item.revenue) || 0
-      grouped[key].items += parseInt(item.items) || 0
-    })
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
+        material.value = value
+        material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
+      })
+    },
 
-  // =============================================
-  // STALL DETAIL CHART - LABEL FORMATTING
-  // =============================================
+    async executeBulkUpdate() {
+      this.bulkUpdating = true
+      this.bulkUpdateProgress = 0
 
-  formatHourLabel(dateStr) {
-    const date = new Date(dateStr)
-    const hour = date.getUTCHours()
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hours12 = hour % 12 || 12
-    return `${hours12}:00 ${ampm}`
-  },
+      const stalls = this.bulkUpdateMode === 'all' 
+        ? this.filteredInventoryStalls 
+        : this.bulkUpdateMode === 'low-stock'
+          ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
+          : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
 
-  formatDayLabel(dateStr) {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-MY', { 
-      weekday: 'short', 
-      day: 'numeric', 
-      month: 'short',
-      timeZone: 'UTC'
-    })
-  },
+      const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
+      const total = stalls.length * selectedMaterials.length
+      let completed = 0
 
-  formatWeekRangeLabel(dateStr) {
-    const date = new Date(dateStr)
-    const weekStart = this.getWeekStart(date)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
-    
-    const startDay = weekStart.getUTCDate()
-    const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-    const endDay = weekEnd.getUTCDate()
-    const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-    
-    if (startMonth === endMonth) {
-      return `${startDay}-${endDay} ${startMonth}`
-    } else {
-      return `${startDay} ${startMonth}-${endDay} ${endMonth}`
-    }
-  },
-
-  formatMonthLabel(dateStr) {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-MY', { 
-      month: 'short', 
-      year: 'numeric',
-      timeZone: 'UTC'
-    })
-  },
-
-  getWeekStart(date) {
-    const d = new Date(date)
-    const day = d.getUTCDay()
-    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1)
-    const weekStart = new Date(d)
-    weekStart.setUTCDate(diff)
-    weekStart.setUTCHours(0, 0, 0, 0)
-    return weekStart
-  },
-
-  // =============================================
-  // TAB NAVIGATION WITH SUB-TAB
-  // =============================================
-  switchTabWithSubTab(tabId, subTabId) {
-    this.activeTab = tabId
-    if (tabId === 'stalls') {
-      this.stallSubTab = subTabId || 'management'
-    } else if (tabId === 'menu') {
-      this.menuSubTab = subTabId || 'assignment'
-    }
-    this.dropdownOpen = false
-  },
-
-  // =============================================
-  // TOP STALL HELPERS
-  // =============================================
-  getTopStallName() {
-    if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
-      return this.consolidatedSales.topStall
-    }
-    
-    if (this.salesTrend && this.salesTrend.length > 0) {
-      const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-      if (totalRevenue > 0 && this.stalls.length > 0) {
-        return this.stalls[0]?.name || '-'
-      }
-    }
-    
-    if (this.stallPerformance && this.stallPerformance.length > 0) {
-      let topStall = null
-      let maxRevenue = 0
-      for (const stall of this.stallPerformance) {
-        const revenue = parseFloat(stall.revenue) || 0
-        if (revenue > maxRevenue) {
-          maxRevenue = revenue
-          topStall = stall
+      try {
+        for (const stall of stalls) {
+          for (const material of selectedMaterials) {
+            let newLevel = material.value
+            
+            const inventory = this.getStallInventory(stall.id)
+            const item = inventory.find(i => i.material_name === material.name)
+            
+            if (item) {
+              if (material.operation === 'add') {
+                newLevel = item.current_level + material.value
+              } else if (material.operation === 'subtract') {
+                newLevel = Math.max(0, item.current_level - material.value)
+              }
+            }
+            
+            await this.updateInventoryStock(stall.id, material.name, newLevel)
+            completed++
+            this.bulkUpdateProgress = Math.round((completed / total) * 100)
+          }
         }
+        
+        this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
+        this.bulkUpdateModal = false
+      } catch (err) {
+        this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
+      } finally {
+        this.bulkUpdating = false
+        this.bulkUpdateProgress = 0
+        await this.loadAllStallsInventory()
       }
-      if (topStall && maxRevenue > 0) {
-        return topStall.name || topStall.stall_name || '-'
-      }
-    }
-    
-    return '-'
-  },
+    },
 
-  getTopStallRevenue() {
-    if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
-      return this.consolidatedSales.topRevenue
-    }
-    
-    if (this.salesTrend && this.salesTrend.length > 0) {
-      return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-    }
-    
-    if (this.stallPerformance && this.stallPerformance.length > 0) {
-      let maxRevenue = 0
-      for (const stall of this.stallPerformance) {
-        const revenue = parseFloat(stall.revenue) || 0
-        if (revenue > maxRevenue) {
-          maxRevenue = revenue
-        }
-      }
-      if (maxRevenue > 0) {
-        return maxRevenue
-      }
-    }
-    
-    return 0
-  },
+    exportInventory() {
+      this.exportCurrentTab()
+    },
 
-  getTopStallStatusText() {
-    const revenue = this.getTopStallRevenue()
-    if (revenue === 0) return 'No Sales'
-    if (revenue > 1000) return 'Excellent'
-    if (revenue > 500) return 'Good'
-    if (revenue > 100) return 'Average'
-    return 'Poor'
-  },
+    async quickAddStockByItem(item) {
+      await this.quickAddStock(
+        this.stalls.find(s => s.name === item.stall_name)?.id,
+        item.material_name,
+        5
+      )
+    },
 
-  getTopStallStatusEmoji() {
-    const revenue = this.getTopStallRevenue()
-    if (revenue === 0) return '⚪'
-    if (revenue > 1000) return '🟢'
-    if (revenue > 500) return '🔵'
-    if (revenue > 100) return '🟡'
-    return '🔴'
-  },
+    quickUpdateStall(stallId) {
+      this.toggleInventoryStall(stallId)
+      this.$nextTick(() => {
+        const el = document.querySelector(`[data-stall-id="${stallId}"]`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    },
 
-  getTopStallStatusClass() {
-    const revenue = this.getTopStallRevenue()
-    if (revenue === 0) return 'no-sales'
-    if (revenue > 1000) return 'excellent'
-    if (revenue > 500) return 'good'
-    if (revenue > 100) return 'average'
-    return 'poor'
-  },
+    // =============================================
+    // STALL DETAIL CHART - GROUPING HELPERS
+    // =============================================
 
-  // =============================================
-  // SPARKLINE HELPER
-  // =============================================
-  getSparklinePoints(data) {
-    if (!data || data.length === 0) {
-      return '0,40 200,40'
-    }
-    
-    const cleanData = data.map(v => {
-      const val = parseFloat(v)
-      return isNaN(val) || val === null || val === undefined ? 0 : val
-    })
-    
-    if (cleanData.every(v => v === 0)) {
-      return '0,40 200,40'
-    }
-    
-    if (cleanData.length === 1) {
-      const value = cleanData[0]
-      const y = 40 - ((value - 0) / (value || 1)) * 35
-      return `0,${y} 200,${y}`
-    }
-    
-    const points = cleanData.map((value, index) => {
-      const x = (index / (cleanData.length - 1)) * 200
-      const max = Math.max(...cleanData, 1)
-      const min = Math.min(...cleanData, 0)
-      const range = max - min || 1
-      const y = 40 - ((value - min) / range) * 35
-      return `${x},${y}`
-    })
-    
-    const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
-    points.push(`${lastX},40`)
-    points.push(`0,40`)
-    
-    return points.join(' ')
-  },
-
-  // =============================================
-  // STALL PERFORMANCE - STATUS EMOJI
-  // =============================================
-  getStallStatusEmoji(stall) {
-    if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
-    if (stall.revenue > 1000) return '🟢'
-    if (stall.revenue > 500) return '🔵'
-    if (stall.revenue > 100) return '🟡'
-    return '🔴'
-  },
-
-  getStallStatus(stall) {
-    if (!stall || !stall.revenue || stall.revenue === 0) return 'No Sales'
-    if (stall.revenue > 1000) return 'Excellent'
-    if (stall.revenue > 500) return 'Good'
-    if (stall.revenue > 100) return 'Average'
-    return 'Poor'
-  },
-
-  getStallStatusClass(stall) {
-    if (!stall || !stall.revenue || stall.revenue === 0) return 'no-sales'
-    if (stall.revenue > 1000) return 'excellent'
-    if (stall.revenue > 500) return 'good'
-    if (stall.revenue > 100) return 'average'
-    return 'poor'
-  },
-
-  // =============================================
-  // MENU PERFORMANCE - STATUS METHODS
-  // =============================================
-  getMenuStatusEmoji(quantity) {
-    const qty = parseInt(quantity) || 0
-    if (qty === 0) return '⚪'
-    if (qty > 50) return '🟢'
-    if (qty > 20) return '🔵'
-    if (qty > 5) return '🟡'
-    return '🔴'
-  },
-
-  getMenuStatus(quantity) {
-    const qty = parseInt(quantity) || 0
-    if (qty === 0) return 'No Sales'
-    if (qty > 50) return 'Excellent'
-    if (qty > 20) return 'Good'
-    if (qty > 5) return 'Average'
-    return 'Poor'
-  },
-
-  getMenuStatusClass(quantity) {
-    const qty = parseInt(quantity) || 0
-    if (qty === 0) return 'no-sales'
-    if (qty > 50) return 'excellent'
-    if (qty > 20) return 'good'
-    if (qty > 5) return 'average'
-    return 'poor'
-  },
-
-  // =============================================
-  // MENU ITEM DETAILS
-  // =============================================
-  async viewMenuItemDetails(item) {
-    this.selectedMenuItem = {
-      ...item,
-      stallBreakdown: [],
-      totalQuantity: 0
-    }
-    this.menuDetailModal = true
-    await this.fetchMenuTopStalls(item.name)
-  },
-
-  async fetchMenuTopStalls(itemName) {
-    try {
-      const days = this.selectedPeriod === 'today' ? 1 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
+    groupSalesData(salesData, grouping, period) {
+      if (!salesData || salesData.length === 0) return []
       
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
+      if (grouping === 'hour') {
+        return this.groupByHour(salesData)
+      } else if (grouping === 'day') {
+        return this.groupByDay(salesData)
+      } else if (grouping === 'week') {
+        return this.groupByWeek(salesData)
+      } else if (grouping === 'month') {
+        return this.groupByMonth(salesData)
+      }
+      return salesData
+    },
+
+    groupByHour(salesData) {
+      const grouped = {}
+      salesData.forEach(item => {
+        const date = new Date(item.date)
+        const hour = date.getUTCHours()
+        const key = date.toISOString().split('T')[0] + 'T' + String(hour).padStart(2, '0') + ':00:00.000Z'
+        if (!grouped[key]) {
+          grouped[key] = { date: key, revenue: 0, items: 0 }
+        }
+        grouped[key].revenue += parseFloat(item.revenue) || 0
+        grouped[key].items += parseInt(item.items) || 0
+      })
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupByDay(salesData) {
+      const grouped = {}
+      salesData.forEach(item => {
+        const date = new Date(item.date)
+        const key = date.toISOString().split('T')[0] + 'T00:00:00.000Z'
+        if (!grouped[key]) {
+          grouped[key] = { date: key, revenue: 0, items: 0 }
+        }
+        grouped[key].revenue += parseFloat(item.revenue) || 0
+        grouped[key].items += parseInt(item.items) || 0
+      })
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupByWeek(salesData) {
+      const grouped = {}
+      salesData.forEach(item => {
+        const date = new Date(item.date)
+        const weekStart = this.getWeekStart(date)
+        const key = weekStart.toISOString()
+        if (!grouped[key]) {
+          grouped[key] = { date: key, revenue: 0, items: 0 }
+        }
+        grouped[key].revenue += parseFloat(item.revenue) || 0
+        grouped[key].items += parseInt(item.items) || 0
+      })
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupByMonth(salesData) {
+      const grouped = {}
+      salesData.forEach(item => {
+        const date = new Date(item.date)
+        const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
+        if (!grouped[key]) {
+          const label = date.toLocaleDateString('en-MY', { 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
+          grouped[key] = { 
+            date: key, 
+            label: label,
+            revenue: 0, 
+            items: 0 
+          }
+        }
+        grouped[key].revenue += parseFloat(item.revenue) || 0
+        grouped[key].items += parseInt(item.items) || 0
+      })
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    // =============================================
+    // STALL DETAIL CHART - LABEL FORMATTING
+    // =============================================
+
+    formatHourLabel(dateStr) {
+      const date = new Date(dateStr)
+      const hour = date.getUTCHours()
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hours12 = hour % 12 || 12
+      return `${hours12}:00 ${ampm}`
+    },
+
+    formatDayLabel(dateStr) {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('en-MY', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short',
+        timeZone: 'UTC'
+      })
+    },
+
+    formatWeekRangeLabel(dateStr) {
+      const date = new Date(dateStr)
+      const weekStart = this.getWeekStart(date)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      
+      const startDay = weekStart.getUTCDate()
+      const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      const endDay = weekEnd.getUTCDate()
+      const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      
+      if (startMonth === endMonth) {
+        return `${startDay}-${endDay} ${startMonth}`
+      } else {
+        return `${startDay} ${startMonth}-${endDay} ${endMonth}`
+      }
+    },
+
+    formatMonthLabel(dateStr) {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('en-MY', { 
+        month: 'short', 
+        year: 'numeric',
+        timeZone: 'UTC'
+      })
+    },
+
+    getWeekStart(date) {
+      const d = new Date(date)
+      const day = d.getUTCDay()
+      const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1)
+      const weekStart = new Date(d)
+      weekStart.setUTCDate(diff)
+      weekStart.setUTCHours(0, 0, 0, 0)
+      return weekStart
+    },
+
+    // =============================================
+    // TAB NAVIGATION WITH SUB-TAB
+    // =============================================
+    switchTabWithSubTab(tabId, subTabId) {
+      this.activeTab = tabId
+      if (tabId === 'stalls') {
+        this.stallSubTab = subTabId || 'management'
+      } else if (tabId === 'menu') {
+        this.menuSubTab = subTabId || 'assignment'
+      }
+      this.dropdownOpen = false
+    },
+
+    // =============================================
+    // TOP STALL HELPERS
+    // =============================================
+    getTopStallName() {
+      if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
+        return this.consolidatedSales.topStall
+      }
+      
+      if (this.salesTrend && this.salesTrend.length > 0) {
+        const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+        if (totalRevenue > 0 && this.stalls.length > 0) {
+          return this.stalls[0]?.name || '-'
+        }
+      }
+      
+      if (this.stallPerformance && this.stallPerformance.length > 0) {
+        let topStall = null
+        let maxRevenue = 0
+        for (const stall of this.stallPerformance) {
+          const revenue = parseFloat(stall.revenue) || 0
+          if (revenue > maxRevenue) {
+            maxRevenue = revenue
+            topStall = stall
+          }
+        }
+        if (topStall && maxRevenue > 0) {
+          return topStall.name || topStall.stall_name || '-'
+        }
+      }
+      
+      return '-'
+    },
+
+    getTopStallRevenue() {
+      if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
+        return this.consolidatedSales.topRevenue
+      }
+      
+      if (this.salesTrend && this.salesTrend.length > 0) {
+        return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+      }
+      
+      if (this.stallPerformance && this.stallPerformance.length > 0) {
+        let maxRevenue = 0
+        for (const stall of this.stallPerformance) {
+          const revenue = parseFloat(stall.revenue) || 0
+          if (revenue > maxRevenue) {
+            maxRevenue = revenue
+          }
+        }
+        if (maxRevenue > 0) {
+          return maxRevenue
+        }
+      }
+      
+      return 0
+    },
+
+    getTopStallStatusText() {
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return 'No Sales'
+      if (revenue > 1000) return 'Excellent'
+      if (revenue > 500) return 'Good'
+      if (revenue > 100) return 'Average'
+      return 'Poor'
+    },
+
+    getTopStallStatusEmoji() {
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return '⚪'
+      if (revenue > 1000) return '🟢'
+      if (revenue > 500) return '🔵'
+      if (revenue > 100) return '🟡'
+      return '🔴'
+    },
+
+    getTopStallStatusClass() {
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return 'no-sales'
+      if (revenue > 1000) return 'excellent'
+      if (revenue > 500) return 'good'
+      if (revenue > 100) return 'average'
+      return 'poor'
+    },
+
+    // =============================================
+    // SPARKLINE HELPER
+    // =============================================
+    getSparklinePoints(data) {
+      if (!data || data.length === 0) {
+        return '0,40 200,40'
+      }
+      
+      const cleanData = data.map(v => {
+        const val = parseFloat(v)
+        return isNaN(val) || val === null || val === undefined ? 0 : val
+      })
+      
+      if (cleanData.every(v => v === 0)) {
+        return '0,40 200,40'
+      }
+      
+      if (cleanData.length === 1) {
+        const value = cleanData[0]
+        const y = 40 - ((value - 0) / (value || 1)) * 35
+        return `0,${y} 200,${y}`
+      }
+      
+      const points = cleanData.map((value, index) => {
+        const x = (index / (cleanData.length - 1)) * 200
+        const max = Math.max(...cleanData, 1)
+        const min = Math.min(...cleanData, 0)
+        const range = max - min || 1
+        const y = 40 - ((value - min) / range) * 35
+        return `${x},${y}`
+      })
+      
+      const lastX = (cleanData.length - 1) / (cleanData.length - 1) * 200
+      points.push(`${lastX},40`)
+      points.push(`0,40`)
+      
+      return points.join(' ')
+    },
+
+    // =============================================
+    // STALL PERFORMANCE - STATUS EMOJI
+    // =============================================
+    getStallStatusEmoji(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
+      if (stall.revenue > 1000) return '🟢'
+      if (stall.revenue > 500) return '🔵'
+      if (stall.revenue > 100) return '🟡'
+      return '🔴'
+    },
+
+    getStallStatus(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'No Sales'
+      if (stall.revenue > 1000) return 'Excellent'
+      if (stall.revenue > 500) return 'Good'
+      if (stall.revenue > 100) return 'Average'
+      return 'Poor'
+    },
+
+    getStallStatusClass(stall) {
+      if (!stall || !stall.revenue || stall.revenue === 0) return 'no-sales'
+      if (stall.revenue > 1000) return 'excellent'
+      if (stall.revenue > 500) return 'good'
+      if (stall.revenue > 100) return 'average'
+      return 'poor'
+    },
+
+    // =============================================
+    // MENU PERFORMANCE - STATUS METHODS
+    // =============================================
+    getMenuStatusEmoji(quantity) {
+      const qty = parseInt(quantity) || 0
+      if (qty === 0) return '⚪'
+      if (qty > 50) return '🟢'
+      if (qty > 20) return '🔵'
+      if (qty > 5) return '🟡'
+      return '🔴'
+    },
+
+    getMenuStatus(quantity) {
+      const qty = parseInt(quantity) || 0
+      if (qty === 0) return 'No Sales'
+      if (qty > 50) return 'Excellent'
+      if (qty > 20) return 'Good'
+      if (qty > 5) return 'Average'
+      return 'Poor'
+    },
+
+    getMenuStatusClass(quantity) {
+      const qty = parseInt(quantity) || 0
+      if (qty === 0) return 'no-sales'
+      if (qty > 50) return 'excellent'
+      if (qty > 20) return 'good'
+      if (qty > 5) return 'average'
+      return 'poor'
+    },
+
+    // =============================================
+    // MENU ITEM DETAILS
+    // =============================================
+    async viewMenuItemDetails(item) {
+      this.selectedMenuItem = {
+        ...item,
+        stallBreakdown: [],
+        totalQuantity: 0
+      }
+      this.menuDetailModal = true
+      await this.fetchMenuTopStalls(item.name)
+    },
+
+    async fetchMenuTopStalls(itemName) {
+      try {
+        const days = this.selectedPeriod === 'today' ? 1 :
+                     this.selectedPeriod === 'week' ? 7 :
+                     this.selectedPeriod === 'month' ? 30 :
+                     this.selectedPeriod === 'quarter' ? 90 :
+                     this.selectedPeriod === 'halfyear' ? 180 :
+                     this.selectedPeriod === 'year' ? 365 :
+                     this.customDays || 30
+        
+        const stallIds = this.stalls.map(s => s.id)
+        if (!stallIds || stallIds.length === 0) {
+          return
+        }
+        
+        const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const stallData = res.data || []
+        const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
+        
+        this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
+          stallName: stall.stall_name || 'Unknown',
+          quantity: parseInt(stall.quantity) || 0,
+          revenue: parseFloat(stall.revenue) || 0,
+          percentage: maxQuantity > 0 ? (stall.quantity / maxQuantity) * 100 : 0
+        })).sort((a, b) => b.quantity - a.quantity)
+        
+        this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
+        this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
+      } catch (err) {
+        console.error('Failed to fetch top stalls:', err)
+        this.selectedMenuItem.stallBreakdown = []
+        this.selectedMenuItem.totalQuantity = 0
+        this.selectedMenuItem.totalRevenue = 0
+      }
+    },
+
+    closeMenuDetailModal() {
+      this.menuDetailModal = false
+      this.selectedMenuItem = null
+    },
+
+    // =============================================
+    // DROPDOWN METHODS
+    // =============================================
+    toggleDropdown() {
+      this.dropdownOpen = !this.dropdownOpen
+      if (this.dropdownOpen) this.periodDropdownOpen = false
+    },
+
+    togglePeriodDropdown() {
+      this.periodDropdownOpen = !this.periodDropdownOpen
+      if (this.periodDropdownOpen) this.dropdownOpen = false
+    },
+
+    selectTab(tabId) {
+      this.activeTab = tabId
+      this.dropdownOpen = false
+      this.switchTab(tabId)
+    },
+
+    selectPeriod(value) {
+      this.selectedPeriod = value
+      this.periodDropdownOpen = false
+      if (value === 'custom') {
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - 30)
+        this.customDateStart = start.toISOString().split('T')[0]
+        this.customDateEnd = end.toISOString().split('T')[0]
+      } else {
+        this.refreshAllData()
+      }
+    },
+
+    handleClickOutside(event) {
+      const container = this.$el
+      if (container && !container.contains(event.target)) {
+        this.dropdownOpen = false
+        this.periodDropdownOpen = false
+      }
+    },
+
+    // =============================================
+    // CUSTOM DATE RANGE
+    // =============================================
+    applyCustomRange() {
+      if (!this.customDateStart || !this.customDateEnd) {
+        this.$emit('show-notification', 'Please select both start and end dates', 'warning')
         return
       }
-      
-      const res = await axios.get(`${API_BASE}/menu-performance?days=${days}&itemName=${encodeURIComponent(itemName)}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      
-      const stallData = res.data || []
-      const maxQuantity = stallData.reduce((max, s) => Math.max(max, s.quantity || 0), 0)
-      
-      this.selectedMenuItem.stallBreakdown = stallData.map(stall => ({
-        stallName: stall.stall_name || 'Unknown',
-        quantity: parseInt(stall.quantity) || 0,
-        revenue: parseFloat(stall.revenue) || 0,
-        percentage: maxQuantity > 0 ? (stall.quantity / maxQuantity) * 100 : 0
-      })).sort((a, b) => b.quantity - a.quantity)
-      
-      this.selectedMenuItem.totalQuantity = stallData.reduce((sum, s) => sum + (s.quantity || 0), 0)
-      this.selectedMenuItem.totalRevenue = stallData.reduce((sum, s) => sum + (s.revenue || 0), 0)
-    } catch (err) {
-      console.error('Failed to fetch top stalls:', err)
-      this.selectedMenuItem.stallBreakdown = []
-      this.selectedMenuItem.totalQuantity = 0
-      this.selectedMenuItem.totalRevenue = 0
-    }
-  },
-
-  closeMenuDetailModal() {
-    this.menuDetailModal = false
-    this.selectedMenuItem = null
-  },
-
-  // =============================================
-  // DROPDOWN METHODS
-  // =============================================
-  toggleDropdown() {
-    this.dropdownOpen = !this.dropdownOpen
-    if (this.dropdownOpen) this.periodDropdownOpen = false
-  },
-
-  togglePeriodDropdown() {
-    this.periodDropdownOpen = !this.periodDropdownOpen
-    if (this.periodDropdownOpen) this.dropdownOpen = false
-  },
-
-  selectTab(tabId) {
-    this.activeTab = tabId
-    this.dropdownOpen = false
-    this.switchTab(tabId)
-  },
-
-  selectPeriod(value) {
-    this.selectedPeriod = value
-    this.periodDropdownOpen = false
-    if (value === 'custom') {
-      const end = new Date()
-      const start = new Date()
-      start.setDate(start.getDate() - 30)
-      this.customDateStart = start.toISOString().split('T')[0]
-      this.customDateEnd = end.toISOString().split('T')[0]
-    } else {
-      this.refreshAllData()
-    }
-  },
-
-  handleClickOutside(event) {
-    const container = this.$el
-    if (container && !container.contains(event.target)) {
-      this.dropdownOpen = false
+      const start = new Date(this.customDateStart)
+      const end = new Date(this.customDateEnd)
+      if (start > end) {
+        this.$emit('show-notification', 'Start date must be before end date', 'error')
+        return
+      }
+      const diffTime = Math.abs(end - start)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      this.customDays = diffDays + 1
       this.periodDropdownOpen = false
-    }
-  },
+      this.refreshAllData()
+      this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
+    },
 
-  // =============================================
-  // CUSTOM DATE RANGE
-  // =============================================
-  applyCustomRange() {
-    if (!this.customDateStart || !this.customDateEnd) {
-      this.$emit('show-notification', 'Please select both start and end dates', 'warning')
-      return
-    }
-    const start = new Date(this.customDateStart)
-    const end = new Date(this.customDateEnd)
-    if (start > end) {
-      this.$emit('show-notification', 'Start date must be before end date', 'error')
-      return
-    }
-    const diffTime = Math.abs(end - start)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    this.customDays = diffDays + 1
-    this.periodDropdownOpen = false
-    this.refreshAllData()
-    this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
-  },
+    // =============================================
+    // FORMATTING
+    // =============================================
+    formatCurrency(amount) {
+      const num = Number(amount) || 0
+      return new Intl.NumberFormat('en-MY', { 
+        style: 'currency', 
+        currency: 'MYR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(num)
+    },
 
-  // =============================================
-  // FORMATTING
-  // =============================================
-  formatCurrency(amount) {
-    const num = Number(amount) || 0
-    return new Intl.NumberFormat('en-MY', { 
-      style: 'currency', 
-      currency: 'MYR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(num)
-  },
+    formatNumber(value) {
+      const num = Number(value) || 0
+      const rounded = Math.round(num)
+      return new Intl.NumberFormat('en-MY').format(rounded)
+    },
 
-  formatNumber(value) {
-    const num = Number(value) || 0
-    const rounded = Math.round(num)
-    return new Intl.NumberFormat('en-MY').format(rounded)
-  },
-
-  formatShortDate(dateStr) {
-    if (!dateStr) return ''
-    
-    if (this.selectedPeriod === 'today') {
-      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
-      if (!dateParts) return dateStr
+    formatShortDate(dateStr) {
+      if (!dateStr) return ''
       
-      const hour = parseInt(dateParts[4])
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const hours12 = hour % 12 || 12
+      if (this.selectedPeriod === 'today') {
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+        if (!dateParts) return dateStr
+        
+        const hour = parseInt(dateParts[4])
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const hours12 = hour % 12 || 12
+        
+        return `${hours12}:00 ${ampm}`
+      }
       
-      return `${hours12}:00 ${ampm}`
-    }
-    
-    if (this.selectedPeriod === 'custom') {
+      if (this.selectedPeriod === 'custom') {
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+        if (!dateParts) return dateStr
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          parseInt(dateParts[3])
+        ))
+        return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+      }
+      
+      if (this.selectedPeriod === 'quarter' || 
+          this.selectedPeriod === 'halfyear' || 
+          this.selectedPeriod === 'year') {
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
+        if (!dateParts) return dateStr
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          1
+        ))
+        return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      }
+      
+      if (this.selectedPeriod === 'month') {
+        if (dateStr.includes('W')) return dateStr
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+        if (!dateParts) return dateStr
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          parseInt(dateParts[3])
+        ))
+        const weekStart = this.getWeekStart(date)
+        return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+      }
+      
+      if (this.selectedPeriod === 'week') {
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+        if (!dateParts) return dateStr
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          parseInt(dateParts[3])
+        ))
+        const dayOfWeek = date.getUTCDay()
+        const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        const dayName = orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
+        const dayNum = date.getUTCDate()
+        const month = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+        return `${dayName} ${dayNum} ${month}`
+      }
+      
       const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
       if (!dateParts) return dateStr
       const date = new Date(Date.UTC(
@@ -2311,231 +2343,508 @@ methods: {
         parseInt(dateParts[2]) - 1,
         parseInt(dateParts[3])
       ))
-      return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-    }
-    
-    if (this.selectedPeriod === 'quarter' || 
-        this.selectedPeriod === 'halfyear' || 
-        this.selectedPeriod === 'year') {
-      const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
-      if (!dateParts) return dateStr
-      const date = new Date(Date.UTC(
-        parseInt(dateParts[1]),
-        parseInt(dateParts[2]) - 1,
-        1
-      ))
-      return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-    }
-    
-    if (this.selectedPeriod === 'month') {
-      if (dateStr.includes('W')) return dateStr
-      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-      if (!dateParts) return dateStr
-      const date = new Date(Date.UTC(
-        parseInt(dateParts[1]),
-        parseInt(dateParts[2]) - 1,
-        parseInt(dateParts[3])
-      ))
-      const weekStart = this.getWeekStart(date)
-      return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-    }
-    
-    if (this.selectedPeriod === 'week') {
-      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-      if (!dateParts) return dateStr
-      const date = new Date(Date.UTC(
-        parseInt(dateParts[1]),
-        parseInt(dateParts[2]) - 1,
-        parseInt(dateParts[3])
-      ))
-      const dayOfWeek = date.getUTCDay()
-      const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-      const dayName = orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1]
-      const dayNum = date.getUTCDate()
-      const month = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-      return `${dayName} ${dayNum} ${month}`
-    }
-    
-    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-    if (!dateParts) return dateStr
-    const date = new Date(Date.UTC(
-      parseInt(dateParts[1]),
-      parseInt(dateParts[2]) - 1,
-      parseInt(dateParts[3])
-    ))
-    return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
-  },
+      return date.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
+    },
 
-  formatFullDate(dateStr) {
-    if (!dateStr) return ''
-    return new Date(dateStr).toLocaleDateString('en-MY', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'short' 
-    })
-  },
+    formatFullDate(dateStr) {
+      if (!dateStr) return ''
+      return new Date(dateStr).toLocaleDateString('en-MY', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'short' 
+      })
+    },
 
-  getPeriodLabel() {
-    const p = this.periods.find(p => p.value === this.selectedPeriod)
-    if (this.selectedPeriod === 'custom') {
-      return `Custom (${this.customDays} days)`
-    }
-    return p ? p.label : 'Week'
-  },
+    getPeriodLabel() {
+      const p = this.periods.find(p => p.value === this.selectedPeriod)
+      if (this.selectedPeriod === 'custom') {
+        return `Custom (${this.customDays} days)`
+      }
+      return p ? p.label : 'Week'
+    },
 
-  getUnit(materialName) {
-    return 'pieces'
-  },
+    getUnit(materialName) {
+      return 'pieces'
+    },
 
-  // =============================================
-  // CHART STATS
-  // =============================================
-  getBestDayName() {
-    if (this.salesTrend.length === 0) return '-'
-    const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
-    const day = this.salesTrend.find(d => d.revenue === max)
-    if (!day) return '-'
-    
-    if (this.selectedPeriod === 'today') {
-      if (day.label) return day.label
-      const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
-      if (!dateParts) return '-'
+    // =============================================
+    // CHART STATS
+    // =============================================
+    getBestDayName() {
+      if (this.salesTrend.length === 0) return '-'
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      const day = this.salesTrend.find(d => d.revenue === max)
+      if (!day) return '-'
       
-      const hour = parseInt(dateParts[4])
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const hours12 = hour % 12 || 12
+      if (this.selectedPeriod === 'today') {
+        if (day.label) return day.label
+        const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+        if (!dateParts) return '-'
+        
+        const hour = parseInt(dateParts[4])
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const hours12 = hour % 12 || 12
+        
+        return `${hours12}:00 ${ampm}`
+      }
       
-      return `${hours12}:00 ${ampm}`
-    }
-    
-    return this.formatShortDate(day.date) || '-'
-  },
+      return this.formatShortDate(day.date) || '-'
+    },
 
-  getBestDayRevenue() {
-    if (this.salesTrend.length === 0) return 0
-    const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
-    return max
-  },
+    getBestDayRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      return max
+    },
 
-  getTotalRevenue() {
-    return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-  },
+    getTotalRevenue() {
+      return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+    },
 
-  getTotalItems() {
-    return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
-  },
+    getTotalItems() {
+      return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
+    },
 
-  // =============================================
-  // STALL DETAILS - WITH PERIOD SUPPORT
-  // =============================================
-  viewStallDetails(stall) {
-    this.selectedStall = stall
-    this.stallDetailModal = true
-    this.selectedStallId = stall.id
-    
-    this.fetchStallDetails(stall.id, this.selectedPeriod)
-    
-    this.$nextTick(() => {
-      this.initStallDetailChart(stall.id, this.selectedPeriod)
-    })
-  },
+    // =============================================
+    // STALL DETAILS - WITH PERIOD SUPPORT
+    // =============================================
+    viewStallDetails(stall) {
+      this.selectedStall = stall
+      this.stallDetailModal = true
+      this.selectedStallId = stall.id
+      
+      this.fetchStallDetails(stall.id, this.selectedPeriod)
+      
+      this.$nextTick(() => {
+        this.initStallDetailChart(stall.id, this.selectedPeriod)
+      })
+    },
 
-  async fetchStallDetails(stallId, period = 'week') {
-    try {
+    async fetchStallDetails(stallId, period = 'week') {
+      try {
+        const days = period === 'today' ? 1 :
+                     period === 'week' ? 7 :
+                     period === 'month' ? 30 :
+                     period === 'quarter' ? 90 :
+                     period === 'halfyear' ? 180 :
+                     period === 'year' ? 365 :
+                     this.customDays || 30
+        
+        const res = await axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const data = res.data || {}
+        if (data && data.length > 0) {
+          const stallData = data[0]
+          this.selectedStall.items = parseInt(stallData.items_sold) || 0
+          this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
+          this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
+        }
+        
+        const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
+        if (stallIndex !== -1) {
+          this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
+        }
+        
+      } catch (err) {
+        console.error('Failed to fetch stall details:', err)
+      }
+    },
+
+    closeStallDetailModal() {
+      this.stallDetailModal = false
+      this.selectedStall = null
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+    },
+
+    initStallDetailChart(stallId, period = 'week') {
+      if (!this.$refs.stallDetailChartRef) return
+
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.dispose()
+        this.stallDetailChartInstance = null
+      }
+
+      this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+
+      if (!stallId) {
+        console.warn('No stall ID found for detail chart')
+        return
+      }
+
       const days = period === 'today' ? 1 :
                    period === 'week' ? 7 :
                    period === 'month' ? 30 :
                    period === 'quarter' ? 90 :
                    period === 'halfyear' ? 180 :
                    period === 'year' ? 365 :
-                   this.customDays || 30
-      
-      const res = await axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
+                   period === 'custom' ? this.customDays || 30 :
+                   30
+
+      let grouping
+
+      if (period === 'today') {
+        grouping = 'hour'
+      } else if (period === 'week') {
+        grouping = 'day'
+      } else if (period === 'month') {
+        grouping = 'week'
+      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+        grouping = 'month'
+      } else if (period === 'custom') {
+        const customDays = this.customDays || 30
+        if (customDays <= 14) {
+          grouping = 'day'
+        } else if (customDays <= 60) {
+          grouping = 'week'
+        } else {
+          grouping = 'month'
+        }
+      } else {
+        grouping = 'day'
+      }
+
+      axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
         headers: { Authorization: `Bearer ${this.token}` }
       })
+      .then(response => {
+        const data = response.data || {}
+        let salesData = data.dailySales || []
+
+        if (!salesData || salesData.length === 0) {
+          const option = {
+            title: {
+              text: `No sales data for ${this.getPeriodLabel()}`,
+              left: 'center',
+              top: 'center',
+              textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+            }
+          }
+          this.stallDetailChartInstance.setOption(option)
+          this.stallDetailChartInstance.resize()
+          return
+        }
+
+        let groupedData = this.groupSalesData(salesData, grouping, period)
+        
+        const chartLabels = groupedData.map(item => {
+          if (period === 'today') {
+            return this.formatHourLabel(item.date)
+          } else if (period === 'week') {
+            return this.formatDayLabel(item.date)
+          } else if (period === 'month') {
+            return this.formatWeekRangeLabel(item.date)
+          } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+            return this.formatMonthLabel(item.date)
+          } else if (period === 'custom') {
+            const customDays = this.customDays || 30
+            if (customDays <= 14) {
+              return this.formatDayLabel(item.date)
+            } else if (customDays <= 60) {
+              return this.formatWeekRangeLabel(item.date)
+            } else {
+              return this.formatMonthLabel(item.date)
+            }
+          }
+          return item.label || item.date
+        })
+        
+        const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
+        const items = groupedData.map(d => parseInt(d.items) || 0)
+
+        const tooltipFormatter = (params) => {
+          const index = params[0]?.dataIndex || 0
+          const revenue = parseFloat(revenues[index]) || 0
+          const itemsCount = parseInt(items[index]) || 0
+          const dateLabel = chartLabels[index] || ''
+          
+          let tooltipLabel = dateLabel
+          
+          if (period === 'week' && groupedData[index]) {
+            const fullDate = new Date(groupedData[index].date)
+            tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short', 
+              year: 'numeric',
+              timeZone: 'UTC'
+            })
+          }
+          
+          if (period === 'custom' && groupedData[index]) {
+            const customDays = this.customDays || 30
+            const fullDate = new Date(groupedData[index].date)
+            if (customDays <= 14) {
+              tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                timeZone: 'UTC'
+              })
+            } else if (customDays <= 60) {
+              const weekStart = this.getWeekStart(fullDate)
+              const weekEnd = new Date(weekStart)
+              weekEnd.setDate(weekEnd.getDate() + 6)
+              tooltipLabel = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+            } else {
+              tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+                month: 'short', 
+                year: 'numeric',
+                timeZone: 'UTC'
+              })
+            }
+          }
+          
+          return `
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${tooltipLabel}</div>
+            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+              RM ${revenue.toFixed(2)}
+            </div>
+            <div style="font-size:11px;color:#64748b;">
+              ${itemsCount} items sold
+            </div>
+          `
+        }
+
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            padding: [8, 12],
+            textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
+            formatter: tooltipFormatter
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '8%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: chartLabels,
+            axisLine: { lineStyle: { color: '#e2e8f0' } },
+            axisLabel: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              fontWeight: 500,
+              rotate: (period === 'today' || period === 'month' || period === 'custom') && chartLabels.length > 7 ? 30 : 0
+            }
+          },
+          yAxis: {
+            type: 'value',
+            splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+            axisLabel: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              formatter: (value) => 'RM' + value
+            },
+            name: 'Revenue (RM)',
+            nameTextStyle: { 
+              color: '#94a3b8', 
+              fontSize: 11,
+              fontWeight: 500
+            }
+          },
+          series: [{
+            type: 'bar',
+            data: revenues,
+            barWidth: '40%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            }
+          }]
+        }
+
+        this.stallDetailChartInstance.setOption(option)
+        this.stallDetailChartInstance.resize()
+      })
+      .catch(err => {
+        console.error('Failed to load stall detail chart data:', err)
+      })
+    },
       
-      const data = res.data || {}
-      if (data && data.length > 0) {
-        const stallData = data[0]
-        this.selectedStall.items = parseInt(stallData.items_sold) || 0
-        this.selectedStall.avgTransaction = parseFloat(stallData.avg_transaction) || 0
-        this.selectedStall.revenue = parseFloat(stallData.revenue) || 0
+    // =============================================
+    // HELPER
+    // =============================================
+    getTodayInMalaysia() {
+      const now = new Date()
+      const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
+      const today = new Date(malaysiaTime)
+      today.setHours(0, 0, 0, 0)
+      return today
+    },
+      
+    // =============================================
+    // GROUPING HELPERS
+    // =============================================
+    groupSalesByWeek(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      
+      const grouped = {}
+      
+      dailySales.forEach(day => {
+        const date = new Date(day.date)
+        const weekStart = this.getWeekStart(date)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekEnd.getDate() + 6)
+        
+        const key = weekStart.toISOString().split('T')[0]
+        
+        if (!grouped[key]) {
+          const startDay = weekStart.getUTCDate()
+          const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          const endDay = weekEnd.getUTCDate()
+          const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          
+          let label
+          if (startMonth === endMonth) {
+            label = `${startDay}-${endDay} ${startMonth}`
+          } else {
+            label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+          }
+          
+          grouped[key] = {
+            date: weekStart.toISOString(),
+            label: label,
+            displayLabel: label,
+            revenue: 0,
+            items: 0
+          }
+        }
+        
+        grouped[key].revenue += day.revenue || 0
+        grouped[key].items += day.items || 0
+      })
+      
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupSalesByMonth(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      const grouped = {}
+      dailySales.forEach(day => {
+        const date = new Date(day.date)
+        const month = date.getMonth()
+        const year = date.getFullYear()
+        const key = `${year}-${month}`
+        if (!grouped[key]) {
+          const label = date.toLocaleDateString('en-MY', { 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
+          grouped[key] = {
+            date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+            label: label,
+            revenue: 0,
+            items: 0,
+            month: month,
+            year: year
+          }
+        }
+        grouped[key].revenue += day.revenue || 0
+        grouped[key].items += day.items || 0
+      })
+      return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+    },
+
+    groupSalesCustom(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      const days = dailySales.length
+      
+      if (days <= 14) {
+        return dailySales.map(day => ({
+          ...day,
+          label: new Date(day.date).toLocaleDateString('en-MY', { 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: 'UTC'
+          })
+        }))
       }
       
-      const stallIndex = this.stallPerformance.findIndex(s => s.id === stallId)
-      if (stallIndex !== -1) {
-        this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
+      if (days <= 60) {
+        return this.groupSalesByWeek(dailySales)
       }
       
-    } catch (err) {
-      console.error('Failed to fetch stall details:', err)
-    }
-  },
+      return this.groupSalesByMonth(dailySales)
+    },
 
-  closeStallDetailModal() {
-    this.stallDetailModal = false
-    this.selectedStall = null
-    if (this.stallDetailChartInstance) {
-      this.stallDetailChartInstance.dispose()
-      this.stallDetailChartInstance = null
-    }
-  },
+    getWeekNumber(date) {
+      const d = new Date(date)
+      d.setHours(0, 0, 0, 0)
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7)
+      const week1 = new Date(d.getFullYear(), 0, 4)
+      return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
+    },
 
-  initStallDetailChart(stallId, period = 'week') {
-    if (!this.$refs.stallDetailChartRef) return
-
-    if (this.stallDetailChartInstance) {
-      this.stallDetailChartInstance.dispose()
-      this.stallDetailChartInstance = null
-    }
-
-    this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
-
-    if (!stallId) {
-      console.warn('No stall ID found for detail chart')
-      return
-    }
-
-    const days = period === 'today' ? 1 :
-                 period === 'week' ? 7 :
-                 period === 'month' ? 30 :
-                 period === 'quarter' ? 90 :
-                 period === 'halfyear' ? 180 :
-                 period === 'year' ? 365 :
-                 period === 'custom' ? this.customDays || 30 :
-                 30
-
-    let grouping
-
-    if (period === 'today') {
-      grouping = 'hour'
-    } else if (period === 'week') {
-      grouping = 'day'
-    } else if (period === 'month') {
-      grouping = 'week'
-    } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-      grouping = 'month'
-    } else if (period === 'custom') {
-      const customDays = this.customDays || 30
-      if (customDays <= 14) {
-        grouping = 'day'
-      } else if (customDays <= 60) {
-        grouping = 'week'
-      } else {
-        grouping = 'month'
+    // =============================================
+    // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
+    // =============================================
+    splitTodayIntoHours(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      
+      if (dailySales.length > 1) {
+        return dailySales
       }
-    } else {
-      grouping = 'day'
-    }
+      
+      const dayData = dailySales[0]
+      if (!dayData) return []
+      
+      const totalRevenue = dayData.revenue || 0
+      const totalItems = dayData.items || 0
+      
+      if (totalRevenue > 0 || totalItems > 0) {
+        return dailySales
+      }
+      
+      return []
+    },
 
-    axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    .then(response => {
-      const data = response.data || {}
-      let salesData = data.dailySales || []
+    // =============================================
+    // ECHARTS - Professional Chart
+    // =============================================
+    initChart() {
+      if (!this.$refs.chartRef) return
+      if (this.chartInstance) {
+        this.chartInstance.dispose()
+        this.chartInstance = null
+      }
+      this.chartInstance = echarts.init(this.$refs.chartRef)
+      this.isChartInitialized = true
+      this.updateChart()
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect()
+      }
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleChartResize()
+      })
+      this.resizeObserver.observe(this.$refs.chartRef)
+      window.removeEventListener('resize', this.handleChartResize)
+      window.addEventListener('resize', this.handleChartResize)
+    },
 
-      if (!salesData || salesData.length === 0) {
+    updateChart() {
+      if (!this.chartInstance) return
+      const data = this.chartVisibleData
+      if (data.length === 0) {
         const option = {
           title: {
             text: `No sales data for ${this.getPeriodLabel()}`,
@@ -2544,395 +2853,139 @@ methods: {
             textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
           }
         }
-        this.stallDetailChartInstance.setOption(option)
-        this.stallDetailChartInstance.resize()
+        this.chartInstance.setOption(option, true)
         return
       }
-
-      let groupedData = this.groupSalesData(salesData, grouping, period)
       
-      const chartLabels = groupedData.map(item => {
-        if (period === 'today') {
-          return this.formatHourLabel(item.date)
-        } else if (period === 'week') {
-          return this.formatDayLabel(item.date)
-        } else if (period === 'month') {
-          return this.formatWeekRangeLabel(item.date)
-        } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-          return this.formatMonthLabel(item.date)
-        } else if (period === 'custom') {
-          const customDays = this.customDays || 30
-          if (customDays <= 14) {
-            return this.formatDayLabel(item.date)
-          } else if (customDays <= 60) {
-            return this.formatWeekRangeLabel(item.date)
-          } else {
-            return this.formatMonthLabel(item.date)
-          }
-        }
-        return item.label || item.date
+      const dates = data.map(d => {
+        if (d.label) return d.label
+        return this.formatShortDate(d.date)
       })
       
-      const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
-      const items = groupedData.map(d => parseInt(d.items) || 0)
-
-      const tooltipFormatter = (params) => {
-        const index = params[0]?.dataIndex || 0
-        const revenue = parseFloat(revenues[index]) || 0
-        const itemsCount = parseInt(items[index]) || 0
-        const dateLabel = chartLabels[index] || ''
-        
-        let tooltipLabel = dateLabel
-        
-        if (period === 'week' && groupedData[index]) {
-          const fullDate = new Date(groupedData[index].date)
-          tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric',
-            timeZone: 'UTC'
-          })
-        }
-        
-        if (period === 'custom' && groupedData[index]) {
-          const customDays = this.customDays || 30
-          const fullDate = new Date(groupedData[index].date)
-          if (customDays <= 14) {
-            tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-              weekday: 'short', 
-              day: 'numeric', 
-              month: 'short', 
-              year: 'numeric',
-              timeZone: 'UTC'
-            })
-          } else if (customDays <= 60) {
-            const weekStart = this.getWeekStart(fullDate)
-            const weekEnd = new Date(weekStart)
-            weekEnd.setDate(weekEnd.getDate() + 6)
-            tooltipLabel = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-          } else {
-            tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-              month: 'short', 
-              year: 'numeric',
-              timeZone: 'UTC'
-            })
-          }
-        }
-        
-        return `
-          <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${tooltipLabel}</div>
-          <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-            RM ${revenue.toFixed(2)}
-          </div>
-          <div style="font-size:11px;color:#64748b;">
-            ${itemsCount} items sold
-          </div>
-        `
-      }
-
-      const maxLabelLength = chartLabels.reduce((max, label) => Math.max(max, label.length), 0)
-
+      const revenues = data.map(d => d.revenue || 0)
+      const chartWidth = this.$refs.chartRef?.clientWidth || 0
+      const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
+      
       const option = {
         tooltip: {
           trigger: 'axis',
           backgroundColor: 'rgba(255,255,255,0.95)',
           borderColor: '#e2e8f0',
           borderWidth: 1,
-          padding: [8, 12],
-          textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
-          formatter: tooltipFormatter
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: chartLabels,
-          axisLine: { lineStyle: { color: '#e2e8f0' } },
-          axisLabel: { 
-            color: '#94a3b8', 
-            fontSize: 11,
-            fontWeight: 500,
-            rotate: (period === 'today' || period === 'month' || period === 'custom') && chartLabels.length > 7 ? 30 : 0
-          }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: { 
-            color: '#94a3b8', 
-            fontSize: 11,
-            formatter: (value) => 'RM' + value
-          },
-          name: 'Revenue (RM)',
-          nameTextStyle: { 
-            color: '#94a3b8', 
-            fontSize: 11,
-            fontWeight: 500
-          }
-        },
-        series: [{
-          type: 'bar',
-          data: revenues,
-          barWidth: '40%',
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#F94908' },
-                { offset: 1, color: '#fa6a2e' }
-              ]
-            }
-          }
-        }]
-      }
-
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-    })
-    .catch(err => {
-      console.error('Failed to load stall detail chart data:', err)
-    })
-  },
-    
-  // =============================================
-  // HELPER
-  // =============================================
-  getTodayInMalaysia() {
-    const now = new Date()
-    const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
-    const today = new Date(malaysiaTime)
-    today.setHours(0, 0, 0, 0)
-    return today
-  },
-    
-  // =============================================
-  // GROUPING HELPERS
-  // =============================================
-  groupSalesByWeek(dailySales) {
-    if (!dailySales || dailySales.length === 0) return []
-    
-    const grouped = {}
-    
-    dailySales.forEach(day => {
-      const date = new Date(day.date)
-      const weekStart = this.getWeekStart(date)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekEnd.getDate() + 6)
-      
-      const key = weekStart.toISOString().split('T')[0]
-      
-      if (!grouped[key]) {
-        const startDay = weekStart.getUTCDate()
-        const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-        const endDay = weekEnd.getUTCDate()
-        const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-        
-        let label
-        if (startMonth === endMonth) {
-          label = `${startDay}-${endDay} ${startMonth}`
-        } else {
-          label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
-        }
-        
-        grouped[key] = {
-          date: weekStart.toISOString(),
-          label: label,
-          displayLabel: label,
-          revenue: 0,
-          items: 0
-        }
-      }
-      
-      grouped[key].revenue += day.revenue || 0
-      grouped[key].items += day.items || 0
-    })
-    
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
-
-  groupSalesByMonth(dailySales) {
-    if (!dailySales || dailySales.length === 0) return []
-    const grouped = {}
-    dailySales.forEach(day => {
-      const date = new Date(day.date)
-      const month = date.getMonth()
-      const year = date.getFullYear()
-      const key = `${year}-${month}`
-      if (!grouped[key]) {
-        const label = date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          year: 'numeric',
-          timeZone: 'UTC'
-        })
-        grouped[key] = {
-          date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
-          label: label,
-          revenue: 0,
-          items: 0,
-          month: month,
-          year: year
-        }
-      }
-      grouped[key].revenue += day.revenue || 0
-      grouped[key].items += day.items || 0
-    })
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
-  },
-
-  groupSalesCustom(dailySales) {
-    if (!dailySales || dailySales.length === 0) return []
-    const days = dailySales.length
-    
-    if (days <= 14) {
-      return dailySales.map(day => ({
-        ...day,
-        label: new Date(day.date).toLocaleDateString('en-MY', { 
-          month: 'short', 
-          day: 'numeric',
-          timeZone: 'UTC'
-        })
-      }))
-    }
-    
-    if (days <= 60) {
-      return this.groupSalesByWeek(dailySales)
-    }
-    
-    return this.groupSalesByMonth(dailySales)
-  },
-
-  getWeekNumber(date) {
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7)
-    const week1 = new Date(d.getFullYear(), 0, 4)
-    return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
-  },
-
-  // =============================================
-  // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
-  // =============================================
-  splitTodayIntoHours(dailySales) {
-    if (!dailySales || dailySales.length === 0) return []
-    
-    if (dailySales.length > 1) {
-      return dailySales
-    }
-    
-    const dayData = dailySales[0]
-    if (!dayData) return []
-    
-    const totalRevenue = dayData.revenue || 0
-    const totalItems = dayData.items || 0
-    
-    if (totalRevenue > 0 || totalItems > 0) {
-      return dailySales
-    }
-    
-    return []
-  },
-
-  // =============================================
-  // ECHARTS - Professional Chart
-  // =============================================
-  initChart() {
-    if (!this.$refs.chartRef) return
-    if (this.chartInstance) {
-      this.chartInstance.dispose()
-      this.chartInstance = null
-    }
-    this.chartInstance = echarts.init(this.$refs.chartRef)
-    this.isChartInitialized = true
-    this.updateChart()
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-    }
-    this.resizeObserver = new ResizeObserver(() => {
-      this.handleChartResize()
-    })
-    this.resizeObserver.observe(this.$refs.chartRef)
-    window.removeEventListener('resize', this.handleChartResize)
-    window.addEventListener('resize', this.handleChartResize)
-  },
-
-  updateChart() {
-    if (!this.chartInstance) return
-    const data = this.chartVisibleData
-    if (data.length === 0) {
-      const option = {
-        title: {
-          text: `No sales data for ${this.getPeriodLabel()}`,
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-        }
-      }
-      this.chartInstance.setOption(option, true)
-      return
-    }
-    
-    const dates = data.map(d => {
-      if (d.label) return d.label
-      return this.formatShortDate(d.date)
-    })
-    
-    const revenues = data.map(d => d.revenue || 0)
-    const chartWidth = this.$refs.chartRef?.clientWidth || 0
-    const labelInterval = chartWidth < 400 && dates.length > 7 ? Math.floor(dates.length / 6) : 0
-    
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        padding: [6, 10],
-        textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-        formatter: function(params) {
-          const index = params[0]?.dataIndex || 0
-          const revenue = data[index]?.revenue || 0
-          const itemsCount = data[index]?.items || 0
-          const dateStr = data[index]?.date || data[index]?.label || ''
-          let formattedDate = dateStr
-          
-          if (dateStr && !dateStr.includes('W')) {
-            if (this.selectedPeriod === 'today') {
-              const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
-              if (dateParts) {
-                const hour = parseInt(dateParts[4])
-                const minute = parseInt(dateParts[5])
-                const ampm = hour >= 12 ? 'PM' : 'AM'
-                const hours12 = hour % 12 || 12
-                const minutes = String(minute).padStart(2, '0')
-                formattedDate = `${hours12}:${minutes} ${ampm}`
-              }
-            } else if (this.selectedPeriod === 'week') {
-              const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-              if (dateParts) {
-                const date = new Date(Date.UTC(
-                  parseInt(dateParts[1]),
-                  parseInt(dateParts[2]) - 1,
-                  parseInt(dateParts[3])
-                ))
-                formattedDate = date.toLocaleDateString('en-MY', { 
-                  weekday: 'short', 
-                  day: 'numeric', 
-                  month: 'short',
-                  year: 'numeric',
-                  timeZone: 'UTC'
-                })
-              }
-            } else if (this.selectedPeriod === 'month') {
-              if (data[index]?.displayLabel) {
-                formattedDate = data[index].displayLabel
+          padding: [6, 10],
+          textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
+          formatter: function(params) {
+            const index = params[0]?.dataIndex || 0
+            const revenue = data[index]?.revenue || 0
+            const itemsCount = data[index]?.items || 0
+            const dateStr = data[index]?.date || data[index]?.label || ''
+            let formattedDate = dateStr
+            
+            if (dateStr && !dateStr.includes('W')) {
+              if (this.selectedPeriod === 'today') {
+                const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+                if (dateParts) {
+                  const hour = parseInt(dateParts[4])
+                  const minute = parseInt(dateParts[5])
+                  const ampm = hour >= 12 ? 'PM' : 'AM'
+                  const hours12 = hour % 12 || 12
+                  const minutes = String(minute).padStart(2, '0')
+                  formattedDate = `${hours12}:${minutes} ${ampm}`
+                }
+              } else if (this.selectedPeriod === 'week') {
+                const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+                if (dateParts) {
+                  const date = new Date(Date.UTC(
+                    parseInt(dateParts[1]),
+                    parseInt(dateParts[2]) - 1,
+                    parseInt(dateParts[3])
+                  ))
+                  formattedDate = date.toLocaleDateString('en-MY', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                  })
+                }
+              } else if (this.selectedPeriod === 'month') {
+                if (data[index]?.displayLabel) {
+                  formattedDate = data[index].displayLabel
+                } else {
+                  const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+                  if (dateParts) {
+                    const date = new Date(Date.UTC(
+                      parseInt(dateParts[1]),
+                      parseInt(dateParts[2]) - 1,
+                      parseInt(dateParts[3])
+                    ))
+                    const weekStart = this.getWeekStart(date)
+                    const weekEnd = new Date(weekStart)
+                    weekEnd.setDate(weekEnd.getDate() + 6)
+                    const startDay = weekStart.getUTCDate()
+                    const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+                    const endDay = weekEnd.getUTCDate()
+                    const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+                    if (startMonth === endMonth) {
+                      formattedDate = `${startDay}-${endDay} ${startMonth}`
+                    } else {
+                      formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+                    }
+                  }
+                }
+              } else if (this.selectedPeriod === 'quarter' || 
+                         this.selectedPeriod === 'halfyear' || 
+                         this.selectedPeriod === 'year') {
+                const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
+                if (dateParts) {
+                  const date = new Date(Date.UTC(
+                    parseInt(dateParts[1]),
+                    parseInt(dateParts[2]) - 1,
+                    1
+                  ))
+                  formattedDate = date.toLocaleDateString('en-MY', { 
+                    month: 'short', 
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                  })
+                }
+              } else if (this.selectedPeriod === 'custom') {
+                const customDays = this.customDays || 30
+                const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+                if (dateParts) {
+                  const date = new Date(Date.UTC(
+                    parseInt(dateParts[1]),
+                    parseInt(dateParts[2]) - 1,
+                    parseInt(dateParts[3])
+                  ))
+                  if (customDays <= 14) {
+                    formattedDate = date.toLocaleDateString('en-MY', { 
+                      weekday: 'short',
+                      day: 'numeric', 
+                      month: 'short',
+                      timeZone: 'UTC'
+                    })
+                  } else if (customDays <= 60) {
+                    const weekStart = this.getWeekStart(date)
+                    const weekEnd = new Date(weekStart)
+                    weekEnd.setDate(weekEnd.getDate() + 6)
+                    const startDay = weekStart.getUTCDate()
+                    const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+                    const endDay = weekEnd.getUTCDate()
+                    const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+                    if (startMonth === endMonth) {
+                      formattedDate = `${startDay}-${endDay} ${startMonth}`
+                    } else {
+                      formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+                    }
+                  } else {
+                    formattedDate = date.toLocaleDateString('en-MY', { 
+                      month: 'short', 
+                      year: 'numeric',
+                      timeZone: 'UTC'
+                    })
+                  }
+                }
               } else {
                 const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
                 if (dateParts) {
@@ -2941,1168 +2994,1091 @@ methods: {
                     parseInt(dateParts[2]) - 1,
                     parseInt(dateParts[3])
                   ))
-                  const weekStart = this.getWeekStart(date)
-                  const weekEnd = new Date(weekStart)
-                  weekEnd.setDate(weekEnd.getDate() + 6)
-                  const startDay = weekStart.getUTCDate()
-                  const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-                  const endDay = weekEnd.getUTCDate()
-                  const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-                  if (startMonth === endMonth) {
-                    formattedDate = `${startDay}-${endDay} ${startMonth}`
-                  } else {
-                    formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
-                  }
+                  const day = date.getUTCDate()
+                  const monthName = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+                  const yearNum = date.getUTCFullYear()
+                  const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
+                  formattedDate = `${day}${suffix} ${monthName} ${yearNum}`
                 }
               }
-            } else if (this.selectedPeriod === 'quarter' || 
-                       this.selectedPeriod === 'halfyear' || 
-                       this.selectedPeriod === 'year') {
-              const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
-              if (dateParts) {
-                const date = new Date(Date.UTC(
-                  parseInt(dateParts[1]),
-                  parseInt(dateParts[2]) - 1,
-                  1
-                ))
-                formattedDate = date.toLocaleDateString('en-MY', { 
-                  month: 'short', 
-                  year: 'numeric',
-                  timeZone: 'UTC'
-                })
-              }
-            } else if (this.selectedPeriod === 'custom') {
-              const customDays = this.customDays || 30
-              const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-              if (dateParts) {
-                const date = new Date(Date.UTC(
-                  parseInt(dateParts[1]),
-                  parseInt(dateParts[2]) - 1,
-                  parseInt(dateParts[3])
-                ))
-                if (customDays <= 14) {
-                  formattedDate = date.toLocaleDateString('en-MY', { 
-                    weekday: 'short',
-                    day: 'numeric', 
-                    month: 'short',
-                    timeZone: 'UTC'
-                  })
-                } else if (customDays <= 60) {
-                  const weekStart = this.getWeekStart(date)
-                  const weekEnd = new Date(weekStart)
-                  weekEnd.setDate(weekEnd.getDate() + 6)
-                  const startDay = weekStart.getUTCDate()
-                  const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-                  const endDay = weekEnd.getUTCDate()
-                  const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-                  if (startMonth === endMonth) {
-                    formattedDate = `${startDay}-${endDay} ${startMonth}`
-                  } else {
-                    formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
-                  }
-                } else {
-                  formattedDate = date.toLocaleDateString('en-MY', { 
-                    month: 'short', 
-                    year: 'numeric',
-                    timeZone: 'UTC'
-                  })
-                }
-              }
-            } else {
-              const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-              if (dateParts) {
-                const date = new Date(Date.UTC(
-                  parseInt(dateParts[1]),
-                  parseInt(dateParts[2]) - 1,
-                  parseInt(dateParts[3])
-                ))
-                const day = date.getUTCDate()
-                const monthName = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-                const yearNum = date.getUTCFullYear()
-                const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10]
-                formattedDate = `${day}${suffix} ${monthName} ${yearNum}`
-              }
             }
-          }
-          
-          return `
-            <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
-            <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-            <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-          `
-        }.bind(this)
-      },
-      grid: {
-        left: chartWidth < 400 ? '5%' : '3%',
-        right: chartWidth < 400 ? '5%' : '4%',
-        bottom: '12%',
-        top: '8%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: {
-          color: '#94a3b8',
-          fontSize: chartWidth < 400 ? 9 : 11,
-          fontWeight: 500,
-          interval: labelInterval,
-          rotate: chartWidth < 400 ? 30 : 0,
-          margin: 12,
-          showMaxLabel: true,
-          showMinLabel: true
+            
+            return `
+              <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+              <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+            `
+          }.bind(this)
         },
-        axisTick: { show: false },
-        splitLine: { show: false }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-        axisLabel: {
-          color: '#94a3b8',
-          fontSize: chartWidth < 400 ? 9 : 11,
-          formatter: function(value) {
-            if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
-            return 'RM' + value
-          }
+        grid: {
+          left: chartWidth < 400 ? '5%' : '3%',
+          right: chartWidth < 400 ? '5%' : '4%',
+          bottom: '12%',
+          top: '8%',
+          containLabel: true
         },
-        name: chartWidth > 500 ? 'Revenue (RM)' : '',
-        nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
-      },
-      series: [
-        {
-          name: 'Revenue',
-          type: 'bar',
-          data: revenues,
-          barWidth: chartWidth < 400 ? '35%' : '55%',
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#F94908' },
-                { offset: 1, color: '#fa6a2e' }
-              ]
+        xAxis: {
+          type: 'category',
+          data: dates,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            fontWeight: 500,
+            interval: labelInterval,
+            rotate: chartWidth < 400 ? 30 : 0,
+            margin: 12,
+            showMaxLabel: true,
+            showMinLabel: true
+          },
+          axisTick: { show: false },
+          splitLine: { show: false }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: chartWidth < 400 ? 9 : 11,
+            formatter: function(value) {
+              if (value >= 1000) return 'RM' + (value / 1000).toFixed(1) + 'k'
+              return 'RM' + value
             }
           },
-          emphasis: { itemStyle: { color: '#d63d07' } }
+          name: chartWidth > 500 ? 'Revenue (RM)' : '',
+          nameTextStyle: { color: '#94a3b8', fontSize: chartWidth < 400 ? 9 : 11 }
         },
-        {
-          name: 'Trend Line',
-          type: 'line',
-          data: revenues,
-          smooth: false,
-          lineStyle: { color: '#F94908', width: 2.5, type: 'solid' },
-          symbol: 'circle',
-          symbolSize: chartWidth < 400 ? 5 : 7,
-          itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
-                { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
-              ]
-            }
+        series: [
+          {
+            name: 'Revenue',
+            type: 'bar',
+            data: revenues,
+            barWidth: chartWidth < 400 ? '35%' : '55%',
+            itemStyle: {
+              borderRadius: [4, 4, 0, 0],
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#F94908' },
+                  { offset: 1, color: '#fa6a2e' }
+                ]
+              }
+            },
+            emphasis: { itemStyle: { color: '#d63d07' } }
           },
-          z: 10
-        }
-      ]
-    }
-    this.chartInstance.setOption(option, true)
-  },
+          {
+            name: 'Trend Line',
+            type: 'line',
+            data: revenues,
+            smooth: false,
+            lineStyle: { color: '#F94908', width: 2.5, type: 'solid' },
+            symbol: 'circle',
+            symbolSize: chartWidth < 400 ? 5 : 7,
+            itemStyle: { color: '#F94908', borderColor: '#ffffff', borderWidth: 2 },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(249, 73, 8, 0.12)' },
+                  { offset: 1, color: 'rgba(249, 73, 8, 0.01)' }
+                ]
+              }
+            },
+            z: 10
+          }
+        ]
+      }
+      this.chartInstance.setOption(option, true)
+    },
 
-  handleChartResize() {
-    if (this.chartInstance) {
-      this.chartInstance.resize()
+    handleChartResize() {
+      if (this.chartInstance) {
+        this.chartInstance.resize()
+        this.updateChart()
+      }
+      if (this.stallDetailChartInstance) {
+        this.stallDetailChartInstance.resize()
+      }
+    },
+
+    // =============================================
+    // CHART STATS
+    // =============================================
+    getPeakRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      return Math.max(...this.salesTrend.map(d => d.revenue || 0))
+    },
+
+    getPeakDay() {
+      if (this.salesTrend.length === 0) return ''
+      const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
+      const day = this.salesTrend.find(d => d.revenue === max)
+      if (!day) return ''
+      
+      if (this.selectedPeriod === 'today') {
+        const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+        if (!dateParts) return ''
+        
+        const hour = parseInt(dateParts[4])
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const hours12 = hour % 12 || 12
+        
+        return `${hours12}:00 ${ampm}`
+      }
+      
+      return this.formatShortDate(day.date)
+    },
+
+    getAverageRevenue() {
+      if (this.salesTrend.length === 0) return 0
+      const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
+      return total / this.salesTrend.length
+    },
+
+    getTrendDirection() {
+      if (this.salesTrend.length < 2) return 'neutral'
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (last > first) return 'up'
+      if (last < first) return 'down'
+      return 'neutral'
+    },
+
+    getTrendPercentage() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100).toFixed(1)
+    },
+
+    getRevenueChange() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.revenue || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100)
+    },
+
+    getItemsChange() {
+      if (this.salesTrend.length < 2) return 0
+      const first = this.salesTrend[0]?.items || 0
+      const last = this.salesTrend[this.salesTrend.length - 1]?.items || 0
+      if (first === 0) return 0
+      return ((last - first) / first * 100)
+    },
+
+    // =============================================
+    // CHART NAVIGATION
+    // =============================================
+    navigateChart(direction) {
+      if (direction === 'prev' && this.chartOffset > 0) {
+        this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
+      } else if (direction === 'next' && this.chartOffset + this.chartWindow < this.salesTrend.length) {
+        this.chartOffset = Math.min(
+          this.salesTrend.length - this.chartWindow,
+          this.chartOffset + this.chartWindow
+        )
+      }
       this.updateChart()
-    }
-    if (this.stallDetailChartInstance) {
-      this.stallDetailChartInstance.resize()
-    }
-  },
+    },
 
-  // =============================================
-  // CHART STATS
-  // =============================================
-  getPeakRevenue() {
-    if (this.salesTrend.length === 0) return 0
-    return Math.max(...this.salesTrend.map(d => d.revenue || 0))
-  },
+    resetChartNavigation() {
+      this.chartOffset = 0
+      this.chartWindow = Math.min(7, this.salesTrend.length)
+      this.updateChart()
+    },
 
-  getPeakDay() {
-    if (this.salesTrend.length === 0) return ''
-    const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
-    const day = this.salesTrend.find(d => d.revenue === max)
-    if (!day) return ''
-    
-    if (this.selectedPeriod === 'today') {
-      const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
-      if (!dateParts) return ''
-      
-      const hour = parseInt(dateParts[4])
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const hours12 = hour % 12 || 12
-      
-      return `${hours12}:00 ${ampm}`
-    }
-    
-    return this.formatShortDate(day.date)
-  },
-
-  getAverageRevenue() {
-    if (this.salesTrend.length === 0) return 0
-    const total = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-    return total / this.salesTrend.length
-  },
-
-  getTrendDirection() {
-    if (this.salesTrend.length < 2) return 'neutral'
-    const first = this.salesTrend[0]?.revenue || 0
-    const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
-    if (last > first) return 'up'
-    if (last < first) return 'down'
-    return 'neutral'
-  },
-
-  getTrendPercentage() {
-    if (this.salesTrend.length < 2) return 0
-    const first = this.salesTrend[0]?.revenue || 0
-    const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
-    if (first === 0) return 0
-    return ((last - first) / first * 100).toFixed(1)
-  },
-
-  getRevenueChange() {
-    if (this.salesTrend.length < 2) return 0
-    const first = this.salesTrend[0]?.revenue || 0
-    const last = this.salesTrend[this.salesTrend.length - 1]?.revenue || 0
-    if (first === 0) return 0
-    return ((last - first) / first * 100)
-  },
-
-  getItemsChange() {
-    if (this.salesTrend.length < 2) return 0
-    const first = this.salesTrend[0]?.items || 0
-    const last = this.salesTrend[this.salesTrend.length - 1]?.items || 0
-    if (first === 0) return 0
-    return ((last - first) / first * 100)
-  },
-
-  // =============================================
-  // CHART NAVIGATION
-  // =============================================
-  navigateChart(direction) {
-    if (direction === 'prev' && this.chartOffset > 0) {
-      this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
-    } else if (direction === 'next' && this.chartOffset + this.chartWindow < this.salesTrend.length) {
-      this.chartOffset = Math.min(
-        this.salesTrend.length - this.chartWindow,
-        this.chartOffset + this.chartWindow
-      )
-    }
-    this.updateChart()
-  },
-
-  resetChartNavigation() {
-    this.chartOffset = 0
-    this.chartWindow = Math.min(7, this.salesTrend.length)
-    this.updateChart()
-  },
-
-  toggleChartFullscreen() {
-    this.chartFullscreen = !this.chartFullscreen
-    if (this.chartFullscreen) {
-      document.body.style.overflow = 'hidden'
-      const backdrop = document.createElement('div')
-      backdrop.id = 'fullscreen-backdrop'
-      backdrop.style.cssText = `
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: var(--surface);
-        z-index: 9998;
-      `
-      document.body.appendChild(backdrop)
-      setTimeout(() => {
-        this.initChart()
-      }, 100)
-    } else {
-      document.body.style.overflow = ''
-      const backdrop = document.getElementById('fullscreen-backdrop')
-      if (backdrop) backdrop.remove()
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
-      }
-      setTimeout(() => {
-        this.initChart()
-      }, 150)
-    }
-  },
-
-  // =============================================
-  // MENU ASSIGNMENT METHODS
-  // =============================================
-  async loadMenuAssignments() {
-    if (!this.selectedAssignmentStall) return
-    this.loadingMenuAssignments = true
-    this.savedAssignmentMessage = ''
-    try {
-      await this.loadMenuItems()
-      const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      const assignedItems = res.data || []
-      this.menuAssignments = {}
-      this.menuItems.forEach(item => {
-        this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
-      })
-      this.originalMenuAssignments = { ...this.menuAssignments }
-    } catch (err) {
-      console.error('Failed to load menu assignments:', err)
-      this.$emit('show-notification', 'Failed to load menu assignments', 'error')
-    } finally {
-      this.loadingMenuAssignments = false
-    }
-  },
-
-  async saveMenuAssignments() {
-    if (!this.selectedAssignmentStall) return
-    this.savingAssignment = true
-    this.savedAssignmentMessage = ''
-    try {
-      const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
-      await axios.post(`${API_BASE}/menu/assignments`, {
-        stallId: this.selectedAssignmentStall,
-        items: selectedItems
-      }, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      this.originalMenuAssignments = { ...this.menuAssignments }
-      this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
-      this.savedAssignmentType = 'success'
-      this.$emit('show-notification', 'Menu assignments saved!', 'success')
-    } catch (err) {
-      console.error('Failed to save menu assignments:', err)
-      this.savedAssignmentMessage = '❌ Failed to save menu assignments'
-      this.savedAssignmentType = 'error'
-      this.$emit('show-notification', 'Failed to save menu assignments', 'error')
-    } finally {
-      this.savingAssignment = false
-    }
-  },
-
-  resetMenuAssignments() {
-    if (this.selectedAssignmentStall) {
-      this.menuAssignments = { ...this.originalMenuAssignments }
-      this.savedAssignmentMessage = '↩ Reset to saved state'
-      this.savedAssignmentType = 'info'
-      setTimeout(() => {
-        this.savedAssignmentMessage = ''
-      }, 3000)
-    }
-  },
-
-  selectAllMenus() {
-    this.menuItems.forEach(item => {
-      this.menuAssignments[item.item_name] = true
-    })
-  },
-
-  deselectAllMenus() {
-    this.menuItems.forEach(item => {
-      this.menuAssignments[item.item_name] = false
-    })
-  },
-
-  // =============================================
-  // STALL CRUD
-  // =============================================
-  openStallModal() {
-    this.editingStall = false
-    this.stallForm = { id: null, name: '', code: '', location: '' }
-    this.stallModal = true
-  },
-
-  openEditStallModal(stall) {
-    this.editingStall = true
-    this.stallForm = {
-      id: stall.id,
-      name: stall.name,
-      code: stall.code,
-      location: stall.location || ''
-    }
-    this.stallModal = true
-  },
-
-  async saveStall() {
-    try {
-      if (this.editingStall) {
-        await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
-          name: this.stallForm.name,
-          code: this.stallForm.code,
-          location: this.stallForm.location
-        }, { headers: { Authorization: `Bearer ${this.token}` } })
-        this.$emit('show-notification', 'Stall updated', 'success')
-      } else {
-        await axios.post(`${API_BASE}/companies/1/stalls`, {
-          name: this.stallForm.name,
-          code: this.stallForm.code,
-          location: this.stallForm.location
-        }, { headers: { Authorization: `Bearer ${this.token}` } })
-        this.$emit('show-notification', 'Stall created', 'success')
-      }
-      this.stallModal = false
-      this.loadStalls()
-      await this.loadAllStallsInventory()
-    } catch (err) {
-      console.error('Save stall error:', err)
-      this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
-    }
-  },
-
-  async toggleStallStatus(stall) {
-    try {
-      await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      this.loadStalls()
-      this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
-    } catch (err) {
-      this.$emit('show-notification', 'Failed to update stall', 'error')
-    }
-  },
-
-  async deleteStall(stallId, stallName) {
-    if (confirm(`Delete stall "${stallName}"?`)) {
-      try {
-        await axios.delete(`${API_BASE}/stalls/${stallId}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.loadStalls()
-        this.$emit('show-notification', 'Stall deleted', 'success')
-      } catch (err) {
-        this.$emit('show-notification', 'Failed to delete stall', 'error')
-      }
-    }
-  },
-
-  // =============================================
-  // STALL RANKING
-  // =============================================
-  getRankClass(index) {
-    if (index === 0) return 'gold'
-    if (index === 1) return 'silver'
-    if (index === 2) return 'bronze'
-    return ''
-  },
-
-  getStallBarWidth(revenue) {
-    const max = Math.max(...this.stallPerformance.map(s => s.revenue || 0), 1)
-    return Math.min((revenue / max) * 100, 100)
-  },
-
-  getPerformancePercentage(quantity) {
-    const max = Math.max(...this.menuPerformance.map(p => p.quantity), 1)
-    return Math.min((quantity / max) * 100, 100)
-  },
-
-  // =============================================
-  // TAB MANAGEMENT
-  // =============================================
-  switchTab(tabId) {
-    this.activeTab = tabId
-    if (tabId === 'inventory' && this.lowStock.length > 0) {
-      this.inventoryFilter = 'low'
-    }
-    if (tabId === 'inventory') {
-      this.$nextTick(() => {
-        document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
-      })
-    }
-    if (tabId === 'dashboard') {
-      this.$nextTick(() => {
+    toggleChartFullscreen() {
+      this.chartFullscreen = !this.chartFullscreen
+      if (this.chartFullscreen) {
+        document.body.style.overflow = 'hidden'
+        const backdrop = document.createElement('div')
+        backdrop.id = 'fullscreen-backdrop'
+        backdrop.style.cssText = `
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: var(--surface);
+          z-index: 9998;
+        `
+        document.body.appendChild(backdrop)
         setTimeout(() => {
           this.initChart()
         }, 100)
-      })
-    }
-  },
-
-  // =============================================
-  // DATA LOADING
-  // =============================================
-  async refreshAllData() {
-    await this.loadData()
-  },
-
-  async loadData() {
-    try {
-      console.log('🔄 Loading stall admin data...')
-      
-      if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-        this.stallPerformance = []
-        this.menuPerformance = []
-        this.salesTrend = []
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-        this.consolidatedSales.totalRevenue = 0
-        this.consolidatedSales.totalItems = 0
-      }
-      
-      await this.loadStalls()
-      await this.loadSalesAnalytics()
-      
-      await Promise.all([
-        this.loadUsers(),
-        this.loadLowStock(),
-        this.loadStallPerformance(),
-        this.loadMenuItems()
-      ])
-      
-      await this.loadAllStallsInventory()
-      this.resetChartNavigation()
-      
-      this.$emit('show-notification', 'Data refreshed', 'success')
-    } catch (err) {
-      console.error('Load data error:', err)
-      this.$emit('show-notification', err.message, 'error')
-    }
-  },
-
-  async loadStalls() {
-    try {
-      const res = await axios.get(`${API_BASE}/stalls/all`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.stalls = res.data.map(stall => ({
-        ...stall,
-        company_name: stall.company_name || 'N/A',
-        user_count: stall.user_count || 0
-      }))
-      console.log('✅ Stalls loaded:', this.stalls.length)
-    } catch (err) {
-      console.error('Failed to load stalls:', err)
-      this.stalls = []
-    }
-  },
-
-  async loadUsers() {
-    try {
-      const res = await axios.get(`${API_BASE}/users/all`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.users = res.data.filter(user => {
-        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-          return false
+      } else {
+        document.body.style.overflow = ''
+        const backdrop = document.getElementById('fullscreen-backdrop')
+        if (backdrop) backdrop.remove()
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
         }
-        return true
-      }).map(user => ({
-        ...user,
-        company_name: user.company_name || 'N/A',
-        assigned_stalls: user.assigned_stalls || []
-      }))
-      console.log('✅ Users loaded:', this.users.length)
-    } catch (err) {
-      console.error('Failed to load users:', err)
-      this.users = []
-    }
-  },
-
-  async loadLowStock() {
-    try {
-      const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
-        headers: { Authorization: `Bearer ${this.token}` } 
-      })
-      this.lowStock = res.data
-      console.log('✅ Low stock loaded:', this.lowStock.length)
-    } catch (err) {
-      console.error('Failed to load low stock:', err)
-      this.lowStock = []
-    }
-  },
-
-  async loadSalesAnalytics() {
-    try {
-      const days = this.selectedPeriod === 'today' ? 1 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
-      
-      console.log(`📊 Loading sales analytics for days: ${days} period: ${this.selectedPeriod}`)
-      
-      const res = await axios.get(
-        `${API_BASE}/sales-analytics?days=${days}`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-      
-      console.log('📊 Sales analytics response:', res.data)
-      
-      const data = res.data || {}
-      
-      let dailySales = (data.dailySales || []).map(day => ({
-        ...day,
-        items: parseInt(day.items) || 0,
-        revenue: parseFloat(day.revenue) || 0
-      }))
-      
-      console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
-      
-      if (this.selectedPeriod === 'today') {
-        dailySales = this.splitTodayIntoHours(dailySales)
-        console.log('📊 After hourly split:', dailySales.length, 'records')
-      }
-      
-      if (this.selectedPeriod === 'week') {
-        const now = new Date()
-        const dayOfWeek = now.getUTCDay()
-        const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
-        
-        const monday = new Date(now)
-        monday.setUTCDate(now.getUTCDate() - daysToMonday)
-        monday.setUTCHours(0, 0, 0, 0)
-        
-        const sunday = new Date(monday)
-        sunday.setUTCDate(monday.getUTCDate() + 6)
-        sunday.setUTCHours(23, 59, 59, 999)
-        
-        console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString())
-        
-        dailySales = dailySales.filter(day => {
-          const date = new Date(day.date)
-          const timestamp = date.getTime()
-          return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
-        })
-        
-        console.log('📊 Filtered to current week:', dailySales.length, 'records')
-      }
-      
-      if (this.selectedPeriod === 'month') {
-        dailySales = this.groupSalesByWeek(dailySales)
-      } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
-        dailySales = this.groupSalesByMonth(dailySales)
-      } else if (this.selectedPeriod === 'year') {
-        dailySales = this.groupSalesByMonth(dailySales)
-      } else if (this.selectedPeriod === 'custom') {
-        dailySales = this.groupSalesCustom(dailySales)
-      }
-      
-      this.salesTrend = dailySales
-      
-      console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
-      
-      const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
-      const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
-      
-      console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
-      
-      this.consolidatedSales.totalItems = totalItems
-      this.consolidatedSales.totalRevenue = totalRevenue
-      this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
-        totalRevenue / this.stalls.length : 0
-      
-      if (data.topStall && data.topStall !== '-') {
-        this.consolidatedSales.topStall = data.topStall
-        this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
-      }
-      
-      this.productSales = data.productSales || {}
-      await this.loadMenuPerformance()
-      
-      if (this.salesTrend.length > 0) {
-        this.$nextTick(() => {
+        setTimeout(() => {
           this.initChart()
-          this.updateChart()
+        }, 150)
+      }
+    },
+
+    // =============================================
+    // MENU ASSIGNMENT METHODS
+    // =============================================
+    async loadMenuAssignments() {
+      if (!this.selectedAssignmentStall) return
+      this.loadingMenuAssignments = true
+      this.savedAssignmentMessage = ''
+      try {
+        await this.loadMenuItems()
+        const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
         })
-      }
-      
-      console.log('✅ Sales analytics loaded successfully')
-      
-    } catch (err) {
-      console.error('❌ Failed to load sales analytics:', err)
-      this.salesTrend = []
-      this.consolidatedSales.totalItems = 0
-      this.consolidatedSales.totalRevenue = 0
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      this.productSales = {}
-    }
-  },
-
-  async loadStallPerformance() {
-    const days = this.selectedPeriod === 'today' ? 1 :
-                 this.selectedPeriod === 'week' ? 7 :
-                 this.selectedPeriod === 'month' ? 30 :
-                 this.selectedPeriod === 'quarter' ? 90 :
-                 this.selectedPeriod === 'halfyear' ? 180 :
-                 this.selectedPeriod === 'year' ? 365 :
-                 this.customDays || 30
-    
-    try {
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
-        this.stallPerformance = []
-        console.log('✅ Stall performance loaded: 0 (no stalls)')
-        return
-      }
-      
-      const res = await axios.get(
-        `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-      
-      this.stallPerformance = res.data || []
-      
-      if (this.stallPerformance.length > 0) {
-        const topStall = this.stallPerformance[0]
-        this.consolidatedSales.topStall = topStall.name || '-'
-        this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
-      }
-      
-      console.log('✅ Stall performance loaded:', this.stallPerformance.length)
-    } catch (err) {
-      console.error('Failed to load stall performance:', err)
-      this.stallPerformance = []
-    }
-  },
-
-  async loadMenuPerformance() {
-    try {
-      const productSales = this.productSales || {}
-      
-      const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
-      const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
-      const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
-      
-      if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
-        this.menuPerformance = []
-        console.log('📊 Menu performance: 0 items (no sales for this period)')
-        return
-      }
-      
-      let filteredItems = Object.keys(productSales)
-        .filter(name => {
-          const item = productSales[name]
-          const quantity = parseInt(item.quantity) || 0
-          const revenue = parseFloat(item.revenue) || 0
-          return quantity > 0 && revenue > 0
+        const assignedItems = res.data || []
+        this.menuAssignments = {}
+        this.menuItems.forEach(item => {
+          this.menuAssignments[item.item_name] = assignedItems.includes(item.item_name)
         })
-        .map(name => ({
-          name: name,
-          quantity: parseInt(productSales[name].quantity) || 0,
-          revenue: parseFloat(productSales[name].revenue) || 0
-        }))
-        .sort((a, b) => b.quantity - a.quantity)
-      
-      if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-        const periodItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
-        this.menuPerformance = periodItemsList
-        console.log(`📊 Menu performance for ${this.selectedPeriod}:`, this.menuPerformance.length, 'items')
-        return
+        this.originalMenuAssignments = { ...this.menuAssignments }
+      } catch (err) {
+        console.error('Failed to load menu assignments:', err)
+        this.$emit('show-notification', 'Failed to load menu assignments', 'error')
+      } finally {
+        this.loadingMenuAssignments = false
       }
-      
-      if (filteredItems.length > 0) {
-        this.menuPerformance = filteredItems
-        return
-      }
-      
-      const days = this.selectedPeriod === 'today' ? 1 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
-      
-      const res = await axios.get(
-        `${API_BASE}/menu-performance?days=${days}`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-      
-      let menuData = (res.data || [])
-        .filter(item => {
-          const quantity = parseInt(item.quantity) || 0
-          const revenue = parseFloat(item.revenue) || 0
-          return quantity > 0 && revenue > 0
-        })
-        .map(item => ({
-          name: item.item_name,
-          quantity: parseInt(item.quantity) || 0,
-          revenue: parseFloat(item.revenue) || 0
-        }))
-        .sort((a, b) => b.quantity - a.quantity)
-      
-      this.menuPerformance = menuData
-      console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
-    } catch (err) {
-      console.error('Failed to load menu performance:', err)
-      this.menuPerformance = []
-    }
-  },
+    },
 
-  // =============================================
-  // MENU ITEMS (For Assignment)
-  // =============================================
-  async loadMenuItems() {
-    try {
-      const res = await axios.get(`${API_BASE}/menu`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      this.menuItems = res.data || []
-      console.log('✅ Menu items loaded:', this.menuItems.length)
-    } catch (err) {
-      console.error('Failed to load menu items:', err)
-      this.menuItems = []
-    }
-  },
-
-  // =============================================
-  // INVENTORY METHODS
-  // =============================================
-  async initializeStallInventory(stallId) {
-    try {
-      const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken')
-      if (!chickenExists) {
-        await axios.post(`${API_BASE}/inventory/update`, {
-          stallId: stallId,
-          materialName: 'Chicken',
-          newLevel: 100,
-          alertLevel: 10
+    async saveMenuAssignments() {
+      if (!this.selectedAssignmentStall) return
+      this.savingAssignment = true
+      this.savedAssignmentMessage = ''
+      try {
+        const selectedItems = Object.keys(this.menuAssignments).filter(key => this.menuAssignments[key] === true)
+        await axios.post(`${API_BASE}/menu/assignments`, {
+          stallId: this.selectedAssignmentStall,
+          items: selectedItems
         }, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        this.savedAssignmentMessage = `✅ Menu assignments saved successfully! (${selectedItems.length} items)`
+        this.savedAssignmentType = 'success'
+        this.$emit('show-notification', 'Menu assignments saved!', 'success')
+      } catch (err) {
+        console.error('Failed to save menu assignments:', err)
+        this.savedAssignmentMessage = '❌ Failed to save menu assignments'
+        this.savedAssignmentType = 'error'
+        this.$emit('show-notification', 'Failed to save menu assignments', 'error')
+      } finally {
+        this.savingAssignment = false
       }
-    } catch (err) {
-      console.error('Failed to initialize inventory:', err)
-    }
-  },
+    },
 
-  async loadAllStallsInventory() {
-    for (const stall of this.stalls) {
+    resetMenuAssignments() {
+      if (this.selectedAssignmentStall) {
+        this.menuAssignments = { ...this.originalMenuAssignments }
+        this.savedAssignmentMessage = '↩ Reset to saved state'
+        this.savedAssignmentType = 'info'
+        setTimeout(() => {
+          this.savedAssignmentMessage = ''
+        }, 3000)
+      }
+    },
+
+    selectAllMenus() {
+      this.menuItems.forEach(item => {
+        this.menuAssignments[item.item_name] = true
+      })
+    },
+
+    deselectAllMenus() {
+      this.menuItems.forEach(item => {
+        this.menuAssignments[item.item_name] = false
+      })
+    },
+
+    // =============================================
+    // STALL CRUD
+    // =============================================
+    openStallModal() {
+      this.editingStall = false
+      this.stallForm = { id: null, name: '', code: '', location: '' }
+      this.stallModal = true
+    },
+
+    openEditStallModal(stall) {
+      this.editingStall = true
+      this.stallForm = {
+        id: stall.id,
+        name: stall.name,
+        code: stall.code,
+        location: stall.location || ''
+      }
+      this.stallModal = true
+    },
+
+    async saveStall() {
       try {
-        const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+        if (this.editingStall) {
+          await axios.put(`${API_BASE}/stalls/${this.stallForm.id}`, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, { headers: { Authorization: `Bearer ${this.token}` } })
+          this.$emit('show-notification', 'Stall updated', 'success')
+        } else {
+          await axios.post(`${API_BASE}/companies/1/stalls`, {
+            name: this.stallForm.name,
+            code: this.stallForm.code,
+            location: this.stallForm.location
+          }, { headers: { Authorization: `Bearer ${this.token}` } })
+          this.$emit('show-notification', 'Stall created', 'success')
+        }
+        this.stallModal = false
+        this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (err) {
+        console.error('Save stall error:', err)
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+
+    async toggleStallStatus(stall) {
+      try {
+        await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-        if (res.data.length === 0) {
-          await this.initializeStallInventory(stall.id)
-          const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+        this.loadStalls()
+        this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to update stall', 'error')
+      }
+    },
+
+    async deleteStall(stallId, stallName) {
+      if (confirm(`Delete stall "${stallName}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/stalls/${stallId}`, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          this.stallInventory[stall.id] = res2.data.map(item => ({
-            ...item,
-            newLevel: item.current_level
-          }))
-        } else {
-          this.stallInventory[stall.id] = res.data.map(item => ({
-            ...item,
-            newLevel: item.current_level
-          }))
+          this.loadStalls()
+          this.$emit('show-notification', 'Stall deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete stall', 'error')
         }
-      } catch (err) {
-        console.error(`Load inventory for stall ${stall.id} error:`, err)
       }
-    }
-  },
+    },
 
-  toggleInventoryStall(stallId) {
-    this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
-    if (this.expandedInventoryStall === stallId) {
-      this.loadStallInventory(stallId)
-    }
-  },
+    // =============================================
+    // STALL RANKING
+    // =============================================
+    getRankClass(index) {
+      if (index === 0) return 'gold'
+      if (index === 1) return 'silver'
+      if (index === 2) return 'bronze'
+      return ''
+    },
 
-  async loadStallInventory(stallId) {
-    try {
-      const res = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      this.stallInventory[stallId] = res.data.map(item => ({
-        ...item,
-        newLevel: item.current_level
-      }))
-    } catch (err) {
-      this.$emit('show-notification', 'Failed to load inventory', 'error')
-    }
-  },
+    getStallBarWidth(revenue) {
+      const max = Math.max(...this.stallPerformance.map(s => s.revenue || 0), 1)
+      return Math.min((revenue / max) * 100, 100)
+    },
 
-  getStallInventory(stallId) {
-    return this.stallInventory[stallId] || []
-  },
+    getPerformancePercentage(quantity) {
+      const max = Math.max(...this.menuPerformance.map(p => p.quantity), 1)
+      return Math.min((quantity / max) * 100, 100)
+    },
 
-  getStallInventorySummary(stallId) {
-    const inventory = this.getStallInventory(stallId)
-    if (inventory.length === 0) {
-      return [
-        { material_name: 'Chicken', current_level: '?', alert_level: 10 }
-      ]
-    }
-    return inventory
-  },
+    // =============================================
+    // TAB MANAGEMENT
+    // =============================================
+    switchTab(tabId) {
+      this.activeTab = tabId
+      if (tabId === 'inventory' && this.lowStock.length > 0) {
+        this.inventoryFilter = 'low'
+      }
+      if (tabId === 'inventory') {
+        this.$nextTick(() => {
+          document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+        })
+      }
+      if (tabId === 'dashboard') {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.initChart()
+          }, 100)
+        })
+      }
+    },
 
-  getFilteredInventoryItems(stallId) {
-    const inventory = this.getStallInventory(stallId)
-    if (this.inventoryFilter === 'low') {
-      return inventory.filter(item => item.current_level <= item.alert_level)
-    }
-    if (this.inventorySearch) {
-      return inventory.filter(item => 
-        item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
-      )
-    }
-    return inventory
-  },
+    // =============================================
+    // DATA LOADING
+    // =============================================
+    async refreshAllData() {
+      await this.loadData()
+    },
 
-  hasLowStock(stallId) {
-    return this.getStallInventory(stallId).some(item => item.current_level <= item.alert_level)
-  },
+    async loadData() {
+      try {
+        console.log('🔄 Loading stall admin data...')
+        
+        if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+          this.stallPerformance = []
+          this.menuPerformance = []
+          this.salesTrend = []
+          this.consolidatedSales.topStall = '-'
+          this.consolidatedSales.topRevenue = 0
+          this.consolidatedSales.totalRevenue = 0
+          this.consolidatedSales.totalItems = 0
+        }
+        
+        await this.loadStalls()
+        await this.loadSalesAnalytics()
+        
+        await Promise.all([
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadStallPerformance(),
+          this.loadMenuItems()
+        ])
+        
+        await this.loadAllStallsInventory()
+        this.resetChartNavigation()
+        
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        console.error('Load data error:', err)
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
 
-  getInventoryPercentage(item) {
-    const max = Math.max(item.current_level, item.alert_level * 2)
-    return Math.min((item.current_level / max) * 100, 100)
-  },
+    async loadStalls() {
+      try {
+        const res = await axios.get(`${API_BASE}/stalls/all`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.stalls = res.data.map(stall => ({
+          ...stall,
+          company_name: stall.company_name || 'N/A',
+          user_count: stall.user_count || 0
+        }))
+        console.log('✅ Stalls loaded:', this.stalls.length)
+      } catch (err) {
+        console.error('Failed to load stalls:', err)
+        this.stalls = []
+      }
+    },
 
-  async updateInventoryStock(stallId, materialName, newLevel) {
-    if (newLevel === undefined || newLevel === null || newLevel === '') {
-      this.$emit('show-notification', 'Please enter a valid value', 'error')
-      return
-    }
-    try {
-      await axios.post(`${API_BASE}/inventory/update`, {
-        stallId, materialName, newLevel: parseFloat(newLevel)
-      }, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      await this.loadStallInventory(stallId)
-      await this.loadLowStock()
-      this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
-    } catch (err) {
-      this.$emit('show-notification', 'Failed to update stock', 'error')
-    }
-  },
+    async loadUsers() {
+      try {
+        const res = await axios.get(`${API_BASE}/users/all`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.users = res.data.filter(user => {
+          if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+            return false
+          }
+          return true
+        }).map(user => ({
+          ...user,
+          company_name: user.company_name || 'N/A',
+          assigned_stalls: user.assigned_stalls || []
+        }))
+        console.log('✅ Users loaded:', this.users.length)
+      } catch (err) {
+        console.error('Failed to load users:', err)
+        this.users = []
+      }
+    },
 
-  async quickAddStock(stallId, materialName, amount) {
-    const inventory = this.stallInventory[stallId] || []
-    const item = inventory.find(i => i.material_name === materialName)
-    if (item) {
-      await this.updateInventoryStock(stallId, materialName, item.current_level + amount)
-    }
-  },
+    async loadLowStock() {
+      try {
+        const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.lowStock = res.data
+        console.log('✅ Low stock loaded:', this.lowStock.length)
+      } catch (err) {
+        console.error('Failed to load low stock:', err)
+        this.lowStock = []
+      }
+    },
 
-  async bulkUpdateInventory(stallId) {
-    const inventory = this.stallInventory[stallId] || []
-    if (inventory.length === 0) return
-    try {
-      for (const item of inventory) {
-        if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+    async loadSalesAnalytics() {
+      try {
+        const days = this.selectedPeriod === 'today' ? 1 :
+                     this.selectedPeriod === 'week' ? 7 :
+                     this.selectedPeriod === 'month' ? 30 :
+                     this.selectedPeriod === 'quarter' ? 90 :
+                     this.selectedPeriod === 'halfyear' ? 180 :
+                     this.selectedPeriod === 'year' ? 365 :
+                     this.customDays || 30
+        
+        console.log(`📊 Loading sales analytics for days: ${days} period: ${this.selectedPeriod}`)
+        
+        const res = await axios.get(
+          `${API_BASE}/sales-analytics?days=${days}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        )
+        
+        console.log('📊 Sales analytics response:', res.data)
+        
+        const data = res.data || {}
+        
+        let dailySales = (data.dailySales || []).map(day => ({
+          ...day,
+          items: parseInt(day.items) || 0,
+          revenue: parseFloat(day.revenue) || 0
+        }))
+        
+        console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
+        
+        if (this.selectedPeriod === 'today') {
+          dailySales = this.splitTodayIntoHours(dailySales)
+          console.log('📊 After hourly split:', dailySales.length, 'records')
+        }
+        
+        if (this.selectedPeriod === 'week') {
+          const now = new Date()
+          const dayOfWeek = now.getUTCDay()
+          const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
+          
+          const monday = new Date(now)
+          monday.setUTCDate(now.getUTCDate() - daysToMonday)
+          monday.setUTCHours(0, 0, 0, 0)
+          
+          const sunday = new Date(monday)
+          sunday.setUTCDate(monday.getUTCDate() + 6)
+          sunday.setUTCHours(23, 59, 59, 999)
+          
+          console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString())
+          
+          dailySales = dailySales.filter(day => {
+            const date = new Date(day.date)
+            const timestamp = date.getTime()
+            return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
+          })
+          
+          console.log('📊 Filtered to current week:', dailySales.length, 'records')
+        }
+        
+        if (this.selectedPeriod === 'month') {
+          dailySales = this.groupSalesByWeek(dailySales)
+        } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'year') {
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'custom') {
+          dailySales = this.groupSalesCustom(dailySales)
+        }
+        
+        this.salesTrend = dailySales
+        
+        console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
+        
+        const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
+        const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
+        
+        console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
+        
+        this.consolidatedSales.totalItems = totalItems
+        this.consolidatedSales.totalRevenue = totalRevenue
+        this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
+          totalRevenue / this.stalls.length : 0
+        
+        if (data.topStall && data.topStall !== '-') {
+          this.consolidatedSales.topStall = data.topStall
+          this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
+        }
+        
+        this.productSales = data.productSales || {}
+        await this.loadMenuPerformance()
+        
+        if (this.salesTrend.length > 0) {
+          this.$nextTick(() => {
+            this.initChart()
+            this.updateChart()
+          })
+        }
+        
+        console.log('✅ Sales analytics loaded successfully')
+        
+      } catch (err) {
+        console.error('❌ Failed to load sales analytics:', err)
+        this.salesTrend = []
+        this.consolidatedSales.totalItems = 0
+        this.consolidatedSales.totalRevenue = 0
+        this.consolidatedSales.topStall = '-'
+        this.consolidatedSales.topRevenue = 0
+        this.productSales = {}
+      }
+    },
+
+    async loadStallPerformance() {
+      const days = this.selectedPeriod === 'today' ? 1 :
+                   this.selectedPeriod === 'week' ? 7 :
+                   this.selectedPeriod === 'month' ? 30 :
+                   this.selectedPeriod === 'quarter' ? 90 :
+                   this.selectedPeriod === 'halfyear' ? 180 :
+                   this.selectedPeriod === 'year' ? 365 :
+                   this.customDays || 30
+      
+      try {
+        const stallIds = this.stalls.map(s => s.id)
+        if (!stallIds || stallIds.length === 0) {
+          this.stallPerformance = []
+          console.log('✅ Stall performance loaded: 0 (no stalls)')
+          return
+        }
+        
+        const res = await axios.get(
+          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        )
+        
+        this.stallPerformance = res.data || []
+        
+        if (this.stallPerformance.length > 0) {
+          const topStall = this.stallPerformance[0]
+          this.consolidatedSales.topStall = topStall.name || '-'
+          this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
+        }
+        
+        console.log('✅ Stall performance loaded:', this.stallPerformance.length)
+      } catch (err) {
+        console.error('Failed to load stall performance:', err)
+        this.stallPerformance = []
+      }
+    },
+
+    async loadMenuPerformance() {
+      try {
+        const productSales = this.productSales || {}
+        
+        const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
+        const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
+        const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
+        
+        if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
+          this.menuPerformance = []
+          console.log('📊 Menu performance: 0 items (no sales for this period)')
+          return
+        }
+        
+        let filteredItems = Object.keys(productSales)
+          .filter(name => {
+            const item = productSales[name]
+            const quantity = parseInt(item.quantity) || 0
+            const revenue = parseFloat(item.revenue) || 0
+            return quantity > 0 && revenue > 0
+          })
+          .map(name => ({
+            name: name,
+            quantity: parseInt(productSales[name].quantity) || 0,
+            revenue: parseFloat(productSales[name].revenue) || 0
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+        
+        if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+          const periodItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
+          this.menuPerformance = periodItemsList
+          console.log(`📊 Menu performance for ${this.selectedPeriod}:`, this.menuPerformance.length, 'items')
+          return
+        }
+        
+        if (filteredItems.length > 0) {
+          this.menuPerformance = filteredItems
+          return
+        }
+        
+        const days = this.selectedPeriod === 'today' ? 1 :
+                     this.selectedPeriod === 'week' ? 7 :
+                     this.selectedPeriod === 'month' ? 30 :
+                     this.selectedPeriod === 'quarter' ? 90 :
+                     this.selectedPeriod === 'halfyear' ? 180 :
+                     this.selectedPeriod === 'year' ? 365 :
+                     this.customDays || 30
+        
+        const res = await axios.get(
+          `${API_BASE}/menu-performance?days=${days}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        )
+        
+        let menuData = (res.data || [])
+          .filter(item => {
+            const quantity = parseInt(item.quantity) || 0
+            const revenue = parseFloat(item.revenue) || 0
+            return quantity > 0 && revenue > 0
+          })
+          .map(item => ({
+            name: item.item_name,
+            quantity: parseInt(item.quantity) || 0,
+            revenue: parseFloat(item.revenue) || 0
+          }))
+          .sort((a, b) => b.quantity - a.quantity)
+        
+        this.menuPerformance = menuData
+        console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
+      } catch (err) {
+        console.error('Failed to load menu performance:', err)
+        this.menuPerformance = []
+      }
+    },
+
+    // =============================================
+    // MENU ITEMS (For Assignment)
+    // =============================================
+    async loadMenuItems() {
+      try {
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.menuItems = res.data || []
+        console.log('✅ Menu items loaded:', this.menuItems.length)
+      } catch (err) {
+        console.error('Failed to load menu items:', err)
+        this.menuItems = []
+      }
+    },
+
+    // =============================================
+    // INVENTORY METHODS
+    // =============================================
+    async initializeStallInventory(stallId) {
+      try {
+        const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        const chickenExists = checkRes.data.some(item => item.material_name === 'Chicken')
+        if (!chickenExists) {
           await axios.post(`${API_BASE}/inventory/update`, {
-            stallId, materialName: item.material_name, newLevel: item.newLevel
+            stallId: stallId,
+            materialName: 'Chicken',
+            newLevel: 100,
+            alertLevel: 10
           }, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
         }
+      } catch (err) {
+        console.error('Failed to initialize inventory:', err)
       }
-      await this.loadStallInventory(stallId)
-      await this.loadLowStock()
-      this.$emit('show-notification', 'All stocks updated', 'success')
-    } catch (err) {
-      this.$emit('show-notification', 'Bulk update failed', 'error')
-    }
-  },
+    },
 
-  async resetInventoryToAlert(stallId) {
-    if (!confirm('Reset all stocks to alert levels for this stall?')) return
-    const inventory = this.stallInventory[stallId] || []
-    try {
-      for (const item of inventory) {
+    async loadAllStallsInventory() {
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          if (res.data.length === 0) {
+            await this.initializeStallInventory(stall.id)
+            const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            this.stallInventory[stall.id] = res2.data.map(item => ({
+              ...item,
+              newLevel: item.current_level
+            }))
+          } else {
+            this.stallInventory[stall.id] = res.data.map(item => ({
+              ...item,
+              newLevel: item.current_level
+            }))
+          }
+        } catch (err) {
+          console.error(`Load inventory for stall ${stall.id} error:`, err)
+        }
+      }
+    },
+
+    toggleInventoryStall(stallId) {
+      this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
+      if (this.expandedInventoryStall === stallId) {
+        this.loadStallInventory(stallId)
+      }
+    },
+
+    async loadStallInventory(stallId) {
+      try {
+        const res = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        this.stallInventory[stallId] = res.data.map(item => ({
+          ...item,
+          newLevel: item.current_level
+        }))
+      } catch (err) {
+        this.$emit('show-notification', 'Failed to load inventory', 'error')
+      }
+    },
+
+    getStallInventory(stallId) {
+      return this.stallInventory[stallId] || []
+    },
+
+    getStallInventorySummary(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      if (inventory.length === 0) {
+        return [
+          { material_name: 'Chicken', current_level: '?', alert_level: 10 }
+        ]
+      }
+      return inventory
+    },
+
+    getFilteredInventoryItems(stallId) {
+      const inventory = this.getStallInventory(stallId)
+      if (this.inventoryFilter === 'low') {
+        return inventory.filter(item => item.current_level <= item.alert_level)
+      }
+      if (this.inventorySearch) {
+        return inventory.filter(item => 
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
+      }
+      return inventory
+    },
+
+    hasLowStock(stallId) {
+      return this.getStallInventory(stallId).some(item => item.current_level <= item.alert_level)
+    },
+
+    getInventoryPercentage(item) {
+      const max = Math.max(item.current_level, item.alert_level * 2)
+      return Math.min((item.current_level / max) * 100, 100)
+    },
+
+    async updateInventoryStock(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      try {
         await axios.post(`${API_BASE}/inventory/update`, {
-          stallId, materialName: item.material_name, newLevel: item.alert_level
+          stallId, materialName, newLevel: parseFloat(newLevel)
         }, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
-      }
-      await this.loadStallInventory(stallId)
-      await this.loadLowStock()
-      this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
-    } catch (err) {
-      this.$emit('show-notification', 'Reset failed', 'error')
-    }
-  },
-
-  // =============================================
-  // USER CRUD
-  // =============================================
-  openUserModal() {
-    this.editingUser = false
-    this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
-    this.userModal = true
-  },
-
-  openEditUserModal(user) {
-    this.editingUser = true
-    this.userForm = {
-      id: user.id,
-      username: user.username,
-      full_name: user.full_name || '',
-      role: user.role,
-      password: '',
-      stall_ids: (user.assigned_stalls || []).map(s => s.id)
-    }
-    this.userModal = true
-  },
-
-  closeUserModal() {
-    this.userModal = false
-    this.editingUser = false
-  },
-
-  async saveUser() {
-    try {
-      const payload = {
-        full_name: this.userForm.full_name,
-        role: this.userForm.role,
-        stall_ids: this.userForm.stall_ids
-      }
-      if (this.userForm.password && this.userForm.password.trim() !== '') {
-        payload.password = this.userForm.password
-      }
-      if (this.editingUser) {
-        await axios.put(`${API_BASE}/users/${this.userForm.id}`, payload, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.$emit('show-notification', 'User updated', 'success')
-      } else {
-        if (!this.userForm.password || this.userForm.password.trim() === '') {
-          this.$emit('show-notification', 'Password is required', 'error')
-          return
-        }
-        payload.username = this.userForm.username
-        payload.password = this.userForm.password
-        await axios.post(`${API_BASE}/companies/1/users`, payload, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.$emit('show-notification', 'User created', 'success')
-      }
-      this.closeUserModal()
-      this.loadUsers()
-    } catch (err) {
-      this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
-    }
-  },
-
-  async deleteUser(userId, username) {
-    if (confirm(`Delete user "${username}"?`)) {
-      try {
-        await axios.delete(`${API_BASE}/users/${userId}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        this.loadUsers()
-        this.$emit('show-notification', 'User deleted', 'success')
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
       } catch (err) {
-        this.$emit('show-notification', 'Failed to delete user', 'error')
+        this.$emit('show-notification', 'Failed to update stock', 'error')
       }
-    }
-  },
+    },
 
-  // =============================================
-  // EXPORT
-  // =============================================
-  async exportCurrentTab() {
-    if (this.exporting) return
-    this.exporting = true
-    try {
-      this.$emit('show-notification', 'Generating Excel...', 'info')
-      const ExcelJS = await import('exceljs')
-      const { saveAs } = await import('file-saver')
-      const workbook = new ExcelJS.Workbook()
-      workbook.creator = 'Chickory Hub'
-      
-      let sheet, fileName
-      if (this.activeTab === 'dashboard') {
-        sheet = workbook.addWorksheet('Dashboard')
-        sheet.addRow(['📊 Chickory Hub Dashboard', ''])
-        sheet.addRow(['Period', this.getPeriodLabel()])
-        sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0)])
-        sheet.addRow(['Total Items Sold', this.formatNumber(this.consolidatedSales.totalItems || 0)])
-        sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0)])
-        sheet.addRow(['Top Stall', this.consolidatedSales.topStall || '-'])
-        sheet.addRow([])
-        sheet.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
-        for (const day of this.salesTrend) {
-          sheet.addRow([this.formatShortDate(day.date), day.revenue || 0, day.items || 0])
-        }
-        fileName = `Chickory_Dashboard_${this.getPeriodLabel()}_${new Date().toISOString().split('T')[0]}.xlsx`
-      } else if (this.activeTab === 'inventory') {
-        sheet = workbook.addWorksheet('Inventory')
-        sheet.addRow(['Stall', 'Material', 'Level', 'Alert', 'Status'])
-        for (const stall of this.filteredInventoryStalls) {
-          for (const item of this.getStallInventory(stall.id)) {
-            sheet.addRow([
-              stall.name,
-              item.material_name,
-              `${item.current_level}${this.getUnit(item.material_name)}`,
-              `${item.alert_level}${this.getUnit(item.material_name)}`,
-              item.current_level <= item.alert_level ? 'LOW' : 'OK'
-            ])
+    async quickAddStock(stallId, materialName, amount) {
+      const inventory = this.stallInventory[stallId] || []
+      const item = inventory.find(i => i.material_name === materialName)
+      if (item) {
+        await this.updateInventoryStock(stallId, materialName, item.current_level + amount)
+      }
+    },
+
+    async bulkUpdateInventory(stallId) {
+      const inventory = this.stallInventory[stallId] || []
+      if (inventory.length === 0) return
+      try {
+        for (const item of inventory) {
+          if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+            await axios.post(`${API_BASE}/inventory/update`, {
+              stallId, materialName: item.material_name, newLevel: item.newLevel
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
           }
         }
-        fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
-      } else if (this.activeTab === 'stalls') {
-        sheet = workbook.addWorksheet('Stalls')
-        sheet.addRow(['Name', 'Code', 'Company', 'Users', 'Status'])
-        for (const stall of this.filteredStallsList) {
-          sheet.addRow([
-            stall.name,
-            stall.code,
-            stall.company_name || '-',
-            stall.user_count || 0,
-            stall.is_active ? 'Active' : 'Inactive'
-          ])
-        }
-        fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
-      } else if (this.activeTab === 'menu') {
-        sheet = workbook.addWorksheet('Menu')
-        sheet.addRow(['📋 Menu Management', ''])
-        sheet.addRow(['Item Name', 'Price', 'Category'])
-        for (const item of this.filteredMenuItemsForAssignment) {
-          sheet.addRow([item.item_name, item.price, item.category || 'Main'])
-        }
-        fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
-      } else {
-        sheet = workbook.addWorksheet('Users')
-        sheet.addRow(['Username', 'Role', 'Stalls'])
-        for (const user of this.filteredUsersList) {
-          sheet.addRow([
-            user.username,
-            user.role,
-            (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
-          ])
-        }
-        fileName = `Chickory_Users_${new Date().toISOString().split('T')[0]}.xlsx`
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks updated', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Bulk update failed', 'error')
       }
-      
-      sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 20) })
-      const buffer = await workbook.xlsx.writeBuffer()
-      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
-      this.$emit('show-notification', 'Excel downloaded!', 'success')
-    } catch (err) {
-      console.error('Export error:', err)
-      this.$emit('show-notification', 'Export failed', 'error')
-    } finally {
-      this.exporting = false
+    },
+
+    async resetInventoryToAlert(stallId) {
+      if (!confirm('Reset all stocks to alert levels for this stall?')) return
+      const inventory = this.stallInventory[stallId] || []
+      try {
+        for (const item of inventory) {
+          await axios.post(`${API_BASE}/inventory/update`, {
+            stallId, materialName: item.material_name, newLevel: item.alert_level
+          }, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+        }
+        await this.loadStallInventory(stallId)
+        await this.loadLowStock()
+        this.$emit('show-notification', 'All stocks reset to alert levels', 'success')
+      } catch (err) {
+        this.$emit('show-notification', 'Reset failed', 'error')
+      }
+    },
+
+    // =============================================
+    // USER CRUD
+    // =============================================
+    openUserModal() {
+      this.editingUser = false
+      this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
+      this.userModal = true
+    },
+
+    openEditUserModal(user) {
+      this.editingUser = true
+      this.userForm = {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || '',
+        role: user.role,
+        password: '',
+        stall_ids: (user.assigned_stalls || []).map(s => s.id)
+      }
+      this.userModal = true
+    },
+
+    closeUserModal() {
+      this.userModal = false
+      this.editingUser = false
+    },
+
+    async saveUser() {
+      try {
+        const payload = {
+          full_name: this.userForm.full_name,
+          role: this.userForm.role,
+          stall_ids: this.userForm.stall_ids
+        }
+        if (this.userForm.password && this.userForm.password.trim() !== '') {
+          payload.password = this.userForm.password
+        }
+        if (this.editingUser) {
+          await axios.put(`${API_BASE}/users/${this.userForm.id}`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'User updated', 'success')
+        } else {
+          if (!this.userForm.password || this.userForm.password.trim() === '') {
+            this.$emit('show-notification', 'Password is required', 'error')
+            return
+          }
+          payload.username = this.userForm.username
+          payload.password = this.userForm.password
+          await axios.post(`${API_BASE}/companies/1/users`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'User created', 'success')
+        }
+        this.closeUserModal()
+        this.loadUsers()
+      } catch (err) {
+        this.$emit('show-notification', err.response?.data?.error || 'Operation failed', 'error')
+      }
+    },
+
+    async deleteUser(userId, username) {
+      if (confirm(`Delete user "${username}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.loadUsers()
+          this.$emit('show-notification', 'User deleted', 'success')
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete user', 'error')
+        }
+      }
+    },
+
+    // =============================================
+    // EXPORT
+    // =============================================
+    async exportCurrentTab() {
+      if (this.exporting) return
+      this.exporting = true
+      try {
+        this.$emit('show-notification', 'Generating Excel...', 'info')
+        const ExcelJS = await import('exceljs')
+        const { saveAs } = await import('file-saver')
+        const workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Chickory Hub'
+        
+        let sheet, fileName
+        if (this.activeTab === 'dashboard') {
+          sheet = workbook.addWorksheet('Dashboard')
+          sheet.addRow(['📊 Chickory Hub Dashboard', ''])
+          sheet.addRow(['Period', this.getPeriodLabel()])
+          sheet.addRow(['Total Revenue', this.formatCurrency(this.consolidatedSales.totalRevenue || 0)])
+          sheet.addRow(['Total Items Sold', this.formatNumber(this.consolidatedSales.totalItems || 0)])
+          sheet.addRow(['Average per Stall', this.formatCurrency(this.consolidatedSales.averagePerStall || 0)])
+          sheet.addRow(['Top Stall', this.consolidatedSales.topStall || '-'])
+          sheet.addRow([])
+          sheet.addRow(['Date', 'Revenue (RM)', 'Items Sold'])
+          for (const day of this.salesTrend) {
+            sheet.addRow([this.formatShortDate(day.date), day.revenue || 0, day.items || 0])
+          }
+          fileName = `Chickory_Dashboard_${this.getPeriodLabel()}_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'inventory') {
+          sheet = workbook.addWorksheet('Inventory')
+          sheet.addRow(['Stall', 'Material', 'Level', 'Alert', 'Status'])
+          for (const stall of this.filteredInventoryStalls) {
+            for (const item of this.getStallInventory(stall.id)) {
+              sheet.addRow([
+                stall.name,
+                item.material_name,
+                `${item.current_level}${this.getUnit(item.material_name)}`,
+                `${item.alert_level}${this.getUnit(item.material_name)}`,
+                item.current_level <= item.alert_level ? 'LOW' : 'OK'
+              ])
+            }
+          }
+          fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'stalls') {
+          sheet = workbook.addWorksheet('Stalls')
+          sheet.addRow(['Name', 'Code', 'Company', 'Users', 'Status'])
+          for (const stall of this.filteredStallsList) {
+            sheet.addRow([
+              stall.name,
+              stall.code,
+              stall.company_name || '-',
+              stall.user_count || 0,
+              stall.is_active ? 'Active' : 'Inactive'
+            ])
+          }
+          fileName = `Chickory_Stalls_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else if (this.activeTab === 'menu') {
+          sheet = workbook.addWorksheet('Menu')
+          sheet.addRow(['📋 Menu Management', ''])
+          sheet.addRow(['Item Name', 'Price', 'Category'])
+          for (const item of this.filteredMenuItemsForAssignment) {
+            sheet.addRow([item.item_name, item.price, item.category || 'Main'])
+          }
+          fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
+        } else {
+          sheet = workbook.addWorksheet('Users')
+          sheet.addRow(['Username', 'Role', 'Stalls'])
+          for (const user of this.filteredUsersList) {
+            sheet.addRow([
+              user.username,
+              user.role,
+              (user.assigned_stalls || []).map(s => s.name).join(', ') || '-'
+            ])
+          }
+          fileName = `Chickory_Users_${new Date().toISOString().split('T')[0]}.xlsx`
+        }
+        
+        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 20) })
+        const buffer = await workbook.xlsx.writeBuffer()
+        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName)
+        this.$emit('show-notification', 'Excel downloaded!', 'success')
+      } catch (err) {
+        console.error('Export error:', err)
+        this.$emit('show-notification', 'Export failed', 'error')
+      } finally {
+        this.exporting = false
+      }
     }
-  }
-}
-
-
-
+  } // ← END OF METHODS
+} // ← END OF EXPORT DEFAULT
 </script>
 
 <style scoped>
