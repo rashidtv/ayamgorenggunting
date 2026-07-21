@@ -50,13 +50,17 @@ function getDateRange(days, period = null) {
 function buildDateCondition(dateRange, paramStart) {
   const { startDate, endDate, type } = dateRange;
   
-  // ✅ SAFETY: Always ensure we have valid dates
-  const start = startDate ? startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const end = endDate ? endDate.toISOString() : new Date().toISOString();
+  let condition = '';
+  let params = [];
   
-  // ✅ Always use 2 parameters - no conditional logic
-  const condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
-  const params = [start, end];
+  if (type === 'today' || type === 'week') {
+    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
+    params = [startDate.toISOString(), endDate ? endDate.toISOString() : startDate.toISOString()];
+  } else {
+    // ✅ FIX: Always use 2 parameters
+    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
+    params = [startDate.toISOString(), new Date().toISOString()];
+  }
   
   return { condition, params };
 }
