@@ -6662,13 +6662,18 @@ export default {
   margin-left: auto;
 }
 
-/* Inventory Table */
+/* ============================================ */
+/* INVENTORY TABLE - RESPONSIVE FIX            */
+/* ============================================ */
+
 .inventory-table-wrapper {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* ✅ Table Header - Desktop */
 .inventory-table-header {
   display: flex;
   padding: 0.5rem 0.75rem;
@@ -6679,14 +6684,17 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
+  min-width: 600px;
 }
 
+/* ✅ Table Row - Desktop */
 .inventory-table-row {
   display: flex;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border-light);
   transition: var(--transition);
   align-items: center;
+  min-width: 600px;
 }
 
 .inventory-table-row:hover {
@@ -6698,26 +6706,74 @@ export default {
   border-left: 3px solid var(--primary);
 }
 
+/* ✅ Table Cells - Fixed Widths */
 .inventory-table-cell {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.inventory-table-cell.checkbox { width: 40px; flex-shrink: 0; }
-.inventory-table-cell.name { flex: 1; flex-direction: column; align-items: flex-start; }
-.inventory-table-cell.state { width: 100px; flex-shrink: 0; font-size: 0.75rem; color: var(--text-secondary); }
-.inventory-table-cell.items { flex: 1.5; flex-wrap: wrap; gap: 0.25rem; }
-.inventory-table-cell.status { width: 130px; flex-shrink: 0; flex-wrap: wrap; gap: 0.25rem; }
-.inventory-table-cell.actions { width: 80px; flex-shrink: 0; justify-content: flex-end; gap: 0.25rem; }
+.inventory-table-cell.checkbox { 
+  width: 40px; 
+  flex-shrink: 0; 
+}
 
+.inventory-table-cell.name { 
+  flex: 1; 
+  min-width: 100px;
+  flex-direction: column; 
+  align-items: flex-start; 
+}
+
+.inventory-table-cell.state { 
+  width: 100px; 
+  flex-shrink: 0; 
+  font-size: 0.75rem; 
+  color: var(--text-secondary); 
+}
+
+.inventory-table-cell.items { 
+  flex: 1.5; 
+  min-width: 120px;
+  flex-wrap: wrap; 
+  gap: 0.25rem; 
+}
+
+.inventory-table-cell.status { 
+  width: 130px; 
+  flex-shrink: 0; 
+  flex-wrap: wrap; 
+  gap: 0.25rem; 
+}
+
+.inventory-table-cell.actions { 
+  width: 80px; 
+  flex-shrink: 0; 
+  justify-content: flex-end; 
+  gap: 0.25rem; 
+}
+
+/* ✅ Checkbox styling */
 .inventory-table-cell input[type="checkbox"] {
   accent-color: var(--primary);
   cursor: pointer;
+  width: 16px;
+  height: 16px;
 }
 
-.stall-name { font-weight: 500; font-size: 0.85rem; }
-.stall-code { font-size: 0.6rem; color: var(--text-tertiary); font-family: monospace; }
+/* ✅ Stall name and code */
+.stall-name { 
+  font-weight: 500; 
+  font-size: 0.85rem; 
+}
 
+.stall-code { 
+  font-size: 0.6rem; 
+  color: var(--text-tertiary); 
+  font-family: monospace; 
+}
+
+/* ✅ Item tags */
 .item-tag {
   background: var(--background);
   padding: 0.05rem 0.4rem;
@@ -6729,17 +6785,20 @@ export default {
 
 .item-tag-warning { color: #ef4444; }
 
+/* ✅ Status badges */
 .status-badge {
   padding: 0.05rem 0.4rem;
   border-radius: 12px;
   font-size: 0.6rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge.active { background: #d1fae5; color: #059669; }
 .status-badge.inactive { background: #f3f4f6; color: #6b7280; }
 .status-badge.low { background: #fee2e2; color: #dc2626; }
 
+/* ✅ Action buttons */
 .btn-icon {
   width: 28px;
   height: 28px;
@@ -6760,14 +6819,261 @@ export default {
   color: var(--text);
 }
 
-/* Expanded Details */
+/* ============================================ */
+/* ✅ RESPONSIVE - TABLET & MOBILE              */
+/* ============================================ */
+
+@media (max-width: 1024px) {
+  .inventory-table-cell.state { width: 80px; }
+  .inventory-table-cell.status { width: 110px; }
+  .inventory-table-cell.actions { width: 70px; }
+}
+
+@media (max-width: 768px) {
+  /* ✅ Stack filter bar vertically */
+  .filter-bar-modern {
+    flex-direction: column;
+  }
+  
+  .filter-bar-modern .filter-search {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .filter-bar-modern .filter-group {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .filter-bar-modern .filter-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  
+  /* ✅ Stats chips - 2 columns */
+  .inventory-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* ✅ Table becomes card-style on mobile */
+  .inventory-table-wrapper {
+    border: none;
+    border-radius: 0;
+  }
+  
+  .inventory-table-header {
+    display: none; /* Hide header on mobile */
+  }
+  
+  .inventory-table-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem;
+    min-width: unset;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    background: var(--surface);
+  }
+  
+  .inventory-table-row.selected {
+    border-left: 3px solid var(--primary);
+    border-color: var(--primary);
+  }
+  
+  /* ✅ Each cell becomes a row with label */
+  .inventory-table-cell {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem 0;
+    width: 100%;
+    flex-shrink: 1;
+  }
+  
+  .inventory-table-cell.checkbox {
+    width: 100%;
+    justify-content: flex-start;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 0.3rem;
+  }
+  
+  .inventory-table-cell.checkbox input[type="checkbox"] {
+    margin-right: 0.5rem;
+  }
+  
+  /* ✅ Add labels for each field on mobile */
+  .inventory-table-cell.name::before {
+    content: "Stall: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-cell.state::before {
+    content: "State: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-cell.items::before {
+    content: "Items: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-cell.status::before {
+    content: "Status: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-cell.actions {
+    justify-content: flex-start;
+    padding-top: 0.3rem;
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.3rem;
+  }
+  
+  .inventory-table-cell.actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* ✅ Fix item tags wrapping */
+  .inventory-table-cell.items {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  /* ✅ Status badges on mobile */
+  .inventory-table-cell.status {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  /* ✅ Action buttons on mobile */
+  .inventory-table-cell.actions {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* ✅ Stats chips - 2 columns, smaller */
+  .inventory-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .stat-chip .stat-chip-label {
+    font-size: 0.6rem;
+  }
+  
+  /* ✅ Mobile row padding */
+  .inventory-table-row {
+    padding: 0.5rem;
+  }
+  
+  .inventory-table-cell {
+    padding: 0.15rem 0;
+  }
+  
+  .inventory-table-cell.name::before,
+  .inventory-table-cell.state::before,
+  .inventory-table-cell.items::before,
+  .inventory-table-cell.status::before,
+  .inventory-table-cell.actions::before {
+    min-width: 50px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-name {
+    font-size: 0.8rem;
+  }
+  
+  .item-tag {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .status-badge {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .inventory-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .inventory-actions .btn-modern {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .bulk-material-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================ */
+/* EXPANDED DETAILS - Mobile                   */
+/* ============================================ */
+
 .inventory-detail-expanded {
   padding: 1rem;
   background: var(--background);
   border-bottom: 1px solid var(--border);
 }
 
-/* Bulk Update Modal */
+.inventory-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .inventory-items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================ */
+/* BULK UPDATE MODAL - Mobile                  */
+/* ============================================ */
+
 .bulk-mode-selector {
   display: flex;
   gap: 0.5rem;
@@ -6797,154 +7103,14 @@ export default {
   color: var(--text);
 }
 
-.bulk-preview {
-  padding: 0.75rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  margin-bottom: 1rem;
-}
-
-.bulk-stall-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-}
-
-.stall-tag {
-  padding: 0.1rem 0.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 0.7rem;
-}
-
-.stall-tag.more {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-.bulk-materials h4 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.quick-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.bulk-material-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 0.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.bulk-material-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.bulk-material-label {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  cursor: pointer;
-  flex: 1;
-}
-
-.bulk-material-name {
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.bulk-material-inputs {
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.bulk-material-inputs .filter-select.small {
-  min-width: 60px;
-  padding: 0.15rem 0.3rem;
-  font-size: 0.7rem;
-}
-
-.bulk-material-inputs .filter-input.small {
-  width: 50px;
-  padding: 0.15rem 0.3rem;
-  font-size: 0.7rem;
-}
-
-.bulk-material-unit {
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  min-width: 30px;
-}
-
-/* Progress Bar */
-.bulk-progress {
-  width: 100%;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.bulk-progress-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .inventory-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .filter-bar-modern {
+@media (max-width: 480px) {
+  .bulk-mode-selector {
     flex-direction: column;
   }
   
-  .filter-bar-modern .filter-actions {
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-  
-  .inventory-table-header,
-  .inventory-table-row {
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-  
-  .inventory-table-cell.checkbox { width: 30px; }
-  .inventory-table-cell.state { width: 80px; }
-  .inventory-table-cell.status { width: 100px; }
-  .inventory-table-cell.actions { width: 60px; }
-  
-  .bulk-material-grid {
-    grid-template-columns: 1fr;
+  .mode-btn {
+    width: 100%;
+    text-align: center;
   }
 }
 
