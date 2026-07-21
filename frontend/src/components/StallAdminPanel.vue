@@ -1466,6 +1466,7 @@ groupByWeek(salesData) {
   const grouped = {}
   salesData.forEach(item => {
     const date = new Date(item.date)
+    // ✅ Use getWeekStart() which starts on Monday
     const weekStart = this.getWeekStart(date)
     const key = weekStart.toISOString()
     if (!grouped[key]) {
@@ -1526,16 +1527,17 @@ formatDayLabel(dateStr) {
 
 formatWeekRangeLabel(dateStr) {
   const date = new Date(dateStr)
+  // ✅ Use getWeekStart() which starts on Monday
   const weekStart = this.getWeekStart(date)
   const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 6)
+  weekEnd.setDate(weekEnd.getDate() + 6) // Monday + 6 = Sunday
   
   const startDay = weekStart.getUTCDate()
   const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
   const endDay = weekEnd.getUTCDate()
   const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
   
-  // ✅ Simplified format: "20-26 Jul" or "27 Jul-2 Aug" (if different months)
+  // ✅ Simplified format: "20-26 Jul" or "27 Jul-2 Aug"
   if (startMonth === endMonth) {
     return `${startDay}-${endDay} ${startMonth}`
   } else {
@@ -2292,14 +2294,14 @@ groupSalesByWeek(dailySales) {
   
   dailySales.forEach(day => {
     const date = new Date(day.date)
+    // ✅ Use getWeekStart() which starts on Monday
     const weekStart = this.getWeekStart(date)
     const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setDate(weekEnd.getDate() + 6) // Monday + 6 = Sunday
     
     const key = weekStart.toISOString().split('T')[0]
     
     if (!grouped[key]) {
-      // ✅ Use simplified format for the label
       const startDay = weekStart.getUTCDate()
       const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
       const endDay = weekEnd.getUTCDate()
@@ -2379,20 +2381,6 @@ groupSalesByWeek(dailySales) {
       return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
     },
 
-getWeekStart(date) {
-  const d = new Date(date)
-  const day = d.getDay()  // 0 = Sunday, 1 = Monday
-  
-  // ✅ Calculate difference to Monday (1)
-  // If Sunday (0), go back 6 days to Monday
-  // If Monday (1), go back 0 days
-  // If Tuesday (2), go back 1 day, etc.
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  const weekStart = new Date(d)
-  weekStart.setDate(diff)
-  weekStart.setHours(0, 0, 0, 0)
-  return weekStart
-},
     
     // =============================================
     // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
