@@ -3053,31 +3053,37 @@ async loadStallPerformance() {
       stallData = [stallData]
     }
     
-    // ✅ CRITICAL FIX: Check if salesTrend has data for this period
-    const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
-    const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
-    const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
-    
-    // ✅ If no sales for this period, clear stall performance
-    if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
-      this.stallPerformance = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      console.log('✅ Stall performance loaded: 0 (no sales for this period)')
-      return
-    }
-    
-    // ✅ For today view: Only keep stalls with revenue > 0
-    if (this.selectedPeriod === 'today') {
-      stallData = stallData.filter(stall => {
-        const revenue = parseFloat(stall.revenue) || 0
-        const items = parseInt(stall.items) || 0
-        return revenue > 0 || items > 0
-      })
-    }
-    
-    // ✅ For week view: Only keep stalls with revenue > 0
+    // ✅ CRITICAL FIX: For week view, filter to only stalls with revenue in current week
     if (this.selectedPeriod === 'week') {
+      // Check if salesTrend has data for current week
+      if (this.salesTrend && this.salesTrend.length > 0) {
+        const weekRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0);
+        const weekItems = this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0);
+        
+        // If no revenue or items for the week, clear stall performance
+        if (weekRevenue === 0 && weekItems === 0) {
+          this.stallPerformance = [];
+          console.log('✅ Stall performance loaded: 0 (no sales this week)');
+          return;
+        }
+        
+        // ✅ Filter stalls to only include those with revenue > 0
+        // This ensures only stalls that actually sold something this week are shown
+        stallData = stallData.filter(stall => {
+          const revenue = parseFloat(stall.revenue) || 0
+          const items = parseInt(stall.items) || 0
+          return revenue > 0 && items > 0
+        });
+      } else {
+        // If no salesTrend data, clear stall performance
+        this.stallPerformance = [];
+        console.log('✅ Stall performance loaded: 0 (no sales data)');
+        return;
+      }
+    }
+    
+    // ✅ For today: Only keep stalls with revenue > 0
+    if (this.selectedPeriod === 'today') {
       stallData = stallData.filter(stall => {
         const revenue = parseFloat(stall.revenue) || 0
         const items = parseInt(stall.items) || 0
@@ -3113,7 +3119,7 @@ async loadMenuPerformance() {
       }))
       .sort((a, b) => b.quantity - a.quantity)
     
-    // ✅ FIX: For week view, check if there's any data in salesTrend
+    // ✅ CRITICAL FIX: For week view, filter to only items sold this week
     if (this.selectedPeriod === 'week') {
       // Check if salesTrend has data for current week
       if (this.salesTrend && this.salesTrend.length > 0) {
@@ -3126,6 +3132,12 @@ async loadMenuPerformance() {
           console.log('📊 Menu performance for week: 0 items (no sales)');
           return;
         }
+        
+        // ✅ Filter to only items with revenue > 0
+        const weekItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0);
+        this.menuPerformance = weekItemsList;
+        console.log('📊 Menu performance for week:', this.menuPerformance.length, 'items');
+        return;
       } else {
         // If no salesTrend data, clear menu performance
         this.menuPerformance = [];
@@ -3148,6 +3160,7 @@ async loadMenuPerformance() {
       return
     }
     
+    // ✅ For other periods (month, quarter, year)
     if (filteredItems.length > 0) {
       this.menuPerformance = filteredItems
       return
@@ -3158,6 +3171,7 @@ async loadMenuPerformance() {
       return
     }
     
+    // ✅ Fallback: fetch from API
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
