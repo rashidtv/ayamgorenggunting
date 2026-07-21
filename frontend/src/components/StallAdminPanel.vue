@@ -1953,18 +1953,21 @@ formatShortDate(dateStr) {
   }
   
   // For week view, show day names (Monday first)
-  if (this.selectedPeriod === 'week') {
-    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (!dateParts) return dateStr;
-    const date = new Date(Date.UTC(
-      parseInt(dateParts[1]),
-      parseInt(dateParts[2]) - 1,
-      parseInt(dateParts[3])
-    ));
-    const dayOfWeek = date.getUTCDay();
-    const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1];
-  }
+  // For week view, show day names with date (Monday first)
+if (this.selectedPeriod === 'week') {
+  const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!dateParts) return dateStr;
+  const date = new Date(Date.UTC(
+    parseInt(dateParts[1]),
+    parseInt(dateParts[2]) - 1,
+    parseInt(dateParts[3])
+  ));
+  const dayOfWeek = date.getUTCDay();
+  const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayName = orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1];
+  const dayNum = date.getUTCDate();
+  return `${dayName} ${dayNum}`;  // ✅ Day + Date
+}
   
   // Default fallback
   const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -2509,10 +2512,9 @@ updateChart() {
     return
   }
   
-  // ✅ FIX: Use formatShortDate to convert UTC to Malaysia time
+  // ✅ Format dates based on period
   const dates = data.map(d => {
     if (d.label) return d.label
-    // ✅ Call formatShortDate which handles Malaysia time conversion
     return this.formatShortDate(d.date)
   })
   
@@ -2528,65 +2530,132 @@ updateChart() {
       borderWidth: 1,
       padding: [6, 10],
       textStyle: { color: '#1e293b', fontSize: 11, fontWeight: 400 },
-formatter: function(params) {
-  const index = params[0]?.dataIndex || 0
-  const revenue = data[index]?.revenue || 0
-  const itemsCount = data[index]?.items || 0
-  const dateStr = data[index]?.date || data[index]?.label || ''
-  let formattedDate = dateStr
-  
-  if (dateStr && !dateStr.includes('W')) {
-    if (this.selectedPeriod === 'today') {
-      // ✅ FIXED: Use the hour directly (already in Malaysia time)
-      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-      if (dateParts) {
-        const hour = parseInt(dateParts[4]);
-        const minute = parseInt(dateParts[5]);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const hours12 = hour % 12 || 12;
-        const minutes = String(minute).padStart(2, '0');
-        formattedDate = `${hours12}:${minutes} ${ampm}`;
-      }
-    } else if (this.selectedPeriod === 'month') {
-            // ✅ Show week range for month view
+      formatter: function(params) {
+        const index = params[0]?.dataIndex || 0
+        const revenue = data[index]?.revenue || 0
+        const itemsCount = data[index]?.items || 0
+        const dateStr = data[index]?.date || data[index]?.label || ''
+        let formattedDate = dateStr
+        
+        if (dateStr && !dateStr.includes('W')) {
+          if (this.selectedPeriod === 'today') {
+            // ✅ Today: Show Malaysia time (UTC+8)
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+            if (dateParts) {
+              const hour = parseInt(dateParts[4]);
+              const minute = parseInt(dateParts[5]);
+              const ampm = hour >= 12 ? 'PM' : 'AM';
+              const hours12 = hour % 12 || 12;
+              const minutes = String(minute).padStart(2, '0');
+              formattedDate = `${hours12}:${minutes} ${ampm}`;
+            }
+          } else if (this.selectedPeriod === 'week') {
+            // ✅ Week: Show full date with day name
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateParts) {
+              const date = new Date(Date.UTC(
+                parseInt(dateParts[1]),
+                parseInt(dateParts[2]) - 1,
+                parseInt(dateParts[3])
+              ));
+              formattedDate = date.toLocaleDateString('en-MY', { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'UTC'
+              });
+            }
+          } else if (this.selectedPeriod === 'month') {
+            // ✅ Month: Show week range
             if (data[index]?.displayLabel) {
               formattedDate = data[index].displayLabel
             } else {
               const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
               if (dateParts) {
-                const year = parseInt(dateParts[1]);
-                const month = parseInt(dateParts[2]) - 1;
-                const dayNum = parseInt(dateParts[3]);
-                const date = new Date(Date.UTC(year, month, dayNum));
+                const date = new Date(Date.UTC(
+                  parseInt(dateParts[1]),
+                  parseInt(dateParts[2]) - 1,
+                  parseInt(dateParts[3])
+                ));
                 const weekStart = this.getWeekStart(date);
                 const weekEnd = new Date(weekStart);
                 weekEnd.setDate(weekEnd.getDate() + 6);
-                formattedDate = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`;
+                const startDay = weekStart.getUTCDate();
+                const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+                const endDay = weekEnd.getUTCDate();
+                const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+                if (startMonth === endMonth) {
+                  formattedDate = `${startDay}-${endDay} ${startMonth}`;
+                } else {
+                  formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`;
+                }
               }
             }
           } else if (this.selectedPeriod === 'quarter' || 
                      this.selectedPeriod === 'halfyear' || 
                      this.selectedPeriod === 'year') {
-            // ✅ Show month and year
+            // ✅ Quarter/Half Year/Year: Show month + year
             const dateParts = dateStr.match(/(\d{4})-(\d{2})/);
             if (dateParts) {
-              const year = parseInt(dateParts[1]);
-              const month = parseInt(dateParts[2]) - 1;
-              const date = new Date(Date.UTC(year, month, 1));
+              const date = new Date(Date.UTC(
+                parseInt(dateParts[1]),
+                parseInt(dateParts[2]) - 1,
+                1
+              ));
               formattedDate = date.toLocaleDateString('en-MY', { 
                 month: 'short', 
                 year: 'numeric',
                 timeZone: 'UTC'
               });
             }
-          } else {
-            // ✅ Default: show full date
+          } else if (this.selectedPeriod === 'custom') {
+            // ✅ Custom: Show appropriate format based on range
+            const customDays = this.customDays || 30;
             const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
             if (dateParts) {
-              const year = parseInt(dateParts[1]);
-              const month = parseInt(dateParts[2]) - 1;
-              const dayNum = parseInt(dateParts[3]);
-              const date = new Date(Date.UTC(year, month, dayNum));
+              const date = new Date(Date.UTC(
+                parseInt(dateParts[1]),
+                parseInt(dateParts[2]) - 1,
+                parseInt(dateParts[3])
+              ));
+              if (customDays <= 14) {
+                formattedDate = date.toLocaleDateString('en-MY', { 
+                  weekday: 'short',
+                  day: 'numeric', 
+                  month: 'short',
+                  timeZone: 'UTC'
+                });
+              } else if (customDays <= 60) {
+                const weekStart = this.getWeekStart(date);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                const startDay = weekStart.getUTCDate();
+                const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+                const endDay = weekEnd.getUTCDate();
+                const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+                if (startMonth === endMonth) {
+                  formattedDate = `${startDay}-${endDay} ${startMonth}`;
+                } else {
+                  formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`;
+                }
+              } else {
+                formattedDate = date.toLocaleDateString('en-MY', { 
+                  month: 'short', 
+                  year: 'numeric',
+                  timeZone: 'UTC'
+                });
+              }
+            }
+          } else {
+            // ✅ Default: Show full date
+            const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateParts) {
+              const date = new Date(Date.UTC(
+                parseInt(dateParts[1]),
+                parseInt(dateParts[2]) - 1,
+                parseInt(dateParts[3])
+              ));
               const day = date.getUTCDate();
               const monthName = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
               const yearNum = date.getUTCFullYear();
