@@ -2490,14 +2490,13 @@ getPeakDay() {
   if (!day) return ''
   
   if (this.selectedPeriod === 'today') {
+    // ✅ FIX: Use day.date instead of dateStr
     const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return '';
     
-    // ✅ Malaysia is UTC+8 - ADD 8 HOURS
     const hour = parseInt(dateParts[4]);
-    const malaysiaHour = (hour + 8) % 24;
-    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
-    const hours12 = malaysiaHour % 12 || 12;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hours12 = hour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
