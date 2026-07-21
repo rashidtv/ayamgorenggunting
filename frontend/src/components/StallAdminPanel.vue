@@ -1422,10 +1422,10 @@ export default {
       itemsPerPage: 10,
       selectedStalls: [],
       selectAll: false,
-       quickUpdateModal: false,
-    quickUpdateStallId: null,
-    quickUpdateStallName: '',
-    quickUpdateItems: [],
+      quickUpdateModal: false,
+      quickUpdateStallId: null,
+      quickUpdateStallName: '',
+      quickUpdateItems: [],
 
       malaysiaStates: [
         'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
@@ -1533,27 +1533,23 @@ export default {
   },
 
   computed: {
-
     totalPages() {
-    return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
-  },
-  
-  // ✅ Pagination - Current page items
-  paginatedStalls() {
-    const start = (this.currentPage - 1) * this.itemsPerPage
-    const end = start + this.itemsPerPage
-    return this.filteredInventoryStalls.slice(start, end)
-  },
-  
-  // ✅ Pagination - Start index for display
-  startIndex() {
-    return (this.currentPage - 1) * this.itemsPerPage + 1
-  },
-  
-  // ✅ Pagination - End index for display
-  endIndex() {
-    return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
-  },
+      return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
+    },
+    
+    paginatedStalls() {
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.filteredInventoryStalls.slice(start, end)
+    },
+    
+    startIndex() {
+      return (this.currentPage - 1) * this.itemsPerPage + 1
+    },
+    
+    endIndex() {
+      return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
+    },
 
     inventoryStats() {
       const total = this.filteredInventoryStalls.length
@@ -1689,17 +1685,15 @@ export default {
         this.refreshAllData()
       }
     },
-
- inventorySearch() {
-    this.resetPagination()
-  },
-  stateFilter() {
-    this.resetPagination()
-  },
-  inventoryFilter() {
-    this.resetPagination()
-  },
-
+    inventorySearch() {
+      this.resetPagination()
+    },
+    stateFilter() {
+      this.resetPagination()
+    },
+    inventoryFilter() {
+      this.resetPagination()
+    },
     salesTrend: {
       handler() {
         this.$nextTick(() => {
@@ -1753,6 +1747,9 @@ export default {
   },
 
   methods: {
+    // =============================================
+    // TOGGLE SELECT ALL
+    // =============================================
     toggleSelectAll() {
       this.selectAll = !this.selectAll
       if (this.selectAll) {
@@ -1762,106 +1759,18 @@ export default {
       }
     },
 
-  
-  // ✅ Open Quick Update Modal
-  openStallInventoryModal(stallId) {
-    const stall = this.stalls.find(s => s.id === stallId)
-    if (!stall) return
-    
-    this.quickUpdateStallId = stallId
-    this.quickUpdateStallName = stall.name
-    this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
-      ...item,
-      newLevel: item.current_level
-    }))
-    this.quickUpdateModal = true
-  },
-  
-  // ✅ Save individual item in quick update
-  async quickUpdateItemSave(stallId, materialName, newLevel) {
-    if (newLevel === undefined || newLevel === null || newLevel === '') {
-      this.$emit('show-notification', 'Please enter a valid value', 'error')
-      return
-    }
-    await this.updateInventoryStock(stallId, materialName, newLevel)
-    // Update the item in the modal
-    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-    if (item) {
-      item.current_level = newLevel
-      item.newLevel = newLevel
-    }
-  },
-  
-  // ✅ Add stock to item in quick update
-  async quickUpdateItemAdd(stallId, materialName, amount) {
-    const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-    if (item) {
-      const newLevel = item.current_level + amount
-      await this.quickUpdateItemSave(stallId, materialName, newLevel)
-    }
-  },
-  
-  // ✅ Save all items in quick update
-  async quickUpdateSaveAll() {
-    for (const item of this.quickUpdateItems) {
-      if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
-        await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
-      }
-    }
-    this.$emit('show-notification', 'All items updated successfully!', 'success')
-    this.quickUpdateModal = false
-    await this.loadAllStallsInventory()
-  },
-  
-  // ✅ Reset all low stock to alert level
-  async resetAllLowStock() {
-    if (!confirm('Reset all low stock items to their alert levels?')) return
-    
-    let updated = 0
-    for (const stall of this.filteredInventoryStalls) {
-      const inventory = this.getStallInventory(stall.id)
-      for (const item of inventory) {
-        if (item.current_level <= item.alert_level) {
-          await this.updateInventoryStock(stall.id, item.material_name, item.alert_level)
-          updated++
-        }
-      }
-    }
-    this.$emit('show-notification', `Reset ${updated} low stock items to alert levels`, 'success')
-    await this.loadAllStallsInventory()
-  }
-},
-
-      // ✅ Pagination - Go to previous page
-  prevPage() {
-    if (this.currentPage > 1) {
-      this.currentPage--
-    }
-  },
-  
-  // ✅ Pagination - Go to next page
-  nextPage() {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++
-    }
-  },
-  
-  // ✅ Pagination - Go to specific page
-  goToPage(page) {
-    this.currentPage = Math.max(1, Math.min(page, this.totalPages))
-  },
-  
-  // ✅ Reset to first page when filters change
-  resetPagination() {
-    this.currentPage = 1
-  },
-
+    // =============================================
+    // CLEAR FILTERS
+    // =============================================
     clearFilters() {
       this.inventorySearch = ''
       this.stateFilter = 'All States'
       this.inventoryFilter = 'all'
     },
 
+    // =============================================
+    // OPEN BULK UPDATE MODAL
+    // =============================================
     openBulkUpdateModal() {
       const materialSet = new Set()
       const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
@@ -1883,6 +1792,9 @@ export default {
       this.bulkUpdateModal = true
     },
 
+    // =============================================
+    // APPLY QUICK ACTION
+    // =============================================
     applyQuickAction(action) {
       this.bulkUpdateMaterials.forEach(material => {
         let value = 0
@@ -1919,6 +1831,9 @@ export default {
       })
     },
 
+    // =============================================
+    // EXECUTE BULK UPDATE
+    // =============================================
     async executeBulkUpdate() {
       this.bulkUpdating = true
       this.bulkUpdateProgress = 0
@@ -1966,10 +1881,16 @@ export default {
       }
     },
 
+    // =============================================
+    // EXPORT INVENTORY
+    // =============================================
     exportInventory() {
       this.exportCurrentTab()
     },
 
+    // =============================================
+    // QUICK ADD STOCK BY ITEM
+    // =============================================
     async quickAddStockByItem(item) {
       await this.quickAddStock(
         this.stalls.find(s => s.name === item.stall_name)?.id,
@@ -1978,6 +1899,9 @@ export default {
       )
     },
 
+    // =============================================
+    // QUICK UPDATE STALL
+    // =============================================
     quickUpdateStall(stallId) {
       this.toggleInventoryStall(stallId)
       this.$nextTick(() => {
@@ -1987,9 +1911,120 @@ export default {
     },
 
     // =============================================
+    // OPEN STALL INVENTORY MODAL
+    // =============================================
+    openStallInventoryModal(stallId) {
+      const stall = this.stalls.find(s => s.id === stallId)
+      if (!stall) return
+      
+      this.quickUpdateStallId = stallId
+      this.quickUpdateStallName = stall.name
+      this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
+        ...item,
+        newLevel: item.current_level
+      }))
+      this.quickUpdateModal = true
+    },
+
+    // =============================================
+    // QUICK UPDATE ITEM
+    // =============================================
+    quickUpdateItem(stallId, materialName) {
+      this.openStallInventoryModal(stallId)
+      this.$nextTick(() => {
+        const input = document.querySelector(`.quick-update-item input`)
+        if (input) input.focus()
+      })
+    },
+
+    // =============================================
+    // QUICK UPDATE ITEM SAVE
+    // =============================================
+    async quickUpdateItemSave(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      await this.updateInventoryStock(stallId, materialName, newLevel)
+      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+      if (item) {
+        item.current_level = newLevel
+        item.newLevel = newLevel
+      }
+      this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
+    },
+
+    // =============================================
+    // QUICK UPDATE ITEM ADD
+    // =============================================
+    async quickUpdateItemAdd(stallId, materialName, amount) {
+      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+      if (item) {
+        const newLevel = item.current_level + amount
+        await this.quickUpdateItemSave(stallId, materialName, newLevel)
+      }
+    },
+
+    // =============================================
+    // QUICK UPDATE SAVE ALL
+    // =============================================
+    async quickUpdateSaveAll() {
+      for (const item of this.quickUpdateItems) {
+        if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+          await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
+        }
+      }
+      this.$emit('show-notification', 'All items updated successfully!', 'success')
+      this.quickUpdateModal = false
+      await this.loadAllStallsInventory()
+    },
+
+    // =============================================
+    // RESET ALL LOW STOCK
+    // =============================================
+    async resetAllLowStock() {
+      if (!confirm('Reset all low stock items to their alert levels?')) return
+      
+      let updated = 0
+      for (const stall of this.filteredInventoryStalls) {
+        const inventory = this.getStallInventory(stall.id)
+        for (const item of inventory) {
+          if (item.current_level <= item.alert_level) {
+            await this.updateInventoryStock(stall.id, item.material_name, item.alert_level)
+            updated++
+          }
+        }
+      }
+      this.$emit('show-notification', `Reset ${updated} low stock items to alert levels`, 'success')
+      await this.loadAllStallsInventory()
+    },
+
+    // =============================================
+    // PAGINATION
+    // =============================================
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
+    goToPage(page) {
+      this.currentPage = Math.max(1, Math.min(page, this.totalPages))
+    },
+
+    resetPagination() {
+      this.currentPage = 1
+    },
+
+    // =============================================
     // STALL DETAIL CHART - GROUPING HELPERS
     // =============================================
-
     groupSalesData(salesData, grouping, period) {
       if (!salesData || salesData.length === 0) return []
       
@@ -2076,7 +2111,6 @@ export default {
     // =============================================
     // STALL DETAIL CHART - LABEL FORMATTING
     // =============================================
-
     formatHourLabel(dateStr) {
       const date = new Date(dateStr)
       const hour = date.getUTCHours()
@@ -2875,7 +2909,7 @@ export default {
         console.error('Failed to load stall detail chart data:', err)
       })
     },
-      
+
     // =============================================
     // HELPER
     // =============================================
@@ -2886,7 +2920,7 @@ export default {
       today.setHours(0, 0, 0, 0)
       return today
     },
-      
+
     // =============================================
     // GROUPING HELPERS
     // =============================================
@@ -4272,7 +4306,7 @@ export default {
       } finally {
         this.exporting = false
       }
-
+    }
   } // ← END OF METHODS
 } // ← END OF EXPORT DEFAULT
 </script>
