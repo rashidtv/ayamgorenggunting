@@ -1755,20 +1755,13 @@ formatShortDate(dateStr) {
     const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return dateStr;
     
-    const year = parseInt(dateParts[1]);
-    const month = parseInt(dateParts[2]) - 1; // Month is 0-indexed in JS
-    const day = parseInt(dateParts[3]);
+    // ✅ Use the parsed hour directly (already in UTC)
     const hour = parseInt(dateParts[4]);
-    const minute = parseInt(dateParts[5]);
-    const second = parseInt(dateParts[6]);
     
-    // ✅ Create UTC date
-    const utcDate = new Date(Date.UTC(year, month, day, hour, minute, second));
-    
-    // ✅ Get hours from UTC date
-    const hours = utcDate.getUTCHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
+    // ✅ Malaysia is UTC+8
+    const malaysiaHour = (hour + 8) % 24;
+    const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
+    const hours12 = malaysiaHour % 12 || 12;
     
     return `${hours12}:00 ${ampm}`;
   }
