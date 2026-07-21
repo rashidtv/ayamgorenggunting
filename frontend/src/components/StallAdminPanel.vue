@@ -1464,7 +1464,6 @@ export default {
       savingAssignment: false,
       savedAssignmentMessage: '',
       savedAssignmentType: 'success',
-    }
   },
 
   computed: {
