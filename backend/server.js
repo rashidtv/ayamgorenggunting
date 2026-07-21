@@ -475,12 +475,18 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     let startDate;
     let endDate;
     let useDateRange = false;
-    
+
     // ============================================================
-    // ✅ FIX: Only change the week (days=7) logic
+    // ✅ DATE RANGE CALCULATION
     // ============================================================
-    if (dayRange === 7) {
-      // Calculate Monday-Sunday of current week in UTC
+    if (dayRange === 1) {
+      // Today view
+      const now = new Date();
+      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+      malaysiaToday.setHours(0, 0, 0, 0);
+      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
+    } else if (dayRange === 7) {
+      // Week view - Monday to Sunday
       const now = new Date();
       const currentDay = now.getUTCDay();
       const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
@@ -497,14 +503,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       endDate = sunday;
       useDateRange = true;
       console.log('📊 Week range (UTC):', startDate.toISOString(), 'to', endDate.toISOString());
-    } else if (dayRange === 1) {
-      // Today view - keep existing logic
-      const now = new Date();
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-      malaysiaToday.setHours(0, 0, 0, 0);
-      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
     } else {
-      // Other views - keep existing logic
+      // Other views
       startDate = new Date();
       startDate.setDate(startDate.getDate() - dayRange);
     }
@@ -532,7 +532,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build query with date filtering
+      // ✅ Build daily query
       let dailyQuery = `
         SELECT 
           DATE(created_at) as date, 
@@ -541,7 +541,23 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      
+      let dailyParams = [stallIds];
+
+      if (useDateRange && startDate && endDate) {
+        dailyQuery += ` AND created_at >= $2 AND created_at <= $3`;
+        dailyParams.push(startDate.toISOString(), endDate.toISOString());
+      } else if (startDate) {
+        dailyQuery += ` AND created_at >= $2`;
+        dailyParams.push(startDate.toISOString());
+      } else {
+        const fallbackDate = new Date();
+        fallbackDate.setDate(fallbackDate.getDate() - 7);
+        dailyQuery += ` AND created_at >= $2`;
+        dailyParams.push(fallbackDate.toISOString());
+      }
+      dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
+
+      // ✅ Build product query
       let productQuery = `
         SELECT 
           item_name, 
@@ -550,7 +566,23 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      
+      let productParams = [stallIds];
+
+      if (useDateRange && startDate && endDate) {
+        productQuery += ` AND created_at >= $2 AND created_at <= $3`;
+        productParams.push(startDate.toISOString(), endDate.toISOString());
+      } else if (startDate) {
+        productQuery += ` AND created_at >= $2`;
+        productParams.push(startDate.toISOString());
+      } else {
+        const fallbackDate = new Date();
+        fallbackDate.setDate(fallbackDate.getDate() - 7);
+        productQuery += ` AND created_at >= $2`;
+        productParams.push(fallbackDate.toISOString());
+      }
+      productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
+
+      // ✅ Build total query
       let totalQuery = `
         SELECT 
           COALESCE(SUM(price), 0) as total_revenue,
@@ -558,7 +590,22 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      
+      let totalParams = [stallIds];
+
+      if (useDateRange && startDate && endDate) {
+        totalQuery += ` AND created_at >= $2 AND created_at <= $3`;
+        totalParams.push(startDate.toISOString(), endDate.toISOString());
+      } else if (startDate) {
+        totalQuery += ` AND created_at >= $2`;
+        totalParams.push(startDate.toISOString());
+      } else {
+        const fallbackDate = new Date();
+        fallbackDate.setDate(fallbackDate.getDate() - 7);
+        totalQuery += ` AND created_at >= $2`;
+        totalParams.push(fallbackDate.toISOString());
+      }
+
+      // ✅ Build top stall query
       let topStallQuery = `
         SELECT 
           s.name as stall_name,
@@ -567,47 +614,28 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         JOIN stalls s ON sales.stall_id = s.id
         WHERE sales.stall_id = ANY($1::int[])
       `;
-      
-      const params = [stallIds];
-      let paramCount = 2;
-      
-      // ✅ FIX: Always have a valid date condition
+      let topParams = [stallIds];
+
       if (useDateRange && startDate && endDate) {
-        const dateCondition = ` AND created_at >= $${paramCount} AND created_at <= $${paramCount + 1}`;
-        dailyQuery += dateCondition;
-        productQuery += dateCondition;
-        totalQuery += dateCondition;
-        topStallQuery += dateCondition;
-        params.push(startDate.toISOString(), endDate.toISOString());
+        topStallQuery += ` AND sales.created_at >= $2 AND sales.created_at <= $3`;
+        topParams.push(startDate.toISOString(), endDate.toISOString());
       } else if (startDate) {
-        const dateCondition = ` AND created_at >= $${paramCount}`;
-        dailyQuery += dateCondition;
-        productQuery += dateCondition;
-        totalQuery += dateCondition;
-        topStallQuery += dateCondition;
-        params.push(startDate.toISOString());
+        topStallQuery += ` AND sales.created_at >= $2`;
+        topParams.push(startDate.toISOString());
       } else {
-        // ✅ FALLBACK: If no date condition, use last 7 days
         const fallbackDate = new Date();
         fallbackDate.setDate(fallbackDate.getDate() - 7);
-        const dateCondition = ` AND created_at >= $${paramCount}`;
-        dailyQuery += dateCondition;
-        productQuery += dateCondition;
-        totalQuery += dateCondition;
-        topStallQuery += dateCondition;
-        params.push(fallbackDate.toISOString());
+        topStallQuery += ` AND sales.created_at >= $2`;
+        topParams.push(fallbackDate.toISOString());
       }
-      
-      dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-      productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
       topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
-      
+
       // ✅ Execute all queries
       const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
-        pool.query(dailyQuery, params),
-        pool.query(productQuery, params),
-        pool.query(totalQuery, params),
-        pool.query(topStallQuery, params)
+        pool.query(dailyQuery, dailyParams),
+        pool.query(productQuery, productParams),
+        pool.query(totalQuery, totalParams),
+        pool.query(topStallQuery, topParams)
       ]);
 
       const productSales = {};
@@ -628,7 +656,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
     }
 
     // ============================================================
-    // STALL ADMIN / CASHIER - SAME FIX APPLIED
+    // STALL ADMIN / CASHIER
     // ============================================================
     let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
     
@@ -648,7 +676,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Build queries with date filtering (same pattern)
+    // ✅ Same queries for stall admin (reuse the same pattern)
     let dailyQuery = `
       SELECT 
         DATE(created_at) as date, 
@@ -657,7 +685,22 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    
+    let dailyParams = [stallIds];
+
+    if (useDateRange && startDate && endDate) {
+      dailyQuery += ` AND created_at >= $2 AND created_at <= $3`;
+      dailyParams.push(startDate.toISOString(), endDate.toISOString());
+    } else if (startDate) {
+      dailyQuery += ` AND created_at >= $2`;
+      dailyParams.push(startDate.toISOString());
+    } else {
+      const fallbackDate = new Date();
+      fallbackDate.setDate(fallbackDate.getDate() - 7);
+      dailyQuery += ` AND created_at >= $2`;
+      dailyParams.push(fallbackDate.toISOString());
+    }
+    dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
+
     let productQuery = `
       SELECT 
         item_name, 
@@ -666,7 +709,22 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    
+    let productParams = [stallIds];
+
+    if (useDateRange && startDate && endDate) {
+      productQuery += ` AND created_at >= $2 AND created_at <= $3`;
+      productParams.push(startDate.toISOString(), endDate.toISOString());
+    } else if (startDate) {
+      productQuery += ` AND created_at >= $2`;
+      productParams.push(startDate.toISOString());
+    } else {
+      const fallbackDate = new Date();
+      fallbackDate.setDate(fallbackDate.getDate() - 7);
+      productQuery += ` AND created_at >= $2`;
+      productParams.push(fallbackDate.toISOString());
+    }
+    productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
+
     let totalQuery = `
       SELECT 
         COALESCE(SUM(price), 0) as total_revenue,
@@ -674,7 +732,21 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    
+    let totalParams = [stallIds];
+
+    if (useDateRange && startDate && endDate) {
+      totalQuery += ` AND created_at >= $2 AND created_at <= $3`;
+      totalParams.push(startDate.toISOString(), endDate.toISOString());
+    } else if (startDate) {
+      totalQuery += ` AND created_at >= $2`;
+      totalParams.push(startDate.toISOString());
+    } else {
+      const fallbackDate = new Date();
+      fallbackDate.setDate(fallbackDate.getDate() - 7);
+      totalQuery += ` AND created_at >= $2`;
+      totalParams.push(fallbackDate.toISOString());
+    }
+
     let topStallQuery = `
       SELECT 
         s.name as stall_name,
@@ -683,50 +755,32 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       JOIN stalls s ON sales.stall_id = s.id
       WHERE sales.stall_id = ANY($1::int[])
     `;
-    
-    const params2 = [stallIds];
-    let paramCount2 = 2;
-    
+    let topParams = [stallIds];
+
     if (useDateRange && startDate && endDate) {
-      const dateCondition = ` AND created_at >= $${paramCount2} AND created_at <= $${paramCount2 + 1}`;
-      dailyQuery += dateCondition;
-      productQuery += dateCondition;
-      totalQuery += dateCondition;
-      topStallQuery += dateCondition;
-      params2.push(startDate.toISOString(), endDate.toISOString());
+      topStallQuery += ` AND sales.created_at >= $2 AND sales.created_at <= $3`;
+      topParams.push(startDate.toISOString(), endDate.toISOString());
     } else if (startDate) {
-      const dateCondition = ` AND created_at >= $${paramCount2}`;
-      dailyQuery += dateCondition;
-      productQuery += dateCondition;
-      totalQuery += dateCondition;
-      topStallQuery += dateCondition;
-      params2.push(startDate.toISOString());
+      topStallQuery += ` AND sales.created_at >= $2`;
+      topParams.push(startDate.toISOString());
     } else {
-      // ✅ FALLBACK
       const fallbackDate = new Date();
       fallbackDate.setDate(fallbackDate.getDate() - 7);
-      const dateCondition = ` AND created_at >= $${paramCount2}`;
-      dailyQuery += dateCondition;
-      productQuery += dateCondition;
-      totalQuery += dateCondition;
-      topStallQuery += dateCondition;
-      params2.push(fallbackDate.toISOString());
+      topStallQuery += ` AND sales.created_at >= $2`;
+      topParams.push(fallbackDate.toISOString());
     }
-    
-    dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-    productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
     topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
-    
+
     const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
-      pool.query(dailyQuery, params2),
-      pool.query(productQuery, params2),
-      pool.query(totalQuery, params2),
-      pool.query(topStallQuery, params2)
+      pool.query(dailyQuery, dailyParams),
+      pool.query(productQuery, productParams),
+      pool.query(totalQuery, totalParams),
+      pool.query(topStallQuery, topParams)
     ]);
 
-    const productSales2 = {};
+    const productSales = {};
     productRes.rows.forEach(row => {
-      productSales2[row.item_name] = {
+      productSales[row.item_name] = {
         quantity: parseInt(row.quantity),
         revenue: parseFloat(row.revenue)
       };
@@ -734,7 +788,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
 
     res.json({
       dailySales: dailyRes.rows,
-      productSales: productSales2,
+      productSales: productSales,
       totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
       totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
       topStall: topStallRes.rows[0]?.stall_name || '-'
