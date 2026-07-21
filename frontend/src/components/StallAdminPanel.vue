@@ -1518,7 +1518,18 @@ formatWeekRangeLabel(dateStr) {
   const weekStart = this.getWeekStart(date)
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
-  return `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+  
+  const startDay = weekStart.getUTCDate()
+  const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+  const endDay = weekEnd.getUTCDate()
+  const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+  
+  // ✅ Simplified format: "20-26 Jul" or "27 Jul-2 Aug" (if different months)
+  if (startMonth === endMonth) {
+    return `${startDay}-${endDay} ${startMonth}`
+  } else {
+    return `${startDay} ${startMonth}-${endDay} ${endMonth}`
+  }
 },
 
 formatMonthLabel(dateStr) {
@@ -2261,32 +2272,39 @@ initStallDetailChart(stallId, period = 'week') {
     // =============================================
     // GROUPING HELPERS
     // =============================================
-    groupSalesByWeek(dailySales) {
+groupSalesByWeek(dailySales) {
   if (!dailySales || dailySales.length === 0) return []
   
   const grouped = {}
   
   dailySales.forEach(day => {
     const date = new Date(day.date)
-    const weekNumber = this.getWeekNumber(date)
-    const year = date.getFullYear()
-    const key = `${year}-W${weekNumber}`
+    const weekStart = this.getWeekStart(date)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    
+    const key = weekStart.toISOString().split('T')[0]
     
     if (!grouped[key]) {
-      const weekStart = this.getWeekStart(date)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekEnd.getDate() + 6)
+      // ✅ Use simplified format for the label
+      const startDay = weekStart.getUTCDate()
+      const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      const endDay = weekEnd.getUTCDate()
+      const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      
+      let label;
+      if (startMonth === endMonth) {
+        label = `${startDay}-${endDay} ${startMonth}`
+      } else {
+        label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+      }
       
       grouped[key] = {
-        date: weekStart.toISOString().split('T')[0],
-        weekEnd: weekEnd.toISOString().split('T')[0],
-        // ✅ USE displayLabel as the main label for month view
-        label: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
-        displayLabel: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
+        date: weekStart.toISOString(),
+        label: label,
+        displayLabel: label,
         revenue: 0,
-        items: 0,
-        weekNumber: weekNumber,
-        year: year
+        items: 0
       }
     }
     
@@ -2294,7 +2312,7 @@ initStallDetailChart(stallId, period = 'week') {
     grouped[key].items += day.items || 0
   })
   
-  return Object.values(grouped).sort((a, b) => a.weekNumber - b.weekNumber)
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
 },
 
     groupSalesByMonth(dailySales) {
@@ -2348,12 +2366,17 @@ initStallDetailChart(stallId, period = 'week') {
       return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
     },
 
-    getWeekStart(date) {
+getWeekStart(date) {
   const d = new Date(date)
   const day = d.getDay()  // 0 = Sunday, 1 = Monday
+  
   // ✅ Calculate difference to Monday (1)
+  // If Sunday (0), go back 6 days to Monday
+  // If Monday (1), go back 0 days
+  // If Tuesday (2), go back 1 day, etc.
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  const weekStart = new Date(d.setDate(diff))
+  const weekStart = new Date(d)
+  weekStart.setDate(diff)
   weekStart.setHours(0, 0, 0, 0)
   return weekStart
 },
