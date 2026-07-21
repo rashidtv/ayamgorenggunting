@@ -9,7 +9,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 // ============================================
-// DATE RANGE HELPER - Consistent for ALL endpoints
+// DATE RANGE HELPER - Simplified & Robust
 // ============================================
 function getDateRange(days, period = null) {
   const dayRange = parseInt(days) || 7;
@@ -20,9 +20,12 @@ function getDateRange(days, period = null) {
     const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
     malaysiaToday.setHours(0, 0, 0, 0);
     const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
+    // ✅ For today, endDate is same day end
+    const endDate = new Date(startDate);
+    endDate.setUTCHours(23, 59, 59, 999);
     return {
       startDate: startDate,
-      endDate: null,
+      endDate: endDate,
       type: 'today',
       label: 'Today'
     };
@@ -53,9 +56,10 @@ function getDateRange(days, period = null) {
   // OTHER views (month, quarter, halfyear, year, custom)
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - dayRange);
+  const endDate = new Date();
   return {
     startDate: startDate,
-    endDate: null,
+    endDate: endDate,
     type: 'other',
     label: `${dayRange} days`
   };
@@ -63,19 +67,15 @@ function getDateRange(days, period = null) {
 
 // Helper to build date conditions for SQL queries
 function buildDateCondition(dateRange, paramStart) {
-  const { startDate, endDate, type } = dateRange;
-  let condition = '';
-  let params = [];
+  const { startDate, endDate } = dateRange;
   
-  if (type === 'today' || type === 'week') {
-    // Today and Week use exact date range
-    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
-    params = [startDate.toISOString(), endDate ? endDate.toISOString() : startDate.toISOString()];
-  } else {
-    // Other views use start date only
-    condition = `created_at >= $${paramStart}`;
-    params = [startDate.toISOString()];
-  }
+  // ✅ Always use both start and end for consistency
+  // This avoids the "null" issue
+  const condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
+  const params = [
+    startDate ? startDate.toISOString() : new Date().toISOString(),
+    endDate ? endDate.toISOString() : new Date().toISOString()
+  ];
   
   return { condition, params };
 }
