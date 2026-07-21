@@ -1749,16 +1749,21 @@ getSparklinePoints(data) {
 formatShortDate(dateStr) {
   if (!dateStr) return ''
   
-  // ✅ For today, show Malaysia time (UTC+8)
+   // ✅ For today, group by hour (show "12:00 PM", "1:00 PM", etc.)
   if (this.selectedPeriod === 'today') {
+    // ✅ Parse the date string as UTC using regex
     const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
     if (!dateParts) return dateStr;
     
-    // ✅ Extract UTC hour and add 8 hours for Malaysia
+    const year = parseInt(dateParts[1]);
+    const month = parseInt(dateParts[2]) - 1;
+    const day = parseInt(dateParts[3]);
     const hour = parseInt(dateParts[4]);
-    let malaysiaHour = hour + 8;
-    if (malaysiaHour >= 24) malaysiaHour -= 24;
+    const minute = parseInt(dateParts[5]);
+    const second = parseInt(dateParts[6]);
     
+    // ✅ Malaysia is UTC+8
+    const malaysiaHour = (hour + 8) % 24;
     const ampm = malaysiaHour >= 12 ? 'PM' : 'AM';
     const hours12 = malaysiaHour % 12 || 12;
     
