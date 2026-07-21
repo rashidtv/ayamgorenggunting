@@ -1489,7 +1489,7 @@ bulkUpdatePreview() {
     ? this.filteredInventoryStalls 
     : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
   return stalls
-}
+},
 
     stallPerformanceSubtitle() {
     const count = this.displayStalls.length
