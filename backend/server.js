@@ -59,7 +59,6 @@ function buildDateCondition(dateRange, paramStart, tableAlias = 'sales') {
   const start = startDate ? startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const end = endDate ? endDate.toISOString() : new Date().toISOString();
   
-  // ✅ QUALIFY the column with table alias
   const condition = `${tableAlias}.created_at >= $${paramStart} AND ${tableAlias}.created_at <= $${paramStart + 1}`;
   const params = [start, end];
   
@@ -2090,6 +2089,7 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
         return res.json([]);
       }
       
+      // ✅ Build the query with proper date filtering
       let query = `
         SELECT 
           st.name as stall_name,
@@ -2104,12 +2104,15 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [itemName, stallIds];
       let paramCount = 3;
       
-      // ✅ Add date filtering - QUALIFY with s.
-      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
+      // ✅ Add date filtering using the helper
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 's');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
       query += ` GROUP BY st.name ORDER BY quantity DESC`;
+      
+      console.log('📊 Menu performance query:', query);
+      console.log('📊 Params:', params);
       
       const result = await pool.query(query, params);
       return res.json(result.rows);
