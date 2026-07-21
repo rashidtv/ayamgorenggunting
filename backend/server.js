@@ -8,6 +8,78 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// ============================================
+// DATE RANGE HELPER - Consistent for ALL endpoints
+// ============================================
+function getDateRange(days, period = null) {
+  const dayRange = parseInt(days) || 7;
+  
+  // TODAY view (days=1)
+  if (dayRange === 1 || period === 'today') {
+    const now = new Date();
+    const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+    malaysiaToday.setHours(0, 0, 0, 0);
+    const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
+    return {
+      startDate: startDate,
+      endDate: null,
+      type: 'today',
+      label: 'Today'
+    };
+  }
+  
+  // WEEK view (days=7)
+  if (dayRange === 7 || period === 'week') {
+    const now = new Date();
+    const currentDay = now.getUTCDay();
+    const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
+    
+    const monday = new Date(now);
+    monday.setUTCDate(now.getUTCDate() - daysToMonday);
+    monday.setUTCHours(0, 0, 0, 0);
+    
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    sunday.setUTCHours(23, 59, 59, 999);
+    
+    return {
+      startDate: monday,
+      endDate: sunday,
+      type: 'week',
+      label: 'Week'
+    };
+  }
+  
+  // OTHER views (month, quarter, halfyear, year, custom)
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - dayRange);
+  return {
+    startDate: startDate,
+    endDate: null,
+    type: 'other',
+    label: `${dayRange} days`
+  };
+}
+
+// Helper to build date conditions for SQL queries
+function buildDateCondition(dateRange, paramStart) {
+  const { startDate, endDate, type } = dateRange;
+  let condition = '';
+  let params = [];
+  
+  if (type === 'today' || type === 'week') {
+    // Today and Week use exact date range
+    condition = `created_at >= $${paramStart} AND created_at <= $${paramStart + 1}`;
+    params = [startDate.toISOString(), endDate ? endDate.toISOString() : startDate.toISOString()];
+  } else {
+    // Other views use start date only
+    condition = `created_at >= $${paramStart}`;
+    params = [startDate.toISOString()];
+  }
+  
+  return { condition, params };
+}
+
 // Email service
 const {
   sendRegistrationReceived,
@@ -468,46 +540,13 @@ app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
 
 app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
   try {
-    const { stallId, days } = req.query;
+    const { stallId, days, period } = req.query;
     let targetStallId = stallId ? parseInt(stallId) : null;
-    let dayRange = days ? parseInt(days) : 7;
-
-    let startDate;
-    let endDate;
-    let useDateRange = false;
-
-    // ============================================================
-    // ✅ DATE RANGE CALCULATION
-    // ============================================================
-    if (dayRange === 1) {
-      // Today view
-      const now = new Date();
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-      malaysiaToday.setHours(0, 0, 0, 0);
-      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-    } else if (dayRange === 7) {
-      // Week view - Monday to Sunday
-      const now = new Date();
-      const currentDay = now.getUTCDay();
-      const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-      
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysToMonday);
-      monday.setUTCHours(0, 0, 0, 0);
-      
-      const sunday = new Date(monday);
-      sunday.setUTCDate(monday.getUTCDate() + 6);
-      sunday.setUTCHours(23, 59, 59, 999);
-      
-      startDate = monday;
-      endDate = sunday;
-      useDateRange = true;
-      console.log('📊 Week range (UTC):', startDate.toISOString(), 'to', endDate.toISOString());
-    } else {
-      // Other views
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - dayRange);
-    }
+    
+    // ✅ Use consistent date range helper
+    const dateRange = getDateRange(days, period);
+    console.log(`📊 Sales analytics: ${dateRange.label} (${dateRange.type})`);
+    console.log(`📊 Date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate ? dateRange.endDate.toISOString() : 'now'}`);
 
     // ============================================================
     // SUPER ADMIN / SUPER SUPER ADMIN
@@ -532,7 +571,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build daily query
+      // ✅ Build query with consistent date filtering
       let dailyQuery = `
         SELECT 
           DATE(created_at) as date, 
@@ -541,23 +580,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      let dailyParams = [stallIds];
-
-      if (useDateRange && startDate && endDate) {
-        dailyQuery += ` AND created_at >= $2 AND created_at <= $3`;
-        dailyParams.push(startDate.toISOString(), endDate.toISOString());
-      } else if (startDate) {
-        dailyQuery += ` AND created_at >= $2`;
-        dailyParams.push(startDate.toISOString());
-      } else {
-        const fallbackDate = new Date();
-        fallbackDate.setDate(fallbackDate.getDate() - 7);
-        dailyQuery += ` AND created_at >= $2`;
-        dailyParams.push(fallbackDate.toISOString());
-      }
-      dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-
-      // ✅ Build product query
+      
       let productQuery = `
         SELECT 
           item_name, 
@@ -566,23 +589,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      let productParams = [stallIds];
-
-      if (useDateRange && startDate && endDate) {
-        productQuery += ` AND created_at >= $2 AND created_at <= $3`;
-        productParams.push(startDate.toISOString(), endDate.toISOString());
-      } else if (startDate) {
-        productQuery += ` AND created_at >= $2`;
-        productParams.push(startDate.toISOString());
-      } else {
-        const fallbackDate = new Date();
-        fallbackDate.setDate(fallbackDate.getDate() - 7);
-        productQuery += ` AND created_at >= $2`;
-        productParams.push(fallbackDate.toISOString());
-      }
-      productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
-
-      // ✅ Build total query
+      
       let totalQuery = `
         SELECT 
           COALESCE(SUM(price), 0) as total_revenue,
@@ -590,22 +597,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         FROM sales
         WHERE stall_id = ANY($1::int[])
       `;
-      let totalParams = [stallIds];
-
-      if (useDateRange && startDate && endDate) {
-        totalQuery += ` AND created_at >= $2 AND created_at <= $3`;
-        totalParams.push(startDate.toISOString(), endDate.toISOString());
-      } else if (startDate) {
-        totalQuery += ` AND created_at >= $2`;
-        totalParams.push(startDate.toISOString());
-      } else {
-        const fallbackDate = new Date();
-        fallbackDate.setDate(fallbackDate.getDate() - 7);
-        totalQuery += ` AND created_at >= $2`;
-        totalParams.push(fallbackDate.toISOString());
-      }
-
-      // ✅ Build top stall query
+      
       let topStallQuery = `
         SELECT 
           s.name as stall_name,
@@ -614,28 +606,27 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         JOIN stalls s ON sales.stall_id = s.id
         WHERE sales.stall_id = ANY($1::int[])
       `;
-      let topParams = [stallIds];
-
-      if (useDateRange && startDate && endDate) {
-        topStallQuery += ` AND sales.created_at >= $2 AND sales.created_at <= $3`;
-        topParams.push(startDate.toISOString(), endDate.toISOString());
-      } else if (startDate) {
-        topStallQuery += ` AND sales.created_at >= $2`;
-        topParams.push(startDate.toISOString());
-      } else {
-        const fallbackDate = new Date();
-        fallbackDate.setDate(fallbackDate.getDate() - 7);
-        topStallQuery += ` AND sales.created_at >= $2`;
-        topParams.push(fallbackDate.toISOString());
-      }
+      
+      const params = [stallIds];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering using helper
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      dailyQuery += ` AND ${condition}`;
+      productQuery += ` AND ${condition}`;
+      totalQuery += ` AND ${condition}`;
+      topStallQuery += ` AND ${condition}`;
+      params.push(...dateParams);
+      
+      dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
+      productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
       topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
-
-      // ✅ Execute all queries
+      
       const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
-        pool.query(dailyQuery, dailyParams),
-        pool.query(productQuery, productParams),
-        pool.query(totalQuery, totalParams),
-        pool.query(topStallQuery, topParams)
+        pool.query(dailyQuery, params),
+        pool.query(productQuery, params),
+        pool.query(totalQuery, params),
+        pool.query(topStallQuery, params)
       ]);
 
       const productSales = {};
@@ -651,7 +642,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         productSales: productSales,
         totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
         totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
-        topStall: topStallRes.rows[0]?.stall_name || '-'
+        topStall: topStallRes.rows[0]?.stall_name || '-',
+        topRevenue: parseFloat(topStallRes.rows[0]?.revenue || 0)
       });
     }
 
@@ -676,7 +668,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Same queries for stall admin (reuse the same pattern)
+    // ✅ Same queries for stall admin
     let dailyQuery = `
       SELECT 
         DATE(created_at) as date, 
@@ -685,22 +677,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    let dailyParams = [stallIds];
-
-    if (useDateRange && startDate && endDate) {
-      dailyQuery += ` AND created_at >= $2 AND created_at <= $3`;
-      dailyParams.push(startDate.toISOString(), endDate.toISOString());
-    } else if (startDate) {
-      dailyQuery += ` AND created_at >= $2`;
-      dailyParams.push(startDate.toISOString());
-    } else {
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() - 7);
-      dailyQuery += ` AND created_at >= $2`;
-      dailyParams.push(fallbackDate.toISOString());
-    }
-    dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
-
+    
     let productQuery = `
       SELECT 
         item_name, 
@@ -709,22 +686,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    let productParams = [stallIds];
-
-    if (useDateRange && startDate && endDate) {
-      productQuery += ` AND created_at >= $2 AND created_at <= $3`;
-      productParams.push(startDate.toISOString(), endDate.toISOString());
-    } else if (startDate) {
-      productQuery += ` AND created_at >= $2`;
-      productParams.push(startDate.toISOString());
-    } else {
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() - 7);
-      productQuery += ` AND created_at >= $2`;
-      productParams.push(fallbackDate.toISOString());
-    }
-    productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
-
+    
     let totalQuery = `
       SELECT 
         COALESCE(SUM(price), 0) as total_revenue,
@@ -732,21 +694,7 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       FROM sales
       WHERE stall_id = ANY($1::int[])
     `;
-    let totalParams = [stallIds];
-
-    if (useDateRange && startDate && endDate) {
-      totalQuery += ` AND created_at >= $2 AND created_at <= $3`;
-      totalParams.push(startDate.toISOString(), endDate.toISOString());
-    } else if (startDate) {
-      totalQuery += ` AND created_at >= $2`;
-      totalParams.push(startDate.toISOString());
-    } else {
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() - 7);
-      totalQuery += ` AND created_at >= $2`;
-      totalParams.push(fallbackDate.toISOString());
-    }
-
+    
     let topStallQuery = `
       SELECT 
         s.name as stall_name,
@@ -755,32 +703,32 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       JOIN stalls s ON sales.stall_id = s.id
       WHERE sales.stall_id = ANY($1::int[])
     `;
-    let topParams = [stallIds];
-
-    if (useDateRange && startDate && endDate) {
-      topStallQuery += ` AND sales.created_at >= $2 AND sales.created_at <= $3`;
-      topParams.push(startDate.toISOString(), endDate.toISOString());
-    } else if (startDate) {
-      topStallQuery += ` AND sales.created_at >= $2`;
-      topParams.push(startDate.toISOString());
-    } else {
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() - 7);
-      topStallQuery += ` AND sales.created_at >= $2`;
-      topParams.push(fallbackDate.toISOString());
-    }
+    
+    const params2 = [stallIds];
+    let paramCount2 = 2;
+    
+    // ✅ Add date filtering using helper
+    const { condition: condition2, params: dateParams2 } = buildDateCondition(dateRange, paramCount2);
+    dailyQuery += ` AND ${condition2}`;
+    productQuery += ` AND ${condition2}`;
+    totalQuery += ` AND ${condition2}`;
+    topStallQuery += ` AND ${condition2}`;
+    params2.push(...dateParams2);
+    
+    dailyQuery += ` GROUP BY DATE(created_at) ORDER BY date`;
+    productQuery += ` GROUP BY item_name ORDER BY quantity DESC`;
     topStallQuery += ` GROUP BY s.name ORDER BY revenue DESC LIMIT 1`;
-
+    
     const [dailyRes, productRes, totalRes, topStallRes] = await Promise.all([
-      pool.query(dailyQuery, dailyParams),
-      pool.query(productQuery, productParams),
-      pool.query(totalQuery, totalParams),
-      pool.query(topStallQuery, topParams)
+      pool.query(dailyQuery, params2),
+      pool.query(productQuery, params2),
+      pool.query(totalQuery, params2),
+      pool.query(topStallQuery, params2)
     ]);
 
-    const productSales = {};
+    const productSales2 = {};
     productRes.rows.forEach(row => {
-      productSales[row.item_name] = {
+      productSales2[row.item_name] = {
         quantity: parseInt(row.quantity),
         revenue: parseFloat(row.revenue)
       };
@@ -788,10 +736,11 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
 
     res.json({
       dailySales: dailyRes.rows,
-      productSales: productSales,
+      productSales: productSales2,
       totalItems: parseInt(totalRes.rows[0]?.total_items || 0),
       totalRevenue: parseFloat(totalRes.rows[0]?.total_revenue || 0),
-      topStall: topStallRes.rows[0]?.stall_name || '-'
+      topStall: topStallRes.rows[0]?.stall_name || '-',
+      topRevenue: parseFloat(topStallRes.rows[0]?.revenue || 0)
     });
     
   } catch (err) {
@@ -2084,111 +2033,168 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
 // ==================== MENU PERFORMANCE ====================
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
-    const { days, stallId, itemName, startDate: reqStartDate, endDate: reqEndDate } = req.query;
+    const { days, stallId, itemName, period } = req.query;
     
-    // ✅ NEW: Handle exact date range
-    let startDate, endDate;
-    let useDateRange = false;
-    
-    if (reqStartDate && reqEndDate) {
-      startDate = new Date(reqStartDate);
-      endDate = new Date(reqEndDate);
-      useDateRange = true;
-    } else {
-      let dayRange = days ? parseInt(days) : 7;
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - dayRange);
+    // ✅ Use consistent date range helper
+    const dateRange = getDateRange(days, period);
+    console.log(`📊 Menu performance: ${dateRange.label} (${dateRange.type})`);
+
+    // ============================================================
+    // If itemName is provided, get breakdown by stall
+    // ============================================================
+    if (itemName) {
+      let stallIds = [];
       
-      // For week view, calculate Monday-Sunday
-      if (dayRange === 7) {
-        const now = new Date();
-        const currentDay = now.getUTCDay();
-        const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-        
-        const monday = new Date(now);
-        monday.setUTCDate(now.getUTCDate() - daysToMonday);
-        monday.setUTCHours(0, 0, 0, 0);
-        
-        const sunday = new Date(monday);
-        sunday.setUTCDate(monday.getUTCDate() + 6);
-        sunday.setUTCHours(23, 59, 59, 999);
-        
-        startDate = monday;
-        endDate = sunday;
-        useDateRange = true;
+      if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+        let companyId = req.user.company_id;
+        if (req.user.role === 'super_super_admin') {
+          const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+          if (companyRes.rows[0]) {
+            companyId = companyRes.rows[0].id;
+          }
+        }
+        if (companyId) {
+          const res = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [companyId]);
+          stallIds = res.rows.map(r => r.id);
+        }
+      } else {
+        stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+        if (stallIds.length === 0) {
+          const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+          stallIds = assRes.rows.map(r => r.stall_id);
+        }
       }
+      
+      if (stallIds.length === 0) {
+        return res.json([]);
+      }
+      
+      let query = `
+        SELECT 
+          st.name as stall_name,
+          COUNT(*) as quantity,
+          COALESCE(SUM(s.price), 0) as revenue
+        FROM sales s
+        JOIN stalls st ON s.stall_id = st.id
+        WHERE s.item_name = $1 
+          AND s.stall_id = ANY($2::int[])
+      `;
+      
+      const params = [itemName, stallIds];
+      let paramCount = 3;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY st.name ORDER BY quantity DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
     }
 
     // ============================================================
-    // Build query with date filtering
+    // If stallId is provided, get data for that specific stall
     // ============================================================
+    if (stallId) {
+      const targetStallId = parseInt(stallId);
+      const allowed = await userCanAccessStall(req.user.id, targetStallId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      let query = `
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id = $1
+      `;
+      
+      const params = [targetStallId];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY item_name ORDER BY quantity DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // SUPER ADMIN / SUPER SUPER ADMIN
+    // ============================================================
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.json([]);
+      }
+
+      let query = `
+        SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
+        FROM sales
+        WHERE stall_id IN (SELECT id FROM stalls WHERE company_id = $1)
+      `;
+      
+      const params = [companyId];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY item_name ORDER BY quantity DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // STALL ADMIN / CASHIER
+    // ============================================================
+    let stallIds = [];
+    
+    if (req.user.role === 'stall_admin' || req.user.role === 'cashier') {
+      stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      if (stallIds.length === 0) {
+        const assRes = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
+        stallIds = assRes.rows.map(r => r.stall_id);
+      }
+    }
+    
+    if (stallIds.length === 0) {
+      return res.json([]);
+    }
+    
     let query = `
       SELECT item_name, COUNT(*) as quantity, COALESCE(SUM(price), 0) as revenue
       FROM sales
-      WHERE 1=1
+      WHERE stall_id = ANY($1::int[])
     `;
     
-    const params = [];
-    let paramCount = 1;
+    const params = [stallIds];
+    let paramCount = 2;
     
-    // Add date filtering
-    if (useDateRange && startDate && endDate) {
-      query += ` AND created_at >= $${paramCount} AND created_at <= $${paramCount + 1}`;
-      params.push(startDate.toISOString(), endDate.toISOString());
-      paramCount += 2;
-    } else if (startDate) {
-      query += ` AND created_at >= $${paramCount}`;
-      params.push(startDate.toISOString());
-      paramCount += 1;
-    }
-    
-    // Add stall filter
-    if (stallId) {
-      query += ` AND stall_id = $${paramCount}`;
-      params.push(parseInt(stallId));
-      paramCount++;
-    } else if (req.user.role === 'stall_admin' || req.user.role === 'cashier') {
-      const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
-      if (stallIds.length > 0) {
-        query += ` AND stall_id = ANY($${paramCount}::int[])`;
-        params.push(stallIds);
-        paramCount++;
-      } else {
-        return res.json([]);
-      }
-    } else if (req.user.role === 'super_admin') {
-      const stallIdsRes = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [req.user.company_id]);
-      const stallIds = stallIdsRes.rows.map(r => r.id);
-      if (stallIds.length > 0) {
-        query += ` AND stall_id = ANY($${paramCount}::int[])`;
-        params.push(stallIds);
-        paramCount++;
-      } else {
-        return res.json([]);
-      }
-    } else if (req.user.role === 'super_super_admin') {
-      const stallIdsRes = await pool.query('SELECT id FROM stalls');
-      const stallIds = stallIdsRes.rows.map(r => r.id);
-      if (stallIds.length > 0) {
-        query += ` AND stall_id = ANY($${paramCount}::int[])`;
-        params.push(stallIds);
-        paramCount++;
-      } else {
-        return res.json([]);
-      }
-    }
-    
-    // Add item name filter (for breakdown)
-    if (itemName) {
-      query += ` AND item_name = $${paramCount}`;
-      params.push(itemName);
-      paramCount++;
-    }
+    // ✅ Add date filtering
+    const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+    query += ` AND (${condition})`;
+    params.push(...dateParams);
     
     query += ` GROUP BY item_name ORDER BY quantity DESC`;
     
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    return res.json(result.rows);
     
   } catch (err) {
     console.error('Menu performance error:', err);
@@ -2199,113 +2205,229 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
 // ==================== STALL PERFORMANCE ====================
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
-    const { days, stallId, stallIds, startDate: reqStartDate, endDate: reqEndDate } = req.query;
+    const { days, stallId, stallIds, period } = req.query;
     
-    // ✅ NEW: Handle exact date range
-    let startDate, endDate;
-    let useDateRange = false;
-    
-    if (reqStartDate && reqEndDate) {
-      startDate = new Date(reqStartDate);
-      endDate = new Date(reqEndDate);
-      useDateRange = true;
-    } else {
-      let dayRange = days ? parseInt(days) : 1;
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - dayRange);
+    // ✅ Use consistent date range helper
+    const dateRange = getDateRange(days, period);
+    console.log(`📊 Stall performance: ${dateRange.label} (${dateRange.type})`);
+    console.log(`📊 Date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate ? dateRange.endDate.toISOString() : 'now'}`);
+
+    // ============================================================
+    // Handle multiple stall IDs (comma-separated string)
+    // ============================================================
+    if (stallIds) {
+      const ids = stallIds.split(',').map(Number).filter(id => !isNaN(id));
       
-      // For week view, calculate Monday-Sunday
-      if (dayRange === 7) {
-        const now = new Date();
-        const currentDay = now.getUTCDay();
-        const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-        
-        const monday = new Date(now);
-        monday.setUTCDate(now.getUTCDate() - daysToMonday);
-        monday.setUTCHours(0, 0, 0, 0);
-        
-        const sunday = new Date(monday);
-        sunday.setUTCDate(monday.getUTCDate() + 6);
-        sunday.setUTCHours(23, 59, 59, 999);
-        
-        startDate = monday;
-        endDate = sunday;
-        useDateRange = true;
+      if (ids.length === 0) {
+        return res.json([]);
       }
+      
+      for (const id of ids) {
+        const allowed = await userCanAccessStall(req.user.id, id);
+        if (!allowed) {
+          return res.status(403).json({ error: 'Access denied to one or more stalls' });
+        }
+      }
+      
+      // ✅ Build query with consistent date filtering
+      let query = `
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id
+      `;
+      
+      const params = [];
+      let paramCount = 1;
+      const conditions = [`s.id = ANY($${paramCount}::int[])`];
+      params.push(ids);
+      paramCount++;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      conditions.push(`(${condition})`);
+      params.push(...dateParams);
+      
+      query += ` WHERE ${conditions.join(' AND ')}`;
+      query += ` GROUP BY s.id, s.name, s.is_active`;
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`; // ✅ Only stalls with revenue
+      query += ` ORDER BY revenue DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
     }
 
     // ============================================================
-    // Build query with date filtering
+    // If a specific stallId is provided
     // ============================================================
-    let query = `
-      SELECT 
-        s.id,
-        s.name,
-        s.is_active,
-        COALESCE(SUM(sales.price), 0) as revenue,
-        COUNT(sales.id) as items_sold,
-        COALESCE(AVG(sales.price), 0) as avg_transaction
-      FROM stalls s
-      LEFT JOIN sales ON sales.stall_id = s.id
-    `;
-    
-    const params = [];
-    let paramCount = 1;
-    let conditions = [];
-    
-    // Add date filtering
-    if (useDateRange && startDate && endDate) {
-      conditions.push(`(sales.created_at >= $${paramCount} AND sales.created_at <= $${paramCount + 1})`);
-      params.push(startDate.toISOString(), endDate.toISOString());
-      paramCount += 2;
-    } else if (startDate) {
-      conditions.push(`sales.created_at >= $${paramCount}`);
-      params.push(startDate.toISOString());
-      paramCount += 1;
-    }
-    
-    // Add stall filters
-    if (stallIds) {
-      const ids = stallIds.split(',').map(Number).filter(id => !isNaN(id));
-      if (ids.length > 0) {
-        conditions.push(`s.id = ANY($${paramCount}::int[])`);
-        params.push(ids);
-        paramCount++;
+    if (stallId) {
+      const targetStallId = parseInt(stallId);
+      const allowed = await userCanAccessStall(req.user.id, targetStallId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied' });
       }
-    } else if (stallId) {
-      conditions.push(`s.id = $${paramCount}`);
-      params.push(parseInt(stallId));
+      
+      let query = `
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id
+      `;
+      
+      const params = [];
+      let paramCount = 1;
+      const conditions = [`s.id = $${paramCount}`];
+      params.push(targetStallId);
       paramCount++;
-    } else if (req.user.role === 'stall_admin' || req.user.role === 'cashier') {
-      const userStallIds = req.user.assigned_stalls?.map(s => s.id) || [];
-      if (userStallIds.length > 0) {
-        conditions.push(`s.id = ANY($${paramCount}::int[])`);
-        params.push(userStallIds);
-        paramCount++;
-      } else {
-        return res.json([]);
-      }
-    } else if (req.user.role === 'super_admin') {
-      const stallIdsRes = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [req.user.company_id]);
-      const userStallIds = stallIdsRes.rows.map(r => r.id);
-      if (userStallIds.length > 0) {
-        conditions.push(`s.id = ANY($${paramCount}::int[])`);
-        params.push(userStallIds);
-        paramCount++;
-      } else {
-        return res.json([]);
-      }
-    }
-    
-    if (conditions.length > 0) {
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      conditions.push(`(${condition})`);
+      params.push(...dateParams);
+      
       query += ` WHERE ${conditions.join(' AND ')}`;
+      query += ` GROUP BY s.id, s.name, s.is_active`;
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`;
+      query += ` ORDER BY revenue DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
     }
-    
-    query += ` GROUP BY s.id, s.name, s.is_active ORDER BY revenue DESC`;
-    
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-    
+
+    // ============================================================
+    // SUPER ADMIN / SUPER SUPER ADMIN
+    // ============================================================
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      
+      if (!companyId) {
+        return res.json([]);
+      }
+
+      let query = `
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id
+        WHERE s.company_id = $1
+      `;
+      
+      const params = [companyId];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY s.id, s.name, s.is_active`;
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`;
+      query += ` ORDER BY revenue DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // STALL ADMIN
+    // ============================================================
+    if (req.user.role === 'stall_admin') {
+      const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      
+      if (stallIds.length === 0) {
+        return res.json([]);
+      }
+      
+      let query = `
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id
+        WHERE s.id = ANY($1::int[])
+      `;
+      
+      const params = [stallIds];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY s.id, s.name, s.is_active`;
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`;
+      query += ` ORDER BY revenue DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
+    }
+
+    // ============================================================
+    // CASHIER
+    // ============================================================
+    if (req.user.role === 'cashier') {
+      const stallId = req.user.assigned_stalls?.[0]?.id;
+      
+      if (!stallId) {
+        return res.json([]);
+      }
+      
+      let query = `
+        SELECT 
+          s.id,
+          s.name,
+          s.is_active,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(sales.id) as items_sold,
+          COALESCE(AVG(sales.price), 0) as avg_transaction
+        FROM stalls s
+        LEFT JOIN sales ON sales.stall_id = s.id
+        WHERE s.id = $1
+      `;
+      
+      const params = [stallId];
+      let paramCount = 2;
+      
+      // ✅ Add date filtering
+      const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount);
+      query += ` AND (${condition})`;
+      params.push(...dateParams);
+      
+      query += ` GROUP BY s.id, s.name, s.is_active`;
+      query += ` HAVING COALESCE(SUM(sales.price), 0) > 0`;
+      query += ` ORDER BY revenue DESC`;
+      
+      const result = await pool.query(query, params);
+      return res.json(result.rows);
+    }
+
+    res.json([]);
   } catch (err) {
     console.error('Stall performance error:', err);
     res.status(500).json({ error: 'Failed to fetch stall performance', details: err.message });

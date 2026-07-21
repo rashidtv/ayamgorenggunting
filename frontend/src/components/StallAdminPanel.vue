@@ -2812,21 +2812,37 @@ async loadData() {
   try {
     console.log('🔄 Loading stall admin data...')
     
-    // ✅ Step 1: Load stalls (needed for everything)
+    // ✅ Clear previous data when loading new period
+    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+    }
+    
+    // ✅ Step 1: Load stalls first
     await this.loadStalls()
     
-    // ✅ Step 2: Load sales analytics FIRST (critical)
+    // ✅ Step 2: Load sales analytics (for chart and overview)
     await this.loadSalesAnalytics()
     
     // ✅ Step 3: Load everything else in parallel
     await Promise.all([
       this.loadUsers(),
       this.loadLowStock(),
-      this.loadStallPerformance(),  // Now has salesTrend data
+      this.loadStallPerformance(),  // Now always fetches fresh data
       this.loadMenuItems()
     ])
     
+    // ✅ Step 4: Load inventory
+    await this.loadAllStallsInventory()
+    
+    // ✅ Step 5: Reset chart
     this.resetChartNavigation()
+    
     this.$emit('show-notification', 'Data refreshed', 'success')
   } catch (err) {
     console.error('Load data error:', err)
@@ -2888,20 +2904,20 @@ async loadData() {
 
 async loadSalesAnalytics() {
   try {
-    const days = this.selectedPeriod === 'today' ? 0 :
+    const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
                  this.selectedPeriod === 'quarter' ? 90 :
                  this.selectedPeriod === 'halfyear' ? 180 :
                  this.selectedPeriod === 'year' ? 365 :
                  this.customDays || 30
-    const apiDays = this.selectedPeriod === 'today' ? 1 : days
     
-    console.log('📊 Loading sales analytics for days:', apiDays, 'period:', this.selectedPeriod)
+    console.log(`📊 Loading sales analytics for days: ${days} period: ${this.selectedPeriod}`)
     
-    const res = await axios.get(`${API_BASE}/sales-analytics?days=${apiDays}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
+    const res = await axios.get(
+      `${API_BASE}/sales-analytics?days=${days}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
     
     console.log('📊 Sales analytics response:', res.data)
     
@@ -2975,12 +2991,12 @@ async loadSalesAnalytics() {
     this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
       totalRevenue / this.stalls.length : 0
     
+    // ✅ Use topStall from API response (already filtered)
     if (data.topStall && data.topStall !== '-') {
       this.consolidatedSales.topStall = data.topStall
       this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
     } else {
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
+      // Don't override if no data - let stall performance set it
     }
     
     this.productSales = data.productSales || {}
@@ -3007,14 +3023,14 @@ async loadSalesAnalytics() {
 },
 
 async loadStallPerformance() {
-  const days = this.selectedPeriod === 'today' ? 0 :
+  // ✅ Calculate days based on selected period
+  const days = this.selectedPeriod === 'today' ? 1 :
                this.selectedPeriod === 'week' ? 7 :
                this.selectedPeriod === 'month' ? 30 :
                this.selectedPeriod === 'quarter' ? 90 :
                this.selectedPeriod === 'halfyear' ? 180 :
                this.selectedPeriod === 'year' ? 365 :
                this.customDays || 30
-  const apiDays = this.selectedPeriod === 'today' ? 1 : days
   
   try {
     const stallIds = this.stalls.map(s => s.id)
@@ -3024,35 +3040,23 @@ async loadStallPerformance() {
       return
     }
     
-    const res = await axios.get(`${API_BASE}/stall-performance?days=${apiDays}&stallIds=${stallIds.join(',')}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
+    // ✅ Always fetch fresh data - don't depend on salesTrend
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
     
-    let stallData = res.data || []
-    if (!Array.isArray(stallData)) {
-      stallData = [stallData]
-    }
+    // ✅ API now returns only stalls with revenue > 0
+    this.stallPerformance = res.data || []
     
-    // ✅ Filter to only stalls with sales
-    stallData = stallData.filter(stall => {
-      const revenue = parseFloat(stall.revenue) || 0
-      const items = parseInt(stall.items) || 0
-      return revenue > 0 || items > 0
-    })
-    
-    this.stallPerformance = stallData
-    
-    // ✅ Update top stall from stall data
-    if (stallData.length > 0) {
-      let topStall = stallData.reduce((max, stall) => {
-        const revenue = parseFloat(stall.revenue) || 0
-        return revenue > (parseFloat(max.revenue) || 0) ? stall : max
-      }, stallData[0])
-      
-      if (topStall && parseFloat(topStall.revenue) > 0) {
-        this.consolidatedSales.topStall = topStall.name || topStall.stall_name || '-'
-        this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
-      }
+    // ✅ Update top stall from stall data (not from salesTrend)
+    if (this.stallPerformance.length > 0) {
+      const topStall = this.stallPerformance[0] // Already sorted by revenue
+      this.consolidatedSales.topStall = topStall.name || '-'
+      this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
+    } else {
+      // If no stall performance data, don't override top stall from salesTrend
+      // Keep whatever was set by loadSalesAnalytics
     }
     
     console.log('✅ Stall performance loaded:', this.stallPerformance.length)
@@ -3107,12 +3111,7 @@ async loadMenuPerformance() {
       return
     }
     
-    if (Object.keys(productSales).length > 0) {
-      this.menuPerformance = []
-      return
-    }
-    
-    // ✅ Fallback: fetch from API
+    // ✅ Fallback: fetch from API if no productSales
     const days = this.selectedPeriod === 'today' ? 1 :
                  this.selectedPeriod === 'week' ? 7 :
                  this.selectedPeriod === 'month' ? 30 :
@@ -3121,9 +3120,10 @@ async loadMenuPerformance() {
                  this.selectedPeriod === 'year' ? 365 :
                  this.customDays || 30
     
-    const res = await axios.get(`${API_BASE}/menu-performance?days=${days}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
+    const res = await axios.get(
+      `${API_BASE}/menu-performance?days=${days}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
     
     let menuData = (res.data || [])
       .filter(item => {
