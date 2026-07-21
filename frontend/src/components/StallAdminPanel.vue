@@ -2280,7 +2280,8 @@ initStallDetailChart(stallId, period = 'week') {
       grouped[key] = {
         date: weekStart.toISOString().split('T')[0],
         weekEnd: weekEnd.toISOString().split('T')[0],
-        label: `W${weekNumber}`,
+        // ✅ USE displayLabel as the main label for month view
+        label: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
         displayLabel: `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}`,
         revenue: 0,
         items: 0,
@@ -2293,7 +2294,6 @@ initStallDetailChart(stallId, period = 'week') {
     grouped[key].items += day.items || 0
   })
   
-  // ✅ Sort by week number to ensure Monday is first
   return Object.values(grouped).sort((a, b) => a.weekNumber - b.weekNumber)
 },
 
