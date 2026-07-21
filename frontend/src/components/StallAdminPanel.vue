@@ -1952,8 +1952,7 @@ formatShortDate(dateStr) {
     return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   }
   
-  // For week view, show day names (Monday first)
-  // For week view, show day names with date (Monday first)
+// For week view, show day name + date + month (e.g., "Mon 20 Jul")
 if (this.selectedPeriod === 'week') {
   const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (!dateParts) return dateStr;
@@ -1966,7 +1965,8 @@ if (this.selectedPeriod === 'week') {
   const orderedDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayName = orderedDayNames[dayOfWeek === 0 ? 6 : dayOfWeek - 1];
   const dayNum = date.getUTCDate();
-  return `${dayName} ${dayNum}`;  // ✅ Day + Date
+  const month = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' });
+  return `${dayName} ${dayNum} ${month}`;  // ✅ Day + Date + Month
 }
   
   // Default fallback
