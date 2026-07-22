@@ -1019,61 +1019,169 @@
     </div>
   </div>
   
-  <!-- Stall Performance - Full List -->
-  <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📊 Stall Performance</h3>
-          <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
-        </div>
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+<!-- Stall Performance - Full List -->
+<div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>📊 Stall Performance</h3>
+        <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
       </div>
-      <div class="card-modern-body stall-performance-table-container">
-        <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-          <span>📊</span>
-          <p>No sales data available for {{ getPeriodLabel() }}</p>
+      <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+    </div>
+    <div class="card-modern-body">
+      
+      <!-- Stats Cards - 5 cards -->
+      <div class="performance-stats-grid">
+        <div class="stat-chip excellent">
+          <span class="stat-chip-label">🟢 Excellent</span>
+          <span class="stat-chip-value">{{ performanceStats.excellent }}</span>
+        </div>
+        <div class="stat-chip good">
+          <span class="stat-chip-label">🔵 Good</span>
+          <span class="stat-chip-value">{{ performanceStats.good }}</span>
+        </div>
+        <div class="stat-chip average">
+          <span class="stat-chip-label">🟡 Average</span>
+          <span class="stat-chip-value">{{ performanceStats.average }}</span>
+        </div>
+        <div class="stat-chip poor">
+          <span class="stat-chip-label">🔴 Poor</span>
+          <span class="stat-chip-value">{{ performanceStats.poor }}</span>
+        </div>
+        <div class="stat-chip no-sales">
+          <span class="stat-chip-label">⚪ No Sales</span>
+          <span class="stat-chip-value">{{ performanceStats.noSales }}</span>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="performanceSearch" 
+            placeholder="Search stalls by name or code..." 
+            class="filter-input"
+            @input="resetPerformancePagination"
+          />
         </div>
         
-        <div v-else class="stall-table-wrapper">
-          <div class="stall-table-header">
-            <span class="stall-table-header-rank">Rank</span>
-            <span class="stall-table-header-name">Stall</span>
-            <span class="stall-table-header-revenue">Revenue</span>
-            <span class="stall-table-header-status">Status</span>
-            <span class="stall-table-header-details">Details</span>
+        <div class="filter-group">
+          <select v-model="performanceStateFilter" class="filter-select" @change="resetPerformancePagination">
+            <option v-for="state in malaysiaStates" :key="state" :value="state">
+              {{ state }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="performanceStatusFilter" class="filter-select" @change="resetPerformancePagination">
+            <option value="all">All Status</option>
+            <option value="excellent">🟢 Excellent</option>
+            <option value="good">🔵 Good</option>
+            <option value="average">🟡 Average</option>
+            <option value="poor">🔴 Poor</option>
+            <option value="no-sales">⚪ No Sales</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button @click="clearPerformanceFilters" class="btn-modern secondary small">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Performance Table with Pagination -->
+      <div v-if="filteredPerformanceList.length === 0" class="empty-state-modern">
+        <span>📊</span>
+        <p>No stalls found matching your criteria</p>
+        <button @click="clearPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+          Clear Filters
+        </button>
+      </div>
+
+      <div v-else>
+        <div class="performance-table-wrapper">
+          <!-- Table Header with Sort -->
+          <div class="performance-table-header">
+            <span class="performance-table-header-rank sortable" @click="sortPerformance('rank')">
+              Rank <span class="sort-arrow">{{ getSortArrow('rank') }}</span>
+            </span>
+            <span class="performance-table-header-name sortable" @click="sortPerformance('name')">
+              Stall <span class="sort-arrow">{{ getSortArrow('name') }}</span>
+            </span>
+            <span class="performance-table-header-revenue sortable" @click="sortPerformance('revenue')">
+              Revenue <span class="sort-arrow">{{ getSortArrow('revenue') }}</span>
+            </span>
+            <span class="performance-table-header-status sortable" @click="sortPerformance('status')">
+              Status <span class="sort-arrow">{{ getSortArrow('status') }}</span>
+            </span>
+            <span class="performance-table-header-details">Details</span>
           </div>
           
-          <div class="stall-table-body">
+          <div class="performance-table-body">
             <div 
-              v-for="(stall, index) in stallPerformance" 
+              v-for="(stall, index) in paginatedPerformanceList" 
               :key="stall.id" 
-              class="stall-table-row clickable-item"
+              class="performance-table-row clickable-item"
               @click="viewStallDetails(stall)"
             >
-              <span class="stall-table-rank">
+              <!-- Rank -->
+              <span class="performance-table-rank">
                 <span class="rank-number" :class="getRankClass(index)">
                   {{ index + 1 }}
                 </span>
               </span>
               
-              <span class="stall-table-name">
+              <!-- Stall Name + Bar -->
+              <span class="performance-table-name">
                 <span class="stall-name-text">{{ stall.name }}</span>
                 <span class="stall-name-bar">
                   <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
                 </span>
               </span>
               
-              <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+              <!-- Revenue -->
+              <span class="performance-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
               
-              <span class="stall-table-status">
-                <span :class="['status-indicator', getStallStatusClass(stall)]">
-                  {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+              <!-- Status with Color & Emoji -->
+              <span class="performance-table-status">
+                <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
+                  {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
                 </span>
               </span>
               
-              <span class="stall-table-details">👆</span>
+              <!-- Details -->
+              <span class="performance-table-details">👆</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ performanceStartIndex }} - {{ performanceEndIndex }} of {{ filteredPerformanceList.length }} stalls
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevPerformancePage" 
+              class="pagination-btn"
+              :disabled="performancePage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ performancePage }} of {{ performanceTotalPages }}
+            </span>
+            <button 
+              @click="nextPerformancePage" 
+              class="pagination-btn"
+              :disabled="performancePage >= performanceTotalPages"
+            >
+              Next ▶
+            </button>
           </div>
         </div>
       </div>
@@ -1532,6 +1640,12 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+      performanceSearch: '',
+      performanceStateFilter: 'All States',
+      performanceStatusFilter: 'all',
+      performancePage: 1,
+      performanceSortBy: 'rank',
+      performanceSortOrder: 'asc', // 'asc' or 'desc'
       _stallCurrentPage: 1,
       currentPage: 1,
       currentStallPage: 1,
@@ -1651,6 +1765,73 @@ export default {
   },
 
   computed: {
+
+     performanceStats() {
+    let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+    
+    this.stallPerformance.forEach(stall => {
+      const revenue = stall.revenue || 0
+      if (revenue === 0) noSales++
+      else if (revenue > 1000) excellent++
+      else if (revenue > 500) good++
+      else if (revenue > 100) average++
+      else poor++
+    })
+    
+    return { excellent, good, average, poor, noSales }
+  },
+
+  filteredPerformanceList() {
+    let list = this.stallPerformance.filter(stall => {
+      // Search filter
+      const search = this.performanceSearch.toLowerCase()
+      const matchesSearch = stall.name.toLowerCase().includes(search) ||
+                            (stall.code && stall.code.toLowerCase().includes(search))
+      
+      // State filter - get state from stalls array
+      const stallData = this.stalls.find(s => s.id === stall.id)
+      const matchesState = this.performanceStateFilter === 'All States' || 
+                           (stallData && stallData.state === this.performanceStateFilter)
+      
+      // Status filter
+      const revenue = stall.revenue || 0
+      let status = 'no-sales'
+      if (revenue === 0) status = 'no-sales'
+      else if (revenue > 1000) status = 'excellent'
+      else if (revenue > 500) status = 'good'
+      else if (revenue > 100) status = 'average'
+      else status = 'poor'
+      
+      const matchesStatus = this.performanceStatusFilter === 'all' || 
+                            status === this.performanceStatusFilter
+      
+      return matchesSearch && matchesState && matchesStatus
+    })
+
+    // Apply sorting
+    return this.sortPerformanceList(list)
+  },
+
+  paginatedPerformanceList() {
+    const start = (this.performancePage - 1) * this.itemsPerPage
+    const end = start + this.itemsPerPage
+    return this.filteredPerformanceList.slice(start, end)
+  },
+
+  performanceTotalPages() {
+    return Math.ceil(this.filteredPerformanceList.length / this.itemsPerPage) || 1
+  },
+
+  performanceStartIndex() {
+    if (this.filteredPerformanceList.length === 0) return 0
+    return (this.performancePage - 1) * this.itemsPerPage + 1
+  },
+
+  performanceEndIndex() {
+    if (this.filteredPerformanceList.length === 0) return 0
+    return Math.min(this.performancePage * this.itemsPerPage, this.filteredPerformanceList.length)
+  },
+
     totalPages() {
       return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
     },
@@ -1958,6 +2139,111 @@ stallCurrentPage: {
   },
 
   methods: {
+
+      // =============================================
+  // PERFORMANCE TAB METHODS
+  // =============================================
+
+  getPerformanceStatusText(stall) {
+    const revenue = stall.revenue || 0
+    if (revenue === 0) return 'No Sales'
+    if (revenue > 1000) return 'Excellent'
+    if (revenue > 500) return 'Good'
+    if (revenue > 100) return 'Average'
+    return 'Poor'
+  },
+
+  getPerformanceStatusEmoji(stall) {
+    const revenue = stall.revenue || 0
+    if (revenue === 0) return '⚪'
+    if (revenue > 1000) return '🟢'
+    if (revenue > 500) return '🔵'
+    if (revenue > 100) return '🟡'
+    return '🔴'
+  },
+
+  getPerformanceStatusClass(stall) {
+    const revenue = stall.revenue || 0
+    if (revenue === 0) return 'no-sales'
+    if (revenue > 1000) return 'excellent'
+    if (revenue > 500) return 'good'
+    if (revenue > 100) return 'average'
+    return 'poor'
+  },
+
+  sortPerformanceList(list) {
+    const sorted = [...list]
+    const sortBy = this.performanceSortBy
+    const order = this.performanceSortOrder
+
+    sorted.sort((a, b) => {
+      let valA, valB
+
+      if (sortBy === 'rank') {
+        valA = a.revenue || 0
+        valB = b.revenue || 0
+      } else if (sortBy === 'name') {
+        valA = a.name.toLowerCase()
+        valB = b.name.toLowerCase()
+        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      } else if (sortBy === 'revenue') {
+        valA = a.revenue || 0
+        valB = b.revenue || 0
+      } else if (sortBy === 'status') {
+        const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
+        valA = statusOrder[this.getPerformanceStatusClass(a)] || 0
+        valB = statusOrder[this.getPerformanceStatusClass(b)] || 0
+      }
+
+      if (order === 'asc') {
+        return valA > valB ? 1 : valA < valB ? -1 : 0
+      } else {
+        return valA < valB ? 1 : valA > valB ? -1 : 0
+      }
+    })
+
+    return sorted
+  },
+
+  sortPerformance(column) {
+    if (this.performanceSortBy === column) {
+      this.performanceSortOrder = this.performanceSortOrder === 'asc' ? 'desc' : 'asc'
+    } else {
+      this.performanceSortBy = column
+      this.performanceSortOrder = column === 'rank' || column === 'revenue' ? 'desc' : 'asc'
+    }
+    this.performancePage = 1
+  },
+
+  getSortArrow(column) {
+    if (this.performanceSortBy !== column) return '⇅'
+    return this.performanceSortOrder === 'asc' ? '↑' : '↓'
+  },
+
+  resetPerformancePagination() {
+    this.performancePage = 1
+  },
+
+  prevPerformancePage() {
+    if (this.performancePage > 1) {
+      this.performancePage--
+    }
+  },
+
+  nextPerformancePage() {
+    if (this.performancePage < this.performanceTotalPages) {
+      this.performancePage++
+    }
+  },
+
+  clearPerformanceFilters() {
+    this.performanceSearch = ''
+    this.performanceStateFilter = 'All States'
+    this.performanceStatusFilter = 'all'
+    this.performancePage = 1
+    this.performanceSortBy = 'rank'
+    this.performanceSortOrder = 'asc'
+  },
 
     async updateStock(materialName, newLevel, stallId) {
       try {
@@ -8554,6 +8840,203 @@ async loadData() {
   border-color: var(--primary);
   color: var(--primary);
   background: rgba(249, 73, 8, 0.05);
+}
+
+/* ============================================ */
+/* PERFORMANCE STATS GRID - 5 CARDS             */
+/* ============================================ */
+.performance-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.performance-stats-grid .stat-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.performance-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.performance-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.performance-stats-grid .stat-chip.excellent .stat-chip-value { color: #10b981; }
+.performance-stats-grid .stat-chip.good .stat-chip-value { color: #3b82f6; }
+.performance-stats-grid .stat-chip.average .stat-chip-value { color: #f59e0b; }
+.performance-stats-grid .stat-chip.poor .stat-chip-value { color: #ef4444; }
+.performance-stats-grid .stat-chip.no-sales .stat-chip-value { color: #6b7280; }
+
+/* ============================================ */
+/* PERFORMANCE TABLE                           */
+/* ============================================ */
+.performance-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.performance-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 500px;
+}
+
+.performance-table-header-rank { min-width: 50px; text-align: center; cursor: pointer; }
+.performance-table-header-name { flex: 1; text-align: left; cursor: pointer; }
+.performance-table-header-revenue { min-width: 100px; text-align: right; cursor: pointer; }
+.performance-table-header-status { min-width: 100px; text-align: center; cursor: pointer; }
+.performance-table-header-details { min-width: 50px; text-align: center; }
+
+.performance-table-header .sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.performance-table-header .sortable:hover {
+  color: var(--text);
+}
+
+.performance-table-header .sort-arrow {
+  font-size: 0.6rem;
+  margin-left: 0.2rem;
+  color: var(--text-tertiary);
+}
+
+.performance-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.performance-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 500px;
+}
+
+.performance-table-row:hover {
+  background: var(--background);
+}
+
+.performance-table-row:last-child {
+  border-bottom: none;
+}
+
+.performance-table-rank { min-width: 50px; text-align: center; }
+.performance-table-name { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; min-width: 80px; }
+.performance-table-revenue { min-width: 100px; text-align: right; font-weight: 600; font-size: 0.8rem; color: var(--text); }
+.performance-table-status { min-width: 100px; text-align: center; }
+.performance-table-details { min-width: 50px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+
+.performance-table-row:hover .performance-table-details {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* RESPONSIVE - PERFORMANCE TAB                 */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .performance-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .performance-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .performance-table-header {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .performance-table-row {
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .performance-table-rank { min-width: 35px; }
+  .performance-table-revenue { min-width: 70px; font-size: 0.7rem; }
+  .performance-table-status { min-width: 80px; }
+  .performance-table-details { min-width: 35px; }
+}
+
+@media (max-width: 480px) {
+  .performance-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .performance-stats-grid .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .performance-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .performance-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem;
+  }
+  
+  .performance-table-header {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.3rem;
+    min-width: 400px;
+  }
+  
+  .performance-table-row {
+    padding: 0.2rem 0.3rem;
+    min-width: 400px;
+  }
+  
+  .performance-table-rank { min-width: 30px; }
+  .performance-table-name { min-width: 60px; }
+  .performance-table-revenue { min-width: 60px; font-size: 0.65rem; }
+  .performance-table-status { min-width: 70px; }
+  .performance-table-details { min-width: 30px; }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .stall-name-text {
+    font-size: 0.7rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
 }
 
 </style>
