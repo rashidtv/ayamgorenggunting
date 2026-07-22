@@ -849,45 +849,169 @@
               <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
             </div>
             <div class="card-modern-body">
-              <div class="filter-bar">
+              <!-- Stats Cards -->
+              <div class="inventory-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Stalls</span>
+                  <span class="stat-chip-value">{{ stallStats.total }}</span>
+                </div>
+                <div class="stat-chip active">
+                  <span class="stat-chip-label">Active</span>
+                  <span class="stat-chip-value">{{ stallStats.active }}</span>
+                </div>
+                <div class="stat-chip inactive">
+                  <span class="stat-chip-label">Inactive</span>
+                  <span class="stat-chip-value">{{ stallStats.inactive }}</span>
+                </div>
+                <div class="stat-chip warning">
+                  <span class="stat-chip-label">⚠️ Low Stock</span>
+                  <span class="stat-chip-value">{{ stallStats.lowStock }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar - Like Inventory -->
+              <div class="filter-bar-modern">
                 <div class="filter-search">
                   <input 
                     type="text" 
                     v-model="stallSearch" 
                     placeholder="Search stalls..." 
                     class="filter-input"
+                    @input="resetStallPagination"
                   />
                 </div>
-                <select v-model="stallStatusFilter" class="filter-select">
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                
+                <div class="filter-group">
+                  <select v-model="stateFilter" class="filter-select" @change="resetStallPagination">
+                    <option v-for="state in malaysiaStates" :key="state" :value="state">
+                      {{ state }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="stallStatusFilter" class="filter-select" @change="resetStallPagination">
+                    <option value="all">All Status</option>
+                    <option value="active">🟢 Active</option>
+                    <option value="inactive">⚪ Inactive</option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="toggleSelectAllStalls" class="btn-modern secondary small">
+                    {{ selectAllStalls ? 'Deselect All' : 'Select All' }}
+                  </button>
+                  <button @click="clearStallFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
               </div>
 
+              <!-- Bulk Action Buttons -->
+              <div class="inventory-quick-actions" v-if="selectedStalls.length > 0">
+                <button 
+                  @click="bulkActivateStalls" 
+                  class="btn-modern primary"
+                  :disabled="loading"
+                >
+                  ✅ Activate Selected ({{ selectedStallsCount }})
+                </button>
+                <button 
+                  @click="bulkDeactivateStalls" 
+                  class="btn-modern secondary"
+                  :disabled="loading"
+                >
+                  ⏸️ Deactivate Selected ({{ selectedStallsCount }})
+                </button>
+                <span class="selected-count-label">{{ selectedStallsCount }} stall(s) selected</span>
+              </div>
+
+              <!-- Stall List with Pagination -->
               <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
                 <span>🏪</span>
-                <p>No stalls found</p>
+                <p>No stalls found matching your filters</p>
               </div>
 
-              <div v-for="(s, index) in filteredStallsList" :key="s.id" class="list-item">
-                <div class="list-item-content">
-                  <span class="list-item-index">{{ index + 1 }}</span>
-                  <div class="list-item-info">
-                    <span class="list-item-name">{{ s.name }}</span>
-                    <span class="list-item-code">{{ s.code }}</span>
+              <div v-else>
+                <div class="inventory-table-wrapper">
+                  <!-- Table Header -->
+                  <div class="inventory-table-header">
+                    <div class="inventory-table-cell checkbox">
+                      <input type="checkbox" v-model="selectAllStalls" @change="toggleSelectAllStalls" />
+                    </div>
+                    <div class="inventory-table-cell name">Stall</div>
+                    <div class="inventory-table-cell state">State</div>
+                    <div class="inventory-table-cell status">Status</div>
+                    <div class="inventory-table-cell actions">Actions</div>
                   </div>
-                  <span class="list-item-company">{{ s.company_name || '-' }}</span>
-                  <span class="list-item-users">{{ s.user_count || 0 }} users</span>
-                  <span :class="['status-tag', s.is_active ? 'active' : 'inactive']">
-                    {{ s.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                  <div class="list-item-actions">
-                    <button @click="openEditStallModal(s)" class="list-item-btn" title="Edit">✏️</button>
-                    <button @click="toggleStallStatus(s)" class="list-item-btn" :title="s.is_active ? 'Deactivate' : 'Activate'">
-                      {{ s.is_active ? '⏸️' : '▶️' }}
+
+                  <!-- Table Rows - Paginated -->
+                  <div 
+                    v-for="stall in paginatedStallsList" 
+                    :key="stall.id" 
+                    class="inventory-table-row"
+                    :class="{ selected: selectedStalls.includes(stall.id) }"
+                  >
+                    <div class="inventory-table-cell checkbox">
+                      <input 
+                        type="checkbox" 
+                        :value="stall.id"
+                        v-model="selectedStalls"
+                        @change="selectAllStalls = selectedStalls.length === paginatedStallsList.length && paginatedStallsList.length > 0"
+                      />
+                    </div>
+                    <div class="inventory-table-cell name">
+                      <span class="stall-name">{{ stall.name }}</span>
+                      <span class="stall-code">{{ stall.code }}</span>
+                    </div>
+                    <div class="inventory-table-cell state">
+                      {{ stall.state || '-' }}
+                    </div>
+                    <div class="inventory-table-cell status">
+                      <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                        {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                      </span>
+                      <span v-if="hasLowStock(stall.id)" class="status-badge low">
+                        ⚠️ Low Stock
+                      </span>
+                    </div>
+                    <div class="inventory-table-cell actions">
+                      <button @click="openEditStallModal(stall)" class="list-item-btn" title="Edit" :disabled="selectedStalls.length > 0">
+                        ✏️
+                      </button>
+                      <button @click="toggleStallStatus(stall)" class="list-item-btn" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
+                        {{ stall.is_active ? '⏸️' : '▶️' }}
+                      </button>
+                      <button @click="deleteStall(stall.id, stall.name)" class="list-item-btn danger" title="Delete" :disabled="selectedStalls.length > 0">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ stallStartIndex }} - {{ stallEndIndex }} of {{ filteredStallsList.length }} stalls
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevStallPage" 
+                      class="pagination-btn"
+                      :disabled="stallCurrentPage <= 1"
+                    >
+                      ◀ Previous
                     </button>
-                    <button @click="deleteStall(s.id, s.name)" class="list-item-btn danger" title="Delete">🗑️</button>
+                    <span class="pagination-page">
+                      Page {{ stallCurrentPage }} of {{ stallTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextStallPage" 
+                      class="pagination-btn"
+                      :disabled="stallCurrentPage >= stallTotalPages"
+                    >
+                      Next ▶
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1409,6 +1533,7 @@ export default {
       ],
 
       currentPage: 1,
+      currentStallPage: 1,
       selectAllStalls: false,
       itemsPerPage: 10,
       selectedStalls: [],
@@ -1543,35 +1668,33 @@ export default {
       return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
     },
 
-inventoryStats() {
-  let lowStock = 0
-  
-  // ✅ Add check for inventory data
-  if (!this.inventory || !Array.isArray(this.inventory) || this.inventory.length === 0) {
-    return {
-      total: this.stalls.length || 0,
-      active: this.stalls.filter(s => s.is_active).length || 0,
-      inactive: this.stalls.filter(s => !s.is_active).length || 0,
-      lowStock: 0
-    }
-  }
-  
-  this.stalls.forEach(stall => {
-    const items = this.getStallInventorySummary(stall.id)
-    items.forEach(item => {
-      if (item.current_level <= item.alert_level) {
-        lowStock++
+    inventoryStats() {
+      let lowStock = 0
+      
+      if (!this.inventory || !Array.isArray(this.inventory) || this.inventory.length === 0) {
+        return {
+          total: this.stalls.length || 0,
+          active: this.stalls.filter(s => s.is_active).length || 0,
+          inactive: this.stalls.filter(s => !s.is_active).length || 0,
+          lowStock: 0
+        }
       }
-    })
-  })
-  return {
-    total: this.stalls.length,
-    active: this.stalls.filter(s => s.is_active).length,
-    inactive: this.stalls.filter(s => !s.is_active).length,
-    lowStock: lowStock
-  }
-},
-
+      
+      this.stalls.forEach(stall => {
+        const items = this.getStallInventorySummary(stall.id)
+        items.forEach(item => {
+          if (item.current_level <= item.alert_level) {
+            lowStock++
+          }
+        })
+      })
+      return {
+        total: this.stalls.length,
+        active: this.stalls.filter(s => s.is_active).length,
+        inactive: this.stalls.filter(s => !s.is_active).length,
+        lowStock: lowStock
+      }
+    },
 
     selectedCount() {
       return this.selectedStalls.length
@@ -1646,15 +1769,56 @@ inventoryStats() {
       return this.lowStock
     },
     
+    // ===== STALL MANAGEMENT COMPUTED PROPERTIES =====
+    
+    stallStats() {
+      let lowStockCount = 0
+      this.stalls.forEach(stall => {
+        if (this.hasLowStock(stall.id)) {
+          lowStockCount++
+        }
+      })
+      return {
+        total: this.stalls.length,
+        active: this.stalls.filter(s => s.is_active).length,
+        inactive: this.stalls.filter(s => !s.is_active).length,
+        lowStock: lowStockCount
+      }
+    },
+
+    selectedStallsCount() {
+      return this.selectedStalls.length
+    },
+
+    stallTotalPages() {
+      return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
+    },
+
+    stallStartIndex() {
+      return (this.stallCurrentPage - 1) * this.itemsPerPage + 1
+    },
+
+    stallEndIndex() {
+      return Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
+    },
+
     filteredStallsList() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
                               stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+        const matchesState = this.stateFilter === 'All States' || 
+                             (stall.state || '') === this.stateFilter
         const matchesStatus = this.stallStatusFilter === 'all' || 
                               (this.stallStatusFilter === 'active' && stall.is_active) ||
                               (this.stallStatusFilter === 'inactive' && !stall.is_active)
-        return matchesSearch && matchesStatus
+        return matchesSearch && matchesState && matchesStatus
       })
+    },
+    
+    paginatedStallsList() {
+      const start = (this.stallCurrentPage - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.filteredStallsList.slice(start, end)
     },
     
     filteredUsersList() {
@@ -1763,52 +1927,47 @@ inventoryStats() {
   methods: {
 
     async updateStock(materialName, newLevel, stallId) {
-    try {
-    // Ensure newLevel is a whole number
-    const roundedLevel = Math.round(Number(newLevel) || 0)
-    
-    await axios.post(`${API_BASE}/inventory/update`, { 
-      materialName, 
-      newLevel: roundedLevel, 
-      stallId: stallId || this.activeStallId 
-    }, {
-      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-    })
-    await this.loadAllStallsInventory()
-    this.$emit('show-notification', `Updated ${materialName} to ${roundedLevel} pieces`, 'success')
-  } catch (err) {
-    console.error(err)
-    this.$emit('show-notification', 'Error updating stock', 'error')
-  }
-},
+      try {
+        const roundedLevel = Math.round(Number(newLevel) || 0)
+        await axios.post(`${API_BASE}/inventory/update`, { 
+          materialName, 
+          newLevel: roundedLevel, 
+          stallId: stallId || this.activeStallId 
+        }, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        await this.loadAllStallsInventory()
+        this.$emit('show-notification', `Updated ${materialName} to ${roundedLevel} pieces`, 'success')
+      } catch (err) {
+        console.error(err)
+        this.$emit('show-notification', 'Error updating stock', 'error')
+      }
+    },
 
-processInventoryData(data) {
-  const map = new Map()
-  data.forEach(item => {
-    if (!map.has(item.material_name)) {
-      map.set(item.material_name, { 
-        ...item, 
-        current_level: Math.round(Number(item.current_level) || 0), 
-        alert_level: Math.round(Number(item.alert_level) || 0) 
+    processInventoryData(data) {
+      const map = new Map()
+      data.forEach(item => {
+        if (!map.has(item.material_name)) {
+          map.set(item.material_name, { 
+            ...item, 
+            current_level: Math.round(Number(item.current_level) || 0), 
+            alert_level: Math.round(Number(item.alert_level) || 0) 
+          })
+        } else {
+          const existing = map.get(item.material_name)
+          existing.current_level += Math.round(Number(item.current_level) || 0)
+        }
       })
-    } else {
-      const existing = map.get(item.material_name)
-      existing.current_level += Math.round(Number(item.current_level) || 0)
-    }
-  })
-  this.inventory = data
-  this.processedInventory = Array.from(map.values()).map(item => ({
-    ...item,
-    current_level: Math.round(Number(item.current_level) || 0),
-    alert_level: Math.round(Number(item.alert_level) || 0)
-  }))
-},
+      this.inventory = data
+      this.processedInventory = Array.from(map.values()).map(item => ({
+        ...item,
+        current_level: Math.round(Number(item.current_level) || 0),
+        alert_level: Math.round(Number(item.alert_level) || 0)
+      }))
+    },
 
     toggleAllStalls() {
-      // Your logic to select/deselect all stalls
-      // For example:
       this.selectAllStalls = !this.selectAllStalls
-      // If you want to select all stalls in dropdown:
       if (this.selectAllStalls) {
         // Select all stall IDs logic here
       } else {
@@ -1835,6 +1994,116 @@ processInventoryData(data) {
       this.inventorySearch = ''
       this.stateFilter = 'All States'
       this.inventoryFilter = 'all'
+    },
+
+    // =============================================
+    // STALL MANAGEMENT - PAGINATION & FILTERS
+    // =============================================
+
+    toggleSelectAllStalls() {
+      this.selectAllStalls = !this.selectAllStalls
+      if (this.selectAllStalls) {
+        this.selectedStalls = this.paginatedStallsList.map(s => s.id)
+      } else {
+        this.selectedStalls = []
+      }
+    },
+
+    clearStallFilters() {
+      this.stallSearch = ''
+      this.stateFilter = 'All States'
+      this.stallStatusFilter = 'all'
+      this.selectedStalls = []
+      this.selectAllStalls = false
+      this.stallCurrentPage = 1
+    },
+
+    resetStallPagination() {
+      this.stallCurrentPage = 1
+    },
+
+    prevStallPage() {
+      if (this.stallCurrentPage > 1) {
+        this.stallCurrentPage--
+      }
+    },
+
+    nextStallPage() {
+      if (this.stallCurrentPage < this.stallTotalPages) {
+        this.stallCurrentPage++
+      }
+    },
+
+    // =============================================
+    // BULK ACTIONS FOR STALLS
+    // =============================================
+
+    async bulkActivateStalls() {
+      if (this.selectedStalls.length === 0) {
+        this.$emit('show-notification', 'No stalls selected', 'warning')
+        return
+      }
+      
+      if (!confirm(`Activate ${this.selectedStalls.length} selected stall(s)?`)) return
+      
+      this.loading = true
+      let activated = 0
+      
+      try {
+        for (const stallId of this.selectedStalls) {
+          const stall = this.stalls.find(s => s.id === stallId)
+          if (stall && !stall.is_active) {
+            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            activated++
+          }
+        }
+        this.$emit('show-notification', `✅ Activated ${activated} stall(s)`, 'success')
+        this.selectedStalls = []
+        this.selectAllStalls = false
+        await this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (error) {
+        console.error('Bulk activate error:', error)
+        this.$emit('show-notification', 'Error activating stalls', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkDeactivateStalls() {
+      if (this.selectedStalls.length === 0) {
+        this.$emit('show-notification', 'No stalls selected', 'warning')
+        return
+      }
+      
+      if (!confirm(`Deactivate ${this.selectedStalls.length} selected stall(s)?`)) return
+      
+      this.loading = true
+      let deactivated = 0
+      
+      try {
+        for (const stallId of this.selectedStalls) {
+          const stall = this.stalls.find(s => s.id === stallId)
+          if (stall && stall.is_active) {
+            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            deactivated++
+          }
+        }
+        this.$emit('show-notification', `✅ Deactivated ${deactivated} stall(s)`, 'success')
+        this.selectedStalls = []
+        this.selectAllStalls = false
+        await this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (error) {
+        console.error('Bulk deactivate error:', error)
+        this.$emit('show-notification', 'Error deactivating stalls', 'error')
+      } finally {
+        this.loading = false
+      }
     },
 
     // =============================================
@@ -2051,40 +2320,40 @@ processInventoryData(data) {
     // =============================================
     // RESET ALL LOW STOCK
     // =============================================
-async resetAllLowStock() {
-  if (this.inventoryStats.lowStock === 0) {
-    this.$emit('show-notification', 'No low stock items to reset', 'info')
-    return
-  }
-  
-  if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
-  
-  this.loading = true
-  let updated = 0
-  
-  try {
-    for (const stall of this.stalls) {
-      const inventory = this.getStallInventorySummary(stall.id)
-      
-      for (const item of inventory) {
-        if (item.current_level <= item.alert_level) {
-          const newLevel = item.alert_level + 20
-          await this.updateInventoryStock(stall.id, item.material_name, newLevel)
-          updated++
-        }
+    async resetAllLowStock() {
+      if (this.inventoryStats.lowStock === 0) {
+        this.$emit('show-notification', 'No low stock items to reset', 'info')
+        return
       }
-    }
-    
-    this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
-    await this.loadAllStallsInventory()
-    
-  } catch (error) {
-    console.error('Error resetting low stock:', error)
-    this.$emit('show-notification', 'Error resetting low stock items', 'error')
-  } finally {
-    this.loading = false
-  }
-},
+      
+      if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
+      
+      this.loading = true
+      let updated = 0
+      
+      try {
+        for (const stall of this.stalls) {
+          const inventory = this.getStallInventorySummary(stall.id)
+          
+          for (const item of inventory) {
+            if (item.current_level <= item.alert_level) {
+              const newLevel = item.alert_level + 20
+              await this.updateInventoryStock(stall.id, item.material_name, newLevel)
+              updated++
+            }
+          }
+        }
+        
+        this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
+        await this.loadAllStallsInventory()
+        
+      } catch (error) {
+        console.error('Error resetting low stock:', error)
+        this.$emit('show-notification', 'Error resetting low stock items', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
 
     // =============================================
     // PAGINATION
@@ -3664,6 +3933,7 @@ async resetAllLowStock() {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         this.loadStalls()
+        await this.loadAllStallsInventory()
         this.$emit('show-notification', `Stall ${stall.is_active ? 'deactivated' : 'activated'}`, 'success')
       } catch (err) {
         this.$emit('show-notification', 'Failed to update stall', 'error')
@@ -4081,40 +4351,37 @@ async resetAllLowStock() {
     },
 
     async loadAllStallsInventory() {
-  // Clear existing inventory
-  this.inventory = []
-  
-  for (const stall of this.stalls) {
-    try {
-      const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
+      this.inventory = []
       
-      // Add to this.inventory
-      if (res.data && res.data.length > 0) {
-        const items = res.data.map(item => ({
-          ...item,
-          stall_id: stall.id,
-          current_level: Math.round(Number(item.current_level) || 0),
-          alert_level: Math.round(Number(item.alert_level) || 0)
-        }))
-        this.inventory = [...this.inventory, ...items]
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          
+          if (res.data && res.data.length > 0) {
+            const items = res.data.map(item => ({
+              ...item,
+              stall_id: stall.id,
+              current_level: Math.round(Number(item.current_level) || 0),
+              alert_level: Math.round(Number(item.alert_level) || 0)
+            }))
+            this.inventory = [...this.inventory, ...items]
+          }
+          
+          this.stallInventory[stall.id] = res.data.map(item => ({
+            ...item,
+            newLevel: Math.round(Number(item.current_level) || 0)
+          }))
+          
+        } catch (err) {
+          console.error(`Load inventory for stall ${stall.id} error:`, err)
+          this.stallInventory[stall.id] = []
+        }
       }
       
-      // Also store in stallInventory for quick access
-      this.stallInventory[stall.id] = res.data.map(item => ({
-        ...item,
-        newLevel: Math.round(Number(item.current_level) || 0)
-      }))
-      
-    } catch (err) {
-      console.error(`Load inventory for stall ${stall.id} error:`, err)
-      this.stallInventory[stall.id] = []
-    }
-  }
-  
-  console.log('✅ Inventory loaded:', this.inventory.length, 'items')
-},
+      console.log('✅ Inventory loaded:', this.inventory.length, 'items')
+    },
 
     toggleInventoryStall(stallId) {
       this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
@@ -4137,83 +4404,79 @@ async resetAllLowStock() {
       }
     },
 
-getStallInventory(stallId) {
-  // Try this.inventory first
-  if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
-    const items = this.inventory.filter(item => item.stall_id === stallId)
-    if (items.length > 0) {
-      return items.map(item => ({
-        ...item,
-        current_level: Math.round(Number(item.current_level) || 0),
-        alert_level: Math.round(Number(item.alert_level) || 0)
-      }))
-    }
-  }
-  
-  // Fallback to stallInventory
-  if (this.stallInventory && this.stallInventory[stallId]) {
-    return this.stallInventory[stallId].map(item => ({
-      ...item,
-      current_level: Math.round(Number(item.current_level) || 0),
-      alert_level: Math.round(Number(item.alert_level) || 0)
-    }))
-  }
-  
-  return []
-},
-
-getStallInventorySummary(stallId) {
-  // First try to get from this.inventory
-  if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
-    const items = this.inventory.filter(item => item.stall_id === stallId)
-    
-    if (items.length > 0) {
-      const grouped = {}
-      items.forEach(item => {
-        if (!grouped[item.material_name]) {
-          grouped[item.material_name] = {
-            material_name: item.material_name,
-            current_level: 0,
-            alert_level: item.alert_level || 5,
-            stall_id: stallId
-          }
-        }
-        grouped[item.material_name].current_level += Number(item.current_level) || 0
-      })
-      
-      return Object.values(grouped).map(item => ({
-        ...item,
-        current_level: Math.round(Number(item.current_level) || 0),
-        alert_level: Math.round(Number(item.alert_level) || 0)
-      }))
-    }
-  }
-  
-  // Fallback: use stallInventory
-  if (this.stallInventory && this.stallInventory[stallId]) {
-    const items = this.stallInventory[stallId]
-    const grouped = {}
-    items.forEach(item => {
-      if (!grouped[item.material_name]) {
-        grouped[item.material_name] = {
-          material_name: item.material_name,
-          current_level: 0,
-          alert_level: item.alert_level || 5,
-          stall_id: stallId
+    getStallInventory(stallId) {
+      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+        const items = this.inventory.filter(item => item.stall_id === stallId)
+        if (items.length > 0) {
+          return items.map(item => ({
+            ...item,
+            current_level: Math.round(Number(item.current_level) || 0),
+            alert_level: Math.round(Number(item.alert_level) || 0)
+          }))
         }
       }
-      grouped[item.material_name].current_level += Number(item.current_level) || 0
-    })
-    
-    return Object.values(grouped).map(item => ({
-      ...item,
-      current_level: Math.round(Number(item.current_level) || 0),
-      alert_level: Math.round(Number(item.alert_level) || 0)
-    }))
-  }
-  
-  return []
-},
+      
+      if (this.stallInventory && this.stallInventory[stallId]) {
+        return this.stallInventory[stallId].map(item => ({
+          ...item,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+      }
+      
+      return []
+    },
+
+    getStallInventorySummary(stallId) {
+      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+        const items = this.inventory.filter(item => item.stall_id === stallId)
+        
+        if (items.length > 0) {
+          const grouped = {}
+          items.forEach(item => {
+            if (!grouped[item.material_name]) {
+              grouped[item.material_name] = {
+                material_name: item.material_name,
+                current_level: 0,
+                alert_level: item.alert_level || 5,
+                stall_id: stallId
+              }
+            }
+            grouped[item.material_name].current_level += Number(item.current_level) || 0
+          })
+          
+          return Object.values(grouped).map(item => ({
+            ...item,
+            current_level: Math.round(Number(item.current_level) || 0),
+            alert_level: Math.round(Number(item.alert_level) || 0)
+          }))
+        }
+      }
+      
+      if (this.stallInventory && this.stallInventory[stallId]) {
+        const items = this.stallInventory[stallId]
+        const grouped = {}
+        items.forEach(item => {
+          if (!grouped[item.material_name]) {
+            grouped[item.material_name] = {
+              material_name: item.material_name,
+              current_level: 0,
+              alert_level: item.alert_level || 5,
+              stall_id: stallId
+            }
+          }
+          grouped[item.material_name].current_level += Number(item.current_level) || 0
+        })
+        
+        return Object.values(grouped).map(item => ({
+          ...item,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+      }
+      
+      return []
+    },
 
     getFilteredInventoryItems(stallId) {
       const inventory = this.getStallInventory(stallId)
@@ -4237,33 +4500,32 @@ getStallInventorySummary(stallId) {
       return Math.min((item.current_level / max) * 100, 100)
     },
 
-   async updateInventoryStock(stallId, materialName, newLevel) {
-  if (newLevel === undefined || newLevel === null || newLevel === '') {
-    this.$emit('show-notification', 'Please enter a valid value', 'error')
-    return
-  }
-  
-  const roundedLevel = Math.round(Number(newLevel) || 0)
-  
-  try {
-    await axios.post(`${API_BASE}/inventory/update`, {
-      stallId, 
-      materialName, 
-      newLevel: roundedLevel
-    }, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    
-    // Refresh both data sources
-    await this.loadAllStallsInventory()
-    await this.loadLowStock()
-    
-    this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
-  } catch (err) {
-    console.error('Update inventory error:', err)
-    this.$emit('show-notification', 'Failed to update stock', 'error')
-  }
-},
+    async updateInventoryStock(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      
+      const roundedLevel = Math.round(Number(newLevel) || 0)
+      
+      try {
+        await axios.post(`${API_BASE}/inventory/update`, {
+          stallId, 
+          materialName, 
+          newLevel: roundedLevel
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        await this.loadAllStallsInventory()
+        await this.loadLowStock()
+        
+        this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
+      } catch (err) {
+        console.error('Update inventory error:', err)
+        this.$emit('show-notification', 'Failed to update stock', 'error')
+      }
+    },
 
     async quickAddStock(stallId, materialName, amount) {
       const inventory = this.stallInventory[stallId] || []
@@ -4433,11 +4695,12 @@ getStallInventorySummary(stallId) {
           fileName = `Chickory_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'stalls') {
           sheet = workbook.addWorksheet('Stalls')
-          sheet.addRow(['Name', 'Code', 'Company', 'Users', 'Status'])
+          sheet.addRow(['Name', 'Code', 'State', 'Company', 'Users', 'Status'])
           for (const stall of this.filteredStallsList) {
             sheet.addRow([
               stall.name,
               stall.code,
+              stall.state || '-',
               stall.company_name || '-',
               stall.user_count || 0,
               stall.is_active ? 'Active' : 'Inactive'
@@ -4481,45 +4744,6 @@ getStallInventorySummary(stallId) {
 </script>
 
 <style scoped>
-
-/* ============================================ */
-/* CSS VARIABLES                                */
-/* ============================================ */
-.sa-dashboard {
-  --primary: #F94908;
-  --primary-light: #fa6a2e;
-  --primary-dark: #d63d07;
-  --bg: var(--background);
-  --surface: var(--surface);
-  --text: var(--text);
-  --text-secondary: var(--text-secondary);
-  --text-tertiary: var(--text-tertiary);
-  --border: var(--border);
-  --shadow: 0 2px 8px rgba(0,0,0,0.06);
-  --radius: 12px;
-  --radius-sm: 8px;
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ============================================ */
-/* CONTROLS SECTION                            */
-/* ============================================ */
-.controls-section {
-  margin-bottom: 1.25rem;
-}
-
-.controls-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  background: var(--background);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-
-
 
 /* ============================================ */
 /* CSS VARIABLES                                */
@@ -7967,7 +8191,7 @@ getStallInventorySummary(stallId) {
 }
 
 .filter-input {
-  font-size: var(--font-size);  /* Match the rest of the page */
+  font-size: var(--font-size);
   padding: var(--space-sm) var(--space);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -7976,14 +8200,14 @@ getStallInventorySummary(stallId) {
   width: 100%;
 }
 
-/* ✅ Fix 2: Ensure dropdowns match */
+/* ✅ Ensure dropdowns match */
 .filter-select,
 .filters-row select,
 .filters-row input {
   font-size: var(--font-size);
 }
 
-/* ✅ Fix 3: Responsive consistency */
+/* ✅ Responsive consistency */
 @media (max-width: 768px) {
   .filters-row {
     flex-direction: column;
@@ -7992,7 +8216,7 @@ getStallInventorySummary(stallId) {
   .filter-input,
   .filters-row select,
   .filters-row input {
-    font-size: var(--font-size);  /* Same size on mobile */
+    font-size: var(--font-size);
     width: 100%;
   }
   
