@@ -819,267 +819,267 @@
   </div>
 </div>
 
-      <!-- ===== STALLS TAB ===== -->
-      <div v-if="activeTab === 'stalls'" class="tab-panel">
-        <div class="sub-tabs">
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'management' }"
-            @click="stallSubTab = 'management'"
-          >
-            🏪 Stall Management
-          </button>
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'performance' }"
-            @click="stallSubTab = 'performance'"
-          >
-            📊 Stall Performance
-          </button>
+<!-- ===== STALLS TAB ===== -->
+<div v-if="activeTab === 'stalls'" class="tab-panel">
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'management' }"
+      @click="stallSubTab = 'management'"
+    >
+      🏪 Stall Management
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'performance' }"
+      @click="stallSubTab = 'performance'"
+    >
+      📊 Stall Performance
+    </button>
+  </div>
+  
+  <!-- Stall Management -->
+  <div v-if="stallSubTab === 'management'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>🏪 Stall Management</h3>
+          <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
         </div>
-        
-        <!-- Stall Management -->
-        <div v-if="stallSubTab === 'management'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>🏪 Stall Management</h3>
-                <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+        <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+      </div>
+      <div class="card-modern-body">
+        <!-- Stats Cards -->
+        <div class="inventory-stats-grid">
+          <div class="stat-chip">
+            <span class="stat-chip-label">Total Stalls</span>
+            <span class="stat-chip-value">{{ stallStats.total }}</span>
+          </div>
+          <div class="stat-chip active">
+            <span class="stat-chip-label">Active</span>
+            <span class="stat-chip-value">{{ stallStats.active }}</span>
+          </div>
+          <div class="stat-chip inactive">
+            <span class="stat-chip-label">Inactive</span>
+            <span class="stat-chip-value">{{ stallStats.inactive }}</span>
+          </div>
+          <div class="stat-chip warning">
+            <span class="stat-chip-label">⚠️ Low Stock</span>
+            <span class="stat-chip-value">{{ stallStats.lowStock }}</span>
+          </div>
+        </div>
+
+        <!-- Filter Bar - Like Inventory -->
+        <div class="filter-bar-modern">
+          <div class="filter-search">
+            <input 
+              type="text" 
+              v-model="stallSearch" 
+              placeholder="Search stalls..." 
+              class="filter-input"
+              @input="resetStallPagination"
+            />
+          </div>
+          
+          <div class="filter-group">
+            <select v-model="stateFilter" class="filter-select" @change="resetStallPagination">
+              <option v-for="state in malaysiaStates" :key="state" :value="state">
+                {{ state }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <select v-model="stallStatusFilter" class="filter-select" @change="resetStallPagination">
+              <option value="all">All Status</option>
+              <option value="active">🟢 Active</option>
+              <option value="inactive">⚪ Inactive</option>
+            </select>
+          </div>
+
+          <div class="filter-actions">
+            <button @click="toggleSelectAllStalls" class="btn-modern secondary small">
+              {{ selectAllStalls ? 'Deselect All' : 'Select All' }}
+            </button>
+            <button @click="clearStallFilters" class="btn-modern secondary small">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Bulk Action Buttons -->
+        <div class="inventory-quick-actions" v-if="selectedStalls.length > 0">
+          <button 
+            @click="bulkActivateStalls" 
+            class="btn-modern primary"
+            :disabled="loading"
+          >
+            ✅ Activate Selected ({{ selectedStallsCount }})
+          </button>
+          <button 
+            @click="bulkDeactivateStalls" 
+            class="btn-modern secondary"
+            :disabled="loading"
+          >
+            ⏸️ Deactivate Selected ({{ selectedStallsCount }})
+          </button>
+          <span class="selected-count-label">{{ selectedStallsCount }} stall(s) selected</span>
+        </div>
+
+        <!-- Stall List with Pagination -->
+        <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+          <span>🏪</span>
+          <p>No stalls found matching your filters</p>
+        </div>
+
+        <div v-else>
+          <div class="inventory-table-wrapper">
+            <!-- Table Header -->
+            <div class="inventory-table-header">
+              <div class="inventory-table-cell checkbox">
+                <input type="checkbox" v-model="selectAllStalls" @change="toggleSelectAllStalls" />
               </div>
-              <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+              <div class="inventory-table-cell name">Stall</div>
+              <div class="inventory-table-cell state">State</div>
+              <div class="inventory-table-cell status">Status</div>
+              <div class="inventory-table-cell actions">Actions</div>
             </div>
-            <div class="card-modern-body">
-              <!-- Stats Cards -->
-              <div class="inventory-stats-grid">
-                <div class="stat-chip">
-                  <span class="stat-chip-label">Total Stalls</span>
-                  <span class="stat-chip-value">{{ stallStats.total }}</span>
-                </div>
-                <div class="stat-chip active">
-                  <span class="stat-chip-label">Active</span>
-                  <span class="stat-chip-value">{{ stallStats.active }}</span>
-                </div>
-                <div class="stat-chip inactive">
-                  <span class="stat-chip-label">Inactive</span>
-                  <span class="stat-chip-value">{{ stallStats.inactive }}</span>
-                </div>
-                <div class="stat-chip warning">
-                  <span class="stat-chip-label">⚠️ Low Stock</span>
-                  <span class="stat-chip-value">{{ stallStats.lowStock }}</span>
-                </div>
+
+            <!-- Table Rows - Paginated -->
+            <div 
+              v-for="stall in paginatedStallsList" 
+              :key="stall.id" 
+              class="inventory-table-row"
+              :class="{ selected: selectedStalls.includes(stall.id) }"
+            >
+              <div class="inventory-table-cell checkbox">
+                <input 
+                  type="checkbox" 
+                  :value="stall.id"
+                  v-model="selectedStalls"
+                  @change="selectAllStalls = selectedStalls.length === paginatedStallsList.length && paginatedStallsList.length > 0"
+                />
               </div>
-
-              <!-- Filter Bar - Like Inventory -->
-              <div class="filter-bar-modern">
-                <div class="filter-search">
-                  <input 
-                    type="text" 
-                    v-model="stallSearch" 
-                    placeholder="Search stalls..." 
-                    class="filter-input"
-                    @input="resetStallPagination"
-                  />
-                </div>
-                
-                <div class="filter-group">
-                  <select v-model="stateFilter" class="filter-select" @change="resetStallPagination">
-                    <option v-for="state in malaysiaStates" :key="state" :value="state">
-                      {{ state }}
-                    </option>
-                  </select>
-                </div>
-                
-                <div class="filter-group">
-                  <select v-model="stallStatusFilter" class="filter-select" @change="resetStallPagination">
-                    <option value="all">All Status</option>
-                    <option value="active">🟢 Active</option>
-                    <option value="inactive">⚪ Inactive</option>
-                  </select>
-                </div>
-
-                <div class="filter-actions">
-                  <button @click="toggleSelectAllStalls" class="btn-modern secondary small">
-                    {{ selectAllStalls ? 'Deselect All' : 'Select All' }}
-                  </button>
-                  <button @click="clearStallFilters" class="btn-modern secondary small">
-                    Clear Filters
-                  </button>
-                </div>
+              <div class="inventory-table-cell name">
+                <span class="stall-name">{{ stall.name }}</span>
+                <span class="stall-code">{{ stall.code }}</span>
               </div>
-
-              <!-- Bulk Action Buttons -->
-              <div class="inventory-quick-actions" v-if="selectedStalls.length > 0">
-                <button 
-                  @click="bulkActivateStalls" 
-                  class="btn-modern primary"
-                  :disabled="loading"
-                >
-                  ✅ Activate Selected ({{ selectedStallsCount }})
+              <div class="inventory-table-cell state">
+                {{ stall.state || '-' }}
+              </div>
+              <div class="inventory-table-cell status">
+                <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                  {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                </span>
+                <span v-if="hasLowStock(stall.id)" class="status-badge low">
+                  ⚠️ Low Stock
+                </span>
+              </div>
+              <div class="inventory-table-cell actions">
+                <button @click="openEditStallModal(stall)" class="btn-action" title="Edit" :disabled="selectedStalls.length > 0">
+                  ✏️ Edit
                 </button>
-                <button 
-                  @click="bulkDeactivateStalls" 
-                  class="btn-modern secondary"
-                  :disabled="loading"
-                >
-                  ⏸️ Deactivate Selected ({{ selectedStallsCount }})
+                <button @click="toggleStallStatus(stall)" class="btn-action" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
+                  {{ stall.is_active ? '⏸️ Deactivate' : '▶️ Activate' }}
                 </button>
-                <span class="selected-count-label">{{ selectedStallsCount }} stall(s) selected</span>
-              </div>
-
-              <!-- Stall List with Pagination -->
-              <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-                <span>🏪</span>
-                <p>No stalls found matching your filters</p>
-              </div>
-
-              <div v-else>
-                <div class="inventory-table-wrapper">
-                  <!-- Table Header -->
-                  <div class="inventory-table-header">
-                    <div class="inventory-table-cell checkbox">
-                      <input type="checkbox" v-model="selectAllStalls" @change="toggleSelectAllStalls" />
-                    </div>
-                    <div class="inventory-table-cell name">Stall</div>
-                    <div class="inventory-table-cell state">State</div>
-                    <div class="inventory-table-cell status">Status</div>
-                    <div class="inventory-table-cell actions">Actions</div>
-                  </div>
-
-                  <!-- Table Rows - Paginated -->
-                  <div 
-                    v-for="stall in paginatedStallsList" 
-                    :key="stall.id" 
-                    class="inventory-table-row"
-                    :class="{ selected: selectedStalls.includes(stall.id) }"
-                  >
-                    <div class="inventory-table-cell checkbox">
-                      <input 
-                        type="checkbox" 
-                        :value="stall.id"
-                        v-model="selectedStalls"
-                        @change="selectAllStalls = selectedStalls.length === paginatedStallsList.length && paginatedStallsList.length > 0"
-                      />
-                    </div>
-                    <div class="inventory-table-cell name">
-                      <span class="stall-name">{{ stall.name }}</span>
-                      <span class="stall-code">{{ stall.code }}</span>
-                    </div>
-                    <div class="inventory-table-cell state">
-                      {{ stall.state || '-' }}
-                    </div>
-                    <div class="inventory-table-cell status">
-                      <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-                        {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-                      </span>
-                      <span v-if="hasLowStock(stall.id)" class="status-badge low">
-                        ⚠️ Low Stock
-                      </span>
-                    </div>
-                    <div class="inventory-table-cell actions">
-                      <button @click="openEditStallModal(stall)" class="list-item-btn" title="Edit" :disabled="selectedStalls.length > 0">
-                        ✏️
-                      </button>
-                      <button @click="toggleStallStatus(stall)" class="list-item-btn" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
-                        {{ stall.is_active ? '⏸️' : '▶️' }}
-                      </button>
-                      <button @click="deleteStall(stall.id, stall.name)" class="list-item-btn danger" title="Delete" :disabled="selectedStalls.length > 0">
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pagination Controls -->
-                <div class="pagination-container">
-                  <div class="pagination-info">
-                    Showing {{ stallStartIndex }} - {{ stallEndIndex }} of {{ filteredStallsList.length }} stalls
-                  </div>
-                  <div class="pagination-controls">
-                    <button 
-                      @click="prevStallPage" 
-                      class="pagination-btn"
-                      :disabled="stallCurrentPage <= 1"
-                    >
-                      ◀ Previous
-                    </button>
-                    <span class="pagination-page">
-                      Page {{ stallCurrentPage }} of {{ stallTotalPages }}
-                    </span>
-                    <button 
-                      @click="nextStallPage" 
-                      class="pagination-btn"
-                      :disabled="stallCurrentPage >= stallTotalPages"
-                    >
-                      Next ▶
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Stall Performance - Full List -->
-        <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>📊 Stall Performance</h3>
-                <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
-              </div>
-              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+
+          <!-- Pagination Controls -->
+          <div class="pagination-container">
+            <div class="pagination-info" v-if="filteredStallsList.length > 0">
+              Showing {{ stallStartIndex }} - {{ stallEndIndex }} of {{ filteredStallsList.length }} stalls
             </div>
-            <div class="card-modern-body stall-performance-table-container">
-              <div v-if="stallPerformance.length === 0" class="empty-state-modern">
-                <span>📊</span>
-                <p>No sales data available for {{ getPeriodLabel() }}</p>
-              </div>
-              
-              <div v-else class="stall-table-wrapper">
-                <div class="stall-table-header">
-                  <span class="stall-table-header-rank">Rank</span>
-                  <span class="stall-table-header-name">Stall</span>
-                  <span class="stall-table-header-revenue">Revenue</span>
-                  <span class="stall-table-header-status">Status</span>
-                  <span class="stall-table-header-details">Details</span>
-                </div>
-                
-                <div class="stall-table-body">
-                  <div 
-                    v-for="(stall, index) in stallPerformance" 
-                    :key="stall.id" 
-                    class="stall-table-row clickable-item"
-                    @click="viewStallDetails(stall)"
-                  >
-                    <span class="stall-table-rank">
-                      <span class="rank-number" :class="getRankClass(index)">
-                        {{ index + 1 }}
-                      </span>
-                    </span>
-                    
-                    <span class="stall-table-name">
-                      <span class="stall-name-text">{{ stall.name }}</span>
-                      <span class="stall-name-bar">
-                        <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-                      </span>
-                    </span>
-                    
-                    <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-                    
-                    <span class="stall-table-status">
-                      <span :class="['status-indicator', getStallStatusClass(stall)]">
-                        {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
-                      </span>
-                    </span>
-                    
-                    <span class="stall-table-details">👆</span>
-                  </div>
-                </div>
-              </div>
+            <div class="pagination-info" v-else>
+              Showing 0 - 0 of 0 stalls
+            </div>
+            <div class="pagination-controls">
+              <button 
+                @click="prevStallPage" 
+                class="pagination-btn"
+                :disabled="stallCurrentPage <= 1"
+              >
+                ◀ Previous
+              </button>
+              <span class="pagination-page">
+                Page {{ stallCurrentPage }} of {{ stallTotalPages }}
+              </span>
+              <button 
+                @click="nextStallPage" 
+                class="pagination-btn"
+                :disabled="stallCurrentPage >= stallTotalPages"
+              >
+                Next ▶
+              </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+  
+  <!-- Stall Performance - Full List -->
+  <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📊 Stall Performance</h3>
+          <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
+        </div>
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+      </div>
+      <div class="card-modern-body stall-performance-table-container">
+        <div v-if="stallPerformance.length === 0" class="empty-state-modern">
+          <span>📊</span>
+          <p>No sales data available for {{ getPeriodLabel() }}</p>
+        </div>
+        
+        <div v-else class="stall-table-wrapper">
+          <div class="stall-table-header">
+            <span class="stall-table-header-rank">Rank</span>
+            <span class="stall-table-header-name">Stall</span>
+            <span class="stall-table-header-revenue">Revenue</span>
+            <span class="stall-table-header-status">Status</span>
+            <span class="stall-table-header-details">Details</span>
+          </div>
+          
+          <div class="stall-table-body">
+            <div 
+              v-for="(stall, index) in stallPerformance" 
+              :key="stall.id" 
+              class="stall-table-row clickable-item"
+              @click="viewStallDetails(stall)"
+            >
+              <span class="stall-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
+              
+              <span class="stall-table-name">
+                <span class="stall-name-text">{{ stall.name }}</span>
+                <span class="stall-name-bar">
+                  <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                </span>
+              </span>
+              
+              <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+              
+              <span class="stall-table-status">
+                <span :class="['status-indicator', getStallStatusClass(stall)]">
+                  {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+                </span>
+              </span>
+              
+              <span class="stall-table-details">👆</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
@@ -8475,6 +8475,46 @@ export default {
     grid-row: 3;
     text-align: right;
   }
+}
+
+/* ✅ Action buttons in Stall Management */
+.inventory-table-cell .btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.inventory-table-cell .btn-action:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.inventory-table-cell .btn-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.inventory-table-cell .btn-action:first-child:hover:not(:disabled) {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.inventory-table-cell .btn-action:last-child:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(249, 73, 8, 0.05);
 }
 
 </style>
