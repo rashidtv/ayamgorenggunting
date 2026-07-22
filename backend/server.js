@@ -114,6 +114,16 @@ const pool = new Pool({
   keepAlive: true,
 });
 
+// ✅ FORCE UTC ON ALL CONNECTIONS
+pool.on('connect', (client) => {
+  client.query("SET TIMEZONE TO 'UTC'");
+});
+
+// ✅ FORCE UTC ON ALL QUERIES
+pool.on('acquire', (client) => {
+  client.query("SET TIMEZONE TO 'UTC'");
+});
+
 // Handle pool errors without crashing
 pool.on('error', (err) => {
   console.error('Unexpected database error:', err.message);
