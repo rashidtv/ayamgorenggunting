@@ -1832,6 +1832,8 @@ export default {
     return Math.min(this.performancePage * this.itemsPerPage, this.filteredPerformanceList.length)
   },
 
+}
+
     totalPages() {
       return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
     },
@@ -2244,6 +2246,7 @@ stallCurrentPage: {
     this.performanceSortBy = 'rank'
     this.performanceSortOrder = 'asc'
   },
+  }
 
     async updateStock(materialName, newLevel, stallId) {
       try {
