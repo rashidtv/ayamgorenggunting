@@ -64,7 +64,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="action-buttons">
+        <div class="action-buttons" v-if="activeTab === 'dashboard'">
           <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
             <span class="action-icon">⟳</span>
             <span class="action-label">Refresh</span>
@@ -4525,42 +4525,72 @@ async loadData() {
       }
     },
 
-    async loadStallPerformance() {
-      const days = this.selectedPeriod === 'today' ? 1 :
-                   this.selectedPeriod === 'week' ? 7 :
-                   this.selectedPeriod === 'month' ? 30 :
-                   this.selectedPeriod === 'quarter' ? 90 :
-                   this.selectedPeriod === 'halfyear' ? 180 :
-                   this.selectedPeriod === 'year' ? 365 :
-                   this.customDays || 30
+   async loadStallPerformance() {
+  const days = this.selectedPeriod === 'today' ? 1 :
+               this.selectedPeriod === 'week' ? 7 :
+               this.selectedPeriod === 'month' ? 30 :
+               this.selectedPeriod === 'quarter' ? 90 :
+               this.selectedPeriod === 'halfyear' ? 180 :
+               this.selectedPeriod === 'year' ? 365 :
+               this.customDays || 30
+  
+  try {
+    const stallIds = this.stalls.map(s => s.id)
+    if (!stallIds || stallIds.length === 0) {
+      this.stallPerformance = []
+      console.log('✅ Stall performance loaded: 0 (no stalls)')
+      return
+    }
+    
+    // Get performance data from API
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Get the performance data
+    const performanceData = res.data || []
+    
+    // ✅ MERGE: Ensure ALL stalls are included, even those with $0 revenue
+    this.stallPerformance = this.stalls.map(stall => {
+      // Find if this stall has performance data
+      const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
       
-      try {
-        const stallIds = this.stalls.map(s => s.id)
-        if (!stallIds || stallIds.length === 0) {
-          this.stallPerformance = []
-          console.log('✅ Stall performance loaded: 0 (no stalls)')
-          return
+      if (perf) {
+        // Stall has sales data
+        return {
+          ...stall,
+          revenue: parseFloat(perf.revenue) || 0,
+          items: parseInt(perf.items_sold) || 0,
+          avgTransaction: parseFloat(perf.avg_transaction) || 0
         }
-        
-        const res = await axios.get(
-          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        
-        this.stallPerformance = res.data || []
-        
-        if (this.stallPerformance.length > 0) {
-          const topStall = this.stallPerformance[0]
-          this.consolidatedSales.topStall = topStall.name || '-'
-          this.consolidatedSales.topRevenue = parseFloat(topStall.revenue) || 0
+      } else {
+        // Stall has NO sales - show with $0
+        return {
+          ...stall,
+          revenue: 0,
+          items: 0,
+          avgTransaction: 0
         }
-        
-        console.log('✅ Stall performance loaded:', this.stallPerformance.length)
-      } catch (err) {
-        console.error('Failed to load stall performance:', err)
-        this.stallPerformance = []
       }
-    },
+    })
+    
+    // Sort by revenue (highest first)
+    this.stallPerformance.sort((a, b) => b.revenue - a.revenue)
+    
+    // Update top stall
+    if (this.stallPerformance.length > 0 && this.stallPerformance[0].revenue > 0) {
+      this.consolidatedSales.topStall = this.stallPerformance[0].name
+      this.consolidatedSales.topRevenue = this.stallPerformance[0].revenue
+    }
+    
+    console.log('✅ Stall performance loaded:', this.stallPerformance.length, 'stalls')
+    
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+  }
+},
 
     async loadMenuPerformance() {
       try {
