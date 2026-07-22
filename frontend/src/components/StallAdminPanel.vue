@@ -1031,7 +1031,7 @@
     </div>
     <div class="card-modern-body">
       
-      <!-- Stats Cards - 5 cards -->
+      <!-- Stats Cards -->
       <div class="performance-stats-grid">
         <div class="stat-chip excellent">
           <span class="stat-chip-label">🟢 Excellent</span>
@@ -1184,10 +1184,10 @@
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
+      </div> <!-- ✅ THIS CLOSES THE v-else div -->
+    </div> <!-- ✅ THIS CLOSES card-modern-body -->
+  </div> <!-- ✅ THIS CLOSES card-modern -->
+</div> <!-- ✅ THIS CLOSES sub-tab-content -->
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
