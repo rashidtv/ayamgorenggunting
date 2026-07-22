@@ -1188,6 +1188,7 @@
     </div> <!-- ✅ THIS CLOSES card-modern-body -->
   </div> <!-- ✅ THIS CLOSES card-modern -->
 </div> <!-- ✅ THIS CLOSES sub-tab-content -->
+</div> <!-- ← THIS CLOSES THE STALLS TAB PANEL -->
 
       <!-- ===== USERS TAB ===== -->
       <div v-if="activeTab === 'users'" class="tab-panel">
