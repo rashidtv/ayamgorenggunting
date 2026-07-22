@@ -4525,15 +4525,8 @@ async loadData() {
       }
     },
 
-   async loadStallPerformance() {
-  const days = this.selectedPeriod === 'today' ? 1 :
-               this.selectedPeriod === 'week' ? 7 :
-               this.selectedPeriod === 'month' ? 30 :
-               this.selectedPeriod === 'quarter' ? 90 :
-               this.selectedPeriod === 'halfyear' ? 180 :
-               this.selectedPeriod === 'year' ? 365 :
-               this.customDays || 30
-  
+async loadStallPerformance() {
+  // ✅ REMOVE period parameter - load ALL data
   try {
     const stallIds = this.stalls.map(s => s.id)
     if (!stallIds || stallIds.length === 0) {
@@ -4542,22 +4535,19 @@ async loadData() {
       return
     }
     
-    // Get performance data from API
+    // ✅ Get performance data for ALL time (no days parameter)
     const res = await axios.get(
-      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
-    // Get the performance data
     const performanceData = res.data || []
     
-    // ✅ MERGE: Ensure ALL stalls are included, even those with $0 revenue
+    // ✅ MERGE: ALL stalls with their total revenue
     this.stallPerformance = this.stalls.map(stall => {
-      // Find if this stall has performance data
       const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
       
       if (perf) {
-        // Stall has sales data
         return {
           ...stall,
           revenue: parseFloat(perf.revenue) || 0,
@@ -4565,7 +4555,6 @@ async loadData() {
           avgTransaction: parseFloat(perf.avg_transaction) || 0
         }
       } else {
-        // Stall has NO sales - show with $0
         return {
           ...stall,
           revenue: 0,
@@ -4578,7 +4567,7 @@ async loadData() {
     // Sort by revenue (highest first)
     this.stallPerformance.sort((a, b) => b.revenue - a.revenue)
     
-    // Update top stall
+    // Update top stall (for dashboard)
     if (this.stallPerformance.length > 0 && this.stallPerformance[0].revenue > 0) {
       this.consolidatedSales.topStall = this.stallPerformance[0].name
       this.consolidatedSales.topRevenue = this.stallPerformance[0].revenue
