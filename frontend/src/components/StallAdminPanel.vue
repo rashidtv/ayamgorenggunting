@@ -2858,87 +2858,67 @@ stallCurrentPage: {
     // =============================================
     // TOP STALL HELPERS
     // =============================================
-    getTopStallName() {
-      if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
-        return this.consolidatedSales.topStall
-      }
-      
-      if (this.salesTrend && this.salesTrend.length > 0) {
-        const totalRevenue = this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-        if (totalRevenue > 0 && this.stalls.length > 0) {
-          return this.stalls[0]?.name || '-'
-        }
-      }
-      
-      if (this.stallPerformance && this.stallPerformance.length > 0) {
-        let topStall = null
-        let maxRevenue = 0
-        for (const stall of this.stallPerformance) {
-          const revenue = parseFloat(stall.revenue) || 0
-          if (revenue > maxRevenue) {
-            maxRevenue = revenue
-            topStall = stall
-          }
-        }
-        if (topStall && maxRevenue > 0) {
-          return topStall.name || topStall.stall_name || '-'
-        }
-      }
-      
-      return '-'
-    },
+   getTopStallName() {
+  // ✅ Check if there are sales in the current period
+  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
+                         this.salesTrend.some(d => (d.revenue || 0) > 0)
+  
+  // ✅ If no sales in current period, return '-'
+  if (!hasPeriodSales) {
+    return '-'
+  }
+  
+  // Use consolidatedSales.topStall (period-limited)
+  if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
+    return this.consolidatedSales.topStall
+  }
+  
+  return '-'
+},
 
     getTopStallRevenue() {
-      if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
-        return this.consolidatedSales.topRevenue
-      }
-      
-      if (this.salesTrend && this.salesTrend.length > 0) {
-        return this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0)
-      }
-      
-      if (this.stallPerformance && this.stallPerformance.length > 0) {
-        let maxRevenue = 0
-        for (const stall of this.stallPerformance) {
-          const revenue = parseFloat(stall.revenue) || 0
-          if (revenue > maxRevenue) {
-            maxRevenue = revenue
-          }
-        }
-        if (maxRevenue > 0) {
-          return maxRevenue
-        }
-      }
-      
-      return 0
-    },
+  // ✅ Check if there are sales in the current period
+  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
+                         this.salesTrend.some(d => (d.revenue || 0) > 0)
+  
+  // ✅ If no sales in current period, return 0
+  if (!hasPeriodSales) {
+    return 0
+  }
+  
+  if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
+    return this.consolidatedSales.topRevenue
+  }
+  
+  return 0
+},
 
     getTopStallStatusText() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return 'No Sales'
-      if (revenue > 1000) return 'Excellent'
-      if (revenue > 500) return 'Good'
-      if (revenue > 100) return 'Average'
-      return 'Poor'
-    },
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'No Sales'
+  if (revenue > 1000) return 'Excellent'
+  if (revenue > 500) return 'Good'
+  if (revenue > 100) return 'Average'
+  return 'Poor'
+},
 
-    getTopStallStatusEmoji() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return '⚪'
-      if (revenue > 1000) return '🟢'
-      if (revenue > 500) return '🔵'
-      if (revenue > 100) return '🟡'
-      return '🔴'
-    },
+getTopStallStatusEmoji() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return '⚪'
+  if (revenue > 1000) return '🟢'
+  if (revenue > 500) return '🔵'
+  if (revenue > 100) return '🟡'
+  return '🔴'
+},
 
-    getTopStallStatusClass() {
-      const revenue = this.getTopStallRevenue()
-      if (revenue === 0) return 'no-sales'
-      if (revenue > 1000) return 'excellent'
-      if (revenue > 500) return 'good'
-      if (revenue > 100) return 'average'
-      return 'poor'
-    },
+getTopStallStatusClass() {
+  const revenue = this.getTopStallRevenue()
+  if (revenue === 0) return 'no-sales'
+  if (revenue > 1000) return 'excellent'
+  if (revenue > 500) return 'good'
+  if (revenue > 100) return 'average'
+  return 'poor'
+},
 
     // =============================================
     // SPARKLINE HELPER
