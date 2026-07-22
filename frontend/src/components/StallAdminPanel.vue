@@ -1025,7 +1025,7 @@
     <div class="card-modern-header">
       <div>
         <h3>📊 Stall Performance</h3>
-        <span class="card-subtitle">All stalls ranked by revenue for {{ getPeriodLabel() }}</span>
+        <span class="card-subtitle">All stalls ranked by total revenue (all-time)</span>
       </div>
       <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
     </div>
@@ -1890,12 +1890,12 @@ export default {
       return stalls
     },
 
-    stallPerformanceSubtitle() {
-      const count = this.displayStalls.length
-      if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
-      if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
-      return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
-    },
+  stallPerformanceSubtitle() {
+  const count = this.displayStalls.length
+  if (count === 0) return 'No stalls with sales (all-time)'
+  if (count === 1) return 'Top stall by total revenue (all-time)'
+  return `Top ${count} stalls by total revenue (all-time)`
+},
 
     displayStalls() {
       const stallsWithSales = this.stallPerformance.filter(stall => 
