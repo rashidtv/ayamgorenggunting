@@ -1558,8 +1558,8 @@ export default {
       inactive: this.stalls.filter(s => !s.is_active).length,
       lowStock: lowStock
     }
-  }
-},
+  },
+
 
     selectedCount() {
       return this.selectedStalls.length
@@ -1751,7 +1751,7 @@ export default {
   methods: {
 
     async updateStock(materialName, newLevel, stallId) {
-  try {
+    try {
     // Ensure newLevel is a whole number
     const roundedLevel = Math.round(Number(newLevel) || 0)
     
