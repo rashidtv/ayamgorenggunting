@@ -559,55 +559,54 @@
             <div class="inventory-table-cell actions">Actions</div>
           </div>
 
-          <!-- Table Rows - Paginated -->
-          <div 
-            v-for="stall in paginatedStalls" 
-            :key="stall.id" 
-            class="inventory-table-row"
-            :class="{ selected: selectedStalls.includes(stall.id) }"
-          >
-            <div class="inventory-table-cell checkbox">
-              <input 
-                type="checkbox" 
-                :value="stall.id"
-                v-model="selectedStalls"
-              />
-            </div>
-            <div class="inventory-table-cell name">
-              <span class="stall-name">{{ stall.name }}</span>
-              <span class="stall-code">{{ stall.code }}</span>
-            </div>
-            <div class="inventory-table-cell state">
-              {{ stall.state || '-' }}
-            </div>
-            <div class="inventory-table-cell items">
-              <div class="inventory-table-cell items">
-  <!-- ✅ Show inventory items without pencil button -->
-  <div 
-    v-for="item in getStallInventorySummary(stall.id)" 
-    :key="item.material_name" 
-    class="inventory-item-inline"
-    :class="{ 'low': item.current_level <= item.alert_level }"
-  >
-    <span class="item-name">{{ item.material_name }}</span>
-    <span class="item-level">{{ item.current_level }}</span>
-    <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+         <!-- Table Rows - Paginated -->
+<div 
+  v-for="stall in paginatedStalls" 
+  :key="stall.id" 
+  class="inventory-table-row"
+  :class="{ selected: selectedStalls.includes(stall.id) }"
+>
+  <div class="inventory-table-cell checkbox">
+    <input 
+      type="checkbox" 
+      :value="stall.id"
+      v-model="selectedStalls"
+    />
+  </div>
+  <div class="inventory-table-cell name">
+    <span class="stall-name">{{ stall.name }}</span>
+    <span class="stall-code">{{ stall.code }}</span>
+  </div>
+  <div class="inventory-table-cell state">
+    {{ stall.state || '-' }}
+  </div>
+  <div class="inventory-table-cell items">
+    <!-- ✅ Show inventory items without pencil button -->
+    <div 
+      v-for="item in getStallInventorySummary(stall.id)" 
+      :key="item.material_name" 
+      class="inventory-item-inline"
+      :class="{ 'low': item.current_level <= item.alert_level }"
+    >
+      <span class="item-name">{{ item.material_name }}</span>
+      <span class="item-level">{{ item.current_level }}</span>
+      <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+    </div>
+  </div>
+  <div class="inventory-table-cell status">
+    <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+      {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+    </span>
+    <span v-if="hasLowStock(stall.id)" class="status-badge low">
+      ⚠️ Low Stock
+    </span>
+  </div>
+  <div class="inventory-table-cell actions">
+    <button @click="openStallInventoryModal(stall.id)" class="btn-action" title="Top Up">
+      📦 Top Up
+    </button>
   </div>
 </div>
-            <div class="inventory-table-cell status">
-              <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-                {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-              </span>
-              <span v-if="hasLowStock(stall.id)" class="status-badge low">
-                ⚠️ Low Stock
-              </span>
-            </div>
-            <div class="inventory-table-cell actions">
-  <button @click="openStallInventoryModal(stall.id)" class="btn-action" title="Top Up">
-    📦 Top Up
-  </button>
-</div>
-          </div>
         </div>
 
         <!-- Pagination Controls -->
