@@ -470,7 +470,10 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
     
-     // ✅ Updated INSERT statement
+    // ✅ FIX: Define utcNow here
+    const utcNow = new Date().toISOString();
+    
+    // Insert the sale with explicit UTC timestamp
     await client.query(
       'INSERT INTO sales (stall_id, item_name, price, created_at) VALUES ($1, $2, $3, $4)',
       [targetStallId, itemName, price, utcNow]
@@ -490,7 +493,6 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
       }
       console.log(`✅ Sold ${itemName}, updated inventory for ${recipeRes.rows.length} ingredients`);
     } else {
-      // No recipe found - just log (don't throw error)
       console.log(`ℹ️ ${itemName} sold (no recipe, inventory not updated)`);
     }
     
