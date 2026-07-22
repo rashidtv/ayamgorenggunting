@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+process.env.TZ = 'UTC';
+
 // ============================================
 // ✅ ADD THIS - DATE RANGE HELPER FUNCTIONS
 // ============================================
