@@ -1900,6 +1900,9 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
     for (const item of items) {
       const quantity = item.quantity || 1;
       for (let i = 0; i < quantity; i++) {
+        // ✅ FIXED: Define utcNow here
+        const utcNow = new Date().toISOString();
+        
         await client.query(
           `INSERT INTO sales (stall_id, item_name, price, order_id, created_at)
            VALUES ($1, $2, $3, $4, $5)`,
