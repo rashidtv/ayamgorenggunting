@@ -1494,6 +1494,7 @@ export default {
       
       expandedInventoryStall: null,
       stallInventory: {},
+      inventory: [],
       inventorySearch: '',
       inventoryFilter: 'all',
       
@@ -1542,23 +1543,34 @@ export default {
       return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
     },
 
-   inventoryStats() {
-    let lowStock = 0
-    this.stalls.forEach(stall => {
-      const items = this.getStallInventorySummary(stall.id)
-      items.forEach(item => {
-        if (item.current_level <= item.alert_level) {
-          lowStock++
-        }
-      })
-    })
+inventoryStats() {
+  let lowStock = 0
+  
+  // ✅ Add check for inventory data
+  if (!this.inventory || !Array.isArray(this.inventory) || this.inventory.length === 0) {
     return {
-      total: this.stalls.length,
-      active: this.stalls.filter(s => s.is_active).length,
-      inactive: this.stalls.filter(s => !s.is_active).length,
-      lowStock: lowStock
+      total: this.stalls.length || 0,
+      active: this.stalls.filter(s => s.is_active).length || 0,
+      inactive: this.stalls.filter(s => !s.is_active).length || 0,
+      lowStock: 0
     }
-  },
+  }
+  
+  this.stalls.forEach(stall => {
+    const items = this.getStallInventorySummary(stall.id)
+    items.forEach(item => {
+      if (item.current_level <= item.alert_level) {
+        lowStock++
+      }
+    })
+  })
+  return {
+    total: this.stalls.length,
+    active: this.stalls.filter(s => s.is_active).length,
+    inactive: this.stalls.filter(s => !s.is_active).length,
+    lowStock: lowStock
+  }
+},
 
 
     selectedCount() {
@@ -4131,7 +4143,12 @@ processInventoryData(data) {
   }))
 },
 
-    getStallInventorySummary(stallId) {
+getStallInventorySummary(stallId) {
+  // ✅ Add this check
+  if (!this.inventory || !Array.isArray(this.inventory)) {
+    return []
+  }
+  
   // Find all inventory items for this stall
   const items = this.inventory.filter(item => item.stall_id === stallId)
   
