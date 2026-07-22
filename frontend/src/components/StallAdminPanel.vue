@@ -2051,7 +2051,7 @@ processInventoryData(data) {
     // =============================================
     // RESET ALL LOW STOCK
     // =============================================
-  async resetAllLowStock() {
+async resetAllLowStock() {
   if (this.inventoryStats.lowStock === 0) {
     this.$emit('show-notification', 'No low stock items to reset', 'info')
     return
@@ -2063,25 +2063,19 @@ processInventoryData(data) {
   let updated = 0
   
   try {
-    // Use stalls array directly
     for (const stall of this.stalls) {
-      // Get inventory for this stall
       const inventory = this.getStallInventorySummary(stall.id)
       
       for (const item of inventory) {
-        // Check if item is low stock (current <= alert)
         if (item.current_level <= item.alert_level) {
-          // Reset to alert_level + 20
           const newLevel = item.alert_level + 20
-          await this.updateStock(item.material_name, newLevel, stall.id)
+          await this.updateInventoryStock(stall.id, item.material_name, newLevel)
           updated++
         }
       }
     }
     
     this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
-    
-    // Refresh inventory data
     await this.loadAllStallsInventory()
     
   } catch (error) {
@@ -4087,31 +4081,40 @@ processInventoryData(data) {
     },
 
     async loadAllStallsInventory() {
-      for (const stall of this.stalls) {
-        try {
-          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          if (res.data.length === 0) {
-            await this.initializeStallInventory(stall.id)
-            const res2 = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            })
-            this.stallInventory[stall.id] = res2.data.map(item => ({
-              ...item,
-              newLevel: item.current_level
-            }))
-          } else {
-            this.stallInventory[stall.id] = res.data.map(item => ({
-              ...item,
-              newLevel: item.current_level
-            }))
-          }
-        } catch (err) {
-          console.error(`Load inventory for stall ${stall.id} error:`, err)
-        }
+  // Clear existing inventory
+  this.inventory = []
+  
+  for (const stall of this.stalls) {
+    try {
+      const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      
+      // Add to this.inventory
+      if (res.data && res.data.length > 0) {
+        const items = res.data.map(item => ({
+          ...item,
+          stall_id: stall.id,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+        this.inventory = [...this.inventory, ...items]
       }
-    },
+      
+      // Also store in stallInventory for quick access
+      this.stallInventory[stall.id] = res.data.map(item => ({
+        ...item,
+        newLevel: Math.round(Number(item.current_level) || 0)
+      }))
+      
+    } catch (err) {
+      console.error(`Load inventory for stall ${stall.id} error:`, err)
+      this.stallInventory[stall.id] = []
+    }
+  }
+  
+  console.log('✅ Inventory loaded:', this.inventory.length, 'items')
+},
 
     toggleInventoryStall(stallId) {
       this.expandedInventoryStall = this.expandedInventoryStall === stallId ? null : stallId
@@ -4134,45 +4137,82 @@ processInventoryData(data) {
       }
     },
 
-    getStallInventory(stallId) {
-  const items = this.inventory.filter(item => item.stall_id === stallId)
-  return items.map(item => ({
-    ...item,
-    current_level: Math.round(Number(item.current_level) || 0),
-    alert_level: Math.round(Number(item.alert_level) || 0)
-  }))
+getStallInventory(stallId) {
+  // Try this.inventory first
+  if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+    const items = this.inventory.filter(item => item.stall_id === stallId)
+    if (items.length > 0) {
+      return items.map(item => ({
+        ...item,
+        current_level: Math.round(Number(item.current_level) || 0),
+        alert_level: Math.round(Number(item.alert_level) || 0)
+      }))
+    }
+  }
+  
+  // Fallback to stallInventory
+  if (this.stallInventory && this.stallInventory[stallId]) {
+    return this.stallInventory[stallId].map(item => ({
+      ...item,
+      current_level: Math.round(Number(item.current_level) || 0),
+      alert_level: Math.round(Number(item.alert_level) || 0)
+    }))
+  }
+  
+  return []
 },
 
 getStallInventorySummary(stallId) {
-  // ✅ Add this check
-  if (!this.inventory || !Array.isArray(this.inventory)) {
-    return []
+  // First try to get from this.inventory
+  if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+    const items = this.inventory.filter(item => item.stall_id === stallId)
+    
+    if (items.length > 0) {
+      const grouped = {}
+      items.forEach(item => {
+        if (!grouped[item.material_name]) {
+          grouped[item.material_name] = {
+            material_name: item.material_name,
+            current_level: 0,
+            alert_level: item.alert_level || 5,
+            stall_id: stallId
+          }
+        }
+        grouped[item.material_name].current_level += Number(item.current_level) || 0
+      })
+      
+      return Object.values(grouped).map(item => ({
+        ...item,
+        current_level: Math.round(Number(item.current_level) || 0),
+        alert_level: Math.round(Number(item.alert_level) || 0)
+      }))
+    }
   }
   
-  // Find all inventory items for this stall
-  const items = this.inventory.filter(item => item.stall_id === stallId)
-  
-  // Group by material_name (if multiple entries)
-  const grouped = {}
-  items.forEach(item => {
-    if (!grouped[item.material_name]) {
-      grouped[item.material_name] = {
-        material_name: item.material_name,
-        current_level: 0,
-        alert_level: item.alert_level || 5,
-        stall_id: stallId
+  // Fallback: use stallInventory
+  if (this.stallInventory && this.stallInventory[stallId]) {
+    const items = this.stallInventory[stallId]
+    const grouped = {}
+    items.forEach(item => {
+      if (!grouped[item.material_name]) {
+        grouped[item.material_name] = {
+          material_name: item.material_name,
+          current_level: 0,
+          alert_level: item.alert_level || 5,
+          stall_id: stallId
+        }
       }
-    }
-    // Sum current_level if multiple entries
-    grouped[item.material_name].current_level += Number(item.current_level) || 0
-  })
+      grouped[item.material_name].current_level += Number(item.current_level) || 0
+    })
+    
+    return Object.values(grouped).map(item => ({
+      ...item,
+      current_level: Math.round(Number(item.current_level) || 0),
+      alert_level: Math.round(Number(item.alert_level) || 0)
+    }))
+  }
   
-  // Convert to array and ensure whole numbers (no decimals)
-  return Object.values(grouped).map(item => ({
-    ...item,
-    current_level: Math.round(Number(item.current_level) || 0),
-    alert_level: Math.round(Number(item.alert_level) || 0)
-  }))
+  return []
 },
 
     getFilteredInventoryItems(stallId) {
@@ -4197,24 +4237,33 @@ getStallInventorySummary(stallId) {
       return Math.min((item.current_level / max) * 100, 100)
     },
 
-    async updateInventoryStock(stallId, materialName, newLevel) {
-      if (newLevel === undefined || newLevel === null || newLevel === '') {
-        this.$emit('show-notification', 'Please enter a valid value', 'error')
-        return
-      }
-      try {
-        await axios.post(`${API_BASE}/inventory/update`, {
-          stallId, materialName, newLevel: parseFloat(newLevel)
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        await this.loadStallInventory(stallId)
-        await this.loadLowStock()
-        this.$emit('show-notification', `${materialName} updated to ${newLevel}${this.getUnit(materialName)}`, 'success')
-      } catch (err) {
-        this.$emit('show-notification', 'Failed to update stock', 'error')
-      }
-    },
+   async updateInventoryStock(stallId, materialName, newLevel) {
+  if (newLevel === undefined || newLevel === null || newLevel === '') {
+    this.$emit('show-notification', 'Please enter a valid value', 'error')
+    return
+  }
+  
+  const roundedLevel = Math.round(Number(newLevel) || 0)
+  
+  try {
+    await axios.post(`${API_BASE}/inventory/update`, {
+      stallId, 
+      materialName, 
+      newLevel: roundedLevel
+    }, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    // Refresh both data sources
+    await this.loadAllStallsInventory()
+    await this.loadLowStock()
+    
+    this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
+  } catch (err) {
+    console.error('Update inventory error:', err)
+    this.$emit('show-notification', 'Failed to update stock', 'error')
+  }
+},
 
     async quickAddStock(stallId, materialName, amount) {
       const inventory = this.stallInventory[stallId] || []
