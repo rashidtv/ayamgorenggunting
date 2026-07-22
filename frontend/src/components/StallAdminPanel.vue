@@ -8005,4 +8005,87 @@ export default {
   }
 }
 
+/* ✅ RESPONSIVE FIXES - ONLY WHAT YOU REQUESTED */
+
+/* ✅ Consistent font size on mobile for all filter elements */
+@media (max-width: 768px) {
+  .filter-input,
+  .filter-select,
+  .filter-search input,
+  .filter-group select {
+    font-size: 14px !important;
+  }
+}
+
+/* ✅ All States and All Status in 1 row on mobile */
+@media (max-width: 768px) {
+  .filter-bar-modern .filter-group {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .filter-bar-modern .filter-group select {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px !important;
+  }
+}
+
+/* ✅ 2 stalls per row on mobile - card view */
+@media (max-width: 480px) {
+  .inventory-table-wrapper {
+    overflow-x: visible;
+  }
+  
+  .inventory-table-header {
+    display: none;
+  }
+  
+  .inventory-table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    min-width: auto;
+  }
+  
+  .inventory-table-row .inventory-table-cell.checkbox {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  
+  .inventory-table-row .inventory-table-cell.name {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+  
+  .inventory-table-row .inventory-table-cell.state {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  
+  .inventory-table-row .inventory-table-cell.items {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+  
+  .inventory-table-row .inventory-table-cell.status {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  
+  .inventory-table-row .inventory-table-cell.actions {
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right;
+  }
+}
+
 </style>
