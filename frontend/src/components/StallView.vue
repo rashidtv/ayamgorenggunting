@@ -548,64 +548,47 @@ export default {
     },
 
     // NEW: Sell ALL items in cart as single transaction
-    async sellAll() {
-      if (this.cartItems.length === 0) {
-        this.$emit('show-notification', 'No items to sell', 'warning')
-        return
-      }
-      
-      this.loading = true
-      try {
-        // STEP 1: Create order record (for grouping)
-        const orderData = {
-          stallId: this.activeStallId,
-          items: this.cartItems.map(item => ({
-            itemName: item.menuItem.item_name,
-            price: item.menuItem.price,
-            quantity: item.quantity
-          })),
-          total: this.cartTotal,
-          itemCount: this.cartItemCount
-        }
-        
-        // Send order to backend
-        const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
-          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
-        
-        const orderId = orderResponse.data.orderId || 'N/A'
-        
-        // STEP 2: Record individual sales for inventory tracking
-        for (const cartItem of this.cartItems) {
-          for (let i = 0; i < cartItem.quantity; i++) {
-            await axios.post(`${API_BASE}/sell`, {
-              itemName: cartItem.menuItem.item_name,
-              price: cartItem.menuItem.price,
-              stallId: this.activeStallId,
-              orderId: orderId // Link to order
-            }, {
-              headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-            })
-          }
-        }
-        
-        // STEP 3: Show success
-        this.$emit('show-notification', 
-          `✅ Order #${orderId} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
-          'success'
-        )
-        
-        // STEP 4: Clear cart and refresh data
-        this.clearCart()
-        await this.loadData()
-        
-      } catch (err) {
-        console.error('Order error:', err)
-        this.$emit('show-notification', 'Error processing order', 'error')
-      } finally {
-        this.loading = false
-      }
-    },
+    // stallview.vue - sellAll() method (PERMANENT FIX)
+async sellAll() {
+  if (this.cartItems.length === 0) {
+    this.$emit('show-notification', 'No items to sell', 'warning')
+    return
+  }
+  
+  this.loading = true
+  try {
+    // ✅ ONLY call /api/orders - it handles everything
+    const orderData = {
+      stallId: this.activeStallId,
+      items: this.cartItems.map(item => ({
+        itemName: item.menuItem.item_name,
+        price: item.menuItem.price,
+        quantity: item.quantity
+      })),
+      total: this.cartTotal,
+      itemCount: this.cartItemCount
+    }
+    
+    const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
+      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+    })
+    
+    // ✅ Success - order created with all items
+    this.$emit('show-notification', 
+      `✅ Order #${orderResponse.data.orderNumber} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
+      'success'
+    )
+    
+    this.clearCart()
+    await this.loadData()
+    
+  } catch (err) {
+    console.error('Order error:', err)
+    this.$emit('show-notification', 'Error processing order', 'error')
+  } finally {
+    this.loading = false
+  }
+},
 
     // Keep for backward compatibility (if needed)
     async sellItemWithQuantity(item) {
