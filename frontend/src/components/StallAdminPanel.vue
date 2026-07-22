@@ -1532,6 +1532,7 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+      _stallCurrentPage: 1,
       currentPage: 1,
       currentStallPage: 1,
       selectAllStalls: false,
@@ -1772,54 +1773,80 @@ export default {
     // ===== STALL MANAGEMENT COMPUTED PROPERTIES =====
     
     stallStats() {
-      let lowStockCount = 0
-      this.stalls.forEach(stall => {
-        if (this.hasLowStock(stall.id)) {
-          lowStockCount++
-        }
-      })
-      return {
-        total: this.stalls.length,
-        active: this.stalls.filter(s => s.is_active).length,
-        inactive: this.stalls.filter(s => !s.is_active).length,
-        lowStock: lowStockCount
+    let lowStockCount = 0
+    this.stalls.forEach(stall => {
+      if (this.hasLowStock(stall.id)) {
+        lowStockCount++
       }
-    },
+    })
+    return {
+      total: this.stalls.length || 0,
+      active: this.stalls.filter(s => s.is_active).length || 0,
+      inactive: this.stalls.filter(s => !s.is_active).length || 0,
+      lowStock: lowStockCount
+    }
+  },
 
     selectedStallsCount() {
       return this.selectedStalls.length
     },
 
-    stallTotalPages() {
-      return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
-    },
+   stallTotalPages() {
+  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+    return 1
+  }
+  return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
+},
 
     stallStartIndex() {
-      return (this.stallCurrentPage - 1) * this.itemsPerPage + 1
-    },
+  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+    return 0
+  }
+  const start = (this.stallCurrentPage - 1) * this.itemsPerPage + 1
+  return Math.min(start, this.filteredStallsList.length)
+},
 
-    stallEndIndex() {
-      return Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
-    },
+stallCurrentPage: {
+  get() {
+    return this._stallCurrentPage || 1
+  },
+  set(val) {
+    this._stallCurrentPage = val
+  }
+},
 
-    filteredStallsList() {
-      return this.stalls.filter(stall => {
-        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-        const matchesState = this.stateFilter === 'All States' || 
-                             (stall.state || '') === this.stateFilter
-        const matchesStatus = this.stallStatusFilter === 'all' || 
-                              (this.stallStatusFilter === 'active' && stall.is_active) ||
-                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
-        return matchesSearch && matchesState && matchesStatus
-      })
-    },
+   stallEndIndex() {
+  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+    return 0
+  }
+  const end = Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
+  return end
+},
+
+     filteredStallsList() {
+    if (!this.stalls || this.stalls.length === 0) {
+      return []
+    }
+    return this.stalls.filter(stall => {
+      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+      const matchesState = this.stateFilter === 'All States' || 
+                           (stall.state || '') === this.stateFilter
+      const matchesStatus = this.stallStatusFilter === 'all' || 
+                            (this.stallStatusFilter === 'active' && stall.is_active) ||
+                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
+      return matchesSearch && matchesState && matchesStatus
+    })
+  },
     
-    paginatedStallsList() {
-      const start = (this.stallCurrentPage - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.filteredStallsList.slice(start, end)
-    },
+   paginatedStallsList() {
+  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+    return []
+  }
+  const start = (this.stallCurrentPage - 1) * this.itemsPerPage
+  const end = Math.min(start + this.itemsPerPage, this.filteredStallsList.length)
+  return this.filteredStallsList.slice(start, end)
+},
     
     filteredUsersList() {
       return this.users.filter(user => {
@@ -1869,6 +1896,12 @@ export default {
     stateFilter() {
       this.resetPagination()
     },
+    stallStatusFilter() {
+    this.resetStallPagination()
+  },
+  stallSearch() {
+    this.resetStallPagination()
+  },
     inventoryFilter() {
       this.resetPagination()
     },
@@ -4003,39 +4036,45 @@ export default {
       await this.loadData()
     },
 
-    async loadData() {
-      try {
-        console.log('🔄 Loading stall admin data...')
-        
-        if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-          this.stallPerformance = []
-          this.menuPerformance = []
-          this.salesTrend = []
-          this.consolidatedSales.topStall = '-'
-          this.consolidatedSales.topRevenue = 0
-          this.consolidatedSales.totalRevenue = 0
-          this.consolidatedSales.totalItems = 0
-        }
-        
-        await this.loadStalls()
-        await this.loadSalesAnalytics()
-        
-        await Promise.all([
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadStallPerformance(),
-          this.loadMenuItems()
-        ])
-        
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        console.error('Load data error:', err)
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
+async loadData() {
+  try {
+    console.log('🔄 Loading stall admin data...')
+    
+    // ✅ Load stalls FIRST and wait for them
+    await this.loadStalls()
+    console.log('✅ Stalls loaded:', this.stalls.length)
+    
+    // ✅ Reset pagination after stalls load
+    this._stallCurrentPage = 1
+    
+    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+    }
+    
+    await this.loadSalesAnalytics()
+    
+    await Promise.all([
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadStallPerformance(),
+      this.loadMenuItems()
+    ])
+    
+    await this.loadAllStallsInventory()
+    this.resetChartNavigation()
+    
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
 
     async loadStalls() {
       try {
