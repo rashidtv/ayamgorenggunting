@@ -470,10 +470,10 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Insert the sale
+     // ✅ Updated INSERT statement
     await client.query(
-      'INSERT INTO sales (stall_id, item_name, price) VALUES ($1, $2, $3)',
-      [targetStallId, itemName, price]
+      'INSERT INTO sales (stall_id, item_name, price, created_at) VALUES ($1, $2, $3, $4)',
+      [targetStallId, itemName, price, utcNow]
     );
     
     // Check for recipe
@@ -1901,9 +1901,9 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       const quantity = item.quantity || 1;
       for (let i = 0; i < quantity; i++) {
         await client.query(
-          `INSERT INTO sales (stall_id, item_name, price, order_id)
-           VALUES ($1, $2, $3, $4)`,
-          [targetStallId, item.itemName, item.price, order.id]
+          `INSERT INTO sales (stall_id, item_name, price, order_id, created_at)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [targetStallId, item.itemName, item.price, order.id, utcNow]
         );
       }
     }
