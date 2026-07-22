@@ -581,24 +581,19 @@
               {{ stall.state || '-' }}
             </div>
             <div class="inventory-table-cell items">
-              <div 
-                v-for="item in getStallInventorySummary(stall.id)" 
-                :key="item.material_name" 
-                class="inventory-item-inline"
-                :class="{ 'low': item.current_level <= item.alert_level }"
-              >
-                <span class="item-name">{{ item.material_name }}</span>
-                <span class="item-level">{{ item.current_level }}</span>
-                <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
-                <button 
-                  @click="quickUpdateItem(stall.id, item.material_name)" 
-                  class="btn-icon tiny"
-                  title="Quick Update"
-                >
-                  ✏️
-                </button>
-              </div>
-            </div>
+              <div class="inventory-table-cell items">
+  <!-- ✅ Show inventory items without pencil button -->
+  <div 
+    v-for="item in getStallInventorySummary(stall.id)" 
+    :key="item.material_name" 
+    class="inventory-item-inline"
+    :class="{ 'low': item.current_level <= item.alert_level }"
+  >
+    <span class="item-name">{{ item.material_name }}</span>
+    <span class="item-level">{{ item.current_level }}</span>
+    <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+  </div>
+</div>
             <div class="inventory-table-cell status">
               <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
                 {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
@@ -608,13 +603,10 @@
               </span>
             </div>
             <div class="inventory-table-cell actions">
-              <button @click="quickUpdateStall(stall.id)" class="btn-icon" title="Quick Update">
-                ⚡
-              </button>
-              <button @click="openStallInventoryModal(stall.id)" class="btn-icon" title="Full Edit">
-                📦
-              </button>
-            </div>
+  <button @click="openStallInventoryModal(stall.id)" class="btn-action" title="Top Up">
+    📦 Top Up
+  </button>
+</div>
           </div>
         </div>
 
@@ -7300,23 +7292,24 @@ export default {
 }
 
 /* ============================================ */
-/* BULK UPDATE MODAL - Mobile                  */
+/* BULK UPDATE MODAL - CLEAN & COMPACT         */
 /* ============================================ */
 
+/* Mode Selection */
 .bulk-mode-selector {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
   flex-wrap: wrap;
 }
 
 .mode-btn {
-  padding: 0.35rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   transition: var(--transition);
   color: var(--text-secondary);
 }
@@ -7332,7 +7325,144 @@ export default {
   color: var(--text);
 }
 
-@media (max-width: 480px) {
+/* Preview */
+.bulk-preview {
+  padding: 0.4rem 0.6rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.6rem;
+}
+
+.bulk-preview p {
+  font-size: 0.7rem;
+  margin: 0 0 0.2rem 0;
+  color: var(--text-secondary);
+}
+
+.bulk-stall-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.stall-tag {
+  padding: 0.05rem 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+}
+
+.stall-tag.more {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Materials Section */
+.bulk-materials h4 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem 0;
+  color: var(--text-secondary);
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.quick-label {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* Material Grid - Clean & Compact */
+.bulk-material-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0.2rem 0;
+}
+
+.bulk-material-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.bulk-material-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.bulk-material-label input[type="checkbox"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.bulk-material-name {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.bulk-material-inputs {
+  display: flex;
+  gap: 0.2rem;
+  align-items: center;
+  flex: 1;
+}
+
+.bulk-material-inputs .filter-select.small {
+  min-width: 55px;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.bulk-material-inputs .filter-input.small {
+  width: 45px;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.bulk-material-unit {
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  min-width: 25px;
+}
+
+/* Footer */
+.modal-modern-footer .btn-modern {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.8rem;
+}
+
+/* ============================================ */
+/* RESPONSIVE - BULK UPDATE MODAL              */
+/* ============================================ */
+
+@media (max-width: 600px) {
   .bulk-mode-selector {
     flex-direction: column;
   }
@@ -7340,6 +7470,36 @@ export default {
   .mode-btn {
     width: 100%;
     text-align: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+  
+  .bulk-material-item {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+  
+  .bulk-material-label {
+    flex: 1 0 100%;
+  }
+  
+  .bulk-material-inputs {
+    flex: 1 0 100%;
+    justify-content: flex-start;
+  }
+  
+  .quick-actions {
+    justify-content: center;
+  }
+  
+  .modal-modern-footer {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .modal-modern-footer .btn-modern {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -7588,6 +7748,44 @@ export default {
   
   .quick-update-actions {
     justify-content: center;
+  }
+}
+
+/* ============================================ */
+/* ACTION BUTTON - TOP UP                       */
+/* ============================================ */
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-action:hover {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
+}
+
+.btn-action:active {
+  transform: scale(0.95);
+}
+
+/* ✅ Mobile adjustment */
+@media (max-width: 480px) {
+  .btn-action {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.6rem;
   }
 }
 
