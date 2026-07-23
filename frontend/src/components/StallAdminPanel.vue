@@ -333,7 +333,7 @@
   <div class="card-modern-header">
     <div>
       <h3>🏆 Stall Performance</h3>
-      <span class="card-subtitle">{{ stallPerformanceSubtitle }}</span>
+      <span class="card-subtitle">{{ dashboardStallPerformanceSubtitle }}</span>
     </div>
     <button 
       @click="switchTabWithSubTab('stalls', 'performance')" 
@@ -1936,6 +1936,21 @@ export default {
         : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
       return stalls
     },
+
+  // ✅ For Dashboard - period-limited subtitle
+dashboardStallPerformanceSubtitle() {
+  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
+                         this.salesTrend.some(d => (d.revenue || 0) > 0)
+  
+  if (!hasPeriodSales) {
+    return `No sales for ${this.getPeriodLabel()}`
+  }
+  
+  const count = this.dashboardDisplayStalls.length
+  if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
+  if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
+  return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
+},
 
   stallPerformanceSubtitle() {
   const count = this.displayStalls.length
