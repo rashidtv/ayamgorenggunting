@@ -9760,35 +9760,56 @@ export default {
 }
 
 /* ============================================ */
-/* USERS TAB - PERMANENT FONT SIZE FIX         */
+/* USERS TAB - CORRECT FONT SIZES               */
 /* ============================================ */
 
-/* ✅ Ensure ALL table cells inherit the same font size */
-.users-table-wrapper .users-table-row .users-table-cell {
-  font-size: var(--font-size) !important;
+/* ✅ Table header - keep smaller */
+.users-table-header {
+  font-size: 0.7rem !important;
 }
 
-/* ✅ Fix username - keep bold but same size */
+/* ✅ Table cells - use appropriate size */
+.users-table-wrapper .users-table-row .users-table-cell {
+  font-size: 0.8rem !important;
+}
+
+/* ✅ Username - slightly bold but same size */
 .users-table-wrapper .users-table-row .users-table-cell .username-text {
-  font-size: var(--font-size) !important;
+  font-size: 0.8rem !important;
   font-weight: 500;
 }
 
-/* ✅ Fix full name */
+/* ✅ Full name - same size */
 .users-table-wrapper .users-table-row .users-table-cell .fullname {
-  font-size: var(--font-size) !important;
+  font-size: 0.8rem !important;
 }
 
-/* ✅ Fix all other elements in the table */
-.users-table-wrapper .users-table-row .users-table-cell .role-badge,
-.users-table-wrapper .users-table-row .users-table-cell .stall-badge,
-.users-table-wrapper .users-table-row .users-table-cell .status-badge,
+/* ✅ Role badges - smaller */
+.users-table-wrapper .users-table-row .users-table-cell .role-badge {
+  font-size: 0.65rem !important;
+  padding: 0.1rem 0.5rem;
+}
+
+/* ✅ Stall badges - smallest */
+.users-table-wrapper .users-table-row .users-table-cell .stall-badge {
+  font-size: 0.6rem !important;
+  padding: 0.05rem 0.3rem;
+}
+
+/* ✅ Status badges - smaller */
+.users-table-wrapper .users-table-row .users-table-cell .status-badge {
+  font-size: 0.6rem !important;
+  padding: 0.05rem 0.3rem;
+}
+
+/* ✅ No stalls text */
 .users-table-wrapper .users-table-row .users-table-cell .no-stalls {
-  font-size: var(--font-size-sm) !important;
+  font-size: 0.6rem !important;
 }
 
-/* ✅ Fix action buttons */
+/* ✅ Action buttons - smaller */
 .users-table-wrapper .users-table-row .users-table-cell .btn-action {
-  font-size: var(--font-size-sm) !important;
+  font-size: 0.6rem !important;
+  padding: 0.1rem 0.3rem;
 }
 </style>
