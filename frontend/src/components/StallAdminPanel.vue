@@ -12166,7 +12166,7 @@ export default {
   height: 200px;
 }
 
-/* Revenue Table */
+/* Revenue Table - FIXED TO MATCH STALL PERFORMANCE */
 .revenue-table-wrapper {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -12174,13 +12174,14 @@ export default {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ✅ Desktop - Match stall performance table header */
 .revenue-table-header {
   display: flex;
   padding: 0.5rem 0.75rem;
   background: var(--background);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
@@ -12265,6 +12266,72 @@ export default {
   color: var(--text-secondary);
 }
 
+/* ✅ Tablet - Match stall performance */
+@media (max-width: 768px) {
+  .revenue-table-header {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .revenue-table-row {
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .revenue-table-rank { min-width: 35px; }
+  .revenue-table-name { min-width: 70px; }
+  .revenue-table-state { min-width: 60px; }
+  .revenue-table-revenue { min-width: 60px; font-size: 0.8rem; }
+  .revenue-table-transactions { min-width: 50px; font-size: 0.8rem; }
+  .revenue-table-avg { min-width: 50px; font-size: 0.8rem; }
+  .revenue-table-status { min-width: 60px; }
+  .revenue-table-details { min-width: 30px; }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+}
+
+/* ✅ Mobile - Match stall performance */
+@media (max-width: 480px) {
+  .revenue-table-header {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.3rem;
+    min-width: 400px;
+  }
+  
+  .revenue-table-row {
+    padding: 0.2rem 0.3rem;
+    min-width: 400px;
+  }
+  
+  .revenue-table-rank { min-width: 30px; }
+  .revenue-table-name { min-width: 60px; }
+  .revenue-table-state { min-width: 50px; }
+  .revenue-table-revenue { min-width: 50px; font-size: 0.7rem; }
+  .revenue-table-transactions { min-width: 40px; font-size: 0.7rem; }
+  .revenue-table-avg { min-width: 40px; font-size: 0.7rem; }
+  .revenue-table-status { min-width: 50px; }
+  .revenue-table-details { min-width: 25px; font-size: 0.7rem; }
+  
+  .rank-number {
+    width: 18px;
+    height: 18px;
+    font-size: 0.5rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.45rem;
+    padding: 0.05rem 0.2rem;
+  }
+}
+
 /* Loading State */
 .loading-state {
   display: flex;
@@ -12312,35 +12379,6 @@ export default {
   
   .revenue-stats-grid .stat-chip .stat-chip-value {
     font-size: 1rem;
-  }
-  
-  .revenue-table-header {
-    font-size: 0.55rem;
-    padding: 0.3rem 0.5rem;
-  }
-  
-  .revenue-table-row {
-    padding: 0.3rem 0.5rem;
-  }
-  
-  .revenue-table-rank { min-width: 35px; }
-  .revenue-table-name { min-width: 70px; }
-  .revenue-table-state { min-width: 60px; }
-  .revenue-table-revenue { min-width: 60px; font-size: 0.8rem; }
-  .revenue-table-transactions { min-width: 50px; font-size: 0.8rem; }
-  .revenue-table-avg { min-width: 50px; font-size: 0.8rem; }
-  .revenue-table-status { min-width: 60px; }
-  .revenue-table-details { min-width: 30px; }
-  
-  .rank-number {
-    width: 22px;
-    height: 22px;
-    font-size: 0.6rem;
-  }
-  
-  .status-indicator {
-    font-size: 0.5rem;
-    padding: 0.05rem 0.3rem;
   }
 }
 
