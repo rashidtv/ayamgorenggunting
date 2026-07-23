@@ -9759,13 +9759,36 @@ export default {
   transform: translateY(-1px);
 }
 
-/* ✅ Fix font sizes in Users table */
-.users-table-cell .username-text {
-  font-size: var(--font-size);
+/* ============================================ */
+/* USERS TAB - PERMANENT FONT SIZE FIX         */
+/* ============================================ */
+
+/* ✅ Ensure ALL table cells inherit the same font size */
+.users-table-wrapper .users-table-row .users-table-cell {
+  font-size: var(--font-size) !important;
+}
+
+/* ✅ Fix username - keep bold but same size */
+.users-table-wrapper .users-table-row .users-table-cell .username-text {
+  font-size: var(--font-size) !important;
   font-weight: 500;
 }
 
-.users-table-cell .fullname {
-  font-size: var(--font-size);
+/* ✅ Fix full name */
+.users-table-wrapper .users-table-row .users-table-cell .fullname {
+  font-size: var(--font-size) !important;
+}
+
+/* ✅ Fix all other elements in the table */
+.users-table-wrapper .users-table-row .users-table-cell .role-badge,
+.users-table-wrapper .users-table-row .users-table-cell .stall-badge,
+.users-table-wrapper .users-table-row .users-table-cell .status-badge,
+.users-table-wrapper .users-table-row .users-table-cell .no-stalls {
+  font-size: var(--font-size-sm) !important;
+}
+
+/* ✅ Fix action buttons */
+.users-table-wrapper .users-table-row .users-table-cell .btn-action {
+  font-size: var(--font-size-sm) !important;
 }
 </style>
