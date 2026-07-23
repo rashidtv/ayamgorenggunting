@@ -2098,7 +2098,7 @@ menuPerformanceStats: {
   totalRevenue: 0,
   topItemName: '-',
   topItemRevenue: 0
-}
+},
 
       // Menu Tab Data
       menuSearch: '',
