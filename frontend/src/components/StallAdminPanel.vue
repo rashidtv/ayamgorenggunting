@@ -1416,7 +1416,7 @@
         </div>
       </div>
 
-   <!-- ===== MENU TAB ===== -->
+<!-- ===== MENU TAB ===== -->
 <div v-if="activeTab === 'menu'" class="tab-panel">
   <div class="sub-tabs">
     <button 
@@ -1469,148 +1469,254 @@
           </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="filter-bar-modern">
-          <div class="filter-search">
-            <input 
-              type="text" 
-              v-model="menuSearch" 
-              placeholder="Search menu items..." 
-              class="filter-input"
-              @input="resetMenuPagination"
-            />
-          </div>
-          
-          <div class="filter-group">
-            <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
-              <option v-for="cat in menuCategories" :key="cat" :value="cat">
-                {{ cat === 'all' ? 'All Categories' : cat }}
-              </option>
-            </select>
-          </div>
-
-          <div class="filter-actions">
-            <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
-              {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
-            </button>
-            <!-- ✅ NEW: Bulk Assign Button -->
-            <button 
-              @click="openBulkAssignModal" 
-              class="btn-modern primary small"
-              :disabled="selectedMenuItems.length === 0"
-            >
-              📦 Bulk Assign ({{ selectedMenuItemsCount }})
-            </button>
-            <button @click="clearMenuFilters" class="btn-modern secondary small">
-              Clear Filters
-            </button>
-          </div>
+        <!-- ===== MODE TOGGLE ===== -->
+        <div class="mode-toggle">
+          <button 
+            class="mode-btn" 
+            :class="{ active: assignMode === 'single' }"
+            @click="assignMode = 'single'"
+          >
+            🎯 Single Stall
+          </button>
+          <button 
+            class="mode-btn" 
+            :class="{ active: assignMode === 'bulk' }"
+            @click="assignMode = 'bulk'"
+          >
+            📦 Bulk Assign
+          </button>
         </div>
 
-        <!-- Stall Selection (Single Stall) -->
-        <div class="filter-bar" style="margin-bottom: 1rem;">
-          <div class="filter-search">
-            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-              <option value="">-- Select a stall --</option>
-              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                {{ stall.name }} ({{ stall.code }})
-              </option>
-            </select>
+        <!-- ========================================== -->
+        <!-- SINGLE STALL MODE (EXISTING)              -->
+        <!-- ========================================== -->
+        <div v-if="assignMode === 'single'" class="assign-mode-content">
+          <!-- Filter Bar -->
+          <div class="filter-bar-modern">
+            <div class="filter-search">
+              <input 
+                type="text" 
+                v-model="menuSearch" 
+                placeholder="Search menu items..." 
+                class="filter-input"
+                @input="resetMenuPagination"
+              />
+            </div>
+            
+            <div class="filter-group">
+              <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
+                <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                  {{ cat === 'all' ? 'All Categories' : cat }}
+                </option>
+              </select>
+            </div>
+
+            <div class="filter-actions">
+              <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
+                {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
+              </button>
+              <button @click="clearMenuFilters" class="btn-modern secondary small">
+                Clear Filters
+              </button>
+            </div>
           </div>
-          
-          <!-- Single Stall Assign Button -->
-          <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
-            <button 
-              @click="bulkAssignMenusToStalls" 
-              class="btn-modern primary"
-              :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
-            >
-              📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
-            </button>
+
+          <!-- Stall Selection (Single Stall) -->
+          <div class="filter-bar" style="margin-bottom: 1rem;">
+            <div class="filter-search">
+              <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+              <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+                <option value="">-- Select a stall --</option>
+                <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                  {{ stall.name }} ({{ stall.code }})
+                </option>
+              </select>
+            </div>
+            
+            <!-- Single Stall Assign Button -->
+            <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
+              <button 
+                @click="bulkAssignMenusToStalls" 
+                class="btn-modern primary"
+                :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
+              >
+                📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-          <span>🏪</span>
-          <p>Please select a stall to manage its menu</p>
-        </div>
+          <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+            <span>🏪</span>
+            <p>Please select a stall to manage its menu</p>
+          </div>
 
-        <div v-else-if="loadingMenuAssignments" class="loading-state small">
-          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-          <p>Loading menu assignments...</p>
-        </div>
-
-        <div v-else>
-          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-            <span>📋</span>
-            <p>No menu items found matching your criteria</p>
-            <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-              Clear Filters
-            </button>
+          <div v-else-if="loadingMenuAssignments" class="loading-state small">
+            <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+            <p>Loading menu assignments...</p>
           </div>
 
           <div v-else>
-            <div class="menu-assignment-list">
-              <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
-                <div class="assignment-item-content">
-                  <div class="assignment-item-info">
-                    <div class="assignment-item-checkbox">
-                      <input 
-                        type="checkbox" 
-                        :id="`menu-${item.item_name}`" 
-                        v-model="menuAssignments[item.item_name]"
-                        :disabled="savingAssignment"
-                      />
-                      <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                        <span class="assignment-item-name">{{ item.item_name }}</span>
-                        <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                        <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                      </label>
+            <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+              <span>📋</span>
+              <p>No menu items found matching your criteria</p>
+              <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                Clear Filters
+              </button>
+            </div>
+
+            <div v-else>
+              <div class="menu-assignment-list">
+                <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
+                  <div class="assignment-item-content">
+                    <div class="assignment-item-info">
+                      <div class="assignment-item-checkbox">
+                        <input 
+                          type="checkbox" 
+                          :id="`menu-${item.item_name}`" 
+                          v-model="menuAssignments[item.item_name]"
+                          :disabled="savingAssignment"
+                        />
+                        <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                          <span class="assignment-item-name">{{ item.item_name }}</span>
+                          <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                          <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Pagination Controls -->
-            <div class="pagination-container">
-              <div class="pagination-info">
-                Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+              <!-- Pagination Controls -->
+              <div class="pagination-container">
+                <div class="pagination-info">
+                  Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+                </div>
+                <div class="pagination-controls">
+                  <button 
+                    @click="prevMenuPage" 
+                    class="pagination-btn"
+                    :disabled="menuCurrentPage <= 1"
+                  >
+                    ◀ Previous
+                  </button>
+                  <span class="pagination-page">
+                    Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                  </span>
+                  <button 
+                    @click="nextMenuPage" 
+                    class="pagination-btn"
+                    :disabled="menuCurrentPage >= menuTotalPages"
+                  >
+                    Next ▶
+                  </button>
+                </div>
               </div>
-              <div class="pagination-controls">
-                <button 
-                  @click="prevMenuPage" 
-                  class="pagination-btn"
-                  :disabled="menuCurrentPage <= 1"
-                >
-                  ◀ Previous
+
+              <div v-if="selectedAssignmentStall" class="assignment-actions">
+                <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                  {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
                 </button>
-                <span class="pagination-page">
-                  Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                <button @click="resetMenuAssignments" class="btn-modern secondary">
+                  ↩ Reset
+                </button>
+              </div>
+
+              <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+                {{ savedAssignmentMessage }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- BULK ASSIGN MODE (NEW)                     -->
+        <!-- ========================================== -->
+        <div v-if="assignMode === 'bulk'" class="assign-mode-content bulk-mode">
+          
+          <!-- Step 1: Select Stalls -->
+          <div class="bulk-step">
+            <div class="step-header">
+              <span class="step-number">1</span>
+              <h4>Select Stalls</h4>
+              <span class="step-count">{{ selectedStallsForAssign.length }} / {{ stalls.length }} selected</span>
+              <button @click="toggleAllStallsForAssign" class="btn-modern secondary small">
+                {{ selectAllStallsForAssign ? 'Deselect All' : 'Select All' }}
+              </button>
+            </div>
+            
+            <div class="stall-checkbox-grid">
+              <label v-for="stall in stalls" :key="stall.id" class="stall-checkbox-item">
+                <input 
+                  type="checkbox" 
+                  :value="stall.id" 
+                  v-model="selectedStallsForAssign" 
+                />
+                <span class="stall-name">{{ stall.name }}</span>
+                <span class="stall-code">{{ stall.code }}</span>
+                <span class="stall-status" :class="stall.is_active ? 'active' : 'inactive'">
+                  {{ stall.is_active ? '🟢' : '⚪' }}
                 </span>
-                <button 
-                  @click="nextMenuPage" 
-                  class="pagination-btn"
-                  :disabled="menuCurrentPage >= menuTotalPages"
-                >
-                  Next ▶
-                </button>
+              </label>
+            </div>
+          </div>
+
+          <!-- Step 2: Select Menus -->
+          <div class="bulk-step">
+            <div class="step-header">
+              <span class="step-number">2</span>
+              <h4>Select Menus</h4>
+              <span class="step-count">{{ selectedMenuItemsForBulk.length }} selected</span>
+              <button @click="toggleAllMenusForBulk" class="btn-modern secondary small">
+                {{ selectAllMenusForBulk ? 'Deselect All' : 'Select All' }}
+              </button>
+              <div class="filter-search" style="flex:1; min-width:150px;">
+                <input 
+                  type="text" 
+                  v-model="bulkMenuSearch" 
+                  placeholder="Search menus..." 
+                  class="filter-input" 
+                />
               </div>
             </div>
-
-            <div v-if="selectedAssignmentStall" class="assignment-actions">
-              <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-                {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-              </button>
-              <button @click="resetMenuAssignments" class="btn-modern secondary">
-                ↩ Reset
-              </button>
+            
+            <div class="menu-checkbox-grid">
+              <label 
+                v-for="item in filteredBulkMenuItems" 
+                :key="item.item_name" 
+                class="menu-checkbox-item"
+              >
+                <input 
+                  type="checkbox" 
+                  :value="item.item_name" 
+                  v-model="selectedMenuItemsForBulk" 
+                />
+                <span class="menu-name">{{ item.item_name }}</span>
+                <span class="menu-price">{{ formatCurrency(item.price) }}</span>
+                <span class="menu-category">{{ item.category || 'Main' }}</span>
+              </label>
             </div>
+          </div>
 
-            <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-              {{ savedAssignmentMessage }}
+          <!-- Step 3: Execute -->
+          <div class="bulk-actions">
+            <div class="bulk-summary">
+              <strong>Summary:</strong> 
+              {{ selectedMenuItemsForBulk.length }} menu(s) × {{ selectedStallsForAssign.length }} stall(s) = 
+              <strong class="total-assignments">{{ selectedMenuItemsForBulk.length * selectedStallsForAssign.length }}</strong> assignments
             </div>
+            
+            <button 
+              @click="executeBulkAssignToStalls" 
+              class="btn-modern primary"
+              :disabled="selectedStallsForAssign.length === 0 || selectedMenuItemsForBulk.length === 0 || bulkAssignToStallsLoading"
+            >
+              {{ bulkAssignToStallsLoading ? 'Assigning...' : `📦 Assign to ${selectedStallsForAssign.length} Stall(s)` }}
+            </button>
+          </div>
+
+          <div v-if="bulkAssignMessage" class="assignment-message" :class="bulkAssignMessageType">
+            {{ bulkAssignMessage }}
           </div>
         </div>
       </div>
@@ -1651,7 +1757,7 @@
           </div>
         </div>
 
-        <!-- ✅ NEW: Status Breakdown Cards -->
+        <!-- Status Breakdown Cards -->
         <div class="menu-performance-breakdown-grid">
           <div class="stat-chip excellent">
             <span class="stat-chip-label">🟢 Excellent</span>
@@ -2081,6 +2187,20 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+       assignMode: 'single', // 'single' or 'bulk'
+    
+    // Bulk assign to multiple stalls
+    selectedStallsForAssign: [], // Array of stall IDs
+    selectAllStallsForAssign: false,
+    selectedMenuItemsForBulk: [], // Array of menu item names
+    selectAllMenusForBulk: false,
+    bulkMenuSearch: '',
+    bulkAssignToStallsLoading: false,
+    bulkAssignMessage: '',
+    bulkAssignMessageType: 'success',
+  }
+},
+
       // Bulk Assign Modal
 bulkAssignModal: false,
 bulkAssignStalls: [],
@@ -2249,6 +2369,20 @@ menuPerformanceStats: {
   },
 
   computed: {
+
+    filteredBulkMenuItems() {
+    let items = this.menuItems
+    
+    if (this.bulkMenuSearch) {
+      const search = this.bulkMenuSearch.toLowerCase()
+      items = items.filter(item => 
+        item.item_name.toLowerCase().includes(search)
+      )
+    }
+    
+    return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
+  },
+},
 
     // Menu Performance Status Breakdown
 menuPerformanceBreakdown() {
@@ -2839,6 +2973,121 @@ menuPerformanceBreakdown() {
   },
 
   methods: {
+
+     // =============================================
+  // BULK ASSIGN MODE METHODS
+  // =============================================
+
+  toggleAllStallsForAssign() {
+    this.selectAllStallsForAssign = !this.selectAllStallsForAssign
+    if (this.selectAllStallsForAssign) {
+      this.selectedStallsForAssign = this.stalls.map(s => s.id)
+    } else {
+      this.selectedStallsForAssign = []
+    }
+  },
+
+  toggleAllMenusForBulk() {
+    this.selectAllMenusForBulk = !this.selectAllMenusForBulk
+    if (this.selectAllMenusForBulk) {
+      this.selectedMenuItemsForBulk = this.filteredBulkMenuItems.map(item => item.item_name)
+    } else {
+      this.selectedMenuItemsForBulk = []
+    }
+  },
+
+  async executeBulkAssignToStalls() {
+    if (this.selectedStallsForAssign.length === 0) {
+      this.bulkAssignMessage = 'Please select at least one stall'
+      this.bulkAssignMessageType = 'error'
+      this.$emit('show-notification', 'Please select at least one stall', 'warning')
+      return
+    }
+    
+    if (this.selectedMenuItemsForBulk.length === 0) {
+      this.bulkAssignMessage = 'Please select at least one menu item'
+      this.bulkAssignMessageType = 'error'
+      this.$emit('show-notification', 'Please select at least one menu item', 'warning')
+      return
+    }
+
+    const total = this.selectedStallsForAssign.length * this.selectedMenuItemsForBulk.length
+    if (!confirm(`Assign ${this.selectedMenuItemsForBulk.length} menu(s) to ${this.selectedStallsForAssign.length} stall(s)? (${total} total assignments)`)) {
+      return
+    }
+
+    this.bulkAssignToStallsLoading = true
+    this.bulkAssignMessage = ''
+    let successCount = 0
+    let errorCount = 0
+
+    try {
+      for (const stallId of this.selectedStallsForAssign) {
+        try {
+          // Get current assignments for this stall
+          const res = await axios.get(`${API_BASE}/menu/assignments/${stallId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          
+          const currentAssignments = res.data || []
+          const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItemsForBulk])]
+          
+          await axios.post(`${API_BASE}/menu/assignments`, {
+            stallId: stallId,
+            items: allAssignments
+          }, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          
+          successCount++
+          
+        } catch (err) {
+          console.error(`Failed to assign to stall ${stallId}:`, err)
+          errorCount++
+        }
+      }
+
+      // Update local state for currently selected stall if any
+      if (this.selectedAssignmentStall) {
+        this.selectedMenuItemsForBulk.forEach(itemName => {
+          this.menuAssignments[itemName] = true
+        })
+        this.originalMenuAssignments = { ...this.menuAssignments }
+      }
+
+      // Show success message
+      if (errorCount === 0) {
+        this.bulkAssignMessage = `✅ Successfully assigned ${this.selectedMenuItemsForBulk.length} menu(s) to ${successCount} stall(s)`
+        this.bulkAssignMessageType = 'success'
+        this.$emit('show-notification', `✅ Assigned to ${successCount} stall(s) successfully`, 'success')
+      } else {
+        this.bulkAssignMessage = `⚠️ Assigned to ${successCount} stall(s), ${errorCount} failed`
+        this.bulkAssignMessageType = 'warning'
+        this.$emit('show-notification', `⚠️ ${successCount} succeeded, ${errorCount} failed`, 'warning')
+      }
+      
+      // Reset selections
+      this.selectedStallsForAssign = []
+      this.selectedMenuItemsForBulk = []
+      this.selectAllStallsForAssign = false
+      this.selectAllMenusForBulk = false
+      this.bulkMenuSearch = ''
+      
+      // Reload current stall assignments if any
+      if (this.selectedAssignmentStall) {
+        await this.loadMenuAssignments()
+      }
+      
+    } catch (err) {
+      console.error('Bulk assign error:', err)
+      this.bulkAssignMessage = '❌ Failed to complete bulk assignment'
+      this.bulkAssignMessageType = 'error'
+      this.$emit('show-notification', 'Failed to complete bulk assignment', 'error')
+    } finally {
+      this.bulkAssignToStallsLoading = false
+    }
+  },
+}
 
     // =============================================
 // BULK ASSIGN MENUS TO MULTIPLE STALLS
@@ -10788,6 +11037,208 @@ async executeBulkAssign() {
   
   .bulk-assign-stall-item .stall-name {
     font-size: 0.75rem;
+  }
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+}
+
+.mode-toggle .mode-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.mode-toggle .mode-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.mode-toggle .mode-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 73, 8, 0.2);
+}
+
+/* Bulk Mode */
+.bulk-mode .bulk-step {
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+}
+
+.bulk-mode .step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bulk-mode .step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.bulk-mode .step-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bulk-mode .step-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.bulk-mode .stall-checkbox-grid,
+.bulk-mode .menu-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.bulk-mode .stall-checkbox-item,
+.bulk-mode .menu-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+}
+
+.bulk-mode .stall-checkbox-item:hover,
+.bulk-mode .menu-checkbox-item:hover {
+  background: var(--background);
+  border-color: var(--primary);
+}
+
+.bulk-mode .stall-checkbox-item input[type="checkbox"],
+.bulk-mode .menu-checkbox-item input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bulk-mode .stall-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.bulk-mode .stall-code {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.bulk-mode .stall-status {
+  font-size: 0.8rem;
+}
+.bulk-mode .stall-status.active { color: #10b981; }
+.bulk-mode .stall-status.inactive { color: #6b7280; }
+
+.bulk-mode .menu-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.bulk-mode .menu-price {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.bulk-mode .menu-category {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+}
+
+.bulk-mode .bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.bulk-mode .bulk-summary {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.bulk-mode .total-assignments {
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bulk-mode .stall-checkbox-grid,
+  .bulk-mode .menu-checkbox-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .bulk-mode .step-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .bulk-mode .bulk-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .bulk-mode .stall-checkbox-grid,
+  .bulk-mode .menu-checkbox-grid {
+    grid-template-columns: 1fr;
   }
 }
 
