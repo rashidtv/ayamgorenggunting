@@ -1200,7 +1200,7 @@
 </div> <!-- ✅ THIS CLOSES sub-tab-content -->
 </div> <!-- ← THIS CLOSES THE STALLS TAB PANEL -->
 
-      <!-- ===== USERS TAB ===== -->
+<!-- ===== USERS TAB ===== -->
 <div v-if="activeTab === 'users'" class="tab-panel">
   <div class="card-modern">
     <div class="card-modern-header">
@@ -1213,47 +1213,199 @@
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
       </div>
-  </div>
-          <div class="card-modern-body">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <input 
-                  type="text" 
-                  v-model="userSearch" 
-                  placeholder="Search users..." 
-                  class="filter-input"
-                />
-              </div>
-              <select v-model="userRoleFilter" class="filter-select">
-                <option value="all">All Roles</option>
-                <option value="stall_admin">👤 Admin</option>
-                <option value="cashier">💰 Cashier</option>
-              </select>
-            </div>
+    </div>
+    <div class="card-modern-body">
+      
+      <!-- Stats Cards -->
+      <div class="users-stats-grid">
+        <div class="stat-chip">
+          <span class="stat-chip-label">Total Users</span>
+          <span class="stat-chip-value">{{ userStats.total }}</span>
+        </div>
+        <div class="stat-chip admin">
+          <span class="stat-chip-label">👤 Admins</span>
+          <span class="stat-chip-value">{{ userStats.admins }}</span>
+        </div>
+        <div class="stat-chip cashier">
+          <span class="stat-chip-label">💰 Cashiers</span>
+          <span class="stat-chip-value">{{ userStats.cashiers }}</span>
+        </div>
+        <div class="stat-chip active">
+          <span class="stat-chip-label">🟢 Active</span>
+          <span class="stat-chip-value">{{ userStats.active }}</span>
+        </div>
+        <div class="stat-chip inactive">
+          <span class="stat-chip-label">⚪ Inactive</span>
+          <span class="stat-chip-value">{{ userStats.inactive }}</span>
+        </div>
+      </div>
 
-            <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
-              <span>👥</span>
-              <p>No users found</p>
-            </div>
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="userSearch" 
+            placeholder="Search users by name or username..." 
+            class="filter-input"
+            @input="resetUserPagination"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
+            <option value="all">All Roles</option>
+            <option value="stall_admin">👤 Admin</option>
+            <option value="cashier">💰 Cashier</option>
+          </select>
+        </div>
 
-            <div v-for="(u, index) in filteredUsersList" :key="u.id" class="list-item">
-              <div class="list-item-content">
-                <span class="list-item-index">{{ index + 1 }}</span>
-                <div class="list-item-info">
-                  <span class="list-item-name">{{ u.username }}</span>
-                  <span class="list-item-sub">{{ u.full_name || '-' }}</span>
-                </div>
-                <span class="role-tag">{{ u.role }}</span>
-                <span class="list-item-stalls">{{ (u.assigned_stalls || []).map(s => s.name).join(', ') || '-' }}</span>
-                <div class="list-item-actions">
-                  <button @click="openEditUserModal(u)" class="list-item-btn" title="Edit">✏️</button>
-                  <button @click="deleteUser(u.id, u.username)" class="list-item-btn danger" title="Delete">🗑️</button>
-                </div>
-              </div>
+        <div class="filter-actions">
+          <button @click="toggleSelectAllUsers" class="btn-modern secondary small">
+            {{ selectAllUsers ? 'Deselect All' : 'Select All' }}
+          </button>
+          <button @click="clearUserFilters" class="btn-modern secondary small">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Action Buttons -->
+      <div class="inventory-quick-actions" v-if="selectedUsers.length > 0">
+        <button 
+          @click="bulkRoleChange('stall_admin')" 
+          class="btn-modern primary"
+          :disabled="loading"
+        >
+          👤 Make Admin ({{ selectedUsersCount }})
+        </button>
+        <button 
+          @click="bulkRoleChange('cashier')" 
+          class="btn-modern secondary"
+          :disabled="loading"
+        >
+          💰 Make Cashier ({{ selectedUsersCount }})
+        </button>
+        <button 
+          @click="bulkDeleteUsers" 
+          class="btn-modern danger"
+          :disabled="loading"
+        >
+          🗑️ Delete Selected ({{ selectedUsersCount }})
+        </button>
+        <span class="selected-count-label">{{ selectedUsersCount }} user(s) selected</span>
+      </div>
+
+      <!-- User Table with Pagination -->
+      <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
+        <span>👥</span>
+        <p>No users found matching your criteria</p>
+        <button @click="clearUserFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+          Clear Filters
+        </button>
+      </div>
+
+      <div v-else>
+        <div class="users-table-wrapper">
+          <!-- Table Header -->
+          <div class="users-table-header">
+            <div class="users-table-cell checkbox">
+              <input type="checkbox" v-model="selectAllUsers" @change="toggleSelectAllUsers" />
+            </div>
+            <div class="users-table-cell username">Username</div>
+            <div class="users-table-cell fullname">Full Name</div>
+            <div class="users-table-cell role">Role</div>
+            <div class="users-table-cell stalls">Assigned Stalls</div>
+            <div class="users-table-cell status">Status</div>
+            <div class="users-table-cell actions">Actions</div>
+          </div>
+
+          <!-- Table Rows - Paginated -->
+          <div 
+            v-for="user in paginatedUsersList" 
+            :key="user.id" 
+            class="users-table-row"
+            :class="{ selected: selectedUsers.includes(user.id) }"
+          >
+            <div class="users-table-cell checkbox">
+              <input 
+                type="checkbox" 
+                :value="user.id"
+                v-model="selectedUsers"
+                @change="selectAllUsers = selectedUsers.length === paginatedUsersList.length && paginatedUsersList.length > 0"
+                :disabled="user.id === currentUserId"
+              />
+            </div>
+            <div class="users-table-cell username">
+              <span class="username-text">{{ user.username }}</span>
+            </div>
+            <div class="users-table-cell fullname">
+              {{ user.full_name || '-' }}
+            </div>
+            <div class="users-table-cell role">
+              <span :class="['role-badge', user.role]">
+                {{ user.role === 'stall_admin' ? '👤 Admin' : '💰 Cashier' }}
+              </span>
+            </div>
+            <div class="users-table-cell stalls">
+              <span 
+                v-for="stall in (user.assigned_stalls || [])" 
+                :key="stall.id"
+                class="stall-badge clickable"
+                @click="navigateToStall(stall.id)"
+                :title="'Click to view ' + stall.name"
+              >
+                {{ stall.name }}
+              </span>
+              <span v-if="!user.assigned_stalls || user.assigned_stalls.length === 0" class="no-stalls">
+                No stalls assigned
+              </span>
+            </div>
+            <div class="users-table-cell status">
+              <span :class="['status-badge', user.is_active !== false ? 'active' : 'inactive']">
+                {{ user.is_active !== false ? '🟢 Active' : '⚪ Inactive' }}
+              </span>
+            </div>
+            <div class="users-table-cell actions">
+              <button @click="openEditUserModal(user)" class="btn-action" title="Edit" :disabled="selectedUsers.length > 0">
+                ✏️ Edit
+              </button>
+              <button @click="deleteUser(user.id, user.username)" class="btn-action danger" title="Delete" :disabled="selectedUsers.length > 0 || user.id === currentUserId">
+                🗑️ Delete
+              </button>
             </div>
           </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ userStartIndex }} - {{ userEndIndex }} of {{ filteredUsersList.length }} users
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevUserPage" 
+              class="pagination-btn"
+              :disabled="userCurrentPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ userCurrentPage }} of {{ userTotalPages }}
+            </span>
+            <button 
+              @click="nextUserPage" 
+              class="pagination-btn"
+              :disabled="userCurrentPage >= userTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- ===== MENU TAB ===== -->
       <div v-if="activeTab === 'menu'" class="tab-panel">
@@ -1661,7 +1813,11 @@ export default {
       ],
 
       stallPerformancePeriod: [],
-
+      userCurrentPage: 1,
+      userItemsPerPage: 10,
+      selectedUsers: [],
+      selectAllUsers: false,
+      currentUserId: null, // Set this when user logs in
       performanceSearch: '',
       performanceStateFilter: 'All States',
       performanceStatusFilter: 'all',
@@ -1787,6 +1943,71 @@ export default {
   },
 
   computed: {
+
+      // ✅ Users Stats
+  userStats() {
+    const users = this.users.filter(u => 
+      u.role !== 'super_admin' && u.role !== 'super_super_admin'
+    )
+    
+    let total = users.length
+    let admins = users.filter(u => u.role === 'stall_admin').length
+    let cashiers = users.filter(u => u.role === 'cashier').length
+    let active = users.filter(u => u.is_active !== false).length
+    let inactive = users.filter(u => u.is_active === false).length
+    
+    return {
+      total,
+      admins,
+      cashiers,
+      active,
+      inactive
+    }
+  },
+
+  // ✅ Users Pagination
+  userTotalPages() {
+    return Math.ceil(this.filteredUsersList.length / this.userItemsPerPage) || 1
+  },
+
+  paginatedUsersList() {
+    const start = (this.userCurrentPage - 1) * this.userItemsPerPage
+    const end = start + this.userItemsPerPage
+    return this.filteredUsersList.slice(start, end)
+  },
+
+  userStartIndex() {
+    if (this.filteredUsersList.length === 0) return 0
+    return (this.userCurrentPage - 1) * this.userItemsPerPage + 1
+  },
+
+  userEndIndex() {
+    if (this.filteredUsersList.length === 0) return 0
+    return Math.min(this.userCurrentPage * this.userItemsPerPage, this.filteredUsersList.length)
+  },
+
+  selectedUsersCount() {
+    return this.selectedUsers.length
+  },
+
+  // ✅ Override filteredUsersList to include pagination
+  filteredUsersList() {
+    return this.users.filter(user => {
+      // Skip super admin users
+      if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+        return false
+      }
+      
+      const search = this.userSearch.toLowerCase()
+      const matchesSearch = user.username.toLowerCase().includes(search) ||
+                            (user.full_name && user.full_name.toLowerCase().includes(search))
+      
+      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+      
+      return matchesSearch && matchesRole
+    })
+  }
+},
 
  dashboardDisplayStalls() {
     const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
@@ -2186,6 +2407,132 @@ stallCurrentPage: {
 
   methods: {
 
+  // =============================================
+  // USERS TAB - PAGINATION & FILTERS
+  // =============================================
+
+  toggleSelectAllUsers() {
+    this.selectAllUsers = !this.selectAllUsers
+    if (this.selectAllUsers) {
+      this.selectedUsers = this.paginatedUsersList.map(u => u.id)
+    } else {
+      this.selectedUsers = []
+    }
+  },
+
+  clearUserFilters() {
+    this.userSearch = ''
+    this.userRoleFilter = 'all'
+    this.selectedUsers = []
+    this.selectAllUsers = false
+    this.userCurrentPage = 1
+  },
+
+  resetUserPagination() {
+    this.userCurrentPage = 1
+  },
+
+  prevUserPage() {
+    if (this.userCurrentPage > 1) {
+      this.userCurrentPage--
+    }
+  },
+
+  nextUserPage() {
+    if (this.userCurrentPage < this.userTotalPages) {
+      this.userCurrentPage++
+    }
+  },
+
+  // =============================================
+  // BULK ACTIONS FOR USERS
+  // =============================================
+
+  async bulkDeleteUsers() {
+    if (this.selectedUsers.length === 0) {
+      this.$emit('show-notification', 'No users selected', 'warning')
+      return
+    }
+
+    if (!confirm(`Delete ${this.selectedUsers.length} selected user(s)? This action cannot be undone.`)) return
+
+    this.loading = true
+    let deleted = 0
+
+    try {
+      for (const userId of this.selectedUsers) {
+        // Skip if trying to delete self
+        if (userId === this.currentUserId) {
+          continue
+        }
+        await axios.delete(`${API_BASE}/users/${userId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        deleted++
+      }
+
+      this.$emit('show-notification', `✅ Deleted ${deleted} user(s)`, 'success')
+      this.selectedUsers = []
+      this.selectAllUsers = false
+      await this.loadUsers()
+    } catch (error) {
+      console.error('Bulk delete error:', error)
+      this.$emit('show-notification', 'Error deleting users', 'error')
+    } finally {
+      this.loading = false
+    }
+  },
+
+  async bulkRoleChange(role) {
+    if (this.selectedUsers.length === 0) {
+      this.$emit('show-notification', 'No users selected', 'warning')
+      return
+    }
+
+    const roleLabel = role === 'stall_admin' ? 'Admin' : 'Cashier'
+    if (!confirm(`Change ${this.selectedUsers.length} user(s) role to ${roleLabel}?`)) return
+
+    this.loading = true
+    let updated = 0
+
+    try {
+      for (const userId of this.selectedUsers) {
+        const user = this.users.find(u => u.id === userId)
+        if (user && user.role !== role) {
+          await axios.put(`${API_BASE}/users/${userId}`, {
+            ...user,
+            role: role
+          }, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          updated++
+        }
+      }
+
+      this.$emit('show-notification', `✅ Updated ${updated} user(s) to ${roleLabel}`, 'success')
+      this.selectedUsers = []
+      this.selectAllUsers = false
+      await this.loadUsers()
+    } catch (error) {
+      console.error('Bulk role change error:', error)
+      this.$emit('show-notification', 'Error updating user roles', 'error')
+    } finally {
+      this.loading = false
+    }
+  },
+
+  // =============================================
+  // NAVIGATE TO STALL
+  // =============================================
+
+  navigateToStall(stallId) {
+    this.activeTab = 'stalls'
+    this.stallSubTab = 'management'
+    // Filter to the specific stall
+    this.stallSearch = this.stalls.find(s => s.id === stallId)?.name || ''
+    this.dropdownOpen = false
+  }
+},
     getPeriodDays() {
     switch(this.selectedPeriod) {
       case 'today': return 1
@@ -9169,6 +9516,265 @@ mergeStallData(performanceData) {
     font-size: 0.7rem;
     padding: 0.25rem 0.6rem;
   }
+}
+
+/* ============================================ */
+/* USERS TAB - STATS GRID                      */
+/* ============================================ */
+.users-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.users-stats-grid .stat-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.users-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.users-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.users-stats-grid .stat-chip.admin .stat-chip-value { color: #7c3aed; }
+.users-stats-grid .stat-chip.cashier .stat-chip-value { color: #10b981; }
+.users-stats-grid .stat-chip.active .stat-chip-value { color: #10b981; }
+.users-stats-grid .stat-chip.inactive .stat-chip-value { color: #6b7280; }
+
+/* ============================================ */
+/* USERS TABLE                                 */
+/* ============================================ */
+.users-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.users-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 600px;
+}
+
+.users-table-row {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+  align-items: center;
+  min-width: 600px;
+}
+
+.users-table-row:hover {
+  background: var(--background);
+}
+
+.users-table-row.selected {
+  background: rgba(249, 73, 8, 0.05);
+  border-left: 3px solid var(--primary);
+}
+
+.users-table-cell {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.users-table-cell.checkbox { width: 40px; flex-shrink: 0; }
+.users-table-cell.username { flex: 1; min-width: 80px; }
+.users-table-cell.fullname { flex: 1; min-width: 80px; }
+.users-table-cell.role { width: 100px; flex-shrink: 0; }
+.users-table-cell.stalls { flex: 1.5; min-width: 100px; flex-wrap: wrap; gap: 0.25rem; }
+.users-table-cell.status { width: 100px; flex-shrink: 0; }
+.users-table-cell.actions { width: 120px; flex-shrink: 0; justify-content: flex-end; gap: 0.25rem; }
+
+/* ✅ Checkbox styling */
+.users-table-cell input[type="checkbox"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.users-table-cell input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ✅ Role badges */
+.role-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.role-badge.stall_admin {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.role-badge.cashier {
+  background: #d1fae5;
+  color: #059669;
+}
+
+/* ✅ Stall badges */
+.stall-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  margin: 0.1rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stall-badge.clickable {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.stall-badge.clickable:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.no-stalls {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ✅ Action buttons */
+.users-table-cell .btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.users-table-cell .btn-action:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.users-table-cell .btn-action.danger:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.users-table-cell .btn-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ✅ Responsive */
+@media (max-width: 768px) {
+  .users-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .users-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .users-stats-grid .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .users-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .users-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem;
+  }
+  
+  .users-table-header {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.3rem;
+    min-width: 500px;
+  }
+  
+  .users-table-row {
+    padding: 0.2rem 0.3rem;
+    min-width: 500px;
+  }
+  
+  .users-table-cell.username { min-width: 60px; }
+  .users-table-cell.fullname { min-width: 60px; }
+  .users-table-cell.role { width: 70px; }
+  .users-table-cell.status { width: 70px; }
+  .users-table-cell.actions { width: 80px; }
+  
+  .role-badge {
+    font-size: 0.55rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .stall-badge {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .users-table-cell .btn-action {
+    font-size: 0.55rem;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+/* ✅ Danger button style */
+.btn-modern.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-modern.danger:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
 }
 
 </style>
