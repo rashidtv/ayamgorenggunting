@@ -1767,13 +1767,13 @@ export default {
 
   computed: {
 
-    dashboardDisplayStalls() {
-  // Check if there are sales in the current period
+// ✅ Dashboard Stall Performance - Period Limited Only
+dashboardDisplayStalls() {
   const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
                          this.salesTrend.some(d => (d.revenue || 0) > 0)
   
   if (!hasPeriodSales) {
-    return []  // No sales for this period
+    return []
   }
   
   // Get period-limited stall data from salesTrend
@@ -1795,7 +1795,6 @@ export default {
     return acc
   }, [])
   
-  // If periodData has stall data, use it; otherwise fallback to stallPerformance
   if (periodData.length > 0) {
     if (this.showAllStalls) {
       return periodData
@@ -1803,15 +1802,7 @@ export default {
     return periodData.slice(0, 5)
   }
   
-  // Fallback: use stallPerformance but check if there are period sales
-  const stallsWithSales = this.stallPerformance.filter(stall => 
-    (stall.revenue || 0) > 0
-  )
-  
-  if (this.showAllStalls) {
-    return stallsWithSales
-  }
-  return stallsWithSales.slice(0, 5)
+  return []
 },
 
      performanceStats() {
@@ -2920,38 +2911,17 @@ stallCurrentPage: {
     // =============================================
     // TOP STALL HELPERS
     // =============================================
-   getTopStallName() {
-  // ✅ Check if there are sales in the current period
-  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
-                         this.salesTrend.some(d => (d.revenue || 0) > 0)
-  
-  // ✅ If no sales in current period, return '-'
-  if (!hasPeriodSales) {
-    return '-'
-  }
-  
-  // Use consolidatedSales.topStall (period-limited)
+ getTopStallName() {
   if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
     return this.consolidatedSales.topStall
   }
-  
   return '-'
 },
 
-    getTopStallRevenue() {
-  // ✅ Check if there are sales in the current period
-  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
-                         this.salesTrend.some(d => (d.revenue || 0) > 0)
-  
-  // ✅ If no sales in current period, return 0
-  if (!hasPeriodSales) {
-    return 0
-  }
-  
+ getTopStallRevenue() {
   if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
     return this.consolidatedSales.topRevenue
   }
-  
   return 0
 },
 
