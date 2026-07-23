@@ -146,36 +146,39 @@
           </div>
         </div>
 
-        <!-- KPI Cards with Sparkline -->
-       <div class="kpi-card clickable" 
-     style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);" 
-     @click="switchTab('revenue')">
-  <div class="kpi-icon">💰</div>
-  <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
-  <div class="kpi-label">Revenue</div>
-  <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-    <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
-    {{ Math.abs(getRevenueChange()).toFixed(1) }}%
-  </div>
-  <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-    {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
-  </div>
-  <div class="sparkline-container">
-    <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-      <polyline
-        :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-        class="sparkline-line"
-        :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
-      />
-      <polyline
-        :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-        class="sparkline-area"
-        :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
-      />
-    </svg>
-  </div>
-  <div class="kpi-hover">Click to view revenue →</div>
-</div>
+        <!-- ===== KPI CARDS WITH SPARKLINE ===== -->
+        <!-- ✅ FIX: Added missing kpi-grid wrapper div -->
+        <div class="kpi-grid">
+          <!-- Revenue KPI Card -->
+          <div class="kpi-card clickable" 
+               style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);" 
+               @click="switchTab('revenue')">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+            <div class="kpi-label">Revenue</div>
+            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
+              {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+            </div>
+            <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+              {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+            </div>
+            <div class="sparkline-container">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-line"
+                  :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
+                />
+                <polyline
+                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+                  class="sparkline-area"
+                  :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+                />
+              </svg>
+            </div>
+            <div class="kpi-hover">Click to view revenue →</div>
+          </div>
 
           <!-- Menu Sold - Clickable to Menu Performance -->
           <div class="kpi-card clickable" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);" @click="switchTabWithSubTab('menu', 'performance')">
@@ -262,6 +265,7 @@
             </div>
           </div>
         </div>
+        <!-- ✅ END: kpi-grid wrapper -->
 
         <!-- Professional Chart with ECharts -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
@@ -12387,6 +12391,5 @@ export default {
   opacity: 1;
   transform: translateX(0);
 }
-
 
 </style>
