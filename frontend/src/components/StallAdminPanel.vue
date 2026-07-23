@@ -2177,211 +2177,210 @@ export default {
   },
 
   data() {
-  return {
-    activeTab: 'dashboard',
-    tabs: [
-      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-      { id: 'inventory', label: 'Inventory', icon: '📦' },
-      { id: 'stalls', label: 'Stalls', icon: '🏪' },
-      { id: 'users', label: 'Users', icon: '👥' },
-      { id: 'menu', label: 'Menu', icon: '📋' }
-    ],
+    return {
+      activeTab: 'dashboard',
+      tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'inventory', label: 'Inventory', icon: '📦' },
+        { id: 'stalls', label: 'Stalls', icon: '🏪' },
+        { id: 'users', label: 'Users', icon: '👥' },
+        { id: 'menu', label: 'Menu', icon: '📋' }
+      ],
 
-    // Mode toggle
-    assignMode: 'single', // 'single' or 'bulk'
-    
-    // Bulk assign to multiple stalls
-    selectedStallsForAssign: [],
-    selectAllStallsForAssign: false,
-    selectedMenuItemsForBulk: [],
-    selectAllMenusForBulk: false,
-    bulkMenuSearch: '',
-    bulkAssignToStallsLoading: false,
-    bulkAssignMessage: '',
-    bulkAssignMessageType: 'success',
+      // Mode toggle
+      assignMode: 'single', // 'single' or 'bulk'
+      
+      // Bulk assign to multiple stalls
+      selectedStallsForAssign: [],
+      selectAllStallsForAssign: false,
+      selectedMenuItemsForBulk: [],
+      selectAllMenusForBulk: false,
+      bulkMenuSearch: '',
+      bulkAssignToStallsLoading: false,
+      bulkAssignMessage: '',
+      bulkAssignMessageType: 'success',
 
-    // Menu Tab Data
-    menuSearch: '',
-    menuCategoryFilter: 'all',
-    menuStateFilter: 'All States',
-    menuCurrentPage: 1,
-    menuItemsPerPage: 10,
-    selectedMenuItems: [],
-    selectAllMenuItems: false,
-    
-    // Menu Performance Data
-    menuPerformancePage: 1,
-    menuPerformancePerPage: 10,
-    menuPerformanceCategoryFilter: 'all',
-    menuPerformanceStateFilter: 'All States',
-    menuPerformanceSortBy: 'rank',
-    menuPerformanceSortOrder: 'desc',
+      // Menu Tab Data
+      menuSearch: '',
+      menuCategoryFilter: 'all',
+      menuStateFilter: 'All States',
+      menuCurrentPage: 1,
+      menuItemsPerPage: 10,
+      selectedMenuItems: [],
+      selectAllMenuItems: false,
+      
+      // Menu Performance Data
+      menuPerformancePage: 1,
+      menuPerformancePerPage: 10,
+      menuPerformanceCategoryFilter: 'all',
+      menuPerformanceStateFilter: 'All States',
+      menuPerformanceSortBy: 'rank',
+      menuPerformanceSortOrder: 'desc',
 
-    userStateFilter: 'All States',
-    stallPerformancePeriod: [],
-    userCurrentPage: 1,
-    userItemsPerPage: 10,
-    selectedUsers: [],
-    selectAllUsers: false,
-    currentUserId: null,
-    performanceSearch: '',
-    performanceStateFilter: 'All States',
-    performanceStatusFilter: 'all',
-    performancePage: 1,
-    performanceSortBy: 'rank',
-    performanceSortOrder: 'asc',
-    _stallCurrentPage: 1,
-    currentPage: 1,
-    currentStallPage: 1,
-    selectAllStalls: false,
-    itemsPerPage: 10,
-    selectedStalls: [],
-    selectAll: false,
-    quickUpdateModal: false,
-    quickUpdateStallId: null,
-    quickUpdateStallName: '',
-    quickUpdateItems: [],
+      userStateFilter: 'All States',
+      stallPerformancePeriod: [],
+      userCurrentPage: 1,
+      userItemsPerPage: 10,
+      selectedUsers: [],
+      selectAllUsers: false,
+      currentUserId: null,
+      performanceSearch: '',
+      performanceStateFilter: 'All States',
+      performanceStatusFilter: 'all',
+      performancePage: 1,
+      performanceSortBy: 'rank',
+      performanceSortOrder: 'asc',
+      _stallCurrentPage: 1,
+      currentPage: 1,
+      currentStallPage: 1,
+      selectAllStalls: false,
+      itemsPerPage: 10,
+      selectedStalls: [],
+      selectAll: false,
+      quickUpdateModal: false,
+      quickUpdateStallId: null,
+      quickUpdateStallName: '',
+      quickUpdateItems: [],
 
-    malaysiaStates: [
-      'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
-      'Johor', 'Kedah', 'Kelantan', 'Melaka', 
-      'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
-      'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
-    ],
-    stateFilter: 'All States',
+      malaysiaStates: [
+        'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
+        'Johor', 'Kedah', 'Kelantan', 'Melaka', 
+        'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
+        'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
+      ],
+      stateFilter: 'All States',
+      
+      bulkUpdateModal: false,
+      bulkUpdateMaterials: [],
+      bulkUpdateMode: 'selected',
+      bulkUpdateProgress: 0,
+      bulkUpdating: false,
+      bulkUpdateType: 'set',
+      bulkUpdateValue: 10,
+      
+      quickActions: [
+        { label: 'Set to Alert Level', value: 'alert' },
+        { label: 'Set to 100', value: '100' },
+        { label: 'Set to 50', value: '50' },
+        { label: 'Add +10', value: 'add10' },
+        { label: 'Add +20', value: 'add20' },
+        { label: 'Reset to 0', value: '0' }
+      ],
     
-    bulkUpdateModal: false,
-    bulkUpdateMaterials: [],
-    bulkUpdateMode: 'selected',
-    bulkUpdateProgress: 0,
-    bulkUpdating: false,
-    bulkUpdateType: 'set',
-    bulkUpdateValue: 10,
-    
-    quickActions: [
-      { label: 'Set to Alert Level', value: 'alert' },
-      { label: 'Set to 100', value: '100' },
-      { label: 'Set to 50', value: '50' },
-      { label: 'Add +10', value: 'add10' },
-      { label: 'Add +20', value: 'add20' },
-      { label: 'Reset to 0', value: '0' }
-    ],
-  
-    chartFullscreen: false,
-    chartOffset: 0,
-    chartWindow: 7,
-    chartInstance: null,
-    isChartInitialized: false,
-    stallSubTab: 'management',
-    menuSubTab: 'assignment',
-    
-    dropdownOpen: false,
-    periodDropdownOpen: false,
-    stalls: [],
-    users: [],
-    lowStock: [],
-    menuItems: [],
-    consolidatedSales: {
-      totalRevenue: 0,
-      totalItems: 0,
-      averagePerStall: 0,
-      topStall: '-',
-      topRevenue: 0
-    },
-    stallPerformance: [],
-    menuPerformance: [],
-    salesTrend: [],
-    productSales: {},
-    selectedPeriod: 'week',
-    periods: [
-      { value: 'today', label: 'Today' },
-      { value: 'week', label: 'Week' },
-      { value: 'month', label: 'Month' },
-      { value: 'quarter', label: 'Quarter' },
-      { value: 'halfyear', label: 'Half Year' },
-      { value: 'year', label: 'Year' },
-      { value: 'custom', label: 'Custom Range' }
-    ],
-    
-    customDateStart: null,
-    customDateEnd: null,
-    customDays: 30,
-    
-    stallDetailModal: false,
-    selectedStall: null,
-    menuDetailModal: false,
-    selectedMenuItem: null,
-    stallDetailChartInstance: null,
-    
-    showAllStalls: false,
-    showAllMenuItems: false,
-    
-    expandedInventoryStall: null,
-    stallInventory: {},
-    inventory: [],
-    inventorySearch: '',
-    inventoryFilter: 'all',
-    
-    stallSearch: '',
-    stallStatusFilter: 'all',
-    
-    userSearch: '',
-    userRoleFilter: 'all',
-    
-    userModal: false,
-    editingUser: false,
-    userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
-    stallModal: false,
-    editingStall: false,
-    stallForm: { id: null, name: '', code: '', location: '' },
-    
-    exporting: false,
-    resizeObserver: null,
+      chartFullscreen: false,
+      chartOffset: 0,
+      chartWindow: 7,
+      chartInstance: null,
+      isChartInitialized: false,
+      stallSubTab: 'management',
+      menuSubTab: 'assignment',
+      
+      dropdownOpen: false,
+      periodDropdownOpen: false,
+      stalls: [],
+      users: [],
+      lowStock: [],
+      menuItems: [],
+      consolidatedSales: {
+        totalRevenue: 0,
+        totalItems: 0,
+        averagePerStall: 0,
+        topStall: '-',
+        topRevenue: 0
+      },
+      stallPerformance: [],
+      menuPerformance: [],
+      salesTrend: [],
+      productSales: {},
+      selectedPeriod: 'week',
+      periods: [
+        { value: 'today', label: 'Today' },
+        { value: 'week', label: 'Week' },
+        { value: 'month', label: 'Month' },
+        { value: 'quarter', label: 'Quarter' },
+        { value: 'halfyear', label: 'Half Year' },
+        { value: 'year', label: 'Year' },
+        { value: 'custom', label: 'Custom Range' }
+      ],
+      
+      customDateStart: null,
+      customDateEnd: null,
+      customDays: 30,
+      
+      stallDetailModal: false,
+      selectedStall: null,
+      menuDetailModal: false,
+      selectedMenuItem: null,
+      stallDetailChartInstance: null,
+      
+      showAllStalls: false,
+      showAllMenuItems: false,
+      
+      expandedInventoryStall: null,
+      stallInventory: {},
+      inventory: [],
+      inventorySearch: '',
+      inventoryFilter: 'all',
+      
+      stallSearch: '',
+      stallStatusFilter: 'all',
+      
+      userSearch: '',
+      userRoleFilter: 'all',
+      
+      userModal: false,
+      editingUser: false,
+      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+      stallModal: false,
+      editingStall: false,
+      stallForm: { id: null, name: '', code: '', location: '' },
+      
+      exporting: false,
+      resizeObserver: null,
 
-    selectedAssignmentStall: null,
-    menuAssignments: {},
-    originalMenuAssignments: {},
-    loadingMenuAssignments: false,
-    savingAssignment: false,
-    savedAssignmentMessage: '',
-    savedAssignmentType: 'success'
-  }
-},
+      selectedAssignmentStall: null,
+      menuAssignments: {},
+      originalMenuAssignments: {},
+      loadingMenuAssignments: false,
+      savingAssignment: false,
+      savedAssignmentMessage: '',
+      savedAssignmentType: 'success'
+    }
+  },
 
   computed: {
 
+    // ===== BULK ASSIGN COMPUTED =====
     filteredBulkMenuItems() {
-    let items = this.menuItems
-    
-    if (this.bulkMenuSearch) {
-      const search = this.bulkMenuSearch.toLowerCase()
-      items = items.filter(item => 
-        item.item_name.toLowerCase().includes(search)
-      )
-    }
-    
-    return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
-  },
+      let items = this.menuItems
+      
+      if (this.bulkMenuSearch) {
+        const search = this.bulkMenuSearch.toLowerCase()
+        items = items.filter(item => 
+          item.item_name.toLowerCase().includes(search)
+        )
+      }
+      
+      return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
+    },
 
-
-    // Menu Performance Status Breakdown
-menuPerformanceBreakdown() {
-  let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
-  
-  this.menuPerformance.forEach(item => {
-    const qty = parseInt(item.quantity) || 0
-    if (qty === 0) noSales++
-    else if (qty > 50) excellent++
-    else if (qty > 20) good++
-    else if (qty > 5) average++
-    else poor++
-  })
-  
-  return { excellent, good, average, poor, noSales }
-},
+    // ===== MENU PERFORMANCE BREAKDOWN =====
+    menuPerformanceBreakdown() {
+      let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+      
+      this.menuPerformance.forEach(item => {
+        const qty = parseInt(item.quantity) || 0
+        if (qty === 0) noSales++
+        else if (qty > 50) excellent++
+        else if (qty > 20) good++
+        else if (qty > 5) average++
+        else poor++
+      })
+      
+      return { excellent, good, average, poor, noSales }
+    },
 
     // ===== MENU ASSIGNMENT COMPUTED =====
-    
     menuStats() {
       const total = this.menuItems.length
       const active = this.menuItems.filter(item => item.price > 0).length
@@ -2438,7 +2437,6 @@ menuPerformanceBreakdown() {
     },
 
     // ===== MENU PERFORMANCE COMPUTED =====
-    
     menuPerformanceStats() {
       const totalItems = this.menuPerformance.length
       const totalRevenue = this.menuPerformance.reduce((sum, item) => sum + (item.revenue || 0), 0)
@@ -2760,7 +2758,6 @@ menuPerformanceBreakdown() {
     },
     
     // ===== STALL MANAGEMENT COMPUTED PROPERTIES =====
-    
     stallStats() {
       let lowStockCount = 0
       this.stalls.forEach(stall => {
@@ -2954,125 +2951,114 @@ menuPerformanceBreakdown() {
 
   methods: {
 
-     // =============================================
-  // BULK ASSIGN MODE METHODS
-  // =============================================
-
-  toggleAllStallsForAssign() {
-    this.selectAllStallsForAssign = !this.selectAllStallsForAssign
-    if (this.selectAllStallsForAssign) {
-      this.selectedStallsForAssign = this.stalls.map(s => s.id)
-    } else {
-      this.selectedStallsForAssign = []
-    }
-  },
-
-  toggleAllMenusForBulk() {
-    this.selectAllMenusForBulk = !this.selectAllMenusForBulk
-    if (this.selectAllMenusForBulk) {
-      this.selectedMenuItemsForBulk = this.filteredBulkMenuItems.map(item => item.item_name)
-    } else {
-      this.selectedMenuItemsForBulk = []
-    }
-  },
-
-  async executeBulkAssignToStalls() {
-    if (this.selectedStallsForAssign.length === 0) {
-      this.bulkAssignMessage = 'Please select at least one stall'
-      this.bulkAssignMessageType = 'error'
-      this.$emit('show-notification', 'Please select at least one stall', 'warning')
-      return
-    }
-    
-    if (this.selectedMenuItemsForBulk.length === 0) {
-      this.bulkAssignMessage = 'Please select at least one menu item'
-      this.bulkAssignMessageType = 'error'
-      this.$emit('show-notification', 'Please select at least one menu item', 'warning')
-      return
-    }
-
-    const total = this.selectedStallsForAssign.length * this.selectedMenuItemsForBulk.length
-    if (!confirm(`Assign ${this.selectedMenuItemsForBulk.length} menu(s) to ${this.selectedStallsForAssign.length} stall(s)? (${total} total assignments)`)) {
-      return
-    }
-
-    this.bulkAssignToStallsLoading = true
-    this.bulkAssignMessage = ''
-    let successCount = 0
-    let errorCount = 0
-
-    try {
-      for (const stallId of this.selectedStallsForAssign) {
-        try {
-          // Get current assignments for this stall
-          const res = await axios.get(`${API_BASE}/menu/assignments/${stallId}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          
-          const currentAssignments = res.data || []
-          const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItemsForBulk])]
-          
-          await axios.post(`${API_BASE}/menu/assignments`, {
-            stallId: stallId,
-            items: allAssignments
-          }, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          
-          successCount++
-          
-        } catch (err) {
-          console.error(`Failed to assign to stall ${stallId}:`, err)
-          errorCount++
-        }
-      }
-
-      // Update local state for currently selected stall if any
-      if (this.selectedAssignmentStall) {
-        this.selectedMenuItemsForBulk.forEach(itemName => {
-          this.menuAssignments[itemName] = true
-        })
-        this.originalMenuAssignments = { ...this.menuAssignments }
-      }
-
-      // Show success message
-      if (errorCount === 0) {
-        this.bulkAssignMessage = `✅ Successfully assigned ${this.selectedMenuItemsForBulk.length} menu(s) to ${successCount} stall(s)`
-        this.bulkAssignMessageType = 'success'
-        this.$emit('show-notification', `✅ Assigned to ${successCount} stall(s) successfully`, 'success')
-      } else {
-        this.bulkAssignMessage = `⚠️ Assigned to ${successCount} stall(s), ${errorCount} failed`
-        this.bulkAssignMessageType = 'warning'
-        this.$emit('show-notification', `⚠️ ${successCount} succeeded, ${errorCount} failed`, 'warning')
-      }
-      
-      // Reset selections
-      this.selectedStallsForAssign = []
-      this.selectedMenuItemsForBulk = []
-      this.selectAllStallsForAssign = false
-      this.selectAllMenusForBulk = false
-      this.bulkMenuSearch = ''
-      
-      // Reload current stall assignments if any
-      if (this.selectedAssignmentStall) {
-        await this.loadMenuAssignments()
-      }
-      
-    } catch (err) {
-      console.error('Bulk assign error:', err)
-      this.bulkAssignMessage = '❌ Failed to complete bulk assignment'
-      this.bulkAssignMessageType = 'error'
-      this.$emit('show-notification', 'Failed to complete bulk assignment', 'error')
-    } finally {
-      this.bulkAssignToStallsLoading = false
-    }
-  },
-}
-
     // =============================================
-// BULK ASSIGN MENUS TO MULTIPLE STALLS
-// =============================================
+    // BULK ASSIGN MODE METHODS
+    // =============================================
 
+    toggleAllStallsForAssign() {
+      this.selectAllStallsForAssign = !this.selectAllStallsForAssign
+      if (this.selectAllStallsForAssign) {
+        this.selectedStallsForAssign = this.stalls.map(s => s.id)
+      } else {
+        this.selectedStallsForAssign = []
+      }
+    },
+
+    toggleAllMenusForBulk() {
+      this.selectAllMenusForBulk = !this.selectAllMenusForBulk
+      if (this.selectAllMenusForBulk) {
+        this.selectedMenuItemsForBulk = this.filteredBulkMenuItems.map(item => item.item_name)
+      } else {
+        this.selectedMenuItemsForBulk = []
+      }
+    },
+
+    async executeBulkAssignToStalls() {
+      if (this.selectedStallsForAssign.length === 0) {
+        this.bulkAssignMessage = 'Please select at least one stall'
+        this.bulkAssignMessageType = 'error'
+        this.$emit('show-notification', 'Please select at least one stall', 'warning')
+        return
+      }
+      
+      if (this.selectedMenuItemsForBulk.length === 0) {
+        this.bulkAssignMessage = 'Please select at least one menu item'
+        this.bulkAssignMessageType = 'error'
+        this.$emit('show-notification', 'Please select at least one menu item', 'warning')
+        return
+      }
+
+      const total = this.selectedStallsForAssign.length * this.selectedMenuItemsForBulk.length
+      if (!confirm(`Assign ${this.selectedMenuItemsForBulk.length} menu(s) to ${this.selectedStallsForAssign.length} stall(s)? (${total} total assignments)`)) {
+        return
+      }
+
+      this.bulkAssignToStallsLoading = true
+      this.bulkAssignMessage = ''
+      let successCount = 0
+      let errorCount = 0
+
+      try {
+        for (const stallId of this.selectedStallsForAssign) {
+          try {
+            const res = await axios.get(`${API_BASE}/menu/assignments/${stallId}`, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            
+            const currentAssignments = res.data || []
+            const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItemsForBulk])]
+            
+            await axios.post(`${API_BASE}/menu/assignments`, {
+              stallId: stallId,
+              items: allAssignments
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            
+            successCount++
+            
+          } catch (err) {
+            console.error(`Failed to assign to stall ${stallId}:`, err)
+            errorCount++
+          }
+        }
+
+        if (this.selectedAssignmentStall) {
+          this.selectedMenuItemsForBulk.forEach(itemName => {
+            this.menuAssignments[itemName] = true
+          })
+          this.originalMenuAssignments = { ...this.menuAssignments }
+        }
+
+        if (errorCount === 0) {
+          this.bulkAssignMessage = `✅ Successfully assigned ${this.selectedMenuItemsForBulk.length} menu(s) to ${successCount} stall(s)`
+          this.bulkAssignMessageType = 'success'
+          this.$emit('show-notification', `✅ Assigned to ${successCount} stall(s) successfully`, 'success')
+        } else {
+          this.bulkAssignMessage = `⚠️ Assigned to ${successCount} stall(s), ${errorCount} failed`
+          this.bulkAssignMessageType = 'warning'
+          this.$emit('show-notification', `⚠️ ${successCount} succeeded, ${errorCount} failed`, 'warning')
+        }
+        
+        this.selectedStallsForAssign = []
+        this.selectedMenuItemsForBulk = []
+        this.selectAllStallsForAssign = false
+        this.selectAllMenusForBulk = false
+        this.bulkMenuSearch = ''
+        
+        if (this.selectedAssignmentStall) {
+          await this.loadMenuAssignments()
+        }
+        
+      } catch (err) {
+        console.error('Bulk assign error:', err)
+        this.bulkAssignMessage = '❌ Failed to complete bulk assignment'
+        this.bulkAssignMessageType = 'error'
+        this.$emit('show-notification', 'Failed to complete bulk assignment', 'error')
+      } finally {
+        this.bulkAssignToStallsLoading = false
+      }
+    },
 
     // =============================================
     // MENU ASSIGNMENT - PAGINATION & FILTERS
@@ -3112,7 +3098,7 @@ menuPerformanceBreakdown() {
     },
 
     // =============================================
-    // BULK ASSIGN MENUS TO STALLS
+    // BULK ASSIGN MENUS TO SINGLE STALL
     // =============================================
 
     async bulkAssignMenusToStalls() {
@@ -3281,10 +3267,6 @@ menuPerformanceBreakdown() {
         this.userCurrentPage++
       }
     },
-
-    // =============================================
-    // BULK ACTIONS FOR USERS
-    // =============================================
 
     async bulkDeleteUsers() {
       if (this.selectedUsers.length === 0) {
@@ -3487,6 +3469,10 @@ menuPerformanceBreakdown() {
       this.performanceSortOrder = 'asc'
     },
 
+    // =============================================
+    // INVENTORY METHODS
+    // =============================================
+
     async updateStock(materialName, newLevel, stallId) {
       try {
         const roundedLevel = Math.round(Number(newLevel) || 0)
@@ -3536,9 +3522,6 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // TOGGLE SELECT ALL
-    // =============================================
     toggleSelectAll() {
       this.selectAll = !this.selectAll
       if (this.selectAll) {
@@ -3548,18 +3531,11 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // CLEAR FILTERS
-    // =============================================
     clearFilters() {
       this.inventorySearch = ''
       this.stateFilter = 'All States'
       this.inventoryFilter = 'all'
     },
-
-    // =============================================
-    // STALL MANAGEMENT - PAGINATION & FILTERS
-    // =============================================
 
     toggleSelectAllStalls() {
       this.selectAllStalls = !this.selectAllStalls
@@ -3594,10 +3570,6 @@ menuPerformanceBreakdown() {
         this.stallCurrentPage++
       }
     },
-
-    // =============================================
-    // BULK ACTIONS FOR STALLS
-    // =============================================
 
     async bulkActivateStalls() {
       if (this.selectedStalls.length === 0) {
@@ -3667,9 +3639,6 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // OPEN BULK UPDATE MODAL
-    // =============================================
     openBulkUpdateModal() {
       const materialSet = new Set()
       const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
@@ -3691,9 +3660,6 @@ menuPerformanceBreakdown() {
       this.bulkUpdateModal = true
     },
 
-    // =============================================
-    // APPLY QUICK ACTION
-    // =============================================
     applyQuickAction(action) {
       this.bulkUpdateMaterials.forEach(material => {
         let value = 0
@@ -3730,9 +3696,6 @@ menuPerformanceBreakdown() {
       })
     },
 
-    // =============================================
-    // EXECUTE BULK UPDATE
-    // =============================================
     async executeBulkUpdate() {
       this.bulkUpdating = true
       this.bulkUpdateProgress = 0
@@ -3780,16 +3743,10 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // EXPORT INVENTORY
-    // =============================================
     exportInventory() {
       this.exportCurrentTab()
     },
 
-    // =============================================
-    // QUICK ADD STOCK BY ITEM
-    // =============================================
     async quickAddStockByItem(item) {
       await this.quickAddStock(
         this.stalls.find(s => s.name === item.stall_name)?.id,
@@ -3798,9 +3755,6 @@ menuPerformanceBreakdown() {
       )
     },
 
-    // =============================================
-    // QUICK UPDATE STALL
-    // =============================================
     quickUpdateStall(stallId) {
       this.toggleInventoryStall(stallId)
       this.$nextTick(() => {
@@ -3809,9 +3763,6 @@ menuPerformanceBreakdown() {
       })
     },
 
-    // =============================================
-    // OPEN STALL INVENTORY MODAL
-    // =============================================
     openStallInventoryModal(stallId) {
       const stall = this.stalls.find(s => s.id === stallId)
       if (!stall) return
@@ -3825,9 +3776,6 @@ menuPerformanceBreakdown() {
       this.quickUpdateModal = true
     },
 
-    // =============================================
-    // QUICK UPDATE ITEM
-    // =============================================
     quickUpdateItem(stallId, materialName) {
       this.openStallInventoryModal(stallId)
       this.$nextTick(() => {
@@ -3836,9 +3784,6 @@ menuPerformanceBreakdown() {
       })
     },
 
-    // =============================================
-    // QUICK UPDATE ITEM SAVE
-    // =============================================
     async quickUpdateItemSave(stallId, materialName, newLevel) {
       if (newLevel === undefined || newLevel === null || newLevel === '') {
         this.$emit('show-notification', 'Please enter a valid value', 'error')
@@ -3853,9 +3798,6 @@ menuPerformanceBreakdown() {
       this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
     },
 
-    // =============================================
-    // QUICK UPDATE ITEM ADD
-    // =============================================
     async quickUpdateItemAdd(stallId, materialName, amount) {
       const item = this.quickUpdateItems.find(i => i.material_name === materialName)
       if (item) {
@@ -3864,9 +3806,6 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // QUICK UPDATE SAVE ALL
-    // =============================================
     async quickUpdateSaveAll() {
       for (const item of this.quickUpdateItems) {
         if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
@@ -3878,9 +3817,6 @@ menuPerformanceBreakdown() {
       await this.loadAllStallsInventory()
     },
 
-    // =============================================
-    // RESET ALL LOW STOCK
-    // =============================================
     async resetAllLowStock() {
       if (this.inventoryStats.lowStock === 0) {
         this.$emit('show-notification', 'No low stock items to reset', 'info')
@@ -3919,6 +3855,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // PAGINATION
     // =============================================
+
     prevPage() {
       if (this.currentPage > 1) {
         this.currentPage--
@@ -3942,6 +3879,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // STALL DETAIL CHART - GROUPING HELPERS
     // =============================================
+
     groupSalesData(salesData, grouping, period) {
       if (!salesData || salesData.length === 0) return []
       
@@ -4025,9 +3963,6 @@ menuPerformanceBreakdown() {
       return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
     },
 
-    // =============================================
-    // STALL DETAIL CHART - LABEL FORMATTING
-    // =============================================
     formatHourLabel(dateStr) {
       const date = new Date(dateStr)
       const hour = date.getUTCHours()
@@ -4086,6 +4021,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // TAB NAVIGATION WITH SUB-TAB
     // =============================================
+
     switchTabWithSubTab(tabId, subTabId) {
       this.activeTab = tabId
       if (tabId === 'stalls') {
@@ -4099,6 +4035,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // TOP STALL HELPERS
     // =============================================
+
     getTopStallName() {
       if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
         return this.consolidatedSales.topStall
@@ -4140,9 +4077,6 @@ menuPerformanceBreakdown() {
       return 'poor'
     },
 
-    // =============================================
-    // SPARKLINE HELPER
-    // =============================================
     getSparklinePoints(data) {
       if (!data || data.length === 0) {
         return '0,40 200,40'
@@ -4179,9 +4113,6 @@ menuPerformanceBreakdown() {
       return points.join(' ')
     },
 
-    // =============================================
-    // STALL PERFORMANCE - STATUS EMOJI
-    // =============================================
     getStallStatusEmoji(stall) {
       if (!stall || !stall.revenue || stall.revenue === 0) return '⚪'
       if (stall.revenue > 1000) return '🟢'
@@ -4206,9 +4137,6 @@ menuPerformanceBreakdown() {
       return 'poor'
     },
 
-    // =============================================
-    // MENU PERFORMANCE - STATUS METHODS
-    // =============================================
     getMenuStatusEmoji(quantity) {
       const qty = parseInt(quantity) || 0
       if (qty === 0) return '⚪'
@@ -4239,6 +4167,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // MENU ITEM DETAILS
     // =============================================
+
     async viewMenuItemDetails(item) {
       this.selectedMenuItem = {
         ...item,
@@ -4296,6 +4225,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // DROPDOWN METHODS
     // =============================================
+
     toggleDropdown() {
       this.dropdownOpen = !this.dropdownOpen
       if (this.dropdownOpen) this.periodDropdownOpen = false
@@ -4334,9 +4264,6 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // CUSTOM DATE RANGE
-    // =============================================
     applyCustomRange() {
       if (!this.customDateStart || !this.customDateEnd) {
         this.$emit('show-notification', 'Please select both start and end dates', 'warning')
@@ -4359,6 +4286,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // FORMATTING
     // =============================================
+
     formatCurrency(amount) {
       const num = Number(amount) || 0
       return new Intl.NumberFormat('en-MY', { 
@@ -4476,6 +4404,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // CHART STATS
     // =============================================
+
     getBestDayName() {
       if (this.salesTrend.length === 0) return '-'
       const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
@@ -4514,6 +4443,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // STALL DETAILS - WITH PERIOD SUPPORT
     // =============================================
+
     viewStallDetails(stall) {
       this.selectedStall = stall
       this.stallDetailModal = true
@@ -4786,9 +4716,6 @@ menuPerformanceBreakdown() {
       })
     },
 
-    // =============================================
-    // HELPER
-    // =============================================
     getTodayInMalaysia() {
       const now = new Date()
       const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000))
@@ -4797,9 +4724,6 @@ menuPerformanceBreakdown() {
       return today
     },
 
-    // =============================================
-    // GROUPING HELPERS
-    // =============================================
     groupSalesByWeek(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
       
@@ -4901,9 +4825,6 @@ menuPerformanceBreakdown() {
       return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
     },
 
-    // =============================================
-    // SPLIT TODAY'S DATA INTO HOURLY BUCKETS
-    // =============================================
     splitTodayIntoHours(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
       
@@ -4927,6 +4848,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // ECHARTS - Professional Chart
     // =============================================
+
     initChart() {
       if (!this.$refs.chartRef) return
       if (this.chartInstance) {
@@ -5209,9 +5131,6 @@ menuPerformanceBreakdown() {
       }
     },
 
-    // =============================================
-    // CHART STATS
-    // =============================================
     getPeakRevenue() {
       if (this.salesTrend.length === 0) return 0
       return Math.max(...this.salesTrend.map(d => d.revenue || 0))
@@ -5276,9 +5195,6 @@ menuPerformanceBreakdown() {
       return ((last - first) / first * 100)
     },
 
-    // =============================================
-    // CHART NAVIGATION
-    // =============================================
     navigateChart(direction) {
       if (direction === 'prev' && this.chartOffset > 0) {
         this.chartOffset = Math.max(0, this.chartOffset - this.chartWindow)
@@ -5329,6 +5245,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // MENU ASSIGNMENT METHODS
     // =============================================
+
     async loadMenuAssignments() {
       if (!this.selectedAssignmentStall) return
       this.loadingMenuAssignments = true
@@ -5404,6 +5321,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // STALL CRUD
     // =============================================
+
     openStallModal() {
       this.editingStall = false
       this.stallForm = { id: null, name: '', code: '', location: '' }
@@ -5477,6 +5395,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // STALL RANKING
     // =============================================
+
     getRankClass(index) {
       if (index === 0) return 'gold'
       if (index === 1) return 'silver'
@@ -5497,6 +5416,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // TAB MANAGEMENT
     // =============================================
+
     switchTab(tabId) {
       this.activeTab = tabId
       if (tabId === 'inventory' && this.lowStock.length > 0) {
@@ -5519,6 +5439,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // DATA LOADING
     // =============================================
+
     async refreshAllData() {
       await this.loadData()
     },
@@ -5871,6 +5792,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // INVENTORY METHODS
     // =============================================
+
     async initializeStallInventory(stallId) {
       try {
         const checkRes = await axios.get(`${API_BASE}/inventory?stallId=${stallId}`, {
@@ -6120,6 +6042,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // USER CRUD
     // =============================================
+
     openUserModal() {
       this.editingUser = false
       this.userForm = { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] }
@@ -6195,6 +6118,7 @@ menuPerformanceBreakdown() {
     // =============================================
     // EXPORT
     // =============================================
+
     async exportCurrentTab() {
       if (this.exporting) return
       this.exporting = true
