@@ -474,6 +474,8 @@
         <span class="card-subtitle">{{ filteredInventoryStalls.length }} stalls</span>
       </div>
       <div class="inventory-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="openBulkUpdateModal" class="btn-modern primary" :disabled="selectedStalls.length === 0">
           📦 Bulk Update ({{ selectedCount }})
         </button>
@@ -838,16 +840,20 @@
     </button>
   </div>
   
-  <!-- Stall Management -->
-  <div v-if="stallSubTab === 'management'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>🏪 Stall Management</h3>
-          <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-        </div>
+ <!-- Stall Management -->
+<div v-if="stallSubTab === 'management'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🏪 Stall Management</h3>
+        <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
       </div>
+    </div>
       <div class="card-modern-body">
         <!-- Stats Cards -->
         <div class="inventory-stats-grid">
@@ -1027,7 +1033,10 @@
         <h3>📊 Stall Performance</h3>
         <span class="card-subtitle">All stalls ranked by total revenue (all-time)</span>
       </div>
-      <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+      <div class="header-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+      </div>
     </div>
     <div class="card-modern-body">
       
@@ -1191,15 +1200,21 @@
 </div> <!-- ← THIS CLOSES THE STALLS TAB PANEL -->
 
       <!-- ===== USERS TAB ===== -->
-      <div v-if="activeTab === 'users'" class="tab-panel">
-        <div class="card-modern">
-          <div class="card-modern-header">
-            <div>
-              <h3>👥 User Management</h3>
-              <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
-            </div>
-            <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
-          </div>
+<div v-if="activeTab === 'users'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>👥 User Management</h3>
+        <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
+      </div>
+    </div>
+      <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
+    </div>
           <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
@@ -1261,17 +1276,19 @@
         </div>
         
         <!-- Menu Assignment -->
-        <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>📋 Menu Assignment</h3>
-                <span class="card-subtitle">Assign menu items to stalls</span>
-              </div>
-              <button @click="loadMenuAssignments" class="btn-modern secondary small">
-                ⟳ Refresh
-              </button>
-            </div>
+<div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>📋 Menu Assignment</h3>
+        <span class="card-subtitle">Assign menu items to stalls</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
+      </div>
+    </div>
             <div class="card-modern-body">
               <div class="filter-bar">
                 <div class="filter-search">
@@ -1349,15 +1366,18 @@
         </div>
         
         <!-- Menu Performance - Full List -->
-        <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>📊 Menu Performance</h3>
-                <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-              </div>
-              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-            </div>
+<div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>📊 Menu Performance</h3>
+        <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+      </div>
+    </div>
             <div class="card-modern-body menu-performance-table-container">
               <div v-if="menuPerformance.length === 0" class="empty-state-modern">
                 <span>📊</span>
@@ -9060,6 +9080,95 @@ mergeStallData(performanceData) {
   .status-indicator {
     font-size: 0.5rem;
     padding: 0.05rem 0.3rem;
+  }
+}
+
+/* ============================================ */
+/* BACK TO DASHBOARD BUTTON                     */
+/* ============================================ */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  margin-top: 0.15rem;
+}
+
+.btn-back:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateX(-2px);
+}
+
+/* ✅ Responsive adjustment */
+@media (max-width: 768px) {
+  .btn-back {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+  }
+}
+
+/* ============================================ */
+/* HEADER ACTIONS - Consistent across all tabs  */
+/* ============================================ */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ============================================ */
+/* BACK TO DASHBOARD BUTTON                     */
+/* ============================================ */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateX(-2px);
+}
+
+/* ✅ Responsive adjustment */
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  
+  .header-actions .btn-modern,
+  .header-actions .btn-back {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-back {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
   }
 }
 
