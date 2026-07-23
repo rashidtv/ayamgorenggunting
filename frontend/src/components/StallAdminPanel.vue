@@ -1469,6 +1469,71 @@
           </div>
         </div>
 
+        <!-- ===== STALL VIEW TOGGLE ===== -->
+        <div class="stall-view-toggle" style="margin-bottom: 1rem;">
+          <button 
+            class="btn-modern secondary small" 
+            :class="{ active: showStallMenuView }"
+            @click="showStallMenuView = !showStallMenuView"
+          >
+            {{ showStallMenuView ? '📋 Hide Stall View' : '🏪 Show Stall Menu View' }}
+          </button>
+        </div>
+
+        <!-- ===== STALL MENU VIEW ===== -->
+        <div v-if="showStallMenuView" class="stall-menu-view">
+          <div class="card-modern" style="border: 1px solid var(--primary);">
+            <div class="card-modern-header" style="background: var(--background);">
+              <div>
+                <h4>🏪 Stall Menu Assignments</h4>
+                <span class="card-subtitle">{{ stalls.length }} stalls with menu assignments</span>
+              </div>
+              <button @click="loadAllStallMenuAssignments" class="btn-modern secondary small">
+                ⟳ Refresh
+              </button>
+            </div>
+            <div class="card-modern-body" style="max-height: 400px; overflow-y: auto;">
+              <div v-if="loadingStallMenus" class="loading-state">
+                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                <p>Loading stall menu assignments...</p>
+              </div>
+              
+              <div v-else-if="stallMenuAssignments.length === 0" class="empty-state-modern">
+                <span>🏪</span>
+                <p>No stalls found</p>
+              </div>
+              
+              <div v-else>
+                <div v-for="stall in stallMenuAssignments" :key="stall.id" class="stall-menu-item">
+                  <div class="stall-menu-header" @click="toggleStallMenuExpand(stall.id)">
+                    <div class="stall-menu-info">
+                      <span class="stall-menu-name">{{ stall.name }}</span>
+                      <span class="stall-menu-code">{{ stall.code }}</span>
+                      <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                        {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                      </span>
+                      <span class="stall-menu-count">{{ stall.menus.length }} menus assigned</span>
+                    </div>
+                    <span class="stall-menu-toggle">{{ expandedStallMenus.includes(stall.id) ? '▲' : '▼' }}</span>
+                  </div>
+                  
+                  <div v-if="expandedStallMenus.includes(stall.id)" class="stall-menu-list">
+                    <div v-if="stall.menus.length === 0" class="empty-state-modern small">
+                      <span>📋</span>
+                      <p>No menus assigned to this stall</p>
+                    </div>
+                    <div v-else>
+                      <div v-for="menu in stall.menus" :key="menu" class="stall-menu-tag">
+                        <span class="menu-name">{{ menu }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ===== MODE TOGGLE ===== -->
         <div class="mode-toggle">
           <button 
@@ -2186,6 +2251,11 @@ export default {
         { id: 'users', label: 'Users', icon: '👥' },
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
+
+      showStallMenuView: false,
+    loadingStallMenus: false,
+    stallMenuAssignments: [],
+    expandedStallMenus: [],
 
       // Mode toggle
       assignMode: 'single', // 'single' or 'bulk'
@@ -2950,6 +3020,60 @@ export default {
   },
 
   methods: {
+
+      toggleStallMenuExpand(stallId) {
+    if (this.expandedStallMenus.includes(stallId)) {
+      this.expandedStallMenus = this.expandedStallMenus.filter(id => id !== stallId)
+    } else {
+      this.expandedStallMenus.push(stallId)
+    }
+  },
+
+  async loadAllStallMenuAssignments() {
+    this.loadingStallMenus = true
+    try {
+      const stallMenus = []
+      
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/menu/assignments/${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          
+          stallMenus.push({
+            id: stall.id,
+            name: stall.name,
+            code: stall.code,
+            is_active: stall.is_active,
+            menus: res.data || []
+          })
+        } catch (err) {
+          console.error(`Failed to load menus for stall ${stall.id}:`, err)
+          stallMenus.push({
+            id: stall.id,
+            name: stall.name,
+            code: stall.code,
+            is_active: stall.is_active,
+            menus: []
+          })
+        }
+      }
+      
+      this.stallMenuAssignments = stallMenus
+      
+      // Auto-expand first stall if any
+      if (stallMenus.length > 0 && this.expandedStallMenus.length === 0) {
+        this.expandedStallMenus.push(stallMenus[0].id)
+      }
+      
+    } catch (err) {
+      console.error('Failed to load stall menu assignments:', err)
+      this.$emit('show-notification', 'Failed to load stall menu assignments', 'error')
+    } finally {
+      this.loadingStallMenus = false
+    }
+  },
+}
 
     // =============================================
     // BULK ASSIGN MODE METHODS
@@ -11054,6 +11178,130 @@ export default {
   .bulk-mode .stall-checkbox-grid,
   .bulk-mode .menu-checkbox-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================ */
+/* STALL MENU VIEW                              */
+/* ============================================ */
+.stall-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.stall-view-toggle .btn-modern.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.stall-menu-view {
+  margin-bottom: 1rem;
+}
+
+.stall-menu-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.stall-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--surface);
+}
+
+.stall-menu-header:hover {
+  background: var(--background);
+}
+
+.stall-menu-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stall-menu-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-menu-code {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.stall-menu-count {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 0.05rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+}
+
+.stall-menu-toggle {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.stall-menu-list {
+  padding: 0.75rem;
+  background: var(--background);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.stall-menu-tag {
+  background: var(--surface);
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.stall-menu-tag .menu-name {
+  font-weight: 500;
+}
+
+.empty-state-modern.small {
+  padding: 0.5rem;
+}
+
+.empty-state-modern.small span {
+  font-size: 1.2rem;
+}
+
+.empty-state-modern.small p {
+  font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .stall-menu-info {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .stall-menu-name {
+    font-size: 0.8rem;
+  }
+  
+  .stall-menu-count {
+    font-size: 0.6rem;
   }
 }
 
