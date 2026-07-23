@@ -2318,12 +2318,12 @@ stallCurrentPage: {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.icon : '📊'
   },
- },
+ 
 
   mounted() {
     this.loadData()
     document.addEventListener('click', this.handleClickOutside)
-  },
+  }
 
   watch: {
     selectedPeriod(newVal, oldVal) {
