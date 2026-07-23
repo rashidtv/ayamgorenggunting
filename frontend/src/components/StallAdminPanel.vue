@@ -344,7 +344,7 @@
   </div>
   <div class="card-modern-body stall-performance-table-container">
     <!-- Show empty state when no stalls have sales -->
-    <div v-if="displayStalls.length === 0" class="empty-state-modern">
+    <div v-if="dashboardDisplayStalls.length === 0" class="empty-state-modern">
       <span>📊</span>
       <p>No stall sales for {{ getPeriodLabel() }}</p>
       <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
@@ -1766,6 +1766,53 @@ export default {
   },
 
   computed: {
+
+    dashboardDisplayStalls() {
+  // Check if there are sales in the current period
+  const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0 && 
+                         this.salesTrend.some(d => (d.revenue || 0) > 0)
+  
+  if (!hasPeriodSales) {
+    return []  // No sales for this period
+  }
+  
+  // Get period-limited stall data from salesTrend
+  const periodData = this.salesTrend.reduce((acc, day) => {
+    if (day.stallId && day.revenue) {
+      const existing = acc.find(s => s.id === day.stallId)
+      if (existing) {
+        existing.revenue += day.revenue
+        existing.items += day.items || 0
+      } else {
+        acc.push({
+          id: day.stallId,
+          name: day.stallName || 'Unknown',
+          revenue: day.revenue,
+          items: day.items || 0
+        })
+      }
+    }
+    return acc
+  }, [])
+  
+  // If periodData has stall data, use it; otherwise fallback to stallPerformance
+  if (periodData.length > 0) {
+    if (this.showAllStalls) {
+      return periodData
+    }
+    return periodData.slice(0, 5)
+  }
+  
+  // Fallback: use stallPerformance but check if there are period sales
+  const stallsWithSales = this.stallPerformance.filter(stall => 
+    (stall.revenue || 0) > 0
+  )
+  
+  if (this.showAllStalls) {
+    return stallsWithSales
+  }
+  return stallsWithSales.slice(0, 5)
+},
 
      performanceStats() {
     let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
