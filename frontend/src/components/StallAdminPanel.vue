@@ -3073,7 +3073,6 @@ export default {
       this.loadingStallMenus = false
     }
   },
-}
 
     // =============================================
     // BULK ASSIGN MODE METHODS
