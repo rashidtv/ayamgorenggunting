@@ -2362,7 +2362,7 @@ export default {
     
     return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
   },
-},
+
 
     // Menu Performance Status Breakdown
 menuPerformanceBreakdown() {
