@@ -2027,7 +2027,7 @@
     <div class="card-modern-header">
       <div>
         <h3>💰 Revenue Overview</h3>
-        <span class="card-subtitle">{{ getRevenuePeriodLabel() }}</span>
+        <span class="card-subtitle">{{ getRevenuePeriodLabel }}</span>
       </div>
       <div class="header-actions">
         <button @click="refreshRevenueData" class="btn-modern secondary small">⟳ Refresh</button>
