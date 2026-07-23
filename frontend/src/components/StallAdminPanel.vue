@@ -503,43 +503,43 @@
         </div>
       </div>
 
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="inventorySearch" 
-            placeholder="Search stalls or materials..." 
-            class="filter-input"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="stateFilter" class="filter-select">
-            <option v-for="state in malaysiaStates" :key="state" :value="state">
-              {{ state }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="inventoryFilter" class="filter-select">
-            <option value="all">All Status</option>
-            <option value="active">🟢 Active</option>
-            <option value="inactive">⚪ Inactive</option>
-            <option value="low">⚠️ Low Stock</option>
-          </select>
-        </div>
+<!-- Filter Bar -->
+<div class="filter-bar-modern">
+  <div class="filter-search">
+    <input 
+      type="text" 
+      v-model="userSearch" 
+      placeholder="Search users by name or username..." 
+      class="filter-input"
+      @input="resetUserPagination"
+    />
+  </div>
+  
+  <div class="filter-group">
+    <select v-model="userStateFilter" class="filter-select" @change="resetUserPagination">
+      <option v-for="state in malaysiaStates" :key="state" :value="state">
+        {{ state }}
+      </option>
+    </select>
+  </div>
+  
+  <div class="filter-group">
+    <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
+      <option value="all">All Roles</option>
+      <option value="stall_admin">👤 Admin</option>
+      <option value="cashier">💰 Cashier</option>
+    </select>
+  </div>
 
-        <div class="filter-actions">
-          <button @click="toggleSelectAll" class="btn-modern secondary small">
-            {{ selectAll ? 'Deselect All' : 'Select All' }}
-          </button>
-          <button @click="clearFilters" class="btn-modern secondary small">
-            Clear Filters
-          </button>
-        </div>
-      </div>
+  <div class="filter-actions">
+    <button @click="toggleSelectAllUsers" class="btn-modern secondary small">
+      {{ selectAllUsers ? 'Deselect All' : 'Select All' }}
+    </button>
+    <button @click="clearUserFilters" class="btn-modern secondary small">
+      Clear Filters
+    </button>
+  </div>
+</div>
 
       <!-- Inventory Table with Pagination -->
       <div v-if="stalls.length === 0" class="empty-state-modern">
@@ -1253,6 +1253,14 @@
         </div>
         
         <div class="filter-group">
+          <select v-model="userStateFilter" class="filter-select" @change="resetUserPagination">
+            <option v-for="state in malaysiaStates" :key="state" :value="state">
+              {{ state }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
           <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
             <option value="all">All Roles</option>
             <option value="stall_admin">👤 Admin</option>
@@ -1812,6 +1820,8 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+      userStateFilter: 'All States',
+
       stallPerformancePeriod: [],
       userCurrentPage: 1,
       userItemsPerPage: 10,
@@ -1989,23 +1999,6 @@ export default {
       return this.selectedUsers.length
     },
 
-    // ✅ Override filteredUsersList to include pagination
-    filteredUsersList() {
-      return this.users.filter(user => {
-        // Skip super admin users
-        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-          return false
-        }
-        
-        const search = this.userSearch.toLowerCase()
-        const matchesSearch = user.username.toLowerCase().includes(search) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(search))
-        
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-        
-        return matchesSearch && matchesRole
-      })
-    },
 
     dashboardDisplayStalls() {
       const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
@@ -2289,18 +2282,25 @@ export default {
       return this.filteredStallsList.slice(start, end)
     },
     
-    filteredUsersList() {
-      return this.users.filter(user => {
-        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-          return false
-        }
-        const search = this.userSearch.toLowerCase()
-        const matchesSearch = user.username.toLowerCase().includes(search) ||
-                              (user.full_name && user.full_name.toLowerCase().includes(search))
-        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-        return matchesSearch && matchesRole
-      })
-    },
+   filteredUsersList() {
+  return this.users.filter(user => {
+    if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+      return false
+    }
+    const search = this.userSearch.toLowerCase()
+    const matchesSearch = user.username.toLowerCase().includes(search) ||
+                          (user.full_name && user.full_name.toLowerCase().includes(search))
+    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+    
+    // ✅ Add state filter
+    const matchesState = this.userStateFilter === 'All States' || 
+                         (user.assigned_stalls && user.assigned_stalls.some(stall => 
+                           stall.state === this.userStateFilter
+                         ))
+    
+    return matchesSearch && matchesRole && matchesState
+  })
+},
     
     activeTabLabel() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
@@ -2413,12 +2413,13 @@ export default {
     },
 
     clearUserFilters() {
-      this.userSearch = ''
-      this.userRoleFilter = 'all'
-      this.selectedUsers = []
-      this.selectAllUsers = false
-      this.userCurrentPage = 1
-    },
+  this.userSearch = ''
+  this.userStateFilter = 'All States'
+  this.userRoleFilter = 'all'
+  this.selectedUsers = []
+  this.selectAllUsers = false
+  this.userCurrentPage = 1
+},
 
     resetUserPagination() {
       this.userCurrentPage = 1
@@ -9758,4 +9759,13 @@ export default {
   transform: translateY(-1px);
 }
 
+/* Add to your existing CSS */
+.users-table-cell .username-text {
+  font-size: inherit;
+  font-weight: 500;
+}
+
+.users-table-cell .fullname {
+  font-size: inherit;
+}
 </style>
