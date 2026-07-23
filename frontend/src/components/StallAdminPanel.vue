@@ -1416,345 +1416,439 @@
         </div>
       </div>
 
-      <!-- ===== MENU TAB ===== -->
-      <div v-if="activeTab === 'menu'" class="tab-panel">
-        <div class="sub-tabs">
-          <button 
-            class="sub-tab" 
-            :class="{ active: menuSubTab === 'assignment' }"
-            @click="menuSubTab = 'assignment'"
-          >
-            📋 Menu Assignment
-          </button>
-          <button 
-            class="sub-tab" 
-            :class="{ active: menuSubTab === 'performance' }"
-            @click="menuSubTab = 'performance'"
-          >
-            📊 Menu Performance
-          </button>
+   <!-- ===== MENU TAB ===== -->
+<div v-if="activeTab === 'menu'" class="tab-panel">
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'assignment' }"
+      @click="menuSubTab = 'assignment'"
+    >
+      📋 Menu Assignment
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'performance' }"
+      @click="menuSubTab = 'performance'"
+    >
+      📊 Menu Performance
+    </button>
+  </div>
+  
+  <!-- ========================================== -->
+  <!-- MENU ASSIGNMENT SUB-TAB                    -->
+  <!-- ========================================== -->
+  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📋 Menu Assignment</h3>
+          <span class="card-subtitle">{{ filteredMenuItemsForAssignment.length }} menu items</span>
         </div>
+        <div class="header-actions">
+          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+          <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
+        </div>
+      </div>
+      <div class="card-modern-body">
         
-        <!-- Menu Assignment -->
-        <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>📋 Menu Assignment</h3>
-                <span class="card-subtitle">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-              </div>
-              <div class="header-actions">
-                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-                <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
-              </div>
-            </div>
-            <div class="card-modern-body">
-              
-              <!-- Stats Cards -->
-              <div class="inventory-stats-grid">
-                <div class="stat-chip">
-                  <span class="stat-chip-label">Total Items</span>
-                  <span class="stat-chip-value">{{ menuStats.total }}</span>
-                </div>
-                <div class="stat-chip active">
-                  <span class="stat-chip-label">Active</span>
-                  <span class="stat-chip-value">{{ menuStats.active }}</span>
-                </div>
-                <div class="stat-chip inactive">
-                  <span class="stat-chip-label">Inactive</span>
-                  <span class="stat-chip-value">{{ menuStats.inactive }}</span>
-                </div>
-              </div>
-
-              <!-- Filter Bar -->
-              <div class="filter-bar-modern">
-                <div class="filter-search">
-                  <input 
-                    type="text" 
-                    v-model="menuSearch" 
-                    placeholder="Search menu items..." 
-                    class="filter-input"
-                    @input="resetMenuPagination"
-                  />
-                </div>
-                
-                <div class="filter-group">
-                  <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
-                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
-                      {{ cat === 'all' ? 'All Categories' : cat }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="filter-actions">
-                  <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
-                    {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
-                  </button>
-                  <button @click="clearMenuFilters" class="btn-modern secondary small">
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-
-              <!-- Stall Selection -->
-              <div class="filter-bar" style="margin-bottom: 1rem;">
-                <div class="filter-search">
-                  <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-                  <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-                    <option value="">-- Select a stall --</option>
-                    <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                      {{ stall.name }} ({{ stall.code }})
-                    </option>
-                  </select>
-                </div>
-                
-                <!-- Bulk Assign Button -->
-                <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
-                  <button 
-                    @click="bulkAssignMenusToStalls" 
-                    class="btn-modern primary"
-                    :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
-                  >
-                    📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-                <span>🏪</span>
-                <p>Please select a stall to manage its menu</p>
-              </div>
-
-              <div v-else-if="loadingMenuAssignments" class="loading-state small">
-                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-                <p>Loading menu assignments...</p>
-              </div>
-
-              <div v-else>
-                <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-                  <span>📋</span>
-                  <p>No menu items found matching your criteria</p>
-                  <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-                    Clear Filters
-                  </button>
-                </div>
-
-                <div v-else>
-                  <div class="menu-assignment-list">
-                    <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
-                      <div class="assignment-item-content">
-                        <div class="assignment-item-info">
-                          <div class="assignment-item-checkbox">
-                            <input 
-                              type="checkbox" 
-                              :id="`menu-${item.item_name}`" 
-                              v-model="menuAssignments[item.item_name]"
-                              :disabled="savingAssignment"
-                            />
-                            <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                              <span class="assignment-item-name">{{ item.item_name }}</span>
-                              <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                              <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Pagination Controls -->
-                  <div class="pagination-container">
-                    <div class="pagination-info">
-                      Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
-                    </div>
-                    <div class="pagination-controls">
-                      <button 
-                        @click="prevMenuPage" 
-                        class="pagination-btn"
-                        :disabled="menuCurrentPage <= 1"
-                      >
-                        ◀ Previous
-                      </button>
-                      <span class="pagination-page">
-                        Page {{ menuCurrentPage }} of {{ menuTotalPages }}
-                      </span>
-                      <button 
-                        @click="nextMenuPage" 
-                        class="pagination-btn"
-                        :disabled="menuCurrentPage >= menuTotalPages"
-                      >
-                        Next ▶
-                      </button>
-                    </div>
-                  </div>
-
-                  <div v-if="selectedAssignmentStall" class="assignment-actions">
-                    <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-                      {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-                    </button>
-                    <button @click="resetMenuAssignments" class="btn-modern secondary">
-                      ↩ Reset
-                    </button>
-                  </div>
-
-                  <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-                    {{ savedAssignmentMessage }}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <!-- Stats Cards -->
+        <div class="inventory-stats-grid">
+          <div class="stat-chip">
+            <span class="stat-chip-label">Total Items</span>
+            <span class="stat-chip-value">{{ menuStats.total }}</span>
+          </div>
+          <div class="stat-chip active">
+            <span class="stat-chip-label">Active</span>
+            <span class="stat-chip-value">{{ menuStats.active }}</span>
+          </div>
+          <div class="stat-chip inactive">
+            <span class="stat-chip-label">Inactive</span>
+            <span class="stat-chip-value">{{ menuStats.inactive }}</span>
           </div>
         </div>
-        
-        <!-- Menu Performance - Full List -->
-        <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>📊 Menu Performance</h3>
-                <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-              </div>
-              <div class="header-actions">
-                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-              </div>
-            </div>
-            <div class="card-modern-body">
-              
-              <!-- Stats Cards -->
-              <div class="menu-performance-stats-grid">
-                <div class="stat-chip">
-                  <span class="stat-chip-label">Total Items</span>
-                  <span class="stat-chip-value">{{ menuPerformanceStats.totalItems }}</span>
-                </div>
-                <div class="stat-chip revenue">
-                  <span class="stat-chip-label">💰 Total Revenue</span>
-                  <span class="stat-chip-value">{{ formatCurrency(menuPerformanceStats.totalRevenue) }}</span>
-                </div>
-                <div class="stat-chip top-item">
-                  <span class="stat-chip-label">🏆 Top Item</span>
-                  <span class="stat-chip-value">{{ menuPerformanceStats.topItemName }}</span>
-                  <span class="stat-chip-sub">{{ formatCurrency(menuPerformanceStats.topItemRevenue) }}</span>
-                </div>
-              </div>
 
-              <!-- Filter Bar -->
-              <div class="filter-bar-modern">
-                <div class="filter-group">
-                  <select v-model="menuPerformanceCategoryFilter" class="filter-select" @change="resetMenuPerformancePagination">
-                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
-                      {{ cat === 'all' ? 'All Categories' : cat }}
-                    </option>
-                  </select>
-                </div>
-                
-                <div class="filter-group">
-                  <select v-model="menuPerformanceStateFilter" class="filter-select" @change="resetMenuPerformancePagination">
-                    <option v-for="state in malaysiaStates" :key="state" :value="state">
-                      {{ state }}
-                    </option>
-                  </select>
-                </div>
+        <!-- Filter Bar -->
+        <div class="filter-bar-modern">
+          <div class="filter-search">
+            <input 
+              type="text" 
+              v-model="menuSearch" 
+              placeholder="Search menu items..." 
+              class="filter-input"
+              @input="resetMenuPagination"
+            />
+          </div>
+          
+          <div class="filter-group">
+            <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
+              <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                {{ cat === 'all' ? 'All Categories' : cat }}
+              </option>
+            </select>
+          </div>
 
-                <div class="filter-actions">
-                  <button @click="clearMenuPerformanceFilters" class="btn-modern secondary small">
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
+          <div class="filter-actions">
+            <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
+              {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
+            </button>
+            <!-- ✅ NEW: Bulk Assign Button -->
+            <button 
+              @click="openBulkAssignModal" 
+              class="btn-modern primary small"
+              :disabled="selectedMenuItems.length === 0"
+            >
+              📦 Bulk Assign ({{ selectedMenuItemsCount }})
+            </button>
+            <button @click="clearMenuFilters" class="btn-modern secondary small">
+              Clear Filters
+            </button>
+          </div>
+        </div>
 
-              <!-- Performance Table with Pagination -->
-              <div v-if="filteredMenuPerformance.length === 0" class="empty-state-modern">
-                <span>📊</span>
-                <p>No sales data available for {{ getPeriodLabel() }}</p>
-                <button @click="clearMenuPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-                  Clear Filters
-                </button>
-              </div>
+        <!-- Stall Selection (Single Stall) -->
+        <div class="filter-bar" style="margin-bottom: 1rem;">
+          <div class="filter-search">
+            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+              <option value="">-- Select a stall --</option>
+              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                {{ stall.name }} ({{ stall.code }})
+              </option>
+            </select>
+          </div>
+          
+          <!-- Single Stall Assign Button -->
+          <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
+            <button 
+              @click="bulkAssignMenusToStalls" 
+              class="btn-modern primary"
+              :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
+            >
+              📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
+            </button>
+          </div>
+        </div>
 
-              <div v-else>
-                <div class="performance-table-wrapper">
-                  <!-- Table Header with Sort -->
-                  <div class="performance-table-header">
-                    <span class="performance-table-header-rank sortable" @click="sortMenuPerformance('rank')">
-                      Rank <span class="sort-arrow">{{ getMenuSortArrow('rank') }}</span>
-                    </span>
-                    <span class="performance-table-header-name sortable" @click="sortMenuPerformance('name')">
-                      Menu <span class="sort-arrow">{{ getMenuSortArrow('name') }}</span>
-                    </span>
-                    <span class="performance-table-header-revenue sortable" @click="sortMenuPerformance('revenue')">
-                      Revenue <span class="sort-arrow">{{ getMenuSortArrow('revenue') }}</span>
-                    </span>
-                    <span class="performance-table-header-status sortable" @click="sortMenuPerformance('status')">
-                      Status <span class="sort-arrow">{{ getMenuSortArrow('status') }}</span>
-                    </span>
-                    <span class="performance-table-header-details">Details</span>
-                  </div>
-                  
-                  <div class="performance-table-body">
-                    <div 
-                      v-for="(item, index) in paginatedMenuPerformance" 
-                      :key="item.name" 
-                      class="performance-table-row clickable-item"
-                      @click="viewMenuItemDetails(item)"
-                    >
-                      <span class="performance-table-rank">
-                        <span class="rank-number" :class="getRankClass(index)">
-                          {{ index + 1 }}
-                        </span>
-                      </span>
-                      
-                      <span class="performance-table-name">
-                        <span class="menu-name-text">{{ item.name }}</span>
-                        <span class="menu-name-bar">
-                          <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-                        </span>
-                      </span>
-                      
-                      <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-                      
-                      <span class="performance-table-status">
-                        <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-                          {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-                        </span>
-                      </span>
-                      
-                      <span class="performance-table-details">👆</span>
+        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+          <span>🏪</span>
+          <p>Please select a stall to manage its menu</p>
+        </div>
+
+        <div v-else-if="loadingMenuAssignments" class="loading-state small">
+          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+          <p>Loading menu assignments...</p>
+        </div>
+
+        <div v-else>
+          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+            <span>📋</span>
+            <p>No menu items found matching your criteria</p>
+            <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+              Clear Filters
+            </button>
+          </div>
+
+          <div v-else>
+            <div class="menu-assignment-list">
+              <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
+                <div class="assignment-item-content">
+                  <div class="assignment-item-info">
+                    <div class="assignment-item-checkbox">
+                      <input 
+                        type="checkbox" 
+                        :id="`menu-${item.item_name}`" 
+                        v-model="menuAssignments[item.item_name]"
+                        :disabled="savingAssignment"
+                      />
+                      <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                        <span class="assignment-item-name">{{ item.item_name }}</span>
+                        <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                        <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                      </label>
                     </div>
                   </div>
                 </div>
-
-                <!-- Pagination Controls -->
-                <div class="pagination-container">
-                  <div class="pagination-info">
-                    Showing {{ menuPerformanceStartIndex }} - {{ menuPerformanceEndIndex }} of {{ filteredMenuPerformance.length }} items
-                  </div>
-                  <div class="pagination-controls">
-                    <button 
-                      @click="prevMenuPerformancePage" 
-                      class="pagination-btn"
-                      :disabled="menuPerformancePage <= 1"
-                    >
-                      ◀ Previous
-                    </button>
-                    <span class="pagination-page">
-                      Page {{ menuPerformancePage }} of {{ menuPerformanceTotalPages }}
-                    </span>
-                    <button 
-                      @click="nextMenuPerformancePage" 
-                      class="pagination-btn"
-                      :disabled="menuPerformancePage >= menuPerformanceTotalPages"
-                    >
-                      Next ▶
-                    </button>
-                  </div>
-                </div>
               </div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+              <div class="pagination-info">
+                Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+              </div>
+              <div class="pagination-controls">
+                <button 
+                  @click="prevMenuPage" 
+                  class="pagination-btn"
+                  :disabled="menuCurrentPage <= 1"
+                >
+                  ◀ Previous
+                </button>
+                <span class="pagination-page">
+                  Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                </span>
+                <button 
+                  @click="nextMenuPage" 
+                  class="pagination-btn"
+                  :disabled="menuCurrentPage >= menuTotalPages"
+                >
+                  Next ▶
+                </button>
+              </div>
+            </div>
+
+            <div v-if="selectedAssignmentStall" class="assignment-actions">
+              <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+              </button>
+              <button @click="resetMenuAssignments" class="btn-modern secondary">
+                ↩ Reset
+              </button>
+            </div>
+
+            <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+              {{ savedAssignmentMessage }}
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+  
+  <!-- ========================================== -->
+  <!-- MENU PERFORMANCE SUB-TAB                   -->
+  <!-- ========================================== -->
+  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📊 Menu Performance</h3>
+          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+        </div>
+        <div class="header-actions">
+          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        </div>
+      </div>
+      <div class="card-modern-body">
+        
+        <!-- Stats Cards - Overview -->
+        <div class="menu-performance-stats-grid">
+          <div class="stat-chip">
+            <span class="stat-chip-label">📊 Total Items</span>
+            <span class="stat-chip-value">{{ menuPerformance.length }}</span>
+          </div>
+          <div class="stat-chip revenue">
+            <span class="stat-chip-label">💰 Total Revenue</span>
+            <span class="stat-chip-value">{{ formatCurrency(menuPerformanceStats.totalRevenue) }}</span>
+          </div>
+          <div class="stat-chip top-item">
+            <span class="stat-chip-label">🏆 Top Item</span>
+            <span class="stat-chip-value">{{ menuPerformanceStats.topItemName }}</span>
+            <span class="stat-chip-sub">{{ formatCurrency(menuPerformanceStats.topItemRevenue) }}</span>
+          </div>
+        </div>
+
+        <!-- ✅ NEW: Status Breakdown Cards -->
+        <div class="menu-performance-breakdown-grid">
+          <div class="stat-chip excellent">
+            <span class="stat-chip-label">🟢 Excellent</span>
+            <span class="stat-chip-value">{{ menuPerformanceBreakdown.excellent }}</span>
+          </div>
+          <div class="stat-chip good">
+            <span class="stat-chip-label">🔵 Good</span>
+            <span class="stat-chip-value">{{ menuPerformanceBreakdown.good }}</span>
+          </div>
+          <div class="stat-chip average">
+            <span class="stat-chip-label">🟡 Average</span>
+            <span class="stat-chip-value">{{ menuPerformanceBreakdown.average }}</span>
+          </div>
+          <div class="stat-chip poor">
+            <span class="stat-chip-label">🔴 Poor</span>
+            <span class="stat-chip-value">{{ menuPerformanceBreakdown.poor }}</span>
+          </div>
+          <div class="stat-chip no-sales">
+            <span class="stat-chip-label">⚪ No Sales</span>
+            <span class="stat-chip-value">{{ menuPerformanceBreakdown.noSales }}</span>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar-modern">
+          <div class="filter-group">
+            <select v-model="menuPerformanceCategoryFilter" class="filter-select" @change="resetMenuPerformancePagination">
+              <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                {{ cat === 'all' ? 'All Categories' : cat }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <select v-model="menuPerformanceStateFilter" class="filter-select" @change="resetMenuPerformancePagination">
+              <option v-for="state in malaysiaStates" :key="state" :value="state">
+                {{ state }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-actions">
+            <button @click="clearMenuPerformanceFilters" class="btn-modern secondary small">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Performance Table with Pagination -->
+        <div v-if="filteredMenuPerformance.length === 0" class="empty-state-modern">
+          <span>📊</span>
+          <p>No sales data available for {{ getPeriodLabel() }}</p>
+          <button @click="clearMenuPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+            Clear Filters
+          </button>
+        </div>
+
+        <div v-else>
+          <div class="performance-table-wrapper">
+            <!-- Table Header with Sort -->
+            <div class="performance-table-header">
+              <span class="performance-table-header-rank sortable" @click="sortMenuPerformance('rank')">
+                Rank <span class="sort-arrow">{{ getMenuSortArrow('rank') }}</span>
+              </span>
+              <span class="performance-table-header-name sortable" @click="sortMenuPerformance('name')">
+                Menu <span class="sort-arrow">{{ getMenuSortArrow('name') }}</span>
+              </span>
+              <span class="performance-table-header-revenue sortable" @click="sortMenuPerformance('revenue')">
+                Revenue <span class="sort-arrow">{{ getMenuSortArrow('revenue') }}</span>
+              </span>
+              <span class="performance-table-header-status sortable" @click="sortMenuPerformance('status')">
+                Status <span class="sort-arrow">{{ getMenuSortArrow('status') }}</span>
+              </span>
+              <span class="performance-table-header-details">Details</span>
+            </div>
+            
+            <div class="performance-table-body">
+              <div 
+                v-for="(item, index) in paginatedMenuPerformance" 
+                :key="item.name" 
+                class="performance-table-row clickable-item"
+                @click="viewMenuItemDetails(item)"
+              >
+                <span class="performance-table-rank">
+                  <span class="rank-number" :class="getRankClass(index)">
+                    {{ index + 1 }}
+                  </span>
+                </span>
+                
+                <span class="performance-table-name">
+                  <span class="menu-name-text">{{ item.name }}</span>
+                  <span class="menu-name-bar">
+                    <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                  </span>
+                </span>
+                
+                <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                
+                <span class="performance-table-status">
+                  <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                    {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                  </span>
+                </span>
+                
+                <span class="performance-table-details">👆</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="pagination-container">
+            <div class="pagination-info">
+              Showing {{ menuPerformanceStartIndex }} - {{ menuPerformanceEndIndex }} of {{ filteredMenuPerformance.length }} items
+            </div>
+            <div class="pagination-controls">
+              <button 
+                @click="prevMenuPerformancePage" 
+                class="pagination-btn"
+                :disabled="menuPerformancePage <= 1"
+              >
+                ◀ Previous
+              </button>
+              <span class="pagination-page">
+                Page {{ menuPerformancePage }} of {{ menuPerformanceTotalPages }}
+              </span>
+              <button 
+                @click="nextMenuPerformancePage" 
+                class="pagination-btn"
+                :disabled="menuPerformancePage >= menuPerformanceTotalPages"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- BULK ASSIGN TO STALLS MODAL                -->
+<!-- ========================================== -->
+<div v-if="bulkAssignModal" class="modal-overlay" @click.self="bulkAssignModal=false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>📦 Bulk Assign Menus to Stalls</h3>
+      <button @click="bulkAssignModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <!-- Summary -->
+      <div class="bulk-assign-summary">
+        <p>📋 <strong>{{ selectedMenuItems.length }}</strong> menu item(s) selected</p>
+        <p>🏪 <strong>{{ bulkAssignStalls.length }}</strong> stall(s) selected</p>
+        <p class="bulk-assign-total">
+          Total: <strong>{{ selectedMenuItems.length * bulkAssignStalls.length }}</strong> assignments
+        </p>
+      </div>
+
+      <!-- Stall Selection -->
+      <div class="bulk-assign-stalls">
+        <div class="bulk-assign-header">
+          <label class="bulk-assign-select-all">
+            <input type="checkbox" v-model="selectAllBulkStalls" @change="toggleAllBulkStalls" />
+            <strong>Select All Stalls</strong>
+          </label>
+          <span class="bulk-assign-count">{{ bulkAssignStalls.length }} / {{ stalls.length }} selected</span>
+        </div>
+        
+        <div class="bulk-assign-stall-list">
+          <label v-for="stall in stalls" :key="stall.id" class="bulk-assign-stall-item">
+            <input 
+              type="checkbox" 
+              :value="stall.id"
+              v-model="bulkAssignStalls"
+            />
+            <span class="stall-name">{{ stall.name }}</span>
+            <span class="stall-code">{{ stall.code }}</span>
+            <span :class="['stall-status', stall.is_active ? 'active' : 'inactive']">
+              {{ stall.is_active ? '🟢' : '⚪' }}
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="bulkAssignModal=false" class="btn-modern secondary">Cancel</button>
+      <button 
+        @click="executeBulkAssign" 
+        class="btn-modern primary"
+        :disabled="bulkAssignStalls.length === 0 || bulkAssignLoading"
+      >
+        {{ bulkAssignLoading ? 'Assigning...' : `📦 Assign to ${bulkAssignStalls.length} Stall(s)` }}
+      </button>
+    </div>
+  </div>
+</div>
 
       <!-- ============================================ -->
       <!-- MODALS                                       -->
@@ -1987,6 +2081,25 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
+      // Bulk Assign Modal
+bulkAssignModal: false,
+bulkAssignStalls: [],
+selectAllBulkStalls: false,
+bulkAssignLoading: false,
+
+// Menu Performance Stats
+menuPerformanceStats: {
+  excellent: 0,
+  good: 0,
+  average: 0,
+  poor: 0,
+  noSales: 0,
+  totalItems: 0,
+  totalRevenue: 0,
+  topItemName: '-',
+  topItemRevenue: 0
+}
+
       // Menu Tab Data
       menuSearch: '',
       menuCategoryFilter: 'all',
@@ -2136,6 +2249,23 @@ export default {
   },
 
   computed: {
+
+    // Menu Performance Status Breakdown
+menuPerformanceBreakdown() {
+  let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+  
+  this.menuPerformance.forEach(item => {
+    const qty = parseInt(item.quantity) || 0
+    if (qty === 0) noSales++
+    else if (qty > 50) excellent++
+    else if (qty > 20) good++
+    else if (qty > 5) average++
+    else poor++
+  })
+  
+  return { excellent, good, average, poor, noSales }
+},
+
     // ===== MENU ASSIGNMENT COMPUTED =====
     
     menuStats() {
@@ -2709,6 +2839,100 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+// BULK ASSIGN MENUS TO MULTIPLE STALLS
+// =============================================
+
+openBulkAssignModal() {
+  if (this.selectedMenuItems.length === 0) {
+    this.$emit('show-notification', 'Please select menu items first', 'warning')
+    return
+  }
+  this.bulkAssignStalls = []
+  this.selectAllBulkStalls = false
+  this.bulkAssignModal = true
+},
+
+toggleAllBulkStalls() {
+  this.selectAllBulkStalls = !this.selectAllBulkStalls
+  if (this.selectAllBulkStalls) {
+    this.bulkAssignStalls = this.stalls.map(s => s.id)
+  } else {
+    this.bulkAssignStalls = []
+  }
+},
+
+async executeBulkAssign() {
+  if (this.bulkAssignStalls.length === 0) {
+    this.$emit('show-notification', 'Please select at least one stall', 'warning')
+    return
+  }
+
+  const totalAssignments = this.selectedMenuItems.length * this.bulkAssignStalls.length
+  if (!confirm(`Assign ${this.selectedMenuItems.length} menu item(s) to ${this.bulkAssignStalls.length} stall(s)? (${totalAssignments} total assignments)`)) {
+    return
+  }
+
+  this.bulkAssignLoading = true
+  let successCount = 0
+  let errorCount = 0
+
+  try {
+    for (const stallId of this.bulkAssignStalls) {
+      try {
+        // Get current assignments for this stall
+        const res = await axios.get(`${API_BASE}/menu/assignments/${stallId}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const currentAssignments = res.data || []
+        const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItems])]
+        
+        await axios.post(`${API_BASE}/menu/assignments`, {
+          stallId: stallId,
+          items: allAssignments
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        successCount++
+        
+        // Update local state
+        this.selectedMenuItems.forEach(itemName => {
+          this.menuAssignments[itemName] = true
+        })
+        
+      } catch (err) {
+        console.error(`Failed to assign to stall ${stallId}:`, err)
+        errorCount++
+      }
+    }
+
+    this.originalMenuAssignments = { ...this.menuAssignments }
+    
+    this.$emit('show-notification', 
+      `✅ Assigned to ${successCount} stall(s) successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`, 
+      errorCount > 0 ? 'warning' : 'success'
+    )
+    
+    this.bulkAssignModal = false
+    this.selectedMenuItems = []
+    this.selectAllMenuItems = false
+    this.bulkAssignStalls = []
+    
+    // Reload assignments for current stall if selected
+    if (this.selectedAssignmentStall) {
+      await this.loadMenuAssignments()
+    }
+    
+  } catch (err) {
+    console.error('Bulk assign error:', err)
+    this.$emit('show-notification', 'Failed to complete bulk assignment', 'error')
+  } finally {
+    this.bulkAssignLoading = false
+  }
+},
 
     // =============================================
     // MENU ASSIGNMENT - PAGINATION & FILTERS
@@ -10363,4 +10587,208 @@ export default {
   font-size: 0.6rem !important;
   padding: 0.1rem 0.3rem;
 }
+
+/* ============================================ */
+/* MENU PERFORMANCE BREAKDOWN GRID - 5 CARDS   */
+/* ============================================ */
+.menu-performance-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.menu-performance-breakdown-grid .stat-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.menu-performance-breakdown-grid .stat-chip .stat-chip-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.menu-performance-breakdown-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.menu-performance-breakdown-grid .stat-chip.excellent .stat-chip-value { color: #10b981; }
+.menu-performance-breakdown-grid .stat-chip.good .stat-chip-value { color: #3b82f6; }
+.menu-performance-breakdown-grid .stat-chip.average .stat-chip-value { color: #f59e0b; }
+.menu-performance-breakdown-grid .stat-chip.poor .stat-chip-value { color: #ef4444; }
+.menu-performance-breakdown-grid .stat-chip.no-sales .stat-chip-value { color: #6b7280; }
+
+/* ============================================ */
+/* BULK ASSIGN MODAL                           */
+/* ============================================ */
+.bulk-assign-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+
+.bulk-assign-summary p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.bulk-assign-summary p strong {
+  color: var(--text);
+}
+
+.bulk-assign-total {
+  font-weight: 600;
+  color: var(--primary) !important;
+}
+
+.bulk-assign-total strong {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.bulk-assign-stalls {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+}
+
+.bulk-assign-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 0.5rem;
+}
+
+.bulk-assign-select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.bulk-assign-select-all input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.bulk-assign-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.bulk-assign-stall-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bulk-assign-stall-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.bulk-assign-stall-item:hover {
+  background: var(--background);
+}
+
+.bulk-assign-stall-item input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bulk-assign-stall-item .stall-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.bulk-assign-stall-item .stall-code {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.bulk-assign-stall-item .stall-status {
+  font-size: 0.8rem;
+}
+
+.bulk-assign-stall-item .stall-status.active { color: #10b981; }
+.bulk-assign-stall-item .stall-status.inactive { color: #6b7280; }
+
+/* ============================================ */
+/* RESPONSIVE - MENU PERFORMANCE                */
+/* ============================================ */
+@media (max-width: 1024px) {
+  .menu-performance-breakdown-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-performance-breakdown-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .bulk-assign-summary {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-performance-breakdown-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .menu-performance-breakdown-grid .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .menu-performance-breakdown-grid .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .menu-performance-breakdown-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem;
+  }
+  
+  .bulk-assign-stall-item {
+    padding: 0.2rem 0.3rem;
+    font-size: 0.8rem;
+  }
+  
+  .bulk-assign-stall-item .stall-name {
+    font-size: 0.75rem;
+  }
+}
+
 </style>
