@@ -12388,56 +12388,5 @@ export default {
   transform: translateX(0);
 }
 
-async loadRevenueData() {
-  this.revenueLoading = true
-  try {
-    const days = this.revenuePeriod === 'today' ? 1 :
-                 this.revenuePeriod === 'week' ? 7 :
-                 this.revenuePeriod === 'month' ? 30 :
-                 this.revenuePeriod === 'quarter' ? 90 :
-                 this.revenuePeriod === 'halfyear' ? 180 :
-                 this.revenuePeriod === 'year' ? 365 :
-                 this.revenueCustomDays || 30
-
-    const stallIds = this.stalls.map(s => s.id)
-    if (!stallIds || stallIds.length === 0) {
-      this.revenueData = []
-      this.revenueLoading = false
-      return
-    }
-
-    const res = await axios.get(
-      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    )
-
-    const performanceData = res.data || []
-    
-    this.revenueData = this.stalls.map(stall => {
-      const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
-      return {
-        ...stall,
-        revenue: parseFloat(perf?.revenue) || 0,
-        transactions: parseInt(perf?.items_sold) || 0,
-        avgTransaction: parseFloat(perf?.avg_transaction) || 0,
-        state: stall.state || 'Unknown'
-      }
-    }).sort((a, b) => b.revenue - a.revenue)
-
-    // ✅ Ensure charts initialize after DOM is ready
-    this.$nextTick(() => {
-      setTimeout(() => {
-        this.initRevenueChart()
-        this.initRevenueStateChart()
-      }, 150) // Slightly longer delay for reliability
-    })
-
-  } catch (err) {
-    console.error('Failed to load revenue data:', err)
-    this.$emit('show-notification', 'Failed to load revenue data', 'error')
-  } finally {
-    this.revenueLoading = false
-  }
-}
 
 </style>
