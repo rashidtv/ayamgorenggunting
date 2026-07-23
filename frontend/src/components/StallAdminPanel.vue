@@ -1407,179 +1407,179 @@
   </div>
 </div>
 
-      <!-- ===== MENU TAB ===== -->
-      <div v-if="activeTab === 'menu'" class="tab-panel">
-        <div class="sub-tabs">
-          <button 
-            class="sub-tab" 
-            :class="{ active: menuSubTab === 'assignment' }"
-            @click="menuSubTab = 'assignment'"
-          >
-            📋 Menu Assignment
-          </button>
-          <button 
-            class="sub-tab" 
-            :class="{ active: menuSubTab === 'performance' }"
-            @click="menuSubTab = 'performance'"
-          >
-            📊 Menu Performance
-          </button>
-        </div>
-        
-        <!-- Menu Assignment -->
-<div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>📋 Menu Assignment</h3>
-        <span class="card-subtitle">Assign menu items to stalls</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
-      </div>
+<!-- ===== MENU TAB ===== -->
+<div v-if="activeTab === 'menu'" class="tab-panel">
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'assignment' }"
+      @click="menuSubTab = 'assignment'"
+    >
+      📋 Menu Assignment
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: menuSubTab === 'performance' }"
+      @click="menuSubTab = 'performance'"
+    >
+      📊 Menu Performance
+    </button>
   </div>
-            <div class="card-modern-body">
-              <div class="filter-bar">
-                <div class="filter-search">
-                  <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-                  <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-                    <option value="">-- Select a stall --</option>
-                    <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                      {{ stall.name }} ({{ stall.code }})
-                    </option>
-                  </select>
-                </div>
-              </div>
+  
+  <!-- Menu Assignment -->
+  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📋 Menu Assignment</h3>
+          <span class="card-subtitle">Assign menu items to stalls</span>
+        </div>
+        <div class="header-actions">
+          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+          <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
+        </div>
+      </div>
+      <div class="card-modern-body">
+        <div class="filter-bar">
+          <div class="filter-search">
+            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+              <option value="">-- Select a stall --</option>
+              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                {{ stall.name }} ({{ stall.code }})
+              </option>
+            </select>
+          </div>
+        </div>
 
-              <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-                <span>🏪</span>
-                <p>Please select a stall to manage its menu</p>
-              </div>
+        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+          <span>🏪</span>
+          <p>Please select a stall to manage its menu</p>
+        </div>
 
-              <div v-else-if="loadingMenuAssignments" class="loading-state small">
-                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-                <p>Loading menu assignments...</p>
-              </div>
+        <div v-else-if="loadingMenuAssignments" class="loading-state small">
+          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+          <p>Loading menu assignments...</p>
+        </div>
 
-              <div v-else class="menu-assignment-list">
-                <div class="assignment-header">
-                  <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-                  <button @click="selectAllMenus" class="btn-modern secondary small">
-                    ✅ Select All
-                  </button>
-                  <button @click="deselectAllMenus" class="btn-modern secondary small">
-                    ❌ Deselect All
-                  </button>
-                </div>
+        <div v-else class="menu-assignment-list">
+          <div class="assignment-header">
+            <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
+            <button @click="selectAllMenus" class="btn-modern secondary small">
+              ✅ Select All
+            </button>
+            <button @click="deselectAllMenus" class="btn-modern secondary small">
+              ❌ Deselect All
+            </button>
+          </div>
 
-                <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-                  <span>📋</span>
-                  <p>No menu items available. Please contact your administrator to create menu items.</p>
-                </div>
+          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+            <span>📋</span>
+            <p>No menu items available. Please contact your administrator to create menu items.</p>
+          </div>
 
-                <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
-                  <div class="assignment-item-content">
-                    <div class="assignment-item-info">
-                      <div class="assignment-item-checkbox">
-                        <input 
-                          type="checkbox" 
-                          :id="`menu-${item.item_name}`" 
-                          v-model="menuAssignments[item.item_name]"
-                          :disabled="savingAssignment"
-                        />
-                        <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                          <span class="assignment-item-name">{{ item.item_name }}</span>
-                          <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                          <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="selectedAssignmentStall" class="assignment-actions">
-                  <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-                    {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-                  </button>
-                  <button @click="resetMenuAssignments" class="btn-modern secondary">
-                    ↩ Reset
-                  </button>
-                </div>
-
-                <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-                  {{ savedAssignmentMessage }}
+          <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
+            <div class="assignment-item-content">
+              <div class="assignment-item-info">
+                <div class="assignment-item-checkbox">
+                  <input 
+                    type="checkbox" 
+                    :id="`menu-${item.item_name}`" 
+                    v-model="menuAssignments[item.item_name]"
+                    :disabled="savingAssignment"
+                  />
+                  <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                    <span class="assignment-item-name">{{ item.item_name }}</span>
+                    <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                    <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                  </label>
                 </div>
               </div>
             </div>
           </div>
+
+          <div v-if="selectedAssignmentStall" class="assignment-actions">
+            <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+              {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+            </button>
+            <button @click="resetMenuAssignments" class="btn-modern secondary">
+              ↩ Reset
+            </button>
+          </div>
+
+          <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+            {{ savedAssignmentMessage }}
+          </div>
         </div>
-        
-        <!-- Menu Performance - Full List -->
-<div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>📊 Menu Performance</h3>
-        <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
       </div>
     </div>
-            <div class="card-modern-body menu-performance-table-container">
-              <div v-if="menuPerformance.length === 0" class="empty-state-modern">
-                <span>📊</span>
-                <p>No sales data available for {{ getPeriodLabel() }}</p>
-              </div>
+  </div>
+  
+  <!-- Menu Performance - Full List -->
+  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>📊 Menu Performance</h3>
+          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+        </div>
+        <div class="header-actions">
+          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        </div>
+      </div>
+      <div class="card-modern-body menu-performance-table-container">
+        <div v-if="menuPerformance.length === 0" class="empty-state-modern">
+          <span>📊</span>
+          <p>No sales data available for {{ getPeriodLabel() }}</p>
+        </div>
+        
+        <div v-else class="menu-table-wrapper">
+          <div class="menu-table-header">
+            <span class="menu-table-header-rank">Rank</span>
+            <span class="menu-table-header-name">Menu</span>
+            <span class="menu-table-header-revenue">Revenue</span>
+            <span class="menu-table-header-status">Status</span>
+            <span class="menu-table-header-details">Details</span>
+          </div>
+          
+          <div class="menu-table-body">
+            <div 
+              v-for="(item, index) in menuPerformance" 
+              :key="item.name" 
+              class="menu-table-row clickable-item"
+              @click="viewMenuItemDetails(item)"
+            >
+              <span class="menu-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
               
-              <div v-else class="menu-table-wrapper">
-                <div class="menu-table-header">
-                  <span class="menu-table-header-rank">Rank</span>
-                  <span class="menu-table-header-name">Menu</span>
-                  <span class="menu-table-header-revenue">Revenue</span>
-                  <span class="menu-table-header-status">Status</span>
-                  <span class="menu-table-header-details">Details</span>
-                </div>
-                
-                <div class="menu-table-body">
-                  <div 
-                    v-for="(item, index) in menuPerformance" 
-                    :key="item.name" 
-                    class="menu-table-row clickable-item"
-                    @click="viewMenuItemDetails(item)"
-                  >
-                    <span class="menu-table-rank">
-                      <span class="rank-number" :class="getRankClass(index)">
-                        {{ index + 1 }}
-                      </span>
-                    </span>
-                    
-                    <span class="menu-table-name">
-                      <span class="menu-name-text">{{ item.name }}</span>
-                      <span class="menu-name-bar">
-                        <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-                      </span>
-                    </span>
-                    
-                    <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-                    
-                    <span class="menu-table-status">
-                      <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-                        {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-                      </span>
-                    </span>
-                    
-                    <span class="menu-table-details">👆</span>
-                  </div>
-                </div>
-              </div>
+              <span class="menu-table-name">
+                <span class="menu-name-text">{{ item.name }}</span>
+                <span class="menu-name-bar">
+                  <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                </span>
+              </span>
+              
+              <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              
+              <span class="menu-table-status">
+                <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                  {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                </span>
+              </span>
+              
+              <span class="menu-table-details">👆</span>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- ============================================ -->
       <!-- MODALS                                       -->
@@ -1817,13 +1817,13 @@ export default {
       userItemsPerPage: 10,
       selectedUsers: [],
       selectAllUsers: false,
-      currentUserId: null, // Set this when user logs in
+      currentUserId: null,
       performanceSearch: '',
       performanceStateFilter: 'All States',
       performanceStatusFilter: 'all',
       performancePage: 1,
       performanceSortBy: 'rank',
-      performanceSortOrder: 'asc', // 'asc' or 'desc'
+      performanceSortOrder: 'asc',
       _stallCurrentPage: 1,
       currentPage: 1,
       currentStallPage: 1,
@@ -1943,147 +1943,141 @@ export default {
   },
 
   computed: {
-
-      // ✅ Users Stats
-  userStats() {
-    const users = this.users.filter(u => 
-      u.role !== 'super_admin' && u.role !== 'super_super_admin'
-    )
-    
-    let total = users.length
-    let admins = users.filter(u => u.role === 'stall_admin').length
-    let cashiers = users.filter(u => u.role === 'cashier').length
-    let active = users.filter(u => u.is_active !== false).length
-    let inactive = users.filter(u => u.is_active === false).length
-    
-    return {
-      total,
-      admins,
-      cashiers,
-      active,
-      inactive
-    }
-  },
-
-  // ✅ Users Pagination
-  userTotalPages() {
-    return Math.ceil(this.filteredUsersList.length / this.userItemsPerPage) || 1
-  },
-
-  paginatedUsersList() {
-    const start = (this.userCurrentPage - 1) * this.userItemsPerPage
-    const end = start + this.userItemsPerPage
-    return this.filteredUsersList.slice(start, end)
-  },
-
-  userStartIndex() {
-    if (this.filteredUsersList.length === 0) return 0
-    return (this.userCurrentPage - 1) * this.userItemsPerPage + 1
-  },
-
-  userEndIndex() {
-    if (this.filteredUsersList.length === 0) return 0
-    return Math.min(this.userCurrentPage * this.userItemsPerPage, this.filteredUsersList.length)
-  },
-
-  selectedUsersCount() {
-    return this.selectedUsers.length
-  },
-
-  // ✅ Override filteredUsersList to include pagination
-  filteredUsersList() {
-    return this.users.filter(user => {
-      // Skip super admin users
-      if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-        return false
+    // ✅ Users Stats
+    userStats() {
+      const users = this.users.filter(u => 
+        u.role !== 'super_admin' && u.role !== 'super_super_admin'
+      )
+      
+      let total = users.length
+      let admins = users.filter(u => u.role === 'stall_admin').length
+      let cashiers = users.filter(u => u.role === 'cashier').length
+      let active = users.filter(u => u.is_active !== false).length
+      let inactive = users.filter(u => u.is_active === false).length
+      
+      return {
+        total,
+        admins,
+        cashiers,
+        active,
+        inactive
       }
+    },
+
+    // ✅ Users Pagination
+    userTotalPages() {
+      return Math.ceil(this.filteredUsersList.length / this.userItemsPerPage) || 1
+    },
+
+    paginatedUsersList() {
+      const start = (this.userCurrentPage - 1) * this.userItemsPerPage
+      const end = start + this.userItemsPerPage
+      return this.filteredUsersList.slice(start, end)
+    },
+
+    userStartIndex() {
+      if (this.filteredUsersList.length === 0) return 0
+      return (this.userCurrentPage - 1) * this.userItemsPerPage + 1
+    },
+
+    userEndIndex() {
+      if (this.filteredUsersList.length === 0) return 0
+      return Math.min(this.userCurrentPage * this.userItemsPerPage, this.filteredUsersList.length)
+    },
+
+    selectedUsersCount() {
+      return this.selectedUsers.length
+    },
+
+    // ✅ Override filteredUsersList to include pagination
+    filteredUsersList() {
+      return this.users.filter(user => {
+        // Skip super admin users
+        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+          return false
+        }
+        
+        const search = this.userSearch.toLowerCase()
+        const matchesSearch = user.username.toLowerCase().includes(search) ||
+                              (user.full_name && user.full_name.toLowerCase().includes(search))
+        
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+        
+        return matchesSearch && matchesRole
+      })
+    },
+
+    dashboardDisplayStalls() {
+      const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
+        (stall.revenue || 0) > 0
+      )
+      if (this.showAllStalls) {
+        return stallsWithSales
+      }
+      return stallsWithSales.slice(0, 5)
+    },
+
+    performanceStats() {
+      let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
       
-      const search = this.userSearch.toLowerCase()
-      const matchesSearch = user.username.toLowerCase().includes(search) ||
-                            (user.full_name && user.full_name.toLowerCase().includes(search))
+      this.stallPerformance.forEach(stall => {
+        const revenue = stall.revenue || 0
+        if (revenue === 0) noSales++
+        else if (revenue > 1000) excellent++
+        else if (revenue > 500) good++
+        else if (revenue > 100) average++
+        else poor++
+      })
       
-      const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-      
-      return matchesSearch && matchesRole
-    })
-  }
-},
+      return { excellent, good, average, poor, noSales }
+    },
 
- dashboardDisplayStalls() {
-    const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
-      (stall.revenue || 0) > 0
-    )
-    if (this.showAllStalls) {
-      return stallsWithSales
-    }
-    return stallsWithSales.slice(0, 5)
-  },
+    filteredPerformanceList() {
+      let list = this.stallPerformance.filter(stall => {
+        const search = this.performanceSearch.toLowerCase()
+        const matchesSearch = stall.name.toLowerCase().includes(search) ||
+                              (stall.code && stall.code.toLowerCase().includes(search))
+        
+        const stallData = this.stalls.find(s => s.id === stall.id)
+        const matchesState = this.performanceStateFilter === 'All States' || 
+                             (stallData && stallData.state === this.performanceStateFilter)
+        
+        const revenue = stall.revenue || 0
+        let status = 'no-sales'
+        if (revenue === 0) status = 'no-sales'
+        else if (revenue > 1000) status = 'excellent'
+        else if (revenue > 500) status = 'good'
+        else if (revenue > 100) status = 'average'
+        else status = 'poor'
+        
+        const matchesStatus = this.performanceStatusFilter === 'all' || 
+                              status === this.performanceStatusFilter
+        
+        return matchesSearch && matchesState && matchesStatus
+      })
 
-     performanceStats() {
-    let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
-    
-    this.stallPerformance.forEach(stall => {
-      const revenue = stall.revenue || 0
-      if (revenue === 0) noSales++
-      else if (revenue > 1000) excellent++
-      else if (revenue > 500) good++
-      else if (revenue > 100) average++
-      else poor++
-    })
-    
-    return { excellent, good, average, poor, noSales }
-  },
+      return this.sortPerformanceList(list)
+    },
 
-  filteredPerformanceList() {
-    let list = this.stallPerformance.filter(stall => {
-      // Search filter
-      const search = this.performanceSearch.toLowerCase()
-      const matchesSearch = stall.name.toLowerCase().includes(search) ||
-                            (stall.code && stall.code.toLowerCase().includes(search))
-      
-      // State filter - get state from stalls array
-      const stallData = this.stalls.find(s => s.id === stall.id)
-      const matchesState = this.performanceStateFilter === 'All States' || 
-                           (stallData && stallData.state === this.performanceStateFilter)
-      
-      // Status filter
-      const revenue = stall.revenue || 0
-      let status = 'no-sales'
-      if (revenue === 0) status = 'no-sales'
-      else if (revenue > 1000) status = 'excellent'
-      else if (revenue > 500) status = 'good'
-      else if (revenue > 100) status = 'average'
-      else status = 'poor'
-      
-      const matchesStatus = this.performanceStatusFilter === 'all' || 
-                            status === this.performanceStatusFilter
-      
-      return matchesSearch && matchesState && matchesStatus
-    })
+    paginatedPerformanceList() {
+      const start = (this.performancePage - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.filteredPerformanceList.slice(start, end)
+    },
 
-    // Apply sorting
-    return this.sortPerformanceList(list)
-  },
+    performanceTotalPages() {
+      return Math.ceil(this.filteredPerformanceList.length / this.itemsPerPage) || 1
+    },
 
-  paginatedPerformanceList() {
-    const start = (this.performancePage - 1) * this.itemsPerPage
-    const end = start + this.itemsPerPage
-    return this.filteredPerformanceList.slice(start, end)
-  },
+    performanceStartIndex() {
+      if (this.filteredPerformanceList.length === 0) return 0
+      return (this.performancePage - 1) * this.itemsPerPage + 1
+    },
 
-  performanceTotalPages() {
-    return Math.ceil(this.filteredPerformanceList.length / this.itemsPerPage) || 1
-  },
-
-  performanceStartIndex() {
-    if (this.filteredPerformanceList.length === 0) return 0
-    return (this.performancePage - 1) * this.itemsPerPage + 1
-  },
-
-  performanceEndIndex() {
-    if (this.filteredPerformanceList.length === 0) return 0
-    return Math.min(this.performancePage * this.itemsPerPage, this.filteredPerformanceList.length)
-  },
+    performanceEndIndex() {
+      if (this.filteredPerformanceList.length === 0) return 0
+      return Math.min(this.performancePage * this.itemsPerPage, this.filteredPerformanceList.length)
+    },
 
     totalPages() {
       return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
@@ -2142,26 +2136,25 @@ export default {
       return stalls
     },
 
-  // ✅ For Dashboard - period-limited subtitle
-  dashboardStallPerformanceSubtitle() {
-    const hasPeriodSales = this.stallPerformancePeriod.some(s => (s.revenue || 0) > 0)
-    
-    if (!hasPeriodSales) {
-      return `No sales for ${this.getPeriodLabel()}`
-    }
-    
-    const count = this.dashboardDisplayStalls.length
-    if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
-    if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
-    return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
-  },
+    dashboardStallPerformanceSubtitle() {
+      const hasPeriodSales = this.stallPerformancePeriod.some(s => (s.revenue || 0) > 0)
+      
+      if (!hasPeriodSales) {
+        return `No sales for ${this.getPeriodLabel()}`
+      }
+      
+      const count = this.dashboardDisplayStalls.length
+      if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
+      if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
+      return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
+    },
 
-  stallPerformanceSubtitle() {
-  const count = this.displayStalls.length
-  if (count === 0) return 'No stalls with sales (all-time)'
-  if (count === 1) return 'Top stall by total revenue (all-time)'
-  return `Top ${count} stalls by total revenue (all-time)`
-},
+    stallPerformanceSubtitle() {
+      const count = this.displayStalls.length
+      if (count === 0) return 'No stalls with sales (all-time)'
+      if (count === 1) return 'Top stall by total revenue (all-time)'
+      return `Top ${count} stalls by total revenue (all-time)`
+    },
 
     displayStalls() {
       const stallsWithSales = this.stallPerformance.filter(stall => 
@@ -2221,80 +2214,80 @@ export default {
     // ===== STALL MANAGEMENT COMPUTED PROPERTIES =====
     
     stallStats() {
-    let lowStockCount = 0
-    this.stalls.forEach(stall => {
-      if (this.hasLowStock(stall.id)) {
-        lowStockCount++
+      let lowStockCount = 0
+      this.stalls.forEach(stall => {
+        if (this.hasLowStock(stall.id)) {
+          lowStockCount++
+        }
+      })
+      return {
+        total: this.stalls.length || 0,
+        active: this.stalls.filter(s => s.is_active).length || 0,
+        inactive: this.stalls.filter(s => !s.is_active).length || 0,
+        lowStock: lowStockCount
       }
-    })
-    return {
-      total: this.stalls.length || 0,
-      active: this.stalls.filter(s => s.is_active).length || 0,
-      inactive: this.stalls.filter(s => !s.is_active).length || 0,
-      lowStock: lowStockCount
-    }
-  },
+    },
 
     selectedStallsCount() {
       return this.selectedStalls.length
     },
 
-   stallTotalPages() {
-  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
-    return 1
-  }
-  return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
-},
+    stallTotalPages() {
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 1
+      }
+      return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
+    },
 
     stallStartIndex() {
-  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
-    return 0
-  }
-  const start = (this.stallCurrentPage - 1) * this.itemsPerPage + 1
-  return Math.min(start, this.filteredStallsList.length)
-},
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 0
+      }
+      const start = (this.stallCurrentPage - 1) * this.itemsPerPage + 1
+      return Math.min(start, this.filteredStallsList.length)
+    },
 
-stallCurrentPage: {
-  get() {
-    return this._stallCurrentPage || 1
-  },
-  set(val) {
-    this._stallCurrentPage = val
-  }
-},
+    stallCurrentPage: {
+      get() {
+        return this._stallCurrentPage || 1
+      },
+      set(val) {
+        this._stallCurrentPage = val
+      }
+    },
 
-   stallEndIndex() {
-  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
-    return 0
-  }
-  const end = Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
-  return end
-},
+    stallEndIndex() {
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 0
+      }
+      const end = Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
+      return end
+    },
 
-     filteredStallsList() {
-    if (!this.stalls || this.stalls.length === 0) {
-      return []
-    }
-    return this.stalls.filter(stall => {
-      const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                            stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-      const matchesState = this.stateFilter === 'All States' || 
-                           (stall.state || '') === this.stateFilter
-      const matchesStatus = this.stallStatusFilter === 'all' || 
-                            (this.stallStatusFilter === 'active' && stall.is_active) ||
-                            (this.stallStatusFilter === 'inactive' && !stall.is_active)
-      return matchesSearch && matchesState && matchesStatus
-    })
-  },
+    filteredStallsList() {
+      if (!this.stalls || this.stalls.length === 0) {
+        return []
+      }
+      return this.stalls.filter(stall => {
+        const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                              stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+        const matchesState = this.stateFilter === 'All States' || 
+                             (stall.state || '') === this.stateFilter
+        const matchesStatus = this.stallStatusFilter === 'all' || 
+                              (this.stallStatusFilter === 'active' && stall.is_active) ||
+                              (this.stallStatusFilter === 'inactive' && !stall.is_active)
+        return matchesSearch && matchesState && matchesStatus
+      })
+    },
     
-   paginatedStallsList() {
-  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
-    return []
-  }
-  const start = (this.stallCurrentPage - 1) * this.itemsPerPage
-  const end = Math.min(start + this.itemsPerPage, this.filteredStallsList.length)
-  return this.filteredStallsList.slice(start, end)
-},
+    paginatedStallsList() {
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return []
+      }
+      const start = (this.stallCurrentPage - 1) * this.itemsPerPage
+      const end = Math.min(start + this.itemsPerPage, this.filteredStallsList.length)
+      return this.filteredStallsList.slice(start, end)
+    },
     
     filteredUsersList() {
       return this.users.filter(user => {
@@ -2317,12 +2310,13 @@ stallCurrentPage: {
     activeTabIcon() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
       return tab ? tab.icon : '📊'
+    }
+  },
 
-}
   mounted() {
     this.loadData()
     document.addEventListener('click', this.handleClickOutside)
-  }
+  },
 
   watch: {
     selectedPeriod(newVal, oldVal) {
@@ -2344,11 +2338,11 @@ stallCurrentPage: {
       this.resetPagination()
     },
     stallStatusFilter() {
-    this.resetStallPagination()
-  },
-  stallSearch() {
-    this.resetStallPagination()
-  },
+      this.resetStallPagination()
+    },
+    stallSearch() {
+      this.resetStallPagination()
+    },
     inventoryFilter() {
       this.resetPagination()
     },
@@ -2405,250 +2399,247 @@ stallCurrentPage: {
   },
 
   methods: {
+    // =============================================
+    // USERS TAB - PAGINATION & FILTERS
+    // =============================================
 
-  // =============================================
-  // USERS TAB - PAGINATION & FILTERS
-  // =============================================
-
-  toggleSelectAllUsers() {
-    this.selectAllUsers = !this.selectAllUsers
-    if (this.selectAllUsers) {
-      this.selectedUsers = this.paginatedUsersList.map(u => u.id)
-    } else {
-      this.selectedUsers = []
-    }
-  },
-
-  clearUserFilters() {
-    this.userSearch = ''
-    this.userRoleFilter = 'all'
-    this.selectedUsers = []
-    this.selectAllUsers = false
-    this.userCurrentPage = 1
-  },
-
-  resetUserPagination() {
-    this.userCurrentPage = 1
-  },
-
-  prevUserPage() {
-    if (this.userCurrentPage > 1) {
-      this.userCurrentPage--
-    }
-  },
-
-  nextUserPage() {
-    if (this.userCurrentPage < this.userTotalPages) {
-      this.userCurrentPage++
-    }
-  },
-
-  // =============================================
-  // BULK ACTIONS FOR USERS
-  // =============================================
-
-  async bulkDeleteUsers() {
-    if (this.selectedUsers.length === 0) {
-      this.$emit('show-notification', 'No users selected', 'warning')
-      return
-    }
-
-    if (!confirm(`Delete ${this.selectedUsers.length} selected user(s)? This action cannot be undone.`)) return
-
-    this.loading = true
-    let deleted = 0
-
-    try {
-      for (const userId of this.selectedUsers) {
-        // Skip if trying to delete self
-        if (userId === this.currentUserId) {
-          continue
-        }
-        await axios.delete(`${API_BASE}/users/${userId}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        deleted++
+    toggleSelectAllUsers() {
+      this.selectAllUsers = !this.selectAllUsers
+      if (this.selectAllUsers) {
+        this.selectedUsers = this.paginatedUsersList.map(u => u.id)
+      } else {
+        this.selectedUsers = []
       }
+    },
 
-      this.$emit('show-notification', `✅ Deleted ${deleted} user(s)`, 'success')
+    clearUserFilters() {
+      this.userSearch = ''
+      this.userRoleFilter = 'all'
       this.selectedUsers = []
       this.selectAllUsers = false
-      await this.loadUsers()
-    } catch (error) {
-      console.error('Bulk delete error:', error)
-      this.$emit('show-notification', 'Error deleting users', 'error')
-    } finally {
-      this.loading = false
-    }
-  },
+      this.userCurrentPage = 1
+    },
 
-  async bulkRoleChange(role) {
-    if (this.selectedUsers.length === 0) {
-      this.$emit('show-notification', 'No users selected', 'warning')
-      return
-    }
+    resetUserPagination() {
+      this.userCurrentPage = 1
+    },
 
-    const roleLabel = role === 'stall_admin' ? 'Admin' : 'Cashier'
-    if (!confirm(`Change ${this.selectedUsers.length} user(s) role to ${roleLabel}?`)) return
+    prevUserPage() {
+      if (this.userCurrentPage > 1) {
+        this.userCurrentPage--
+      }
+    },
 
-    this.loading = true
-    let updated = 0
+    nextUserPage() {
+      if (this.userCurrentPage < this.userTotalPages) {
+        this.userCurrentPage++
+      }
+    },
 
-    try {
-      for (const userId of this.selectedUsers) {
-        const user = this.users.find(u => u.id === userId)
-        if (user && user.role !== role) {
-          await axios.put(`${API_BASE}/users/${userId}`, {
-            ...user,
-            role: role
-          }, {
+    // =============================================
+    // BULK ACTIONS FOR USERS
+    // =============================================
+
+    async bulkDeleteUsers() {
+      if (this.selectedUsers.length === 0) {
+        this.$emit('show-notification', 'No users selected', 'warning')
+        return
+      }
+
+      if (!confirm(`Delete ${this.selectedUsers.length} selected user(s)? This action cannot be undone.`)) return
+
+      this.loading = true
+      let deleted = 0
+
+      try {
+        for (const userId of this.selectedUsers) {
+          if (userId === this.currentUserId) {
+            continue
+          }
+          await axios.delete(`${API_BASE}/users/${userId}`, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          updated++
+          deleted++
         }
+
+        this.$emit('show-notification', `✅ Deleted ${deleted} user(s)`, 'success')
+        this.selectedUsers = []
+        this.selectAllUsers = false
+        await this.loadUsers()
+      } catch (error) {
+        console.error('Bulk delete error:', error)
+        this.$emit('show-notification', 'Error deleting users', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkRoleChange(role) {
+      if (this.selectedUsers.length === 0) {
+        this.$emit('show-notification', 'No users selected', 'warning')
+        return
       }
 
-      this.$emit('show-notification', `✅ Updated ${updated} user(s) to ${roleLabel}`, 'success')
-      this.selectedUsers = []
-      this.selectAllUsers = false
-      await this.loadUsers()
-    } catch (error) {
-      console.error('Bulk role change error:', error)
-      this.$emit('show-notification', 'Error updating user roles', 'error')
-    } finally {
-      this.loading = false
-    }
-  },
+      const roleLabel = role === 'stall_admin' ? 'Admin' : 'Cashier'
+      if (!confirm(`Change ${this.selectedUsers.length} user(s) role to ${roleLabel}?`)) return
 
-  // =============================================
-  // NAVIGATE TO STALL
-  // =============================================
+      this.loading = true
+      let updated = 0
 
-  navigateToStall(stallId) {
-    this.activeTab = 'stalls'
-    this.stallSubTab = 'management'
-    // Filter to the specific stall
-    this.stallSearch = this.stalls.find(s => s.id === stallId)?.name || ''
-    this.dropdownOpen = false
-  }
-},
+      try {
+        for (const userId of this.selectedUsers) {
+          const user = this.users.find(u => u.id === userId)
+          if (user && user.role !== role) {
+            await axios.put(`${API_BASE}/users/${userId}`, {
+              ...user,
+              role: role
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            updated++
+          }
+        }
+
+        this.$emit('show-notification', `✅ Updated ${updated} user(s) to ${roleLabel}`, 'success')
+        this.selectedUsers = []
+        this.selectAllUsers = false
+        await this.loadUsers()
+      } catch (error) {
+        console.error('Bulk role change error:', error)
+        this.$emit('show-notification', 'Error updating user roles', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // =============================================
+    // NAVIGATE TO STALL
+    // =============================================
+
+    navigateToStall(stallId) {
+      this.activeTab = 'stalls'
+      this.stallSubTab = 'management'
+      this.stallSearch = this.stalls.find(s => s.id === stallId)?.name || ''
+      this.dropdownOpen = false
+    },
+
     getPeriodDays() {
-    switch(this.selectedPeriod) {
-      case 'today': return 1
-      case 'week': return 7
-      case 'month': return 30
-      case 'quarter': return 90
-      case 'halfyear': return 180
-      case 'year': return 365
-      case 'custom': return this.customDays || 30
-      default: return 7
-    }
-  },
-
-      // =============================================
-  // PERFORMANCE TAB METHODS
-  // =============================================
-
-  getPerformanceStatusText(stall) {
-    const revenue = stall.revenue || 0
-    if (revenue === 0) return 'No Sales'
-    if (revenue > 1000) return 'Excellent'
-    if (revenue > 500) return 'Good'
-    if (revenue > 100) return 'Average'
-    return 'Poor'
-  },
-
-  getPerformanceStatusEmoji(stall) {
-    const revenue = stall.revenue || 0
-    if (revenue === 0) return '⚪'
-    if (revenue > 1000) return '🟢'
-    if (revenue > 500) return '🔵'
-    if (revenue > 100) return '🟡'
-    return '🔴'
-  },
-
-  getPerformanceStatusClass(stall) {
-    const revenue = stall.revenue || 0
-    if (revenue === 0) return 'no-sales'
-    if (revenue > 1000) return 'excellent'
-    if (revenue > 500) return 'good'
-    if (revenue > 100) return 'average'
-    return 'poor'
-  },
-
-  sortPerformanceList(list) {
-    const sorted = [...list]
-    const sortBy = this.performanceSortBy
-    const order = this.performanceSortOrder
-
-    sorted.sort((a, b) => {
-      let valA, valB
-
-      if (sortBy === 'rank') {
-        valA = a.revenue || 0
-        valB = b.revenue || 0
-      } else if (sortBy === 'name') {
-        valA = a.name.toLowerCase()
-        valB = b.name.toLowerCase()
-        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
-      } else if (sortBy === 'revenue') {
-        valA = a.revenue || 0
-        valB = b.revenue || 0
-      } else if (sortBy === 'status') {
-        const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
-        valA = statusOrder[this.getPerformanceStatusClass(a)] || 0
-        valB = statusOrder[this.getPerformanceStatusClass(b)] || 0
+      switch(this.selectedPeriod) {
+        case 'today': return 1
+        case 'week': return 7
+        case 'month': return 30
+        case 'quarter': return 90
+        case 'halfyear': return 180
+        case 'year': return 365
+        case 'custom': return this.customDays || 30
+        default: return 7
       }
+    },
 
-      if (order === 'asc') {
-        return valA > valB ? 1 : valA < valB ? -1 : 0
+    // =============================================
+    // PERFORMANCE TAB METHODS
+    // =============================================
+
+    getPerformanceStatusText(stall) {
+      const revenue = stall.revenue || 0
+      if (revenue === 0) return 'No Sales'
+      if (revenue > 1000) return 'Excellent'
+      if (revenue > 500) return 'Good'
+      if (revenue > 100) return 'Average'
+      return 'Poor'
+    },
+
+    getPerformanceStatusEmoji(stall) {
+      const revenue = stall.revenue || 0
+      if (revenue === 0) return '⚪'
+      if (revenue > 1000) return '🟢'
+      if (revenue > 500) return '🔵'
+      if (revenue > 100) return '🟡'
+      return '🔴'
+    },
+
+    getPerformanceStatusClass(stall) {
+      const revenue = stall.revenue || 0
+      if (revenue === 0) return 'no-sales'
+      if (revenue > 1000) return 'excellent'
+      if (revenue > 500) return 'good'
+      if (revenue > 100) return 'average'
+      return 'poor'
+    },
+
+    sortPerformanceList(list) {
+      const sorted = [...list]
+      const sortBy = this.performanceSortBy
+      const order = this.performanceSortOrder
+
+      sorted.sort((a, b) => {
+        let valA, valB
+
+        if (sortBy === 'rank') {
+          valA = a.revenue || 0
+          valB = b.revenue || 0
+        } else if (sortBy === 'name') {
+          valA = a.name.toLowerCase()
+          valB = b.name.toLowerCase()
+          return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+        } else if (sortBy === 'revenue') {
+          valA = a.revenue || 0
+          valB = b.revenue || 0
+        } else if (sortBy === 'status') {
+          const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
+          valA = statusOrder[this.getPerformanceStatusClass(a)] || 0
+          valB = statusOrder[this.getPerformanceStatusClass(b)] || 0
+        }
+
+        if (order === 'asc') {
+          return valA > valB ? 1 : valA < valB ? -1 : 0
+        } else {
+          return valA < valB ? 1 : valA > valB ? -1 : 0
+        }
+      })
+
+      return sorted
+    },
+
+    sortPerformance(column) {
+      if (this.performanceSortBy === column) {
+        this.performanceSortOrder = this.performanceSortOrder === 'asc' ? 'desc' : 'asc'
       } else {
-        return valA < valB ? 1 : valA > valB ? -1 : 0
+        this.performanceSortBy = column
+        this.performanceSortOrder = column === 'rank' || column === 'revenue' ? 'desc' : 'asc'
       }
-    })
+      this.performancePage = 1
+    },
 
-    return sorted
-  },
+    getSortArrow(column) {
+      if (this.performanceSortBy !== column) return '⇅'
+      return this.performanceSortOrder === 'asc' ? '↑' : '↓'
+    },
 
-  sortPerformance(column) {
-    if (this.performanceSortBy === column) {
-      this.performanceSortOrder = this.performanceSortOrder === 'asc' ? 'desc' : 'asc'
-    } else {
-      this.performanceSortBy = column
-      this.performanceSortOrder = column === 'rank' || column === 'revenue' ? 'desc' : 'asc'
-    }
-    this.performancePage = 1
-  },
+    resetPerformancePagination() {
+      this.performancePage = 1
+    },
 
-  getSortArrow(column) {
-    if (this.performanceSortBy !== column) return '⇅'
-    return this.performanceSortOrder === 'asc' ? '↑' : '↓'
-  },
+    prevPerformancePage() {
+      if (this.performancePage > 1) {
+        this.performancePage--
+      }
+    },
 
-  resetPerformancePagination() {
-    this.performancePage = 1
-  },
+    nextPerformancePage() {
+      if (this.performancePage < this.performanceTotalPages) {
+        this.performancePage++
+      }
+    },
 
-  prevPerformancePage() {
-    if (this.performancePage > 1) {
-      this.performancePage--
-    }
-  },
-
-  nextPerformancePage() {
-    if (this.performancePage < this.performanceTotalPages) {
-      this.performancePage++
-    }
-  },
-
-  clearPerformanceFilters() {
-    this.performanceSearch = ''
-    this.performanceStateFilter = 'All States'
-    this.performanceStatusFilter = 'all'
-    this.performancePage = 1
-    this.performanceSortBy = 'rank'
-    this.performanceSortOrder = 'asc'
-  },
+    clearPerformanceFilters() {
+      this.performanceSearch = ''
+      this.performanceStateFilter = 'All States'
+      this.performanceStatusFilter = 'all'
+      this.performancePage = 1
+      this.performanceSortBy = 'rank'
+      this.performanceSortOrder = 'asc'
+    },
 
     async updateStock(materialName, newLevel, stallId) {
       try {
@@ -3262,46 +3253,46 @@ stallCurrentPage: {
     // =============================================
     // TOP STALL HELPERS
     // =============================================
-   getTopStallName() {
-    if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
-      return this.consolidatedSales.topStall
-    }
-    return '-'
-  },
+    getTopStallName() {
+      if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
+        return this.consolidatedSales.topStall
+      }
+      return '-'
+    },
 
- getTopStallRevenue() {
-    if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
-      return this.consolidatedSales.topRevenue
-    }
-    return 0
-  },
+    getTopStallRevenue() {
+      if (this.consolidatedSales.topRevenue && this.consolidatedSales.topRevenue > 0) {
+        return this.consolidatedSales.topRevenue
+      }
+      return 0
+    },
 
     getTopStallStatusText() {
-  const revenue = this.getTopStallRevenue()
-  if (revenue === 0) return 'No Sales'
-  if (revenue > 1000) return 'Excellent'
-  if (revenue > 500) return 'Good'
-  if (revenue > 100) return 'Average'
-  return 'Poor'
-},
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return 'No Sales'
+      if (revenue > 1000) return 'Excellent'
+      if (revenue > 500) return 'Good'
+      if (revenue > 100) return 'Average'
+      return 'Poor'
+    },
 
-getTopStallStatusEmoji() {
-  const revenue = this.getTopStallRevenue()
-  if (revenue === 0) return '⚪'
-  if (revenue > 1000) return '🟢'
-  if (revenue > 500) return '🔵'
-  if (revenue > 100) return '🟡'
-  return '🔴'
-},
+    getTopStallStatusEmoji() {
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return '⚪'
+      if (revenue > 1000) return '🟢'
+      if (revenue > 500) return '🔵'
+      if (revenue > 100) return '🟡'
+      return '🔴'
+    },
 
-getTopStallStatusClass() {
-  const revenue = this.getTopStallRevenue()
-  if (revenue === 0) return 'no-sales'
-  if (revenue > 1000) return 'excellent'
-  if (revenue > 500) return 'good'
-  if (revenue > 100) return 'average'
-  return 'poor'
-},
+    getTopStallStatusClass() {
+      const revenue = this.getTopStallRevenue()
+      if (revenue === 0) return 'no-sales'
+      if (revenue > 1000) return 'excellent'
+      if (revenue > 500) return 'good'
+      if (revenue > 100) return 'average'
+      return 'poor'
+    },
 
     // =============================================
     // SPARKLINE HELPER
@@ -4686,45 +4677,43 @@ getTopStallStatusClass() {
       await this.loadData()
     },
 
-async loadData() {
-  try {
-    console.log('🔄 Loading stall admin data...')
-    
-    // ✅ Load stalls FIRST and wait for them
-    await this.loadStalls()
-    console.log('✅ Stalls loaded:', this.stalls.length)
-    
-    // ✅ Reset pagination after stalls load
-    this._stallCurrentPage = 1
-    
-    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-      this.stallPerformance = []
-      this.menuPerformance = []
-      this.salesTrend = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      this.consolidatedSales.totalRevenue = 0
-      this.consolidatedSales.totalItems = 0
-    }
-    
-    await this.loadSalesAnalytics()
-    
-    await Promise.all([
-      this.loadUsers(),
-      this.loadLowStock(),
-      this.loadStallPerformance(),
-      this.loadMenuItems()
-    ])
-    
-    await this.loadAllStallsInventory()
-    this.resetChartNavigation()
-    
-    this.$emit('show-notification', 'Data refreshed', 'success')
-  } catch (err) {
-    console.error('Load data error:', err)
-    this.$emit('show-notification', err.message, 'error')
-  }
-},
+    async loadData() {
+      try {
+        console.log('🔄 Loading stall admin data...')
+        
+        await this.loadStalls()
+        console.log('✅ Stalls loaded:', this.stalls.length)
+        
+        this._stallCurrentPage = 1
+        
+        if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+          this.stallPerformance = []
+          this.menuPerformance = []
+          this.salesTrend = []
+          this.consolidatedSales.topStall = '-'
+          this.consolidatedSales.topRevenue = 0
+          this.consolidatedSales.totalRevenue = 0
+          this.consolidatedSales.totalItems = 0
+        }
+        
+        await this.loadSalesAnalytics()
+        
+        await Promise.all([
+          this.loadUsers(),
+          this.loadLowStock(),
+          this.loadStallPerformance(),
+          this.loadMenuItems()
+        ])
+        
+        await this.loadAllStallsInventory()
+        this.resetChartNavigation()
+        
+        this.$emit('show-notification', 'Data refreshed', 'success')
+      } catch (err) {
+        console.error('Load data error:', err)
+        this.$emit('show-notification', err.message, 'error')
+      }
+    },
 
     async loadStalls() {
       try {
@@ -4888,67 +4877,63 @@ async loadData() {
       }
     },
 
-async loadStallPerformance() {
-  const stallIds = this.stalls.map(s => s.id)
-  if (!stallIds || stallIds.length === 0) {
-    this.stallPerformance = []
-    this.stallPerformancePeriod = []
-    return
-  }
-  
-  try {
-    // ✅ Load ALL-TIME data for Stall Performance tab
-    const allTimeRes = await axios.get(
-      `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    )
-    this.stallPerformance = this.mergeStallData(allTimeRes.data || [])
-    
-    // ✅ Load PERIOD data for Dashboard
-    const days = this.getPeriodDays()
-    const periodRes = await axios.get(
-      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    )
-    this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
-    
-    // ✅ Update top stall for Dashboard (period data)
-    if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
-      this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
-      this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
-    }
-    
-    console.log('✅ All-time stalls:', this.stallPerformance.length)
-    console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
-    
-  } catch (err) {
-    console.error('Failed to load stall performance:', err)
-    this.stallPerformance = []
-    this.stallPerformancePeriod = []
-  }
-},
+    async loadStallPerformance() {
+      const stallIds = this.stalls.map(s => s.id)
+      if (!stallIds || stallIds.length === 0) {
+        this.stallPerformance = []
+        this.stallPerformancePeriod = []
+        return
+      }
+      
+      try {
+        const allTimeRes = await axios.get(
+          `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        )
+        this.stallPerformance = this.mergeStallData(allTimeRes.data || [])
+        
+        const days = this.getPeriodDays()
+        const periodRes = await axios.get(
+          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        )
+        this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
+        
+        if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
+          this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
+          this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
+        }
+        
+        console.log('✅ All-time stalls:', this.stallPerformance.length)
+        console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
+        
+      } catch (err) {
+        console.error('Failed to load stall performance:', err)
+        this.stallPerformance = []
+        this.stallPerformancePeriod = []
+      }
+    },
 
-// ✅ Helper to merge stall data
-mergeStallData(performanceData) {
-  return this.stalls.map(stall => {
-    const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
-    if (perf) {
-      return {
-        ...stall,
-        revenue: parseFloat(perf.revenue) || 0,
-        items: parseInt(perf.items_sold) || 0,
-        avgTransaction: parseFloat(perf.avg_transaction) || 0
-      }
-    } else {
-      return {
-        ...stall,
-        revenue: 0,
-        items: 0,
-        avgTransaction: 0
-      }
-    }
-  }).sort((a, b) => b.revenue - a.revenue)
-},
+    mergeStallData(performanceData) {
+      return this.stalls.map(stall => {
+        const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+        if (perf) {
+          return {
+            ...stall,
+            revenue: parseFloat(perf.revenue) || 0,
+            items: parseInt(perf.items_sold) || 0,
+            avgTransaction: parseFloat(perf.avg_transaction) || 0
+          }
+        } else {
+          return {
+            ...stall,
+            revenue: 0,
+            items: 0,
+            avgTransaction: 0
+          }
+        }
+      }).sort((a, b) => b.revenue - a.revenue)
+    },
 
     async loadMenuPerformance() {
       try {
@@ -5024,9 +5009,6 @@ mergeStallData(performanceData) {
       }
     },
 
-    // =============================================
-    // MENU ITEMS (For Assignment)
-    // =============================================
     async loadMenuItems() {
       try {
         const res = await axios.get(`${API_BASE}/menu`, {
