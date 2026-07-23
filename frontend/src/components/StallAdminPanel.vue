@@ -2021,6 +2021,219 @@
   </div>
 </div>
 
+<!-- ===== REVENUE TAB ===== -->
+<div v-if="activeTab === 'revenue'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>💰 Revenue Overview</h3>
+        <span class="card-subtitle">{{ getRevenuePeriodLabel() }}</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshRevenueData" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        <button @click="exportRevenueData" class="btn-modern primary small">📊 Export</button>
+      </div>
+    </div>
+    <div class="card-modern-body">
+      
+      <!-- Stats Cards -->
+      <div class="revenue-stats-grid">
+        <div class="stat-chip revenue">
+          <span class="stat-chip-label">💰 Total Revenue</span>
+          <span class="stat-chip-value">{{ formatCurrency(revenueStats.totalRevenue) }}</span>
+        </div>
+        <div class="stat-chip transactions">
+          <span class="stat-chip-label">📋 Total Transactions</span>
+          <span class="stat-chip-value">{{ formatNumber(revenueStats.totalTransactions) }}</span>
+        </div>
+        <div class="stat-chip average">
+          <span class="stat-chip-label">📊 Avg Transaction</span>
+          <span class="stat-chip-value">{{ formatCurrency(revenueStats.avgTransaction) }}</span>
+        </div>
+        <div class="stat-chip growth">
+          <span class="stat-chip-label">📈 Revenue Growth</span>
+          <span class="stat-chip-value" :class="revenueGrowth >= 0 ? 'positive' : 'negative'">
+            {{ revenueGrowth >= 0 ? '↑' : '↓' }} {{ Math.abs(revenueGrowth).toFixed(1) }}%
+          </span>
+        </div>
+        <div class="stat-chip top-stall">
+          <span class="stat-chip-label">🏆 Top Stall</span>
+          <span class="stat-chip-value">{{ revenueStats.topStallName }}</span>
+          <span class="stat-chip-sub">{{ formatCurrency(revenueStats.topStallRevenue) }}</span>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <div class="filter-group">
+          <select v-model="revenuePeriod" class="filter-select" @change="loadRevenueData">
+            <option v-for="p in revenuePeriods" :key="p.value" :value="p.value">
+              {{ p.label }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="revenueStateFilter" class="filter-select" @change="resetRevenuePagination">
+            <option v-for="state in malaysiaStates" :key="state" :value="state">
+              {{ state }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="revenueStallFilter" class="filter-select" @change="resetRevenuePagination">
+            <option value="all">All Stalls</option>
+            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+              {{ stall.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-search" style="min-width: 150px;">
+          <input 
+            type="text" 
+            v-model="revenueSearch" 
+            placeholder="Search stalls..." 
+            class="filter-input"
+            @input="resetRevenuePagination"
+          />
+        </div>
+
+        <div class="filter-actions">
+          <button @click="clearRevenueFilters" class="btn-modern secondary small">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Revenue Charts -->
+      <div class="revenue-charts-grid">
+        <div class="revenue-chart-card">
+          <h4>📈 Revenue by Stall</h4>
+          <div ref="revenueChartRef" class="revenue-chart-container"></div>
+        </div>
+        
+        <div class="revenue-chart-card">
+          <h4>📍 Revenue by State</h4>
+          <div ref="revenueStateChartRef" class="revenue-chart-container"></div>
+        </div>
+      </div>
+
+      <!-- Revenue Table -->
+      <div v-if="revenueLoading" class="loading-state">
+        <div class="loading-spinner"><div class="spinner-ring"></div></div>
+        <p>Loading revenue data...</p>
+      </div>
+
+      <div v-else-if="filteredRevenueData.length === 0" class="empty-state-modern">
+        <span>💰</span>
+        <p>No revenue data available for the selected filters</p>
+        <button @click="clearRevenueFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+          Clear Filters
+        </button>
+      </div>
+
+      <div v-else>
+        <div class="revenue-table-wrapper">
+          <div class="revenue-table-header">
+            <span class="revenue-table-rank sortable" @click="sortRevenue('rank')">
+              Rank <span class="sort-arrow">{{ getRevenueSortArrow('rank') }}</span>
+            </span>
+            <span class="revenue-table-name sortable" @click="sortRevenue('name')">
+              Stall <span class="sort-arrow">{{ getRevenueSortArrow('name') }}</span>
+            </span>
+            <span class="revenue-table-state sortable" @click="sortRevenue('state')">
+              State <span class="sort-arrow">{{ getRevenueSortArrow('state') }}</span>
+            </span>
+            <span class="revenue-table-revenue sortable" @click="sortRevenue('revenue')">
+              Revenue <span class="sort-arrow">{{ getRevenueSortArrow('revenue') }}</span>
+            </span>
+            <span class="revenue-table-transactions sortable" @click="sortRevenue('transactions')">
+              Transactions <span class="sort-arrow">{{ getRevenueSortArrow('transactions') }}</span>
+            </span>
+            <span class="revenue-table-avg sortable" @click="sortRevenue('avg')">
+              Avg <span class="sort-arrow">{{ getRevenueSortArrow('avg') }}</span>
+            </span>
+            <span class="revenue-table-status">Status</span>
+            <span class="revenue-table-details">Details</span>
+          </div>
+          
+          <div class="revenue-table-body">
+            <div 
+              v-for="(item, index) in paginatedRevenueData" 
+              :key="item.id" 
+              class="revenue-table-row clickable-item"
+              @click="viewRevenueStallDetails(item)"
+            >
+              <span class="revenue-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
+              
+              <span class="revenue-table-name">
+                <span class="stall-name-text">{{ item.name }}</span>
+                <span class="stall-code-text">{{ item.code }}</span>
+              </span>
+              
+              <span class="revenue-table-state">
+                <span class="state-tag">{{ item.state || '-' }}</span>
+              </span>
+              
+              <span class="revenue-table-revenue">
+                {{ formatCurrency(item.revenue || 0) }}
+              </span>
+              
+              <span class="revenue-table-transactions">
+                {{ formatNumber(item.transactions || 0) }}
+              </span>
+              
+              <span class="revenue-table-avg">
+                {{ formatCurrency(item.avgTransaction || 0) }}
+              </span>
+              
+              <span class="revenue-table-status">
+                <span :class="['status-indicator', getRevenueStatusClass(item)]">
+                  {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
+                </span>
+              </span>
+              
+              <span class="revenue-table-details">👆</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ revenueStartIndex }} - {{ revenueEndIndex }} of {{ filteredRevenueData.length }} stalls
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevRevenuePage" 
+              class="pagination-btn"
+              :disabled="revenuePage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ revenuePage }} of {{ revenueTotalPages }}
+            </span>
+            <button 
+              @click="nextRevenuePage" 
+              class="pagination-btn"
+              :disabled="revenuePage >= revenueTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
       <!-- ============================================ -->
       <!-- MODALS                                       -->
       <!-- ============================================ -->
@@ -2249,8 +2462,38 @@ export default {
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu', label: 'Menu', icon: '📋' }
+        { id: 'menu', label: 'Menu', icon: '📋' },
+        { id: 'revenue', label: 'Revenue', icon: '💰' }
       ],
+
+       // ===== REVENUE TAB DATA =====
+    revenuePeriod: 'week',
+    revenueStateFilter: 'All States',
+    revenueStallFilter: 'all',
+    revenueMinAmount: 0,
+    revenueSearch: '',
+    revenuePage: 1,
+    revenueItemsPerPage: 10,
+    revenueSortBy: 'revenue',
+    revenueSortOrder: 'desc',
+    revenueData: [],
+    revenueChartInstance: null,
+    revenueStateChartInstance: null,
+    revenueLoading: false,
+    
+    revenuePeriods: [
+      { value: 'today', label: 'Today' },
+      { value: 'week', label: 'Week' },
+      { value: 'month', label: 'Month' },
+      { value: 'quarter', label: 'Quarter' },
+      { value: 'halfyear', label: 'Half Year' },
+      { value: 'year', label: 'Year' },
+      { value: 'custom', label: 'Custom Range' }
+    ],
+    
+    revenueCustomStart: null,
+    revenueCustomEnd: null,
+    revenueCustomDays: 30,
 
       showStallMenuView: false,
     loadingStallMenus: false,
@@ -2419,6 +2662,107 @@ export default {
   },
 
   computed: {
+
+      // ===== REVENUE COMPUTED =====
+  getRevenuePeriodLabel() {
+    const p = this.revenuePeriods.find(p => p.value === this.revenuePeriod)
+    if (this.revenuePeriod === 'custom') {
+      return `Custom (${this.revenueCustomDays} days)`
+    }
+    return p ? p.label : 'Week'
+  },
+
+  filteredRevenueData() {
+    let data = this.revenueData
+    
+    if (this.revenueStateFilter !== 'All States') {
+      data = data.filter(item => item.state === this.revenueStateFilter)
+    }
+    
+    if (this.revenueStallFilter !== 'all') {
+      data = data.filter(item => item.id === this.revenueStallFilter)
+    }
+    
+    if (this.revenueSearch) {
+      const search = this.revenueSearch.toLowerCase()
+      data = data.filter(item => 
+        item.name.toLowerCase().includes(search) ||
+        item.code?.toLowerCase().includes(search)
+      )
+    }
+    
+    if (this.revenueMinAmount > 0) {
+      data = data.filter(item => (item.revenue || 0) >= this.revenueMinAmount)
+    }
+    
+    return this.sortRevenueData(data)
+  },
+
+  paginatedRevenueData() {
+    const start = (this.revenuePage - 1) * this.revenueItemsPerPage
+    const end = start + this.revenueItemsPerPage
+    return this.filteredRevenueData.slice(start, end)
+  },
+
+  revenueTotalPages() {
+    return Math.ceil(this.filteredRevenueData.length / this.revenueItemsPerPage) || 1
+  },
+
+  revenueStartIndex() {
+    if (this.filteredRevenueData.length === 0) return 0
+    return (this.revenuePage - 1) * this.revenueItemsPerPage + 1
+  },
+
+  revenueEndIndex() {
+    if (this.filteredRevenueData.length === 0) return 0
+    return Math.min(this.revenuePage * this.revenueItemsPerPage, this.filteredRevenueData.length)
+  },
+
+  revenueStats() {
+    const totalRevenue = this.revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
+    const totalTransactions = this.revenueData.reduce((sum, item) => sum + (item.transactions || 0), 0)
+    const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
+    
+    let topStall = null
+    let maxRevenue = 0
+    this.revenueData.forEach(item => {
+      if ((item.revenue || 0) > maxRevenue) {
+        maxRevenue = item.revenue || 0
+        topStall = item
+      }
+    })
+    
+    return {
+      totalRevenue,
+      totalTransactions,
+      avgTransaction,
+      topStallName: topStall?.name || '-',
+      topStallRevenue: maxRevenue || 0
+    }
+  },
+
+  revenueStateStats() {
+    const stateMap = {}
+    this.revenueData.forEach(item => {
+      const state = item.state || 'Unknown'
+      if (!stateMap[state]) {
+        stateMap[state] = { state, revenue: 0, transactions: 0, stalls: 0 }
+      }
+      stateMap[state].revenue += item.revenue || 0
+      stateMap[state].transactions += item.transactions || 0
+      stateMap[state].stalls += 1
+    })
+    return Object.values(stateMap).sort((a, b) => b.revenue - a.revenue)
+  },
+
+  revenueGrowth() {
+    if (this.revenueData.length < 2) return 0
+    const sorted = [...this.revenueData].sort((a, b) => a.revenue - b.revenue)
+    const first = sorted[0]?.revenue || 0
+    const last = sorted[sorted.length - 1]?.revenue || 0
+    if (first === 0) return 0
+    return ((last - first) / first * 100)
+  },
 
     // ===== BULK ASSIGN COMPUTED =====
     filteredBulkMenuItems() {
@@ -2940,6 +3284,19 @@ export default {
   },
 
   watch: {
+      revenuePeriod(newVal, oldVal) {
+    if (newVal !== oldVal) {
+      if (newVal === 'custom') {
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - 30)
+        this.revenueCustomStart = start.toISOString().split('T')[0]
+        this.revenueCustomEnd = end.toISOString().split('T')[0]
+      }
+      this.loadRevenueData()
+    }
+  },
+
     selectedPeriod(newVal, oldVal) {
       if (newVal !== oldVal) {
         this.stallPerformance = []
@@ -3004,22 +3361,416 @@ export default {
   },
 
   beforeUnmount() {
-    if (this.chartInstance) {
-      this.chartInstance.dispose()
-      this.chartInstance = null
-    }
-    if (this.stallDetailChartInstance) {
-      this.stallDetailChartInstance.dispose()
-      this.stallDetailChartInstance = null
-    }
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-    }
-    document.removeEventListener('click', this.handleClickOutside)
-    window.removeEventListener('resize', this.handleChartResize)
-  },
+  if (this.chartInstance) {
+    this.chartInstance.dispose()
+    this.chartInstance = null
+  }
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+  if (this.revenueChartInstance) {
+    this.revenueChartInstance.dispose()
+    this.revenueChartInstance = null
+  }
+  if (this.revenueStateChartInstance) {
+    this.revenueStateChartInstance.dispose()
+    this.revenueStateChartInstance = null
+  }
+  if (this.resizeObserver) {
+    this.resizeObserver.disconnect()
+  }
+  document.removeEventListener('click', this.handleClickOutside)
+  window.removeEventListener('resize', this.handleChartResize)
+},
 
   methods: {
+
+      // =============================================
+  // REVENUE TAB METHODS
+  // =============================================
+
+  getRevenueStatusText(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return 'No Sales'
+    if (revenue > 1000) return 'Excellent'
+    if (revenue > 500) return 'Good'
+    if (revenue > 100) return 'Average'
+    return 'Poor'
+  },
+
+  getRevenueStatusEmoji(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return '⚪'
+    if (revenue > 1000) return '🟢'
+    if (revenue > 500) return '🔵'
+    if (revenue > 100) return '🟡'
+    return '🔴'
+  },
+
+  getRevenueStatusClass(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return 'no-sales'
+    if (revenue > 1000) return 'excellent'
+    if (revenue > 500) return 'good'
+    if (revenue > 100) return 'average'
+    return 'poor'
+  },
+
+  sortRevenueData(list) {
+    const sorted = [...list]
+    const sortBy = this.revenueSortBy
+    const order = this.revenueSortOrder
+
+    sorted.sort((a, b) => {
+      let valA, valB
+
+      if (sortBy === 'rank' || sortBy === 'revenue') {
+        valA = a.revenue || 0
+        valB = b.revenue || 0
+      } else if (sortBy === 'name') {
+        valA = a.name.toLowerCase()
+        valB = b.name.toLowerCase()
+        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      } else if (sortBy === 'state') {
+        valA = (a.state || '').toLowerCase()
+        valB = (b.state || '').toLowerCase()
+        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      } else if (sortBy === 'transactions') {
+        valA = a.transactions || 0
+        valB = b.transactions || 0
+      } else if (sortBy === 'avg') {
+        valA = a.avgTransaction || 0
+        valB = b.avgTransaction || 0
+      } else if (sortBy === 'status') {
+        const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
+        valA = statusOrder[this.getRevenueStatusClass(a)] || 0
+        valB = statusOrder[this.getRevenueStatusClass(b)] || 0
+      }
+
+      if (order === 'asc') {
+        return valA > valB ? 1 : valA < valB ? -1 : 0
+      } else {
+        return valA < valB ? 1 : valA > valB ? -1 : 0
+      }
+    })
+
+    return sorted
+  },
+
+  sortRevenue(column) {
+    if (this.revenueSortBy === column) {
+      this.revenueSortOrder = this.revenueSortOrder === 'asc' ? 'desc' : 'asc'
+    } else {
+      this.revenueSortBy = column
+      this.revenueSortOrder = column === 'rank' || column === 'revenue' || column === 'transactions' || column === 'avg' ? 'desc' : 'asc'
+    }
+    this.revenuePage = 1
+  },
+
+  getRevenueSortArrow(column) {
+    if (this.revenueSortBy !== column) return '⇅'
+    return this.revenueSortOrder === 'asc' ? '↑' : '↓'
+  },
+
+  resetRevenuePagination() {
+    this.revenuePage = 1
+  },
+
+  prevRevenuePage() {
+    if (this.revenuePage > 1) {
+      this.revenuePage--
+    }
+  },
+
+  nextRevenuePage() {
+    if (this.revenuePage < this.revenueTotalPages) {
+      this.revenuePage++
+    }
+  },
+
+  clearRevenueFilters() {
+    this.revenueStateFilter = 'All States'
+    this.revenueStallFilter = 'all'
+    this.revenueSearch = ''
+    this.revenueMinAmount = 0
+    this.revenuePage = 1
+    this.revenueSortBy = 'revenue'
+    this.revenueSortOrder = 'desc'
+  },
+
+  viewRevenueStallDetails(item) {
+    this.viewStallDetails(item)
+  },
+
+  async refreshRevenueData() {
+    await this.loadRevenueData()
+  },
+
+  async loadRevenueData() {
+    this.revenueLoading = true
+    try {
+      const days = this.revenuePeriod === 'today' ? 1 :
+                   this.revenuePeriod === 'week' ? 7 :
+                   this.revenuePeriod === 'month' ? 30 :
+                   this.revenuePeriod === 'quarter' ? 90 :
+                   this.revenuePeriod === 'halfyear' ? 180 :
+                   this.revenuePeriod === 'year' ? 365 :
+                   this.revenueCustomDays || 30
+
+      const stallIds = this.stalls.map(s => s.id)
+      if (!stallIds || stallIds.length === 0) {
+        this.revenueData = []
+        this.revenueLoading = false
+        return
+      }
+
+      const res = await axios.get(
+        `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      )
+
+      const performanceData = res.data || []
+      
+      this.revenueData = this.stalls.map(stall => {
+        const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+        return {
+          ...stall,
+          revenue: parseFloat(perf?.revenue) || 0,
+          transactions: parseInt(perf?.items_sold) || 0,
+          avgTransaction: parseFloat(perf?.avg_transaction) || 0,
+          state: stall.state || 'Unknown'
+        }
+      }).sort((a, b) => b.revenue - a.revenue)
+
+      this.$nextTick(() => {
+        this.initRevenueChart()
+        this.initRevenueStateChart()
+      })
+
+    } catch (err) {
+      console.error('Failed to load revenue data:', err)
+      this.$emit('show-notification', 'Failed to load revenue data', 'error')
+    } finally {
+      this.revenueLoading = false
+    }
+  },
+
+  initRevenueChart() {
+    if (!this.$refs.revenueChartRef) return
+
+    if (this.revenueChartInstance) {
+      this.revenueChartInstance.dispose()
+      this.revenueChartInstance = null
+    }
+
+    this.revenueChartInstance = echarts.init(this.$refs.revenueChartRef)
+
+    const sortedData = [...this.revenueData].sort((a, b) => b.revenue - a.revenue)
+    const topStalls = sortedData.slice(0, 10)
+    
+    const names = topStalls.map(item => item.name)
+    const revenues = topStalls.map(item => item.revenue || 0)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#1e293b', fontSize: 12 },
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const item = topStalls[index]
+          return `
+            <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+            <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue || 0)}</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.transactions || 0} transactions</div>
+            <div style="color:#94a3b8;font-size:11px;">Avg: ${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.avgTransaction || 0)}</div>
+          `
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: names,
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          fontWeight: 500,
+          rotate: names.length > 5 ? 30 : 0,
+          interval: 0
+        },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          formatter: function(value) {
+            if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
+            return 'RM' + value
+          }
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: revenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#d63d07' } }
+      }]
+    }
+
+    this.revenueChartInstance.setOption(option)
+    this.revenueChartInstance.resize()
+  },
+
+  initRevenueStateChart() {
+    if (!this.$refs.revenueStateChartRef) return
+
+    if (this.revenueStateChartInstance) {
+      this.revenueStateChartInstance.dispose()
+      this.revenueStateChartInstance = null
+    }
+
+    this.revenueStateChartInstance = echarts.init(this.$refs.revenueStateChartRef)
+
+    const stateData = this.revenueStateStats
+    const states = stateData.map(item => item.state)
+    const revenues = stateData.map(item => item.revenue)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#1e293b', fontSize: 12 },
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const item = stateData[index]
+          return `
+            <div style="font-weight:600;margin-bottom:4px;">📍 ${item.state}</div>
+            <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue)}</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.transactions} transactions</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.stalls} stalls</div>
+          `
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: states,
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          fontWeight: 500,
+          rotate: states.length > 5 ? 30 : 0,
+          interval: 0
+        },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          formatter: function(value) {
+            if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
+            return 'RM' + value
+          }
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: revenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#7c3aed' },
+              { offset: 1, color: '#a78bfa' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#5b21b6' } }
+      }]
+    }
+
+    this.revenueStateChartInstance.setOption(option)
+    this.revenueStateChartInstance.resize()
+  },
+
+  async exportRevenueData() {
+    try {
+      this.$emit('show-notification', 'Exporting revenue data...', 'info')
+      const ExcelJS = await import('exceljs')
+      const { saveAs } = await import('file-saver')
+      const workbook = new ExcelJS.Workbook()
+      const sheet = workbook.addWorksheet('Revenue Data')
+      
+      sheet.addRow(['Revenue Report', ''])
+      sheet.addRow(['Period', this.getRevenuePeriodLabel()])
+      sheet.addRow(['Total Revenue', this.formatCurrency(this.revenueStats.totalRevenue)])
+      sheet.addRow(['Total Transactions', this.formatNumber(this.revenueStats.totalTransactions)])
+      sheet.addRow(['Average Transaction', this.formatCurrency(this.revenueStats.avgTransaction)])
+      sheet.addRow([])
+      
+      sheet.addRow(['Rank', 'Stall', 'State', 'Revenue', 'Transactions', 'Avg Transaction', 'Status'])
+      this.revenueData.forEach((item, index) => {
+        sheet.addRow([
+          index + 1,
+          item.name,
+          item.state || '-',
+          item.revenue || 0,
+          item.transactions || 0,
+          item.avgTransaction || 0,
+          this.getRevenueStatusText(item)
+        ])
+      })
+      
+      sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
+      const buffer = await workbook.xlsx.writeBuffer()
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+        `Revenue_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
+      
+      this.$emit('show-notification', 'Revenue data exported!', 'success')
+    } catch (err) {
+      console.error('Export error:', err)
+      this.$emit('show-notification', 'Export failed', 'error')
+    }
+  },
 
       toggleStallMenuExpand(stallId) {
     if (this.expandedStallMenus.includes(stallId)) {
@@ -11301,6 +12052,290 @@ export default {
   
   .stall-menu-count {
     font-size: 0.6rem;
+  }
+}
+
+/* ============================================ */
+/* REVENUE TAB STYLES                           */
+/* ============================================ */
+
+/* Stats Grid - 5 Cards */
+.revenue-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.revenue-stats-grid .stat-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.revenue-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.15rem;
+}
+
+.revenue-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.revenue-stats-grid .stat-chip .stat-chip-value.positive {
+  color: #10b981;
+}
+
+.revenue-stats-grid .stat-chip .stat-chip-value.negative {
+  color: #ef4444;
+}
+
+.revenue-stats-grid .stat-chip .stat-chip-sub {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.revenue-stats-grid .stat-chip.revenue .stat-chip-value { color: #F94908; }
+.revenue-stats-grid .stat-chip.transactions .stat-chip-value { color: #2563eb; }
+.revenue-stats-grid .stat-chip.average .stat-chip-value { color: #7c3aed; }
+.revenue-stats-grid .stat-chip.growth .stat-chip-value { font-size: 1.1rem; }
+.revenue-stats-grid .stat-chip.top-stall .stat-chip-value { 
+  color: #f59e0b; 
+  font-size: 0.9rem;
+}
+
+/* Revenue Charts Grid */
+.revenue-charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.revenue-chart-card {
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+}
+
+.revenue-chart-card h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.revenue-chart-container {
+  width: 100%;
+  height: 200px;
+}
+
+/* Revenue Table */
+.revenue-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.revenue-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 700px;
+}
+
+.revenue-table-header .sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.revenue-table-header .sortable:hover {
+  color: var(--text);
+}
+
+.revenue-table-header .sort-arrow {
+  font-size: 0.5rem;
+  margin-left: 0.15rem;
+  color: var(--text-tertiary);
+}
+
+.revenue-table-rank { min-width: 50px; text-align: center; }
+.revenue-table-name { flex: 1.5; min-width: 100px; text-align: left; }
+.revenue-table-state { flex: 0.8; min-width: 80px; text-align: left; }
+.revenue-table-revenue { flex: 1; min-width: 80px; text-align: right; }
+.revenue-table-transactions { flex: 0.8; min-width: 70px; text-align: right; }
+.revenue-table-avg { flex: 0.8; min-width: 70px; text-align: right; }
+.revenue-table-status { flex: 0.8; min-width: 80px; text-align: center; }
+.revenue-table-details { min-width: 40px; text-align: center; }
+
+.revenue-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.revenue-table-row {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 700px;
+}
+
+.revenue-table-row:hover {
+  background: var(--background);
+}
+
+.revenue-table-row:last-child {
+  border-bottom: none;
+}
+
+.revenue-table-rank { min-width: 50px; text-align: center; }
+.revenue-table-name { flex: 1.5; min-width: 100px; text-align: left; }
+.revenue-table-state { flex: 0.8; min-width: 80px; text-align: left; }
+.revenue-table-revenue { flex: 1; min-width: 80px; text-align: right; font-weight: 600; color: var(--text); }
+.revenue-table-transactions { flex: 0.8; min-width: 70px; text-align: right; color: var(--text-secondary); }
+.revenue-table-avg { flex: 0.8; min-width: 70px; text-align: right; color: var(--text-secondary); }
+.revenue-table-status { flex: 0.8; min-width: 80px; text-align: center; }
+.revenue-table-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+
+.revenue-table-row:hover .revenue-table-details {
+  color: var(--primary);
+}
+
+.stall-code-text {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.state-tag {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.loading-state .loading-spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+}
+
+.loading-state .spinner-ring {
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--border);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive - Revenue Tab */
+@media (max-width: 1024px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .revenue-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .revenue-table-header {
+    font-size: 0.55rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .revenue-table-row {
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .revenue-table-rank { min-width: 35px; }
+  .revenue-table-name { min-width: 70px; }
+  .revenue-table-state { min-width: 60px; }
+  .revenue-table-revenue { min-width: 60px; font-size: 0.8rem; }
+  .revenue-table-transactions { min-width: 50px; font-size: 0.8rem; }
+  .revenue-table-avg { min-width: 50px; font-size: 0.8rem; }
+  .revenue-table-status { min-width: 60px; }
+  .revenue-table-details { min-width: 30px; }
+  
+  .rank-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .revenue-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 0.9rem;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.55rem;
   }
 }
 
