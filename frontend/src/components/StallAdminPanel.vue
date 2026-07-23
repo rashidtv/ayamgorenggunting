@@ -2177,196 +2177,176 @@ export default {
   },
 
   data() {
-    return {
-      activeTab: 'dashboard',
-      tabs: [
-        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-        { id: 'inventory', label: 'Inventory', icon: '📦' },
-        { id: 'stalls', label: 'Stalls', icon: '🏪' },
-        { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'menu', label: 'Menu', icon: '📋' }
-      ],
+  return {
+    activeTab: 'dashboard',
+    tabs: [
+      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+      { id: 'inventory', label: 'Inventory', icon: '📦' },
+      { id: 'stalls', label: 'Stalls', icon: '🏪' },
+      { id: 'users', label: 'Users', icon: '👥' },
+      { id: 'menu', label: 'Menu', icon: '📋' }
+    ],
 
-       assignMode: 'single', // 'single' or 'bulk'
+    // Mode toggle
+    assignMode: 'single', // 'single' or 'bulk'
     
     // Bulk assign to multiple stalls
-    selectedStallsForAssign: [], // Array of stall IDs
+    selectedStallsForAssign: [],
     selectAllStallsForAssign: false,
-    selectedMenuItemsForBulk: [], // Array of menu item names
+    selectedMenuItemsForBulk: [],
     selectAllMenusForBulk: false,
     bulkMenuSearch: '',
     bulkAssignToStallsLoading: false,
     bulkAssignMessage: '',
     bulkAssignMessageType: 'success',
+
+    // Menu Tab Data
+    menuSearch: '',
+    menuCategoryFilter: 'all',
+    menuStateFilter: 'All States',
+    menuCurrentPage: 1,
+    menuItemsPerPage: 10,
+    selectedMenuItems: [],
+    selectAllMenuItems: false,
+    
+    // Menu Performance Data
+    menuPerformancePage: 1,
+    menuPerformancePerPage: 10,
+    menuPerformanceCategoryFilter: 'all',
+    menuPerformanceStateFilter: 'All States',
+    menuPerformanceSortBy: 'rank',
+    menuPerformanceSortOrder: 'desc',
+
+    userStateFilter: 'All States',
+    stallPerformancePeriod: [],
+    userCurrentPage: 1,
+    userItemsPerPage: 10,
+    selectedUsers: [],
+    selectAllUsers: false,
+    currentUserId: null,
+    performanceSearch: '',
+    performanceStateFilter: 'All States',
+    performanceStatusFilter: 'all',
+    performancePage: 1,
+    performanceSortBy: 'rank',
+    performanceSortOrder: 'asc',
+    _stallCurrentPage: 1,
+    currentPage: 1,
+    currentStallPage: 1,
+    selectAllStalls: false,
+    itemsPerPage: 10,
+    selectedStalls: [],
+    selectAll: false,
+    quickUpdateModal: false,
+    quickUpdateStallId: null,
+    quickUpdateStallName: '',
+    quickUpdateItems: [],
+
+    malaysiaStates: [
+      'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
+      'Johor', 'Kedah', 'Kelantan', 'Melaka', 
+      'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
+      'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
+    ],
+    stateFilter: 'All States',
+    
+    bulkUpdateModal: false,
+    bulkUpdateMaterials: [],
+    bulkUpdateMode: 'selected',
+    bulkUpdateProgress: 0,
+    bulkUpdating: false,
+    bulkUpdateType: 'set',
+    bulkUpdateValue: 10,
+    
+    quickActions: [
+      { label: 'Set to Alert Level', value: 'alert' },
+      { label: 'Set to 100', value: '100' },
+      { label: 'Set to 50', value: '50' },
+      { label: 'Add +10', value: 'add10' },
+      { label: 'Add +20', value: 'add20' },
+      { label: 'Reset to 0', value: '0' }
+    ],
+  
+    chartFullscreen: false,
+    chartOffset: 0,
+    chartWindow: 7,
+    chartInstance: null,
+    isChartInitialized: false,
+    stallSubTab: 'management',
+    menuSubTab: 'assignment',
+    
+    dropdownOpen: false,
+    periodDropdownOpen: false,
+    stalls: [],
+    users: [],
+    lowStock: [],
+    menuItems: [],
+    consolidatedSales: {
+      totalRevenue: 0,
+      totalItems: 0,
+      averagePerStall: 0,
+      topStall: '-',
+      topRevenue: 0
+    },
+    stallPerformance: [],
+    menuPerformance: [],
+    salesTrend: [],
+    productSales: {},
+    selectedPeriod: 'week',
+    periods: [
+      { value: 'today', label: 'Today' },
+      { value: 'week', label: 'Week' },
+      { value: 'month', label: 'Month' },
+      { value: 'quarter', label: 'Quarter' },
+      { value: 'halfyear', label: 'Half Year' },
+      { value: 'year', label: 'Year' },
+      { value: 'custom', label: 'Custom Range' }
+    ],
+    
+    customDateStart: null,
+    customDateEnd: null,
+    customDays: 30,
+    
+    stallDetailModal: false,
+    selectedStall: null,
+    menuDetailModal: false,
+    selectedMenuItem: null,
+    stallDetailChartInstance: null,
+    
+    showAllStalls: false,
+    showAllMenuItems: false,
+    
+    expandedInventoryStall: null,
+    stallInventory: {},
+    inventory: [],
+    inventorySearch: '',
+    inventoryFilter: 'all',
+    
+    stallSearch: '',
+    stallStatusFilter: 'all',
+    
+    userSearch: '',
+    userRoleFilter: 'all',
+    
+    userModal: false,
+    editingUser: false,
+    userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
+    stallModal: false,
+    editingStall: false,
+    stallForm: { id: null, name: '', code: '', location: '' },
+    
+    exporting: false,
+    resizeObserver: null,
+
+    selectedAssignmentStall: null,
+    menuAssignments: {},
+    originalMenuAssignments: {},
+    loadingMenuAssignments: false,
+    savingAssignment: false,
+    savedAssignmentMessage: '',
+    savedAssignmentType: 'success'
   }
 },
-
-      // Bulk Assign Modal
-bulkAssignModal: false,
-bulkAssignStalls: [],
-selectAllBulkStalls: false,
-bulkAssignLoading: false,
-
-// Menu Performance Stats
-menuPerformanceStats: {
-  excellent: 0,
-  good: 0,
-  average: 0,
-  poor: 0,
-  noSales: 0,
-  totalItems: 0,
-  totalRevenue: 0,
-  topItemName: '-',
-  topItemRevenue: 0
-},
-
-      // Menu Tab Data
-      menuSearch: '',
-      menuCategoryFilter: 'all',
-      menuStateFilter: 'All States',
-      menuCurrentPage: 1,
-      menuItemsPerPage: 10,
-      selectedMenuItems: [],
-      selectAllMenuItems: false,
-      
-      // Menu Performance Data
-      menuPerformancePage: 1,
-      menuPerformancePerPage: 10,
-      menuPerformanceCategoryFilter: 'all',
-      menuPerformanceStateFilter: 'All States',
-      menuPerformanceSortBy: 'rank',
-      menuPerformanceSortOrder: 'desc',
-
-      userStateFilter: 'All States',
-      stallPerformancePeriod: [],
-      userCurrentPage: 1,
-      userItemsPerPage: 10,
-      selectedUsers: [],
-      selectAllUsers: false,
-      currentUserId: null,
-      performanceSearch: '',
-      performanceStateFilter: 'All States',
-      performanceStatusFilter: 'all',
-      performancePage: 1,
-      performanceSortBy: 'rank',
-      performanceSortOrder: 'asc',
-      _stallCurrentPage: 1,
-      currentPage: 1,
-      currentStallPage: 1,
-      selectAllStalls: false,
-      itemsPerPage: 10,
-      selectedStalls: [],
-      selectAll: false,
-      quickUpdateModal: false,
-      quickUpdateStallId: null,
-      quickUpdateStallName: '',
-      quickUpdateItems: [],
-
-      malaysiaStates: [
-        'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
-        'Johor', 'Kedah', 'Kelantan', 'Melaka', 
-        'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
-        'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
-      ],
-      stateFilter: 'All States',
-      
-      bulkUpdateModal: false,
-      bulkUpdateMaterials: [],
-      bulkUpdateMode: 'selected',
-      bulkUpdateProgress: 0,
-      bulkUpdating: false,
-      bulkUpdateType: 'set',
-      bulkUpdateValue: 10,
-      
-      quickActions: [
-        { label: 'Set to Alert Level', value: 'alert' },
-        { label: 'Set to 100', value: '100' },
-        { label: 'Set to 50', value: '50' },
-        { label: 'Add +10', value: 'add10' },
-        { label: 'Add +20', value: 'add20' },
-        { label: 'Reset to 0', value: '0' }
-      ],
-    
-      chartFullscreen: false,
-      chartOffset: 0,
-      chartWindow: 7,
-      chartInstance: null,
-      isChartInitialized: false,
-      stallSubTab: 'management',
-      menuSubTab: 'assignment',
-      
-      dropdownOpen: false,
-      periodDropdownOpen: false,
-      stalls: [],
-      users: [],
-      lowStock: [],
-      menuItems: [],
-      consolidatedSales: {
-        totalRevenue: 0,
-        totalItems: 0,
-        averagePerStall: 0,
-        topStall: '-',
-        topRevenue: 0
-      },
-      stallPerformance: [],
-      menuPerformance: [],
-      salesTrend: [],
-      productSales: {},
-      selectedPeriod: 'week',
-      periods: [
-        { value: 'today', label: 'Today' },
-        { value: 'week', label: 'Week' },
-        { value: 'month', label: 'Month' },
-        { value: 'quarter', label: 'Quarter' },
-        { value: 'halfyear', label: 'Half Year' },
-        { value: 'year', label: 'Year' },
-        { value: 'custom', label: 'Custom Range' }
-      ],
-      
-      customDateStart: null,
-      customDateEnd: null,
-      customDays: 30,
-      
-      stallDetailModal: false,
-      selectedStall: null,
-      menuDetailModal: false,
-      selectedMenuItem: null,
-      stallDetailChartInstance: null,
-      
-      showAllStalls: false,
-      showAllMenuItems: false,
-      
-      expandedInventoryStall: null,
-      stallInventory: {},
-      inventory: [],
-      inventorySearch: '',
-      inventoryFilter: 'all',
-      
-      stallSearch: '',
-      stallStatusFilter: 'all',
-      
-      userSearch: '',
-      userRoleFilter: 'all',
-      
-      userModal: false,
-      editingUser: false,
-      userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
-      stallModal: false,
-      editingStall: false,
-      stallForm: { id: null, name: '', code: '', location: '' },
-      
-      exporting: false,
-      resizeObserver: null,
-
-      selectedAssignmentStall: null,
-      menuAssignments: {},
-      originalMenuAssignments: {},
-      loadingMenuAssignments: false,
-      savingAssignment: false,
-      savedAssignmentMessage: '',
-      savedAssignmentType: 'success',
-    }
-  },
 
   computed: {
 
