@@ -147,34 +147,35 @@
         </div>
 
         <!-- KPI Cards with Sparkline -->
-        <div class="kpi-grid">
-          <!-- Revenue -->
-          <div class="kpi-card" style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);">
-            <div class="kpi-icon">💰</div>
-            <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
-            <div class="kpi-label">Revenue</div>
-            <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-              <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
-              {{ Math.abs(getRevenueChange()).toFixed(1) }}%
-            </div>
-            <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
-              {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
-            </div>
-            <div class="sparkline-container">
-              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
-                <polyline
-                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-                  class="sparkline-line"
-                  :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
-                />
-                <polyline
-                  :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
-                  class="sparkline-area"
-                  :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
-                />
-              </svg>
-            </div>
-          </div>
+       <div class="kpi-card clickable" 
+     style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);" 
+     @click="switchTab('revenue')">
+  <div class="kpi-icon">💰</div>
+  <div class="kpi-value">{{ formatCurrency(consolidatedSales.totalRevenue || 0) }}</div>
+  <div class="kpi-label">Revenue</div>
+  <div class="kpi-change" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+    <span class="trend-icon">{{ getRevenueChange() >= 0 ? '↑' : '↓' }}</span>
+    {{ Math.abs(getRevenueChange()).toFixed(1) }}%
+  </div>
+  <div class="kpi-trend-label" :class="getRevenueChange() >= 0 ? 'positive' : 'negative'">
+    {{ getRevenueChange() >= 0 ? '↑ Upward trend' : '↓ Downward trend' }}
+  </div>
+  <div class="sparkline-container">
+    <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+      <polyline
+        :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+        class="sparkline-line"
+        :style="{ stroke: getRevenueChange() >= 0 ? '#10b981' : '#ef4444' }"
+      />
+      <polyline
+        :points="getSparklinePoints(salesTrend.map(d => d.revenue || 0))"
+        class="sparkline-area"
+        :style="{ fill: getRevenueChange() >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }"
+      />
+    </svg>
+  </div>
+  <div class="kpi-hover">Click to view revenue →</div>
+</div>
 
           <!-- Menu Sold - Clickable to Menu Performance -->
           <div class="kpi-card clickable" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);" @click="switchTabWithSubTab('menu', 'performance')">
@@ -3386,6 +3387,15 @@ export default {
 
   methods: {
 
+    initRevenueCharts() {
+  this.$nextTick(() => {
+    setTimeout(() => {
+      this.initRevenueChart()
+      this.initRevenueStateChart()
+    }, 100)
+  })
+},
+
       // =============================================
   // REVENUE TAB METHODS
   // =============================================
@@ -3508,53 +3518,56 @@ export default {
   },
 
   async loadRevenueData() {
-    this.revenueLoading = true
-    try {
-      const days = this.revenuePeriod === 'today' ? 1 :
-                   this.revenuePeriod === 'week' ? 7 :
-                   this.revenuePeriod === 'month' ? 30 :
-                   this.revenuePeriod === 'quarter' ? 90 :
-                   this.revenuePeriod === 'halfyear' ? 180 :
-                   this.revenuePeriod === 'year' ? 365 :
-                   this.revenueCustomDays || 30
+  this.revenueLoading = true
+  try {
+    const days = this.revenuePeriod === 'today' ? 1 :
+                 this.revenuePeriod === 'week' ? 7 :
+                 this.revenuePeriod === 'month' ? 30 :
+                 this.revenuePeriod === 'quarter' ? 90 :
+                 this.revenuePeriod === 'halfyear' ? 180 :
+                 this.revenuePeriod === 'year' ? 365 :
+                 this.revenueCustomDays || 30
 
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
-        this.revenueData = []
-        this.revenueLoading = false
-        return
+    const stallIds = this.stalls.map(s => s.id)
+    if (!stallIds || stallIds.length === 0) {
+      this.revenueData = []
+      this.revenueLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+
+    const performanceData = res.data || []
+    
+    this.revenueData = this.stalls.map(stall => {
+      const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      return {
+        ...stall,
+        revenue: parseFloat(perf?.revenue) || 0,
+        transactions: parseInt(perf?.items_sold) || 0,
+        avgTransaction: parseFloat(perf?.avg_transaction) || 0,
+        state: stall.state || 'Unknown'
       }
+    }).sort((a, b) => b.revenue - a.revenue)
 
-      const res = await axios.get(
-        `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-
-      const performanceData = res.data || []
-      
-      this.revenueData = this.stalls.map(stall => {
-        const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
-        return {
-          ...stall,
-          revenue: parseFloat(perf?.revenue) || 0,
-          transactions: parseInt(perf?.items_sold) || 0,
-          avgTransaction: parseFloat(perf?.avg_transaction) || 0,
-          state: stall.state || 'Unknown'
-        }
-      }).sort((a, b) => b.revenue - a.revenue)
-
-      this.$nextTick(() => {
+    // ✅ Ensure charts initialize after DOM is ready
+    this.$nextTick(() => {
+      setTimeout(() => {
         this.initRevenueChart()
         this.initRevenueStateChart()
-      })
+      }, 150) // Slightly longer delay for reliability
+    })
 
-    } catch (err) {
-      console.error('Failed to load revenue data:', err)
-      this.$emit('show-notification', 'Failed to load revenue data', 'error')
-    } finally {
-      this.revenueLoading = false
-    }
-  },
+  } catch (err) {
+    console.error('Failed to load revenue data:', err)
+    this.$emit('show-notification', 'Failed to load revenue data', 'error')
+  } finally {
+    this.revenueLoading = false
+  }
+},
 
   initRevenueChart() {
     if (!this.$refs.revenueChartRef) return
@@ -6301,6 +6314,13 @@ export default {
           document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
         })
       }
+      if (tabId === 'revenue') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.loadRevenueData()
+      }, 200)
+    })
+  }
       if (tabId === 'dashboard') {
         this.$nextTick(() => {
           setTimeout(() => {
@@ -12336,6 +12356,87 @@ export default {
   
   .revenue-stats-grid .stat-chip .stat-chip-label {
     font-size: 0.55rem;
+  }
+}
+
+.kpi-card.clickable {
+  cursor: pointer;
+}
+
+.kpi-card.clickable:hover {
+  border-color: var(--kpi-color);
+  box-shadow: 0 4px 16px var(--kpi-color-alpha);
+  transform: translateY(-2px);
+}
+
+.kpi-card .kpi-hover {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.75rem;
+  font-size: 0.5rem;
+  color: var(--kpi-color, #F94908);
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateX(10px);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  z-index: 1;
+}
+
+.kpi-card.clickable:hover .kpi-hover {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+async loadRevenueData() {
+  this.revenueLoading = true
+  try {
+    const days = this.revenuePeriod === 'today' ? 1 :
+                 this.revenuePeriod === 'week' ? 7 :
+                 this.revenuePeriod === 'month' ? 30 :
+                 this.revenuePeriod === 'quarter' ? 90 :
+                 this.revenuePeriod === 'halfyear' ? 180 :
+                 this.revenuePeriod === 'year' ? 365 :
+                 this.revenueCustomDays || 30
+
+    const stallIds = this.stalls.map(s => s.id)
+    if (!stallIds || stallIds.length === 0) {
+      this.revenueData = []
+      this.revenueLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+
+    const performanceData = res.data || []
+    
+    this.revenueData = this.stalls.map(stall => {
+      const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      return {
+        ...stall,
+        revenue: parseFloat(perf?.revenue) || 0,
+        transactions: parseInt(perf?.items_sold) || 0,
+        avgTransaction: parseFloat(perf?.avg_transaction) || 0,
+        state: stall.state || 'Unknown'
+      }
+    }).sort((a, b) => b.revenue - a.revenue)
+
+    // ✅ Ensure charts initialize after DOM is ready
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.initRevenueChart()
+        this.initRevenueStateChart()
+      }, 150) // Slightly longer delay for reliability
+    })
+
+  } catch (err) {
+    console.error('Failed to load revenue data:', err)
+    this.$emit('show-notification', 'Failed to load revenue data', 'error')
+  } finally {
+    this.revenueLoading = false
   }
 }
 
