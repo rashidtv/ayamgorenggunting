@@ -480,7 +480,7 @@
           📦 Bulk Update ({{ selectedCount }})
         </button>
       </div>
-    
+    </div>
     <div class="card-modern-body">
       
       <!-- Stats Cards -->
@@ -853,7 +853,7 @@
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
       </div>
-    
+    </div>
       <div class="card-modern-body">
         <!-- Stats Cards -->
         <div class="inventory-stats-grid">
@@ -1037,6 +1037,7 @@
         <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
       </div>
+      </div>
     
     <div class="card-modern-body">
       
@@ -1212,7 +1213,7 @@
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
       </div>
-  
+  </div>
           <div class="card-modern-body">
             <div class="filter-bar">
               <div class="filter-search">
@@ -1286,7 +1287,7 @@
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
         <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
       </div>
-  
+  </div>
             <div class="card-modern-body">
               <div class="filter-bar">
                 <div class="filter-search">
@@ -1374,7 +1375,7 @@
       <div class="header-actions">
         <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
         <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-      
+      </div>
     </div>
             <div class="card-modern-body menu-performance-table-container">
               <div v-if="menuPerformance.length === 0" class="empty-state-modern">
