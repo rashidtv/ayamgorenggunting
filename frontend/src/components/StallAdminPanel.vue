@@ -9759,13 +9759,13 @@ export default {
   transform: translateY(-1px);
 }
 
-/* Add to your existing CSS */
+/* ✅ Fix font sizes in Users table */
 .users-table-cell .username-text {
-  font-size: inherit;
+  font-size: var(--font-size);
   font-weight: 500;
 }
 
 .users-table-cell .fullname {
-  font-size: inherit;
+  font-size: var(--font-size);
 }
 </style>
