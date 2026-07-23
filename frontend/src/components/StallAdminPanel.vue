@@ -328,80 +328,80 @@
         </div>
 
 
-<!-- ===== STALL PERFORMANCE ===== -->
-<div class="card-modern">
-  <div class="card-modern-header">
-    <div>
-      <h3>🏆 Stall Performance</h3>
-      <span class="card-subtitle">{{ dashboardStallPerformanceSubtitle }}</span>
-    </div>
-    <button 
-      @click="switchTabWithSubTab('stalls', 'performance')" 
-      class="btn-modern secondary small"
-    >
-      View All →
-    </button>
-  </div>
-  <div class="card-modern-body stall-performance-table-container">
-    <!-- ✅ Show empty state when no period sales -->
-    <div v-if="dashboardDisplayStalls.length === 0" class="empty-state-modern">
-      <span>📊</span>
-      <p>No stall sales for {{ getPeriodLabel() }}</p>
-      <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-        Try selecting a different period
-      </p>
-    </div>
-    
-    <div v-else class="stall-table-wrapper">
-      <!-- Table Headers -->
-      <div class="stall-table-header">
-        <span class="stall-table-header-rank">Rank</span>
-        <span class="stall-table-header-name">Stall</span>
-        <span class="stall-table-header-revenue">Revenue</span>
-        <span class="stall-table-header-status">Status</span>
-        <span class="stall-table-header-details">Details</span>
-      </div>
-      
-      <!-- Table Rows -->
-      <div class="stall-table-body">
-        <div 
-          v-for="(stall, index) in dashboardDisplayStalls" 
-          :key="stall.id" 
-          class="stall-table-row clickable-item"
-          @click="viewStallDetails(stall)"
-        >
-          <!-- Rank -->
-          <span class="stall-table-rank">
-            <span class="rank-number" :class="getRankClass(index)">
-              {{ index + 1 }}
-            </span>
-          </span>
-          
-          <!-- Stall Name + Bar -->
-          <span class="stall-table-name">
-            <span class="stall-name-text">{{ stall.name }}</span>
-            <span class="stall-name-bar">
-              <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-            </span>
-          </span>
-          
-          <!-- Revenue -->
-          <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-          
-          <!-- Status with Color & Emoji -->
-          <span class="stall-table-status">
-            <span :class="['status-indicator', getStallStatusClass(stall)]">
-              {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
-            </span>
-          </span>
-          
-          <!-- Details -->
-          <span class="stall-table-details">👆</span>
+        <!-- ===== STALL PERFORMANCE ===== -->
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>🏆 Stall Performance</h3>
+              <span class="card-subtitle">{{ dashboardStallPerformanceSubtitle }}</span>
+            </div>
+            <button 
+              @click="switchTabWithSubTab('stalls', 'performance')" 
+              class="btn-modern secondary small"
+            >
+              View All →
+            </button>
+          </div>
+          <div class="card-modern-body stall-performance-table-container">
+            <!-- ✅ Show empty state when no period sales -->
+            <div v-if="dashboardDisplayStalls.length === 0" class="empty-state-modern">
+              <span>📊</span>
+              <p>No stall sales for {{ getPeriodLabel() }}</p>
+              <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
+                Try selecting a different period
+              </p>
+            </div>
+            
+            <div v-else class="stall-table-wrapper">
+              <!-- Table Headers -->
+              <div class="stall-table-header">
+                <span class="stall-table-header-rank">Rank</span>
+                <span class="stall-table-header-name">Stall</span>
+                <span class="stall-table-header-revenue">Revenue</span>
+                <span class="stall-table-header-status">Status</span>
+                <span class="stall-table-header-details">Details</span>
+              </div>
+              
+              <!-- Table Rows -->
+              <div class="stall-table-body">
+                <div 
+                  v-for="(stall, index) in dashboardDisplayStalls" 
+                  :key="stall.id" 
+                  class="stall-table-row clickable-item"
+                  @click="viewStallDetails(stall)"
+                >
+                  <!-- Rank -->
+                  <span class="stall-table-rank">
+                    <span class="rank-number" :class="getRankClass(index)">
+                      {{ index + 1 }}
+                    </span>
+                  </span>
+                  
+                  <!-- Stall Name + Bar -->
+                  <span class="stall-table-name">
+                    <span class="stall-name-text">{{ stall.name }}</span>
+                    <span class="stall-name-bar">
+                      <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                    </span>
+                  </span>
+                  
+                  <!-- Revenue -->
+                  <span class="stall-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+                  
+                  <!-- Status with Color & Emoji -->
+                  <span class="stall-table-status">
+                    <span :class="['status-indicator', getStallStatusClass(stall)]">
+                      {{ getStallStatusEmoji(stall) }} {{ getStallStatus(stall) }}
+                    </span>
+                  </span>
+                  
+                  <!-- Details -->
+                  <span class="stall-table-details">👆</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
         <!-- ===== MENU PERFORMANCE ===== -->
         <div class="card-modern">
@@ -465,1129 +465,1296 @@
         </div>
       </div>
 
-<!-- ===== INVENTORY TAB ===== -->
-<div v-if="activeTab === 'inventory'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>📦 Inventory Management</h3>
-        <span class="card-subtitle">{{ filteredInventoryStalls.length }} stalls</span>
-      </div>
-      <div class="inventory-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="openBulkUpdateModal" class="btn-modern primary" :disabled="selectedStalls.length === 0">
-          📦 Bulk Update ({{ selectedCount }})
-        </button>
-      </div>
-    </div>
-    <div class="card-modern-body">
-      
-      <!-- Stats Cards -->
-      <div class="inventory-stats-grid">
-        <div class="stat-chip">
-          <span class="stat-chip-label">Total Stalls</span>
-          <span class="stat-chip-value">{{ inventoryStats.total }}</span>
-        </div>
-        <div class="stat-chip active">
-          <span class="stat-chip-label">Active</span>
-          <span class="stat-chip-value">{{ inventoryStats.active }}</span>
-        </div>
-        <div class="stat-chip inactive">
-          <span class="stat-chip-label">Inactive</span>
-          <span class="stat-chip-value">{{ inventoryStats.inactive }}</span>
-        </div>
-        <div class="stat-chip warning">
-          <span class="stat-chip-label">⚠️ Low Stock</span>
-          <span class="stat-chip-value">{{ inventoryStats.lowStock }}</span>
-        </div>
-      </div>
-
-<!-- Filter Bar -->
-<div class="filter-bar-modern">
-  <div class="filter-search">
-    <input 
-      type="text" 
-      v-model="userSearch" 
-      placeholder="Search users by name or username..." 
-      class="filter-input"
-      @input="resetUserPagination"
-    />
-  </div>
-  
-  <div class="filter-group">
-    <select v-model="userStateFilter" class="filter-select" @change="resetUserPagination">
-      <option v-for="state in malaysiaStates" :key="state" :value="state">
-        {{ state }}
-      </option>
-    </select>
-  </div>
-  
-  <div class="filter-group">
-    <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
-      <option value="all">All Roles</option>
-      <option value="stall_admin">👤 Admin</option>
-      <option value="cashier">💰 Cashier</option>
-    </select>
-  </div>
-
-  <div class="filter-actions">
-    <button @click="toggleSelectAllUsers" class="btn-modern secondary small">
-      {{ selectAllUsers ? 'Deselect All' : 'Select All' }}
-    </button>
-    <button @click="clearUserFilters" class="btn-modern secondary small">
-      Clear Filters
-    </button>
-  </div>
-</div>
-
-      <!-- Inventory Table with Pagination -->
-      <div v-if="stalls.length === 0" class="empty-state-modern">
-        <span>📦</span>
-        <p>No stalls found. Contact your administrator.</p>
-      </div>
-
-      <div v-else>
-        <div class="inventory-table-wrapper">
-          <!-- Table Header -->
-          <div class="inventory-table-header">
-            <div class="inventory-table-cell checkbox">
-              <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
+      <!-- ===== INVENTORY TAB ===== -->
+      <div v-if="activeTab === 'inventory'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📦 Inventory Management</h3>
+              <span class="card-subtitle">{{ filteredInventoryStalls.length }} stalls</span>
             </div>
-            <div class="inventory-table-cell name">Stall</div>
-            <div class="inventory-table-cell state">State</div>
-            <div class="inventory-table-cell items">Inventory</div>
-            <div class="inventory-table-cell status">Status</div>
-            <div class="inventory-table-cell actions">Actions</div>
-          </div>
-
-          <!-- Table Rows - Paginated -->
-          <div 
-            v-for="stall in paginatedStalls" 
-            :key="stall.id" 
-            class="inventory-table-row"
-            :class="{ selected: selectedStalls.includes(stall.id) }"
-          >
-            <div class="inventory-table-cell checkbox">
-              <input 
-                type="checkbox" 
-                :value="stall.id"
-                v-model="selectedStalls"
-              />
-            </div>
-            <div class="inventory-table-cell name">
-              <span class="stall-name">{{ stall.name }}</span>
-              <span class="stall-code">{{ stall.code }}</span>
-            </div>
-            <div class="inventory-table-cell state">
-              {{ stall.state || '-' }}
-            </div>
-            <div class="inventory-table-cell items">
-              <!-- Show inventory items without pencil button -->
-              <div 
-                v-for="item in getStallInventorySummary(stall.id)" 
-                :key="item.material_name" 
-                class="inventory-item-inline"
-                :class="{ 'low': item.current_level <= item.alert_level }"
-              >
-                <span class="item-name">{{ item.material_name }}</span>
-                <span class="item-level">{{ item.current_level }}</span>
-                <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
-              </div>
-            </div>
-            <div class="inventory-table-cell status">
-              <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-                {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-              </span>
-              <span v-if="hasLowStock(stall.id)" class="status-badge low">
-                ⚠️ Low Stock
-              </span>
-            </div>
-            <div class="inventory-table-cell actions">
-              <button @click="openStallInventoryModal(stall.id)" class="btn-action" title="Top Up">
-                📦 Top Up
+            <div class="inventory-actions">
+              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+              <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              <button @click="openBulkUpdateModal" class="btn-modern primary" :disabled="selectedStalls.length === 0">
+                📦 Bulk Update ({{ selectedCount }})
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevPage" 
-              class="pagination-btn"
-              :disabled="currentPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ currentPage }} of {{ totalPages }}
-            </span>
-            <button 
-              @click="nextPage" 
-              class="pagination-btn"
-              :disabled="currentPage >= totalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-
-        <!-- Quick Action Buttons - Simplified -->
-        <div class="inventory-quick-actions">
-          <button 
-            @click="openBulkUpdateModal" 
-            class="btn-modern primary"
-            :disabled="selectedStalls.length === 0"
-          >
-            📦 Update Selected ({{ selectedCount }})
-          </button>
-          <button 
-            @click="resetAllLowStock" 
-            class="btn-modern secondary"
-            :disabled="inventoryStats.lowStock === 0"
-          >
-            🔄 Reset Low Stock
-          </button>
-        </div>
-       
-      </div> <!-- ← THIS CLOSES THE v-else div -->
-    </div> <!-- ← THIS CLOSES card-modern-body -->
-  </div> <!-- ← THIS CLOSES card-modern -->
-</div> <!-- ← THIS CLOSES inventory tab-panel -->
-
-<!-- ===== QUICK UPDATE MODAL ===== -->
-<div v-if="quickUpdateModal" class="modal-overlay" @click.self="quickUpdateModal=false">
-  <div class="modal-modern modal-sm">
-    <div class="modal-modern-header">
-      <h3>⚡ Quick Update: {{ quickUpdateStallName }}</h3>
-      <button @click="quickUpdateModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <div class="quick-update-grid">
-        <div 
-          v-for="item in quickUpdateItems" 
-          :key="item.material_name" 
-          class="quick-update-item"
-        >
-          <div class="quick-update-info">
-            <span class="quick-update-name">{{ item.material_name }}</span>
-            <span class="quick-update-current">
-              Current: {{ item.current_level }}{{ getUnit(item.material_name) }}
-            </span>
-            <span 
-              class="quick-update-status"
-              :class="item.current_level <= item.alert_level ? 'low' : 'ok'"
-            >
-              {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
-            </span>
-          </div>
-          <div class="quick-update-actions">
-            <input 
-              type="number" 
-              v-model.number="item.newLevel" 
-              :placeholder="item.current_level"
-              class="filter-input small"
-              step="1"
-              min="0"
-            />
-            <button 
-              @click="quickUpdateItemSave(stallId, item.material_name, item.newLevel)" 
-              class="btn-modern primary small"
-            >
-              Save
-            </button>
-            <button 
-              @click="quickUpdateItemAdd(stallId, item.material_name, 5)" 
-              class="btn-modern secondary small"
-            >
-              +5
-            </button>
-            <button 
-              @click="quickUpdateItemAdd(stallId, item.material_name, 1)" 
-              class="btn-modern secondary small"
-            >
-              +1
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="quickUpdateModal=false" class="btn-modern secondary">Close</button>
-      <button @click="quickUpdateSaveAll" class="btn-modern primary">Save All</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== BULK UPDATE MODAL ===== -->
-<div v-if="bulkUpdateModal" class="modal-overlay" @click.self="bulkUpdateModal=false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>📦 Bulk Update Inventory</h3>
-      <button @click="bulkUpdateModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <!-- Mode Selection -->
-      <div class="bulk-mode-selector">
-        <button 
-          class="mode-btn" 
-          :class="{ active: bulkUpdateMode === 'selected' }"
-          @click="bulkUpdateMode = 'selected'"
-        >
-          Selected ({{ selectedCount }})
-        </button>
-        <button 
-          class="mode-btn" 
-          :class="{ active: bulkUpdateMode === 'all' }"
-          @click="bulkUpdateMode = 'all'"
-        >
-          All Filtered ({{ filteredInventoryStalls.length }})
-        </button>
-        <button 
-          class="mode-btn" 
-          :class="{ active: bulkUpdateMode === 'low-stock' }"
-          @click="bulkUpdateMode = 'low-stock'"
-        >
-          Low Stock Only ({{ inventoryStats.lowStock }})
-        </button>
-      </div>
-
-      <!-- Preview -->
-      <div class="bulk-preview">
-        <p><strong>Updating:</strong> {{ bulkUpdatePreview.length }} stalls</p>
-        <div class="bulk-stall-tags">
-          <span v-for="stall in bulkUpdatePreview.slice(0, 5)" :key="stall.id" class="stall-tag">
-            {{ stall.name }}
-          </span>
-          <span v-if="bulkUpdatePreview.length > 5" class="stall-tag more">
-            +{{ bulkUpdatePreview.length - 5 }} more
-          </span>
-        </div>
-      </div>
-
-      <!-- Material Update -->
-      <div class="bulk-materials">
-        <h4>Update Materials</h4>
-        
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-          <span class="quick-label">Quick:</span>
-          <button 
-            v-for="action in quickActions" 
-            :key="action.label"
-            class="btn-modern secondary small"
-            @click="applyQuickAction(action)"
-          >
-            {{ action.label }}
-          </button>
-        </div>
-
-        <!-- Material Grid -->
-        <div class="bulk-material-grid">
-          <div v-for="material in bulkUpdateMaterials" :key="material.name" class="bulk-material-item">
-            <label class="bulk-material-label">
-              <input type="checkbox" v-model="material.selected" />
-              <span class="bulk-material-name">{{ material.name }}</span>
-            </label>
-            <div class="bulk-material-inputs">
-              <select v-model="material.operation" class="filter-select small">
-                <option value="set">Set to</option>
-                <option value="add">Add</option>
-                <option value="subtract">Subtract</option>
-              </select>
-              <input 
-                type="number" 
-                v-model.number="material.value" 
-                class="filter-input small"
-                placeholder="Value"
-              />
-            </div>
-            <span class="bulk-material-unit">{{ getUnit(material.name) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="bulkUpdateModal=false" class="btn-modern secondary">Cancel</button>
-      <button @click="executeBulkUpdate" class="btn-modern primary" :disabled="bulkUpdating">
-        {{ bulkUpdating ? 'Updating...' : 'Apply to All' }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== STALLS TAB ===== -->
-<div v-if="activeTab === 'stalls'" class="tab-panel">
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'management' }"
-      @click="stallSubTab = 'management'"
-    >
-      🏪 Stall Management
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'performance' }"
-      @click="stallSubTab = 'performance'"
-    >
-      📊 Stall Performance
-    </button>
-  </div>
-  
- <!-- Stall Management -->
-<div v-if="stallSubTab === 'management'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🏪 Stall Management</h3>
-        <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
-      </div>
-    </div>
-      <div class="card-modern-body">
-        <!-- Stats Cards -->
-        <div class="inventory-stats-grid">
-          <div class="stat-chip">
-            <span class="stat-chip-label">Total Stalls</span>
-            <span class="stat-chip-value">{{ stallStats.total }}</span>
-          </div>
-          <div class="stat-chip active">
-            <span class="stat-chip-label">Active</span>
-            <span class="stat-chip-value">{{ stallStats.active }}</span>
-          </div>
-          <div class="stat-chip inactive">
-            <span class="stat-chip-label">Inactive</span>
-            <span class="stat-chip-value">{{ stallStats.inactive }}</span>
-          </div>
-          <div class="stat-chip warning">
-            <span class="stat-chip-label">⚠️ Low Stock</span>
-            <span class="stat-chip-value">{{ stallStats.lowStock }}</span>
-          </div>
-        </div>
-
-        <!-- Filter Bar - Like Inventory -->
-        <div class="filter-bar-modern">
-          <div class="filter-search">
-            <input 
-              type="text" 
-              v-model="stallSearch" 
-              placeholder="Search stalls..." 
-              class="filter-input"
-              @input="resetStallPagination"
-            />
-          </div>
-          
-          <div class="filter-group">
-            <select v-model="stateFilter" class="filter-select" @change="resetStallPagination">
-              <option v-for="state in malaysiaStates" :key="state" :value="state">
-                {{ state }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="filter-group">
-            <select v-model="stallStatusFilter" class="filter-select" @change="resetStallPagination">
-              <option value="all">All Status</option>
-              <option value="active">🟢 Active</option>
-              <option value="inactive">⚪ Inactive</option>
-            </select>
-          </div>
-
-          <div class="filter-actions">
-            <button @click="toggleSelectAllStalls" class="btn-modern secondary small">
-              {{ selectAllStalls ? 'Deselect All' : 'Select All' }}
-            </button>
-            <button @click="clearStallFilters" class="btn-modern secondary small">
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        <!-- Bulk Action Buttons -->
-        <div class="inventory-quick-actions" v-if="selectedStalls.length > 0">
-          <button 
-            @click="bulkActivateStalls" 
-            class="btn-modern primary"
-            :disabled="loading"
-          >
-            ✅ Activate Selected ({{ selectedStallsCount }})
-          </button>
-          <button 
-            @click="bulkDeactivateStalls" 
-            class="btn-modern secondary"
-            :disabled="loading"
-          >
-            ⏸️ Deactivate Selected ({{ selectedStallsCount }})
-          </button>
-          <span class="selected-count-label">{{ selectedStallsCount }} stall(s) selected</span>
-        </div>
-
-        <!-- Stall List with Pagination -->
-        <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
-          <span>🏪</span>
-          <p>No stalls found matching your filters</p>
-        </div>
-
-        <div v-else>
-          <div class="inventory-table-wrapper">
-            <!-- Table Header -->
-            <div class="inventory-table-header">
-              <div class="inventory-table-cell checkbox">
-                <input type="checkbox" v-model="selectAllStalls" @change="toggleSelectAllStalls" />
+          <div class="card-modern-body">
+            
+            <!-- Stats Cards -->
+            <div class="inventory-stats-grid">
+              <div class="stat-chip">
+                <span class="stat-chip-label">Total Stalls</span>
+                <span class="stat-chip-value">{{ inventoryStats.total }}</span>
               </div>
-              <div class="inventory-table-cell name">Stall</div>
-              <div class="inventory-table-cell state">State</div>
-              <div class="inventory-table-cell status">Status</div>
-              <div class="inventory-table-cell actions">Actions</div>
+              <div class="stat-chip active">
+                <span class="stat-chip-label">Active</span>
+                <span class="stat-chip-value">{{ inventoryStats.active }}</span>
+              </div>
+              <div class="stat-chip inactive">
+                <span class="stat-chip-label">Inactive</span>
+                <span class="stat-chip-value">{{ inventoryStats.inactive }}</span>
+              </div>
+              <div class="stat-chip warning">
+                <span class="stat-chip-label">⚠️ Low Stock</span>
+                <span class="stat-chip-value">{{ inventoryStats.lowStock }}</span>
+              </div>
             </div>
 
-            <!-- Table Rows - Paginated -->
-            <div 
-              v-for="stall in paginatedStallsList" 
-              :key="stall.id" 
-              class="inventory-table-row"
-              :class="{ selected: selectedStalls.includes(stall.id) }"
-            >
-              <div class="inventory-table-cell checkbox">
+            <!-- Filter Bar -->
+            <div class="filter-bar-modern">
+              <div class="filter-search">
                 <input 
-                  type="checkbox" 
-                  :value="stall.id"
-                  v-model="selectedStalls"
-                  @change="selectAllStalls = selectedStalls.length === paginatedStallsList.length && paginatedStallsList.length > 0"
+                  type="text" 
+                  v-model="inventorySearch" 
+                  placeholder="Search stalls or materials..." 
+                  class="filter-input"
+                  @input="resetPagination"
                 />
               </div>
-              <div class="inventory-table-cell name">
-                <span class="stall-name">{{ stall.name }}</span>
-                <span class="stall-code">{{ stall.code }}</span>
+              
+              <div class="filter-group">
+                <select v-model="stateFilter" class="filter-select" @change="resetPagination">
+                  <option v-for="state in malaysiaStates" :key="state" :value="state">
+                    {{ state }}
+                  </option>
+                </select>
               </div>
-              <div class="inventory-table-cell state">
-                {{ stall.state || '-' }}
+              
+              <div class="filter-group">
+                <select v-model="inventoryFilter" class="filter-select" @change="resetPagination">
+                  <option value="all">All Status</option>
+                  <option value="active">🟢 Active</option>
+                  <option value="inactive">⚪ Inactive</option>
+                  <option value="low">⚠️ Low Stock</option>
+                </select>
               </div>
-              <div class="inventory-table-cell status">
-                <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-                  {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-                </span>
-                <span v-if="hasLowStock(stall.id)" class="status-badge low">
-                  ⚠️ Low Stock
-                </span>
-              </div>
-              <div class="inventory-table-cell actions">
-                <button @click="openEditStallModal(stall)" class="btn-action" title="Edit" :disabled="selectedStalls.length > 0">
-                  ✏️ Edit
+
+              <div class="filter-actions">
+                <button @click="toggleSelectAll" class="btn-modern secondary small">
+                  {{ selectAll ? 'Deselect All' : 'Select All' }}
                 </button>
-                <button @click="toggleStallStatus(stall)" class="btn-action" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
-                  {{ stall.is_active ? '⏸️ Deactivate' : '▶️ Activate' }}
+                <button @click="clearFilters" class="btn-modern secondary small">
+                  Clear Filters
                 </button>
               </div>
             </div>
-          </div>
 
-          <!-- Pagination Controls -->
-          <div class="pagination-container">
-            <div class="pagination-info" v-if="filteredStallsList.length > 0">
-              Showing {{ stallStartIndex }} - {{ stallEndIndex }} of {{ filteredStallsList.length }} stalls
+            <!-- Inventory Table with Pagination -->
+            <div v-if="stalls.length === 0" class="empty-state-modern">
+              <span>📦</span>
+              <p>No stalls found. Contact your administrator.</p>
             </div>
-            <div class="pagination-info" v-else>
-              Showing 0 - 0 of 0 stalls
-            </div>
-            <div class="pagination-controls">
-              <button 
-                @click="prevStallPage" 
-                class="pagination-btn"
-                :disabled="stallCurrentPage <= 1"
+
+            <div v-else>
+              <div class="inventory-table-wrapper">
+                <!-- Table Header -->
+                <div class="inventory-table-header">
+                  <div class="inventory-table-cell checkbox">
+                    <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
+                  </div>
+                  <div class="inventory-table-cell name">Stall</div>
+                  <div class="inventory-table-cell state">State</div>
+                  <div class="inventory-table-cell items">Inventory</div>
+                  <div class="inventory-table-cell status">Status</div>
+                  <div class="inventory-table-cell actions">Actions</div>
+                </div>
+
+                <!-- Table Rows - Paginated -->
+                <div 
+                  v-for="stall in paginatedStalls" 
+                  :key="stall.id" 
+                  class="inventory-table-row"
+                  :class="{ selected: selectedStalls.includes(stall.id) }"
+                >
+                  <div class="inventory-table-cell checkbox">
+                    <input 
+                      type="checkbox" 
+                      :value="stall.id"
+                      v-model="selectedStalls"
+                    />
+                  </div>
+                  <div class="inventory-table-cell name">
+                    <span class="stall-name">{{ stall.name }}</span>
+                    <span class="stall-code">{{ stall.code }}</span>
+                  </div>
+                  <div class="inventory-table-cell state">
+                    {{ stall.state || '-' }}
+                  </div>
+                  <div class="inventory-table-cell items">
+                    <!-- Show inventory items without pencil button -->
+                    <div 
+                      v-for="item in getStallInventorySummary(stall.id)" 
+                      :key="item.material_name" 
+                      class="inventory-item-inline"
+                      :class="{ 'low': item.current_level <= item.alert_level }"
+                    >
+                      <span class="item-name">{{ item.material_name }}</span>
+                      <span class="item-level">{{ item.current_level }}</span>
+                      <span v-if="item.current_level <= item.alert_level" class="item-warning">⚠️</span>
+                    </div>
+                  </div>
+                  <div class="inventory-table-cell status">
+                    <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                      {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                    </span>
+                    <span v-if="hasLowStock(stall.id)" class="status-badge low">
+                      ⚠️ Low Stock
+                    </span>
+                  </div>
+                  <div class="inventory-table-cell actions">
+                    <button @click="openStallInventoryModal(stall.id)" class="btn-action" title="Top Up">
+                      📦 Top Up
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-container">
+                <div class="pagination-info">
+                  Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
+                </div>
+                <div class="pagination-controls">
+                  <button 
+                    @click="prevPage" 
+                    class="pagination-btn"
+                    :disabled="currentPage <= 1"
+                  >
+                    ◀ Previous
+                  </button>
+                  <span class="pagination-page">
+                    Page {{ currentPage }} of {{ totalPages }}
+                  </span>
+                  <button 
+                    @click="nextPage" 
+                    class="pagination-btn"
+                    :disabled="currentPage >= totalPages"
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Action Buttons - Simplified -->
+              <div class="inventory-quick-actions">
+                <button 
+                  @click="openBulkUpdateModal" 
+                  class="btn-modern primary"
+                  :disabled="selectedStalls.length === 0"
+                >
+                  📦 Update Selected ({{ selectedCount }})
+                </button>
+                <button 
+                  @click="resetAllLowStock" 
+                  class="btn-modern secondary"
+                  :disabled="inventoryStats.lowStock === 0"
+                >
+                  🔄 Reset Low Stock
+                </button>
+              </div>
+             
+            </div> <!-- ← THIS CLOSES THE v-else div -->
+          </div> <!-- ← THIS CLOSES card-modern-body -->
+        </div> <!-- ← THIS CLOSES card-modern -->
+      </div> <!-- ← THIS CLOSES inventory tab-panel -->
+
+      <!-- ===== QUICK UPDATE MODAL ===== -->
+      <div v-if="quickUpdateModal" class="modal-overlay" @click.self="quickUpdateModal=false">
+        <div class="modal-modern modal-sm">
+          <div class="modal-modern-header">
+            <h3>⚡ Quick Update: {{ quickUpdateStallName }}</h3>
+            <button @click="quickUpdateModal=false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <div class="quick-update-grid">
+              <div 
+                v-for="item in quickUpdateItems" 
+                :key="item.material_name" 
+                class="quick-update-item"
               >
-                ◀ Previous
-              </button>
-              <span class="pagination-page">
-                Page {{ stallCurrentPage }} of {{ stallTotalPages }}
-              </span>
-              <button 
-                @click="nextStallPage" 
-                class="pagination-btn"
-                :disabled="stallCurrentPage >= stallTotalPages"
-              >
-                Next ▶
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-<!-- Stall Performance - Full List -->
-<div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>📊 Stall Performance</h3>
-        <span class="card-subtitle">All stalls ranked by total revenue (all-time)</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-      </div>
-      </div>
-    
-    <div class="card-modern-body">
-      
-      <!-- Stats Cards -->
-      <div class="performance-stats-grid">
-        <div class="stat-chip excellent">
-          <span class="stat-chip-label">🟢 Excellent</span>
-          <span class="stat-chip-value">{{ performanceStats.excellent }}</span>
-        </div>
-        <div class="stat-chip good">
-          <span class="stat-chip-label">🔵 Good</span>
-          <span class="stat-chip-value">{{ performanceStats.good }}</span>
-        </div>
-        <div class="stat-chip average">
-          <span class="stat-chip-label">🟡 Average</span>
-          <span class="stat-chip-value">{{ performanceStats.average }}</span>
-        </div>
-        <div class="stat-chip poor">
-          <span class="stat-chip-label">🔴 Poor</span>
-          <span class="stat-chip-value">{{ performanceStats.poor }}</span>
-        </div>
-        <div class="stat-chip no-sales">
-          <span class="stat-chip-label">⚪ No Sales</span>
-          <span class="stat-chip-value">{{ performanceStats.noSales }}</span>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="performanceSearch" 
-            placeholder="Search stalls by name or code..." 
-            class="filter-input"
-            @input="resetPerformancePagination"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="performanceStateFilter" class="filter-select" @change="resetPerformancePagination">
-            <option v-for="state in malaysiaStates" :key="state" :value="state">
-              {{ state }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="performanceStatusFilter" class="filter-select" @change="resetPerformancePagination">
-            <option value="all">All Status</option>
-            <option value="excellent">🟢 Excellent</option>
-            <option value="good">🔵 Good</option>
-            <option value="average">🟡 Average</option>
-            <option value="poor">🔴 Poor</option>
-            <option value="no-sales">⚪ No Sales</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button @click="clearPerformanceFilters" class="btn-modern secondary small">
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      <!-- Performance Table with Pagination -->
-      <div v-if="filteredPerformanceList.length === 0" class="empty-state-modern">
-        <span>📊</span>
-        <p>No stalls found matching your criteria</p>
-        <button @click="clearPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-          Clear Filters
-        </button>
-      </div>
-
-      <div v-else>
-        <div class="performance-table-wrapper">
-          <!-- Table Header with Sort -->
-          <div class="performance-table-header">
-            <span class="performance-table-header-rank sortable" @click="sortPerformance('rank')">
-              Rank <span class="sort-arrow">{{ getSortArrow('rank') }}</span>
-            </span>
-            <span class="performance-table-header-name sortable" @click="sortPerformance('name')">
-              Stall <span class="sort-arrow">{{ getSortArrow('name') }}</span>
-            </span>
-            <span class="performance-table-header-revenue sortable" @click="sortPerformance('revenue')">
-              Revenue <span class="sort-arrow">{{ getSortArrow('revenue') }}</span>
-            </span>
-            <span class="performance-table-header-status sortable" @click="sortPerformance('status')">
-              Status <span class="sort-arrow">{{ getSortArrow('status') }}</span>
-            </span>
-            <span class="performance-table-header-details">Details</span>
-          </div>
-          
-          <div class="performance-table-body">
-            <div 
-              v-for="(stall, index) in paginatedPerformanceList" 
-              :key="stall.id" 
-              class="performance-table-row clickable-item"
-              @click="viewStallDetails(stall)"
-            >
-              <!-- Rank -->
-              <span class="performance-table-rank">
-                <span class="rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-              </span>
-              
-              <!-- Stall Name + Bar -->
-              <span class="performance-table-name">
-                <span class="stall-name-text">{{ stall.name }}</span>
-                <span class="stall-name-bar">
-                  <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
-                </span>
-              </span>
-              
-              <!-- Revenue -->
-              <span class="performance-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
-              
-              <!-- Status with Color & Emoji -->
-              <span class="performance-table-status">
-                <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
-                  {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
-                </span>
-              </span>
-              
-              <!-- Details -->
-              <span class="performance-table-details">👆</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ performanceStartIndex }} - {{ performanceEndIndex }} of {{ filteredPerformanceList.length }} stalls
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevPerformancePage" 
-              class="pagination-btn"
-              :disabled="performancePage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ performancePage }} of {{ performanceTotalPages }}
-            </span>
-            <button 
-              @click="nextPerformancePage" 
-              class="pagination-btn"
-              :disabled="performancePage >= performanceTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div> <!-- ✅ THIS CLOSES THE v-else div -->
-    </div> <!-- ✅ THIS CLOSES card-modern-body -->
-  </div> <!-- ✅ THIS CLOSES card-modern -->
-</div> <!-- ✅ THIS CLOSES sub-tab-content -->
-</div> <!-- ← THIS CLOSES THE STALLS TAB PANEL -->
-
-<!-- ===== USERS TAB ===== -->
-<div v-if="activeTab === 'users'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>👥 User Management</h3>
-        <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
-      </div>
-    </div>
-    <div class="card-modern-body">
-      
-      <!-- Stats Cards -->
-      <div class="users-stats-grid">
-        <div class="stat-chip">
-          <span class="stat-chip-label">Total Users</span>
-          <span class="stat-chip-value">{{ userStats.total }}</span>
-        </div>
-        <div class="stat-chip admin">
-          <span class="stat-chip-label">👤 Admins</span>
-          <span class="stat-chip-value">{{ userStats.admins }}</span>
-        </div>
-        <div class="stat-chip cashier">
-          <span class="stat-chip-label">💰 Cashiers</span>
-          <span class="stat-chip-value">{{ userStats.cashiers }}</span>
-        </div>
-        <div class="stat-chip active">
-          <span class="stat-chip-label">🟢 Active</span>
-          <span class="stat-chip-value">{{ userStats.active }}</span>
-        </div>
-        <div class="stat-chip inactive">
-          <span class="stat-chip-label">⚪ Inactive</span>
-          <span class="stat-chip-value">{{ userStats.inactive }}</span>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="userSearch" 
-            placeholder="Search users by name or username..." 
-            class="filter-input"
-            @input="resetUserPagination"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="userStateFilter" class="filter-select" @change="resetUserPagination">
-            <option v-for="state in malaysiaStates" :key="state" :value="state">
-              {{ state }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
-            <option value="all">All Roles</option>
-            <option value="stall_admin">👤 Admin</option>
-            <option value="cashier">💰 Cashier</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button @click="toggleSelectAllUsers" class="btn-modern secondary small">
-            {{ selectAllUsers ? 'Deselect All' : 'Select All' }}
-          </button>
-          <button @click="clearUserFilters" class="btn-modern secondary small">
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      <!-- Bulk Action Buttons -->
-      <div class="inventory-quick-actions" v-if="selectedUsers.length > 0">
-        <button 
-          @click="bulkRoleChange('stall_admin')" 
-          class="btn-modern primary"
-          :disabled="loading"
-        >
-          👤 Make Admin ({{ selectedUsersCount }})
-        </button>
-        <button 
-          @click="bulkRoleChange('cashier')" 
-          class="btn-modern secondary"
-          :disabled="loading"
-        >
-          💰 Make Cashier ({{ selectedUsersCount }})
-        </button>
-        <button 
-          @click="bulkDeleteUsers" 
-          class="btn-modern danger"
-          :disabled="loading"
-        >
-          🗑️ Delete Selected ({{ selectedUsersCount }})
-        </button>
-        <span class="selected-count-label">{{ selectedUsersCount }} user(s) selected</span>
-      </div>
-
-      <!-- User Table with Pagination -->
-      <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
-        <span>👥</span>
-        <p>No users found matching your criteria</p>
-        <button @click="clearUserFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-          Clear Filters
-        </button>
-      </div>
-
-      <div v-else>
-        <div class="users-table-wrapper">
-          <!-- Table Header -->
-          <div class="users-table-header">
-            <div class="users-table-cell checkbox">
-              <input type="checkbox" v-model="selectAllUsers" @change="toggleSelectAllUsers" />
-            </div>
-            <div class="users-table-cell username">Username</div>
-            <div class="users-table-cell fullname">Full Name</div>
-            <div class="users-table-cell role">Role</div>
-            <div class="users-table-cell stalls">Assigned Stalls</div>
-            <div class="users-table-cell status">Status</div>
-            <div class="users-table-cell actions">Actions</div>
-          </div>
-
-          <!-- Table Rows - Paginated -->
-          <div 
-            v-for="user in paginatedUsersList" 
-            :key="user.id" 
-            class="users-table-row"
-            :class="{ selected: selectedUsers.includes(user.id) }"
-          >
-            <div class="users-table-cell checkbox">
-              <input 
-                type="checkbox" 
-                :value="user.id"
-                v-model="selectedUsers"
-                @change="selectAllUsers = selectedUsers.length === paginatedUsersList.length && paginatedUsersList.length > 0"
-                :disabled="user.id === currentUserId"
-              />
-            </div>
-            <div class="users-table-cell username">
-              <span class="username-text">{{ user.username }}</span>
-            </div>
-            <div class="users-table-cell fullname">
-              {{ user.full_name || '-' }}
-            </div>
-            <div class="users-table-cell role">
-              <span :class="['role-badge', user.role]">
-                {{ user.role === 'stall_admin' ? '👤 Admin' : '💰 Cashier' }}
-              </span>
-            </div>
-            <div class="users-table-cell stalls">
-              <span 
-                v-for="stall in (user.assigned_stalls || [])" 
-                :key="stall.id"
-                class="stall-badge clickable"
-                @click="navigateToStall(stall.id)"
-                :title="'Click to view ' + stall.name"
-              >
-                {{ stall.name }}
-              </span>
-              <span v-if="!user.assigned_stalls || user.assigned_stalls.length === 0" class="no-stalls">
-                No stalls assigned
-              </span>
-            </div>
-            <div class="users-table-cell status">
-              <span :class="['status-badge', user.is_active !== false ? 'active' : 'inactive']">
-                {{ user.is_active !== false ? '🟢 Active' : '⚪ Inactive' }}
-              </span>
-            </div>
-            <div class="users-table-cell actions">
-              <button @click="openEditUserModal(user)" class="btn-action" title="Edit" :disabled="selectedUsers.length > 0">
-                ✏️ Edit
-              </button>
-              <button @click="deleteUser(user.id, user.username)" class="btn-action danger" title="Delete" :disabled="selectedUsers.length > 0 || user.id === currentUserId">
-                🗑️ Delete
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ userStartIndex }} - {{ userEndIndex }} of {{ filteredUsersList.length }} users
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevUserPage" 
-              class="pagination-btn"
-              :disabled="userCurrentPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ userCurrentPage }} of {{ userTotalPages }}
-            </span>
-            <button 
-              @click="nextUserPage" 
-              class="pagination-btn"
-              :disabled="userCurrentPage >= userTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MENU TAB ===== -->
-<div v-if="activeTab === 'menu'" class="tab-panel">
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'assignment' }"
-      @click="menuSubTab = 'assignment'"
-    >
-      📋 Menu Assignment
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'performance' }"
-      @click="menuSubTab = 'performance'"
-    >
-      📊 Menu Performance
-    </button>
-  </div>
-  
-  <!-- Menu Assignment -->
-  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📋 Menu Assignment</h3>
-          <span class="card-subtitle">Assign menu items to stalls</span>
-        </div>
-        <div class="header-actions">
-          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-          <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
-        </div>
-      </div>
-      <div class="card-modern-body">
-        <div class="filter-bar">
-          <div class="filter-search">
-            <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-            <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-              <option value="">-- Select a stall --</option>
-              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                {{ stall.name }} ({{ stall.code }})
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-          <span>🏪</span>
-          <p>Please select a stall to manage its menu</p>
-        </div>
-
-        <div v-else-if="loadingMenuAssignments" class="loading-state small">
-          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-          <p>Loading menu assignments...</p>
-        </div>
-
-        <div v-else class="menu-assignment-list">
-          <div class="assignment-header">
-            <span class="assignment-count">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-            <button @click="selectAllMenus" class="btn-modern secondary small">
-              ✅ Select All
-            </button>
-            <button @click="deselectAllMenus" class="btn-modern secondary small">
-              ❌ Deselect All
-            </button>
-          </div>
-
-          <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-            <span>📋</span>
-            <p>No menu items available. Please contact your administrator to create menu items.</p>
-          </div>
-
-          <div v-for="item in filteredMenuItemsForAssignment" :key="item.item_name" class="assignment-item">
-            <div class="assignment-item-content">
-              <div class="assignment-item-info">
-                <div class="assignment-item-checkbox">
+                <div class="quick-update-info">
+                  <span class="quick-update-name">{{ item.material_name }}</span>
+                  <span class="quick-update-current">
+                    Current: {{ item.current_level }}{{ getUnit(item.material_name) }}
+                  </span>
+                  <span 
+                    class="quick-update-status"
+                    :class="item.current_level <= item.alert_level ? 'low' : 'ok'"
+                  >
+                    {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
+                  </span>
+                </div>
+                <div class="quick-update-actions">
                   <input 
-                    type="checkbox" 
-                    :id="`menu-${item.item_name}`" 
-                    v-model="menuAssignments[item.item_name]"
-                    :disabled="savingAssignment"
+                    type="number" 
+                    v-model.number="item.newLevel" 
+                    :placeholder="item.current_level"
+                    class="filter-input small"
+                    step="1"
+                    min="0"
                   />
-                  <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                    <span class="assignment-item-name">{{ item.item_name }}</span>
-                    <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                    <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                  </label>
+                  <button 
+                    @click="quickUpdateItemSave(stallId, item.material_name, item.newLevel)" 
+                    class="btn-modern primary small"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    @click="quickUpdateItemAdd(stallId, item.material_name, 5)" 
+                    class="btn-modern secondary small"
+                  >
+                    +5
+                  </button>
+                  <button 
+                    @click="quickUpdateItemAdd(stallId, item.material_name, 1)" 
+                    class="btn-modern secondary small"
+                  >
+                    +1
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-
-          <div v-if="selectedAssignmentStall" class="assignment-actions">
-            <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-              {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-            </button>
-            <button @click="resetMenuAssignments" class="btn-modern secondary">
-              ↩ Reset
-            </button>
-          </div>
-
-          <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-            {{ savedAssignmentMessage }}
+          <div class="modal-modern-footer">
+            <button @click="quickUpdateModal=false" class="btn-modern secondary">Close</button>
+            <button @click="quickUpdateSaveAll" class="btn-modern primary">Save All</button>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-  
-  <!-- Menu Performance - Full List -->
-  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📊 Menu Performance</h3>
-          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-        </div>
-        <div class="header-actions">
-          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+
+      <!-- ===== BULK UPDATE MODAL ===== -->
+      <div v-if="bulkUpdateModal" class="modal-overlay" @click.self="bulkUpdateModal=false">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>📦 Bulk Update Inventory</h3>
+            <button @click="bulkUpdateModal=false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <!-- Mode Selection -->
+            <div class="bulk-mode-selector">
+              <button 
+                class="mode-btn" 
+                :class="{ active: bulkUpdateMode === 'selected' }"
+                @click="bulkUpdateMode = 'selected'"
+              >
+                Selected ({{ selectedCount }})
+              </button>
+              <button 
+                class="mode-btn" 
+                :class="{ active: bulkUpdateMode === 'all' }"
+                @click="bulkUpdateMode = 'all'"
+              >
+                All Filtered ({{ filteredInventoryStalls.length }})
+              </button>
+              <button 
+                class="mode-btn" 
+                :class="{ active: bulkUpdateMode === 'low-stock' }"
+                @click="bulkUpdateMode = 'low-stock'"
+              >
+                Low Stock Only ({{ inventoryStats.lowStock }})
+              </button>
+            </div>
+
+            <!-- Preview -->
+            <div class="bulk-preview">
+              <p><strong>Updating:</strong> {{ bulkUpdatePreview.length }} stalls</p>
+              <div class="bulk-stall-tags">
+                <span v-for="stall in bulkUpdatePreview.slice(0, 5)" :key="stall.id" class="stall-tag">
+                  {{ stall.name }}
+                </span>
+                <span v-if="bulkUpdatePreview.length > 5" class="stall-tag more">
+                  +{{ bulkUpdatePreview.length - 5 }} more
+                </span>
+              </div>
+            </div>
+
+            <!-- Material Update -->
+            <div class="bulk-materials">
+              <h4>Update Materials</h4>
+              
+              <!-- Quick Actions -->
+              <div class="quick-actions">
+                <span class="quick-label">Quick:</span>
+                <button 
+                  v-for="action in quickActions" 
+                  :key="action.label"
+                  class="btn-modern secondary small"
+                  @click="applyQuickAction(action)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
+
+              <!-- Material Grid -->
+              <div class="bulk-material-grid">
+                <div v-for="material in bulkUpdateMaterials" :key="material.name" class="bulk-material-item">
+                  <label class="bulk-material-label">
+                    <input type="checkbox" v-model="material.selected" />
+                    <span class="bulk-material-name">{{ material.name }}</span>
+                  </label>
+                  <div class="bulk-material-inputs">
+                    <select v-model="material.operation" class="filter-select small">
+                      <option value="set">Set to</option>
+                      <option value="add">Add</option>
+                      <option value="subtract">Subtract</option>
+                    </select>
+                    <input 
+                      type="number" 
+                      v-model.number="material.value" 
+                      class="filter-input small"
+                      placeholder="Value"
+                    />
+                  </div>
+                  <span class="bulk-material-unit">{{ getUnit(material.name) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="bulkUpdateModal=false" class="btn-modern secondary">Cancel</button>
+            <button @click="executeBulkUpdate" class="btn-modern primary" :disabled="bulkUpdating">
+              {{ bulkUpdating ? 'Updating...' : 'Apply to All' }}
+            </button>
+          </div>
         </div>
       </div>
-      <div class="card-modern-body menu-performance-table-container">
-        <div v-if="menuPerformance.length === 0" class="empty-state-modern">
-          <span>📊</span>
-          <p>No sales data available for {{ getPeriodLabel() }}</p>
+
+      <!-- ===== STALLS TAB ===== -->
+      <div v-if="activeTab === 'stalls'" class="tab-panel">
+        <div class="sub-tabs">
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'management' }"
+            @click="stallSubTab = 'management'"
+          >
+            🏪 Stall Management
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'performance' }"
+            @click="stallSubTab = 'performance'"
+          >
+            📊 Stall Performance
+          </button>
         </div>
         
-        <div v-else class="menu-table-wrapper">
-          <div class="menu-table-header">
-            <span class="menu-table-header-rank">Rank</span>
-            <span class="menu-table-header-name">Menu</span>
-            <span class="menu-table-header-revenue">Revenue</span>
-            <span class="menu-table-header-status">Status</span>
-            <span class="menu-table-header-details">Details</span>
+        <!-- Stall Management -->
+        <div v-if="stallSubTab === 'management'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>🏪 Stall Management</h3>
+                <span class="card-subtitle">{{ filteredStallsList.length }} stalls</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+                <button @click="openStallModal()" class="btn-modern primary">+ New Stall</button>
+              </div>
+            </div>
+            <div class="card-modern-body">
+              <!-- Stats Cards -->
+              <div class="inventory-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Stalls</span>
+                  <span class="stat-chip-value">{{ stallStats.total }}</span>
+                </div>
+                <div class="stat-chip active">
+                  <span class="stat-chip-label">Active</span>
+                  <span class="stat-chip-value">{{ stallStats.active }}</span>
+                </div>
+                <div class="stat-chip inactive">
+                  <span class="stat-chip-label">Inactive</span>
+                  <span class="stat-chip-value">{{ stallStats.inactive }}</span>
+                </div>
+                <div class="stat-chip warning">
+                  <span class="stat-chip-label">⚠️ Low Stock</span>
+                  <span class="stat-chip-value">{{ stallStats.lowStock }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar - Like Inventory -->
+              <div class="filter-bar-modern">
+                <div class="filter-search">
+                  <input 
+                    type="text" 
+                    v-model="stallSearch" 
+                    placeholder="Search stalls..." 
+                    class="filter-input"
+                    @input="resetStallPagination"
+                  />
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="stateFilter" class="filter-select" @change="resetStallPagination">
+                    <option v-for="state in malaysiaStates" :key="state" :value="state">
+                      {{ state }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="stallStatusFilter" class="filter-select" @change="resetStallPagination">
+                    <option value="all">All Status</option>
+                    <option value="active">🟢 Active</option>
+                    <option value="inactive">⚪ Inactive</option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="toggleSelectAllStalls" class="btn-modern secondary small">
+                    {{ selectAllStalls ? 'Deselect All' : 'Select All' }}
+                  </button>
+                  <button @click="clearStallFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Bulk Action Buttons -->
+              <div class="inventory-quick-actions" v-if="selectedStalls.length > 0">
+                <button 
+                  @click="bulkActivateStalls" 
+                  class="btn-modern primary"
+                  :disabled="loading"
+                >
+                  ✅ Activate Selected ({{ selectedStallsCount }})
+                </button>
+                <button 
+                  @click="bulkDeactivateStalls" 
+                  class="btn-modern secondary"
+                  :disabled="loading"
+                >
+                  ⏸️ Deactivate Selected ({{ selectedStallsCount }})
+                </button>
+                <span class="selected-count-label">{{ selectedStallsCount }} stall(s) selected</span>
+              </div>
+
+              <!-- Stall List with Pagination -->
+              <div v-if="filteredStallsList.length === 0" class="empty-state-modern">
+                <span>🏪</span>
+                <p>No stalls found matching your filters</p>
+              </div>
+
+              <div v-else>
+                <div class="inventory-table-wrapper">
+                  <!-- Table Header -->
+                  <div class="inventory-table-header">
+                    <div class="inventory-table-cell checkbox">
+                      <input type="checkbox" v-model="selectAllStalls" @change="toggleSelectAllStalls" />
+                    </div>
+                    <div class="inventory-table-cell name">Stall</div>
+                    <div class="inventory-table-cell state">State</div>
+                    <div class="inventory-table-cell status">Status</div>
+                    <div class="inventory-table-cell actions">Actions</div>
+                  </div>
+
+                  <!-- Table Rows - Paginated -->
+                  <div 
+                    v-for="stall in paginatedStallsList" 
+                    :key="stall.id" 
+                    class="inventory-table-row"
+                    :class="{ selected: selectedStalls.includes(stall.id) }"
+                  >
+                    <div class="inventory-table-cell checkbox">
+                      <input 
+                        type="checkbox" 
+                        :value="stall.id"
+                        v-model="selectedStalls"
+                        @change="selectAllStalls = selectedStalls.length === paginatedStallsList.length && paginatedStallsList.length > 0"
+                      />
+                    </div>
+                    <div class="inventory-table-cell name">
+                      <span class="stall-name">{{ stall.name }}</span>
+                      <span class="stall-code">{{ stall.code }}</span>
+                    </div>
+                    <div class="inventory-table-cell state">
+                      {{ stall.state || '-' }}
+                    </div>
+                    <div class="inventory-table-cell status">
+                      <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                        {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                      </span>
+                      <span v-if="hasLowStock(stall.id)" class="status-badge low">
+                        ⚠️ Low Stock
+                      </span>
+                    </div>
+                    <div class="inventory-table-cell actions">
+                      <button @click="openEditStallModal(stall)" class="btn-action" title="Edit" :disabled="selectedStalls.length > 0">
+                        ✏️ Edit
+                      </button>
+                      <button @click="toggleStallStatus(stall)" class="btn-action" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
+                        {{ stall.is_active ? '⏸️ Deactivate' : '▶️ Activate' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                  <div class="pagination-info" v-if="filteredStallsList.length > 0">
+                    Showing {{ stallStartIndex }} - {{ stallEndIndex }} of {{ filteredStallsList.length }} stalls
+                  </div>
+                  <div class="pagination-info" v-else>
+                    Showing 0 - 0 of 0 stalls
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevStallPage" 
+                      class="pagination-btn"
+                      :disabled="stallCurrentPage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ stallCurrentPage }} of {{ stallTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextStallPage" 
+                      class="pagination-btn"
+                      :disabled="stallCurrentPage >= stallTotalPages"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div class="menu-table-body">
-            <div 
-              v-for="(item, index) in menuPerformance" 
-              :key="item.name" 
-              class="menu-table-row clickable-item"
-              @click="viewMenuItemDetails(item)"
-            >
-              <span class="menu-table-rank">
-                <span class="rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-              </span>
+        </div>
+        
+        <!-- Stall Performance - Full List -->
+        <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📊 Stall Performance</h3>
+                <span class="card-subtitle">All stalls ranked by total revenue (all-time)</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              </div>
+            </div>
+            
+            <div class="card-modern-body">
               
-              <span class="menu-table-name">
-                <span class="menu-name-text">{{ item.name }}</span>
-                <span class="menu-name-bar">
-                  <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-                </span>
-              </span>
+              <!-- Stats Cards -->
+              <div class="performance-stats-grid">
+                <div class="stat-chip excellent">
+                  <span class="stat-chip-label">🟢 Excellent</span>
+                  <span class="stat-chip-value">{{ performanceStats.excellent }}</span>
+                </div>
+                <div class="stat-chip good">
+                  <span class="stat-chip-label">🔵 Good</span>
+                  <span class="stat-chip-value">{{ performanceStats.good }}</span>
+                </div>
+                <div class="stat-chip average">
+                  <span class="stat-chip-label">🟡 Average</span>
+                  <span class="stat-chip-value">{{ performanceStats.average }}</span>
+                </div>
+                <div class="stat-chip poor">
+                  <span class="stat-chip-label">🔴 Poor</span>
+                  <span class="stat-chip-value">{{ performanceStats.poor }}</span>
+                </div>
+                <div class="stat-chip no-sales">
+                  <span class="stat-chip-label">⚪ No Sales</span>
+                  <span class="stat-chip-value">{{ performanceStats.noSales }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar -->
+              <div class="filter-bar-modern">
+                <div class="filter-search">
+                  <input 
+                    type="text" 
+                    v-model="performanceSearch" 
+                    placeholder="Search stalls by name or code..." 
+                    class="filter-input"
+                    @input="resetPerformancePagination"
+                  />
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="performanceStateFilter" class="filter-select" @change="resetPerformancePagination">
+                    <option v-for="state in malaysiaStates" :key="state" :value="state">
+                      {{ state }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="performanceStatusFilter" class="filter-select" @change="resetPerformancePagination">
+                    <option value="all">All Status</option>
+                    <option value="excellent">🟢 Excellent</option>
+                    <option value="good">🔵 Good</option>
+                    <option value="average">🟡 Average</option>
+                    <option value="poor">🔴 Poor</option>
+                    <option value="no-sales">⚪ No Sales</option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="clearPerformanceFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Performance Table with Pagination -->
+              <div v-if="filteredPerformanceList.length === 0" class="empty-state-modern">
+                <span>📊</span>
+                <p>No stalls found matching your criteria</p>
+                <button @click="clearPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                  Clear Filters
+                </button>
+              </div>
+
+              <div v-else>
+                <div class="performance-table-wrapper">
+                  <!-- Table Header with Sort -->
+                  <div class="performance-table-header">
+                    <span class="performance-table-header-rank sortable" @click="sortPerformance('rank')">
+                      Rank <span class="sort-arrow">{{ getSortArrow('rank') }}</span>
+                    </span>
+                    <span class="performance-table-header-name sortable" @click="sortPerformance('name')">
+                      Stall <span class="sort-arrow">{{ getSortArrow('name') }}</span>
+                    </span>
+                    <span class="performance-table-header-revenue sortable" @click="sortPerformance('revenue')">
+                      Revenue <span class="sort-arrow">{{ getSortArrow('revenue') }}</span>
+                    </span>
+                    <span class="performance-table-header-status sortable" @click="sortPerformance('status')">
+                      Status <span class="sort-arrow">{{ getSortArrow('status') }}</span>
+                    </span>
+                    <span class="performance-table-header-details">Details</span>
+                  </div>
+                  
+                  <div class="performance-table-body">
+                    <div 
+                      v-for="(stall, index) in paginatedPerformanceList" 
+                      :key="stall.id" 
+                      class="performance-table-row clickable-item"
+                      @click="viewStallDetails(stall)"
+                    >
+                      <!-- Rank -->
+                      <span class="performance-table-rank">
+                        <span class="rank-number" :class="getRankClass(index)">
+                          {{ index + 1 }}
+                        </span>
+                      </span>
+                      
+                      <!-- Stall Name + Bar -->
+                      <span class="performance-table-name">
+                        <span class="stall-name-text">{{ stall.name }}</span>
+                        <span class="stall-name-bar">
+                          <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
+                        </span>
+                      </span>
+                      
+                      <!-- Revenue -->
+                      <span class="performance-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+                      
+                      <!-- Status with Color & Emoji -->
+                      <span class="performance-table-status">
+                        <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
+                          {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
+                        </span>
+                      </span>
+                      
+                      <!-- Details -->
+                      <span class="performance-table-details">👆</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ performanceStartIndex }} - {{ performanceEndIndex }} of {{ filteredPerformanceList.length }} stalls
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="performancePage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ performancePage }} of {{ performanceTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="performancePage >= performanceTotalPages"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                </div>
+              </div> <!-- ✅ THIS CLOSES THE v-else div -->
+            </div> <!-- ✅ THIS CLOSES card-modern-body -->
+          </div> <!-- ✅ THIS CLOSES card-modern -->
+        </div> <!-- ✅ THIS CLOSES sub-tab-content -->
+      </div> <!-- ← THIS CLOSES THE STALLS TAB PANEL -->
+
+      <!-- ===== USERS TAB ===== -->
+      <div v-if="activeTab === 'users'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>👥 User Management</h3>
+              <span class="card-subtitle">{{ filteredUsersList.length }} users</span>
+            </div>
+            <div class="header-actions">
+              <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+              <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
+            </div>
+          </div>
+          <div class="card-modern-body">
+            
+            <!-- Stats Cards -->
+            <div class="users-stats-grid">
+              <div class="stat-chip">
+                <span class="stat-chip-label">Total Users</span>
+                <span class="stat-chip-value">{{ userStats.total }}</span>
+              </div>
+              <div class="stat-chip admin">
+                <span class="stat-chip-label">👤 Admins</span>
+                <span class="stat-chip-value">{{ userStats.admins }}</span>
+              </div>
+              <div class="stat-chip cashier">
+                <span class="stat-chip-label">💰 Cashiers</span>
+                <span class="stat-chip-value">{{ userStats.cashiers }}</span>
+              </div>
+              <div class="stat-chip active">
+                <span class="stat-chip-label">🟢 Active</span>
+                <span class="stat-chip-value">{{ userStats.active }}</span>
+              </div>
+              <div class="stat-chip inactive">
+                <span class="stat-chip-label">⚪ Inactive</span>
+                <span class="stat-chip-value">{{ userStats.inactive }}</span>
+              </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar-modern">
+              <div class="filter-search">
+                <input 
+                  type="text" 
+                  v-model="userSearch" 
+                  placeholder="Search users by name or username..." 
+                  class="filter-input"
+                  @input="resetUserPagination"
+                />
+              </div>
               
-              <span class="menu-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              <div class="filter-group">
+                <select v-model="userStateFilter" class="filter-select" @change="resetUserPagination">
+                  <option v-for="state in malaysiaStates" :key="state" :value="state">
+                    {{ state }}
+                  </option>
+                </select>
+              </div>
               
-              <span class="menu-table-status">
-                <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-                  {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-                </span>
-              </span>
-              
-              <span class="menu-table-details">👆</span>
+              <div class="filter-group">
+                <select v-model="userRoleFilter" class="filter-select" @change="resetUserPagination">
+                  <option value="all">All Roles</option>
+                  <option value="stall_admin">👤 Admin</option>
+                  <option value="cashier">💰 Cashier</option>
+                </select>
+              </div>
+
+              <div class="filter-actions">
+                <button @click="toggleSelectAllUsers" class="btn-modern secondary small">
+                  {{ selectAllUsers ? 'Deselect All' : 'Select All' }}
+                </button>
+                <button @click="clearUserFilters" class="btn-modern secondary small">
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+
+            <!-- Bulk Action Buttons -->
+            <div class="inventory-quick-actions" v-if="selectedUsers.length > 0">
+              <button 
+                @click="bulkRoleChange('stall_admin')" 
+                class="btn-modern primary"
+                :disabled="loading"
+              >
+                👤 Make Admin ({{ selectedUsersCount }})
+              </button>
+              <button 
+                @click="bulkRoleChange('cashier')" 
+                class="btn-modern secondary"
+                :disabled="loading"
+              >
+                💰 Make Cashier ({{ selectedUsersCount }})
+              </button>
+              <button 
+                @click="bulkDeleteUsers" 
+                class="btn-modern danger"
+                :disabled="loading"
+              >
+                🗑️ Delete Selected ({{ selectedUsersCount }})
+              </button>
+              <span class="selected-count-label">{{ selectedUsersCount }} user(s) selected</span>
+            </div>
+
+            <!-- User Table with Pagination -->
+            <div v-if="filteredUsersList.length === 0" class="empty-state-modern">
+              <span>👥</span>
+              <p>No users found matching your criteria</p>
+              <button @click="clearUserFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                Clear Filters
+              </button>
+            </div>
+
+            <div v-else>
+              <div class="users-table-wrapper">
+                <!-- Table Header -->
+                <div class="users-table-header">
+                  <div class="users-table-cell checkbox">
+                    <input type="checkbox" v-model="selectAllUsers" @change="toggleSelectAllUsers" />
+                  </div>
+                  <div class="users-table-cell username">Username</div>
+                  <div class="users-table-cell fullname">Full Name</div>
+                  <div class="users-table-cell role">Role</div>
+                  <div class="users-table-cell stalls">Assigned Stalls</div>
+                  <div class="users-table-cell status">Status</div>
+                  <div class="users-table-cell actions">Actions</div>
+                </div>
+
+                <!-- Table Rows - Paginated -->
+                <div 
+                  v-for="user in paginatedUsersList" 
+                  :key="user.id" 
+                  class="users-table-row"
+                  :class="{ selected: selectedUsers.includes(user.id) }"
+                >
+                  <div class="users-table-cell checkbox">
+                    <input 
+                      type="checkbox" 
+                      :value="user.id"
+                      v-model="selectedUsers"
+                      @change="selectAllUsers = selectedUsers.length === paginatedUsersList.length && paginatedUsersList.length > 0"
+                      :disabled="user.id === currentUserId"
+                    />
+                  </div>
+                  <div class="users-table-cell username">
+                    <span class="username-text">{{ user.username }}</span>
+                  </div>
+                  <div class="users-table-cell fullname">
+                    {{ user.full_name || '-' }}
+                  </div>
+                  <div class="users-table-cell role">
+                    <span :class="['role-badge', user.role]">
+                      {{ user.role === 'stall_admin' ? '👤 Admin' : '💰 Cashier' }}
+                    </span>
+                  </div>
+                  <div class="users-table-cell stalls">
+                    <span 
+                      v-for="stall in (user.assigned_stalls || [])" 
+                      :key="stall.id"
+                      class="stall-badge clickable"
+                      @click="navigateToStall(stall.id)"
+                      :title="'Click to view ' + stall.name"
+                    >
+                      {{ stall.name }}
+                    </span>
+                    <span v-if="!user.assigned_stalls || user.assigned_stalls.length === 0" class="no-stalls">
+                      No stalls assigned
+                    </span>
+                  </div>
+                  <div class="users-table-cell status">
+                    <span :class="['status-badge', user.is_active !== false ? 'active' : 'inactive']">
+                      {{ user.is_active !== false ? '🟢 Active' : '⚪ Inactive' }}
+                    </span>
+                  </div>
+                  <div class="users-table-cell actions">
+                    <button @click="openEditUserModal(user)" class="btn-action" title="Edit" :disabled="selectedUsers.length > 0">
+                      ✏️ Edit
+                    </button>
+                    <button @click="deleteUser(user.id, user.username)" class="btn-action danger" title="Delete" :disabled="selectedUsers.length > 0 || user.id === currentUserId">
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-container">
+                <div class="pagination-info">
+                  Showing {{ userStartIndex }} - {{ userEndIndex }} of {{ filteredUsersList.length }} users
+                </div>
+                <div class="pagination-controls">
+                  <button 
+                    @click="prevUserPage" 
+                    class="pagination-btn"
+                    :disabled="userCurrentPage <= 1"
+                  >
+                    ◀ Previous
+                  </button>
+                  <span class="pagination-page">
+                    Page {{ userCurrentPage }} of {{ userTotalPages }}
+                  </span>
+                  <button 
+                    @click="nextUserPage" 
+                    class="pagination-btn"
+                    :disabled="userCurrentPage >= userTotalPages"
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
+
+      <!-- ===== MENU TAB ===== -->
+      <div v-if="activeTab === 'menu'" class="tab-panel">
+        <div class="sub-tabs">
+          <button 
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'assignment' }"
+            @click="menuSubTab = 'assignment'"
+          >
+            📋 Menu Assignment
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'performance' }"
+            @click="menuSubTab = 'performance'"
+          >
+            📊 Menu Performance
+          </button>
+        </div>
+        
+        <!-- Menu Assignment -->
+        <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📋 Menu Assignment</h3>
+                <span class="card-subtitle">{{ filteredMenuItemsForAssignment.length }} menu items</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+                <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
+              </div>
+            </div>
+            <div class="card-modern-body">
+              
+              <!-- Stats Cards -->
+              <div class="inventory-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Items</span>
+                  <span class="stat-chip-value">{{ menuStats.total }}</span>
+                </div>
+                <div class="stat-chip active">
+                  <span class="stat-chip-label">Active</span>
+                  <span class="stat-chip-value">{{ menuStats.active }}</span>
+                </div>
+                <div class="stat-chip inactive">
+                  <span class="stat-chip-label">Inactive</span>
+                  <span class="stat-chip-value">{{ menuStats.inactive }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar -->
+              <div class="filter-bar-modern">
+                <div class="filter-search">
+                  <input 
+                    type="text" 
+                    v-model="menuSearch" 
+                    placeholder="Search menu items..." 
+                    class="filter-input"
+                    @input="resetMenuPagination"
+                  />
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
+                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                      {{ cat === 'all' ? 'All Categories' : cat }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
+                    {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
+                  </button>
+                  <button @click="clearMenuFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stall Selection -->
+              <div class="filter-bar" style="margin-bottom: 1rem;">
+                <div class="filter-search">
+                  <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+                  <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+                    <option value="">-- Select a stall --</option>
+                    <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                      {{ stall.name }} ({{ stall.code }})
+                    </option>
+                  </select>
+                </div>
+                
+                <!-- Bulk Assign Button -->
+                <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
+                  <button 
+                    @click="bulkAssignMenusToStalls" 
+                    class="btn-modern primary"
+                    :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
+                  >
+                    📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+                <span>🏪</span>
+                <p>Please select a stall to manage its menu</p>
+              </div>
+
+              <div v-else-if="loadingMenuAssignments" class="loading-state small">
+                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                <p>Loading menu assignments...</p>
+              </div>
+
+              <div v-else>
+                <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+                  <span>📋</span>
+                  <p>No menu items found matching your criteria</p>
+                  <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                    Clear Filters
+                  </button>
+                </div>
+
+                <div v-else>
+                  <div class="menu-assignment-list">
+                    <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
+                      <div class="assignment-item-content">
+                        <div class="assignment-item-info">
+                          <div class="assignment-item-checkbox">
+                            <input 
+                              type="checkbox" 
+                              :id="`menu-${item.item_name}`" 
+                              v-model="menuAssignments[item.item_name]"
+                              :disabled="savingAssignment"
+                            />
+                            <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                              <span class="assignment-item-name">{{ item.item_name }}</span>
+                              <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                              <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pagination Controls -->
+                  <div class="pagination-container">
+                    <div class="pagination-info">
+                      Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+                    </div>
+                    <div class="pagination-controls">
+                      <button 
+                        @click="prevMenuPage" 
+                        class="pagination-btn"
+                        :disabled="menuCurrentPage <= 1"
+                      >
+                        ◀ Previous
+                      </button>
+                      <span class="pagination-page">
+                        Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                      </span>
+                      <button 
+                        @click="nextMenuPage" 
+                        class="pagination-btn"
+                        :disabled="menuCurrentPage >= menuTotalPages"
+                      >
+                        Next ▶
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="selectedAssignmentStall" class="assignment-actions">
+                    <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                      {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+                    </button>
+                    <button @click="resetMenuAssignments" class="btn-modern secondary">
+                      ↩ Reset
+                    </button>
+                  </div>
+
+                  <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+                    {{ savedAssignmentMessage }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Menu Performance - Full List -->
+        <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📊 Menu Performance</h3>
+                <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              </div>
+            </div>
+            <div class="card-modern-body">
+              
+              <!-- Stats Cards -->
+              <div class="menu-performance-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Items</span>
+                  <span class="stat-chip-value">{{ menuPerformanceStats.totalItems }}</span>
+                </div>
+                <div class="stat-chip revenue">
+                  <span class="stat-chip-label">💰 Total Revenue</span>
+                  <span class="stat-chip-value">{{ formatCurrency(menuPerformanceStats.totalRevenue) }}</span>
+                </div>
+                <div class="stat-chip top-item">
+                  <span class="stat-chip-label">🏆 Top Item</span>
+                  <span class="stat-chip-value">{{ menuPerformanceStats.topItemName }}</span>
+                  <span class="stat-chip-sub">{{ formatCurrency(menuPerformanceStats.topItemRevenue) }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar -->
+              <div class="filter-bar-modern">
+                <div class="filter-group">
+                  <select v-model="menuPerformanceCategoryFilter" class="filter-select" @change="resetMenuPerformancePagination">
+                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                      {{ cat === 'all' ? 'All Categories' : cat }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="menuPerformanceStateFilter" class="filter-select" @change="resetMenuPerformancePagination">
+                    <option v-for="state in malaysiaStates" :key="state" :value="state">
+                      {{ state }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="clearMenuPerformanceFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Performance Table with Pagination -->
+              <div v-if="filteredMenuPerformance.length === 0" class="empty-state-modern">
+                <span>📊</span>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
+                <button @click="clearMenuPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                  Clear Filters
+                </button>
+              </div>
+
+              <div v-else>
+                <div class="performance-table-wrapper">
+                  <!-- Table Header with Sort -->
+                  <div class="performance-table-header">
+                    <span class="performance-table-header-rank sortable" @click="sortMenuPerformance('rank')">
+                      Rank <span class="sort-arrow">{{ getMenuSortArrow('rank') }}</span>
+                    </span>
+                    <span class="performance-table-header-name sortable" @click="sortMenuPerformance('name')">
+                      Menu <span class="sort-arrow">{{ getMenuSortArrow('name') }}</span>
+                    </span>
+                    <span class="performance-table-header-revenue sortable" @click="sortMenuPerformance('revenue')">
+                      Revenue <span class="sort-arrow">{{ getMenuSortArrow('revenue') }}</span>
+                    </span>
+                    <span class="performance-table-header-status sortable" @click="sortMenuPerformance('status')">
+                      Status <span class="sort-arrow">{{ getMenuSortArrow('status') }}</span>
+                    </span>
+                    <span class="performance-table-header-details">Details</span>
+                  </div>
+                  
+                  <div class="performance-table-body">
+                    <div 
+                      v-for="(item, index) in paginatedMenuPerformance" 
+                      :key="item.name" 
+                      class="performance-table-row clickable-item"
+                      @click="viewMenuItemDetails(item)"
+                    >
+                      <span class="performance-table-rank">
+                        <span class="rank-number" :class="getRankClass(index)">
+                          {{ index + 1 }}
+                        </span>
+                      </span>
+                      
+                      <span class="performance-table-name">
+                        <span class="menu-name-text">{{ item.name }}</span>
+                        <span class="menu-name-bar">
+                          <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                        </span>
+                      </span>
+                      
+                      <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                      
+                      <span class="performance-table-status">
+                        <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                          {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                        </span>
+                      </span>
+                      
+                      <span class="performance-table-details">👆</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ menuPerformanceStartIndex }} - {{ menuPerformanceEndIndex }} of {{ filteredMenuPerformance.length }} items
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevMenuPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="menuPerformancePage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ menuPerformancePage }} of {{ menuPerformanceTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextMenuPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="menuPerformancePage >= menuPerformanceTotalPages"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ============================================ -->
       <!-- MODALS                                       -->
@@ -1820,8 +1987,24 @@ export default {
         { id: 'menu', label: 'Menu', icon: '📋' }
       ],
 
-      userStateFilter: 'All States',
+      // Menu Tab Data
+      menuSearch: '',
+      menuCategoryFilter: 'all',
+      menuStateFilter: 'All States',
+      menuCurrentPage: 1,
+      menuItemsPerPage: 10,
+      selectedMenuItems: [],
+      selectAllMenuItems: false,
+      
+      // Menu Performance Data
+      menuPerformancePage: 1,
+      menuPerformancePerPage: 10,
+      menuPerformanceCategoryFilter: 'all',
+      menuPerformanceStateFilter: 'All States',
+      menuPerformanceSortBy: 'rank',
+      menuPerformanceSortOrder: 'desc',
 
+      userStateFilter: 'All States',
       stallPerformancePeriod: [],
       userCurrentPage: 1,
       userItemsPerPage: 10,
@@ -1953,7 +2136,141 @@ export default {
   },
 
   computed: {
-    // ✅ Users Stats
+    // ===== MENU ASSIGNMENT COMPUTED =====
+    
+    menuStats() {
+      const total = this.menuItems.length
+      const active = this.menuItems.filter(item => item.price > 0).length
+      const inactive = total - active
+      
+      return {
+        total,
+        active,
+        inactive
+      }
+    },
+
+    filteredMenuItemsForAssignment() {
+      let items = this.menuItems
+      
+      if (this.menuSearch) {
+        const search = this.menuSearch.toLowerCase()
+        items = items.filter(item => 
+          item.item_name.toLowerCase().includes(search)
+        )
+      }
+      
+      if (this.menuCategoryFilter !== 'all') {
+        items = items.filter(item => 
+          (item.category || 'Main') === this.menuCategoryFilter
+        )
+      }
+      
+      return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
+    },
+
+    paginatedMenuItems() {
+      const start = (this.menuCurrentPage - 1) * this.menuItemsPerPage
+      const end = start + this.menuItemsPerPage
+      return this.filteredMenuItemsForAssignment.slice(start, end)
+    },
+
+    menuTotalPages() {
+      return Math.ceil(this.filteredMenuItemsForAssignment.length / this.menuItemsPerPage) || 1
+    },
+
+    menuStartIndex() {
+      if (this.filteredMenuItemsForAssignment.length === 0) return 0
+      return (this.menuCurrentPage - 1) * this.menuItemsPerPage + 1
+    },
+
+    menuEndIndex() {
+      if (this.filteredMenuItemsForAssignment.length === 0) return 0
+      return Math.min(this.menuCurrentPage * this.menuItemsPerPage, this.filteredMenuItemsForAssignment.length)
+    },
+
+    selectedMenuItemsCount() {
+      return this.selectedMenuItems.length
+    },
+
+    // ===== MENU PERFORMANCE COMPUTED =====
+    
+    menuPerformanceStats() {
+      const totalItems = this.menuPerformance.length
+      const totalRevenue = this.menuPerformance.reduce((sum, item) => sum + (item.revenue || 0), 0)
+      
+      let topItem = null
+      let maxRevenue = 0
+      this.menuPerformance.forEach(item => {
+        const revenue = item.revenue || 0
+        if (revenue > maxRevenue) {
+          maxRevenue = revenue
+          topItem = item
+        }
+      })
+      
+      return {
+        totalItems,
+        totalRevenue,
+        topItemName: topItem?.name || '-',
+        topItemRevenue: maxRevenue || 0
+      }
+    },
+
+    filteredMenuPerformance() {
+      let items = this.menuPerformance
+      
+      if (this.menuPerformanceCategoryFilter !== 'all') {
+        items = items.filter(item => 
+          (item.category || 'Main') === this.menuPerformanceCategoryFilter
+        )
+      }
+      
+      if (this.menuPerformanceStateFilter !== 'All States') {
+        items = items.filter(item => {
+          if (item.stallBreakdown) {
+            return item.stallBreakdown.some(stall => 
+              stall.state === this.menuPerformanceStateFilter
+            )
+          }
+          return true
+        })
+      }
+      
+      return this.sortMenuPerformanceList(items)
+    },
+
+    paginatedMenuPerformance() {
+      const start = (this.menuPerformancePage - 1) * this.menuPerformancePerPage
+      const end = start + this.menuPerformancePerPage
+      return this.filteredMenuPerformance.slice(start, end)
+    },
+
+    menuPerformanceTotalPages() {
+      return Math.ceil(this.filteredMenuPerformance.length / this.menuPerformancePerPage) || 1
+    },
+
+    menuPerformanceStartIndex() {
+      if (this.filteredMenuPerformance.length === 0) return 0
+      return (this.menuPerformancePage - 1) * this.menuPerformancePerPage + 1
+    },
+
+    menuPerformanceEndIndex() {
+      if (this.filteredMenuPerformance.length === 0) return 0
+      return Math.min(this.menuPerformancePage * this.menuPerformancePerPage, this.filteredMenuPerformance.length)
+    },
+
+    menuCategories() {
+      const categories = new Set()
+      this.menuItems.forEach(item => {
+        if (item.category) {
+          categories.add(item.category)
+        }
+      })
+      return ['all', ...Array.from(categories)]
+    },
+
+    // ===== USERS COMPUTED =====
     userStats() {
       const users = this.users.filter(u => 
         u.role !== 'super_admin' && u.role !== 'super_super_admin'
@@ -1974,7 +2291,6 @@ export default {
       }
     },
 
-    // ✅ Users Pagination
     userTotalPages() {
       return Math.ceil(this.filteredUsersList.length / this.userItemsPerPage) || 1
     },
@@ -1998,7 +2314,6 @@ export default {
     selectedUsersCount() {
       return this.selectedUsers.length
     },
-
 
     dashboardDisplayStalls() {
       const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
@@ -2174,10 +2489,6 @@ export default {
       return this.salesTrend.slice(this.chartOffset, this.chartOffset + this.chartWindow)
     },
     
-    filteredMenuItemsForAssignment() {
-      return this.menuItems.sort((a, b) => a.item_name.localeCompare(b.item_name))
-    },
-    
     filteredInventoryStalls() {
       return this.stalls.filter(stall => {
         const matchesSearch = stall.name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
@@ -2282,25 +2593,24 @@ export default {
       return this.filteredStallsList.slice(start, end)
     },
     
-   filteredUsersList() {
-  return this.users.filter(user => {
-    if (user.role === 'super_admin' || user.role === 'super_super_admin') {
-      return false
-    }
-    const search = this.userSearch.toLowerCase()
-    const matchesSearch = user.username.toLowerCase().includes(search) ||
-                          (user.full_name && user.full_name.toLowerCase().includes(search))
-    const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
-    
-    // ✅ Add state filter
-    const matchesState = this.userStateFilter === 'All States' || 
-                         (user.assigned_stalls && user.assigned_stalls.some(stall => 
-                           stall.state === this.userStateFilter
-                         ))
-    
-    return matchesSearch && matchesRole && matchesState
-  })
-},
+    filteredUsersList() {
+      return this.users.filter(user => {
+        if (user.role === 'super_admin' || user.role === 'super_super_admin') {
+          return false
+        }
+        const search = this.userSearch.toLowerCase()
+        const matchesSearch = user.username.toLowerCase().includes(search) ||
+                              (user.full_name && user.full_name.toLowerCase().includes(search))
+        const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+        
+        const matchesState = this.userStateFilter === 'All States' || 
+                             (user.assigned_stalls && user.assigned_stalls.some(stall => 
+                               stall.state === this.userStateFilter
+                             ))
+        
+        return matchesSearch && matchesRole && matchesState
+      })
+    },
     
     activeTabLabel() {
       const tab = this.tabs.find(t => t.id === this.activeTab)
@@ -2399,6 +2709,177 @@ export default {
   },
 
   methods: {
+
+    // =============================================
+    // MENU ASSIGNMENT - PAGINATION & FILTERS
+    // =============================================
+
+    resetMenuPagination() {
+      this.menuCurrentPage = 1
+    },
+
+    prevMenuPage() {
+      if (this.menuCurrentPage > 1) {
+        this.menuCurrentPage--
+      }
+    },
+
+    nextMenuPage() {
+      if (this.menuCurrentPage < this.menuTotalPages) {
+        this.menuCurrentPage++
+      }
+    },
+
+    toggleSelectAllMenuItems() {
+      this.selectAllMenuItems = !this.selectAllMenuItems
+      if (this.selectAllMenuItems) {
+        this.selectedMenuItems = this.paginatedMenuItems.map(item => item.item_name)
+      } else {
+        this.selectedMenuItems = []
+      }
+    },
+
+    clearMenuFilters() {
+      this.menuSearch = ''
+      this.menuCategoryFilter = 'all'
+      this.menuCurrentPage = 1
+      this.selectedMenuItems = []
+      this.selectAllMenuItems = false
+    },
+
+    // =============================================
+    // BULK ASSIGN MENUS TO STALLS
+    // =============================================
+
+    async bulkAssignMenusToStalls() {
+      if (this.selectedMenuItems.length === 0) {
+        this.$emit('show-notification', 'No menu items selected', 'warning')
+        return
+      }
+
+      if (!this.selectedAssignmentStall) {
+        this.$emit('show-notification', 'Please select a stall first', 'warning')
+        return
+      }
+
+      if (!confirm(`Assign ${this.selectedMenuItems.length} selected menu item(s) to ${this.stalls.find(s => s.id === this.selectedAssignmentStall)?.name}?`)) {
+        return
+      }
+
+      this.savingAssignment = true
+      try {
+        const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        const currentAssignments = res.data || []
+        const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItems])]
+        
+        await axios.post(`${API_BASE}/menu/assignments`, {
+          stallId: this.selectedAssignmentStall,
+          items: allAssignments
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        
+        this.selectedMenuItems.forEach(itemName => {
+          this.menuAssignments[itemName] = true
+        })
+        this.originalMenuAssignments = { ...this.menuAssignments }
+        
+        this.selectedMenuItems = []
+        this.selectAllMenuItems = false
+        
+        this.$emit('show-notification', `✅ ${allAssignments.length} menu items assigned to stall`, 'success')
+      } catch (err) {
+        console.error('Bulk assign error:', err)
+        this.$emit('show-notification', 'Failed to assign menu items', 'error')
+      } finally {
+        this.savingAssignment = false
+      }
+    },
+
+    // =============================================
+    // MENU PERFORMANCE - PAGINATION & FILTERS
+    // =============================================
+
+    resetMenuPerformancePagination() {
+      this.menuPerformancePage = 1
+    },
+
+    prevMenuPerformancePage() {
+      if (this.menuPerformancePage > 1) {
+        this.menuPerformancePage--
+      }
+    },
+
+    nextMenuPerformancePage() {
+      if (this.menuPerformancePage < this.menuPerformanceTotalPages) {
+        this.menuPerformancePage++
+      }
+    },
+
+    clearMenuPerformanceFilters() {
+      this.menuPerformanceCategoryFilter = 'all'
+      this.menuPerformanceStateFilter = 'All States'
+      this.menuPerformancePage = 1
+      this.menuPerformanceSortBy = 'rank'
+      this.menuPerformanceSortOrder = 'desc'
+    },
+
+    // =============================================
+    // MENU PERFORMANCE - SORTING
+    // =============================================
+
+    sortMenuPerformanceList(list) {
+      const sorted = [...list]
+      const sortBy = this.menuPerformanceSortBy
+      const order = this.menuPerformanceSortOrder
+
+      sorted.sort((a, b) => {
+        let valA, valB
+
+        if (sortBy === 'rank') {
+          valA = a.revenue || 0
+          valB = b.revenue || 0
+        } else if (sortBy === 'name') {
+          valA = a.name.toLowerCase()
+          valB = b.name.toLowerCase()
+          return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+        } else if (sortBy === 'revenue') {
+          valA = a.revenue || 0
+          valB = b.revenue || 0
+        } else if (sortBy === 'status') {
+          const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
+          valA = statusOrder[this.getMenuStatusClass(a.quantity)] || 0
+          valB = statusOrder[this.getMenuStatusClass(b.quantity)] || 0
+        }
+
+        if (order === 'asc') {
+          return valA > valB ? 1 : valA < valB ? -1 : 0
+        } else {
+          return valA < valB ? 1 : valA > valB ? -1 : 0
+        }
+      })
+
+      return sorted
+    },
+
+    sortMenuPerformance(column) {
+      if (this.menuPerformanceSortBy === column) {
+        this.menuPerformanceSortOrder = this.menuPerformanceSortOrder === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.menuPerformanceSortBy = column
+        this.menuPerformanceSortOrder = column === 'rank' || column === 'revenue' ? 'desc' : 'asc'
+      }
+      this.menuPerformancePage = 1
+    },
+
+    getMenuSortArrow(column) {
+      if (this.menuPerformanceSortBy !== column) return '⇅'
+      return this.menuPerformanceSortOrder === 'asc' ? '↑' : '↓'
+    },
+
     // =============================================
     // USERS TAB - PAGINATION & FILTERS
     // =============================================
@@ -2413,13 +2894,13 @@ export default {
     },
 
     clearUserFilters() {
-  this.userSearch = ''
-  this.userStateFilter = 'All States'
-  this.userRoleFilter = 'all'
-  this.selectedUsers = []
-  this.selectAllUsers = false
-  this.userCurrentPage = 1
-},
+      this.userSearch = ''
+      this.userStateFilter = 'All States'
+      this.userRoleFilter = 'all'
+      this.selectedUsers = []
+      this.selectAllUsers = false
+      this.userCurrentPage = 1
+    },
 
     resetUserPagination() {
       this.userCurrentPage = 1
@@ -6919,6 +7400,76 @@ export default {
 
 .menu-table-row:hover .menu-table-details {
   color: var(--primary);
+}
+
+/* ============================================ */
+/* MENU PERFORMANCE STATS GRID - 3 CARDS        */
+/* ============================================ */
+.menu-performance-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.menu-performance-stats-grid .stat-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.menu-performance-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.menu-performance-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.menu-performance-stats-grid .stat-chip .stat-chip-sub {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  display: block;
+  text-align: center;
+}
+
+.menu-performance-stats-grid .stat-chip.revenue .stat-chip-value { color: #F94908; }
+.menu-performance-stats-grid .stat-chip.top-item .stat-chip-value { 
+  color: #f59e0b; 
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .menu-performance-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-performance-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .menu-performance-stats-grid .stat-chip {
+    padding: 0.35rem 0.6rem;
+  }
+  
+  .menu-performance-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem;
+  }
+  
+  .menu-performance-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem;
+  }
 }
 
 /* ============================================ */
