@@ -3539,23 +3539,25 @@ async loadStallTransactions(stallId) {
   }
 },
   
-  viewAllTransactions(item) {
-  // ✅ Navigate to transactions tab with filter
-  this.activeTab = 'transactions'
-  // Pass stall ID as filter
-  this.transactionStallFilter = item.id
-  this.transactionSearch = item.name
-  
-  // Load transactions for this stall
-  this.loadTransactionsData()
-  
-  // Close the expanded row
-  this.expandedRevenueRows = []
-  
+viewAllTransactions(item) {
+  // Show notification with transaction count
   this.$emit('show-notification', 
-    `📊 Viewing transactions for ${item.name}`, 
+    `📊 ${item.name} - ${item.transactions || 0} transactions`, 
     'info'
   )
+  
+  // Load transactions for this stall using existing method
+  if (item.id) {
+    this.loadStallTransactions(item.id)
+    
+    // Expand the row if not already expanded
+    if (!this.expandedRevenueRows.includes(item.id)) {
+      this.expandedRevenueRows.push(item.id)
+    }
+  }
+  
+  // Close dropdown or any other cleanup
+  this.dropdownOpen = false
 },
   
   formatDate(dateStr) {
@@ -3734,7 +3736,7 @@ async loadRevenueData() {
       return
     }
 
-    // ✅ Get stall performance data
+    // Get stall performance data
     const res = await axios.get(
       `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
       { headers: { Authorization: `Bearer ${this.token}` } }
@@ -3742,7 +3744,20 @@ async loadRevenueData() {
 
     const performanceData = res.data || []
     
-    // ✅ Get transactions to find top items per stall
+    // Get previous period data for growth calculation
+    const prevDays = days * 2  // Get data from previous period
+    let prevPerformanceData = []
+    try {
+      const prevRes = await axios.get(
+        `${API_BASE}/stall-performance?days=${prevDays}&stallIds=${stallIds.join(',')}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      )
+      prevPerformanceData = prevRes.data || []
+    } catch (prevErr) {
+      console.warn('Could not load previous period data:', prevErr)
+    }
+
+    // Get transactions for top items
     let transactionsData = []
     try {
       const txRes = await axios.get(
@@ -3754,16 +3769,26 @@ async loadRevenueData() {
       console.warn('Could not load transactions for top items:', txErr)
     }
 
-    // ✅ Build revenue data with real top items
+    // Build revenue data with REAL data
     this.revenueData = this.stalls.map(stall => {
       const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      const currentRevenue = parseFloat(perf?.revenue) || 0
       
-      // ✅ Find top item from real transactions
+      // Calculate growth from previous period
+      let revenueGrowth = 0
+      const prevPerf = prevPerformanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      const prevRevenue = parseFloat(prevPerf?.revenue) || 0
+      if (prevRevenue > 0) {
+        revenueGrowth = ((currentRevenue - prevRevenue) / prevRevenue) * 100
+      } else if (currentRevenue > 0) {
+        revenueGrowth = 100  // 100% growth if previous was 0
+      }
+      
+      // Find top item from real transactions
       let topItem = '-'
       const stallTransactions = transactionsData.filter(tx => tx.stall_id === stall.id)
       
       if (stallTransactions.length > 0) {
-        // Count items sold per stall
         const itemCount = {}
         stallTransactions.forEach(tx => {
           if (tx.items && Array.isArray(tx.items)) {
@@ -3776,7 +3801,6 @@ async loadRevenueData() {
           }
         })
         
-        // Find top item
         let maxCount = 0
         for (const [name, count] of Object.entries(itemCount)) {
           if (count > maxCount) {
@@ -3788,12 +3812,12 @@ async loadRevenueData() {
 
       return {
         ...stall,
-        revenue: parseFloat(perf?.revenue) || 0,
+        revenue: currentRevenue,
         transactions: parseInt(perf?.items_sold) || 0,
         avgTransaction: parseFloat(perf?.avg_transaction) || 0,
         state: stall.state || 'Unknown',
-        revenueGrowth: Math.round((Math.random() * 40) - 10), // Keep this for now
-        topItem: topItem // ✅ Real top item from transactions
+        revenueGrowth: Math.round(revenueGrowth),  // ✅ REAL growth calculation
+        topItem: topItem  // ✅ Real top item from transactions
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
@@ -12405,7 +12429,7 @@ async loadRevenueData() {
   height: 200px;
 }
 
-/* Revenue Table - FIXED TO MATCH STALL PERFORMANCE */
+/* Revenue Table - DESKTOP FIX */
 .revenue-table-wrapper {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -12413,14 +12437,14 @@ async loadRevenueData() {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ✅ Desktop - Match stall performance table header */
+/* ✅ DESKTOP - Force table layout */
 .revenue-table-header {
-  display: flex;
+  display: flex !important;  /* Force flex on desktop */
   padding: 0.5rem 0.75rem;
   background: var(--background);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.7rem;  /* ✅ REMOVED !important - let cascade work */
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
@@ -12431,7 +12455,7 @@ async loadRevenueData() {
   cursor: pointer;
   user-select: none;
   transition: var(--transition);
-  font-size: 0.7rem;  /* ✅ REMOVED !important */
+  font-size: 0.7rem;
 }
 
 .revenue-table-header .sortable:hover {
@@ -12445,28 +12469,71 @@ async loadRevenueData() {
 }
 
 /* Column widths - desktop */
-.revenue-table-rank { min-width: 50px; text-align: center; }
-.revenue-table-name { flex: 1.5; min-width: 100px; text-align: left; }
-.revenue-table-state { flex: 0.8; min-width: 80px; text-align: left; }
-.revenue-table-revenue { flex: 1; min-width: 80px; text-align: right; }
-.revenue-table-transactions { flex: 0.8; min-width: 70px; text-align: right; }
-.revenue-table-avg { flex: 0.8; min-width: 70px; text-align: right; }
-.revenue-table-status { flex: 0.8; min-width: 80px; text-align: center; }
-.revenue-table-details { min-width: 40px; text-align: center; }
+.revenue-table-rank { 
+  min-width: 50px; 
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.revenue-table-name { 
+  flex: 1.5; 
+  min-width: 100px; 
+  text-align: left; 
+}
+
+.revenue-table-state { 
+  flex: 0.8; 
+  min-width: 80px; 
+  text-align: left; 
+}
+
+.revenue-table-revenue { 
+  flex: 1; 
+  min-width: 80px; 
+  text-align: right; 
+}
+
+.revenue-table-transactions { 
+  flex: 0.8; 
+  min-width: 70px; 
+  text-align: right; 
+}
+
+.revenue-table-avg { 
+  flex: 0.8; 
+  min-width: 70px; 
+  text-align: right; 
+}
+
+.revenue-table-status { 
+  flex: 0.8; 
+  min-width: 80px; 
+  text-align: center; 
+}
+
+.revenue-table-details { 
+  min-width: 40px; 
+  text-align: center; 
+}
 
 .revenue-table-body {
   display: flex;
   flex-direction: column;
 }
 
+/* ✅ DESKTOP - Force row layout */
 .revenue-table-row {
-  display: flex;
+  display: flex !important;  /* Force flex */
+  flex-direction: row !important;  /* Force row, not column */
   align-items: center;
   padding: 0.35rem 0.75rem;
   border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: var(--transition);
   min-width: 700px;
+  background: var(--surface);
+  border-radius: 0;
+  margin-bottom: 0;
 }
 
 .revenue-table-row:hover {
@@ -12475,6 +12542,11 @@ async loadRevenueData() {
 
 .revenue-table-row:last-child {
   border-bottom: none;
+}
+
+/* ✅ Hide mobile labels on desktop */
+.revenue-table-cell::before {
+  display: none !important;
 }
 
 .stall-code-text {
