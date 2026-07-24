@@ -13988,4 +13988,256 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* REVENUE TABLE - FINAL FIX                    */
+/* ============================================ */
+
+/* 1. FIX: Stats cards on mobile - 2 columns */
+@media (max-width: 768px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.35rem 0.5rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.55rem !important;
+  }
+}
+
+/* 2. FIX: Charts stack on mobile */
+@media (max-width: 768px) {
+  .revenue-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .revenue-chart-container {
+    height: 200px !important;
+  }
+}
+
+/* 3. FIX: Desktop - Details column right after Status */
+@media (min-width: 769px) {
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.35rem 0.5rem !important;
+    min-width: auto !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Hide labels on desktop */
+  .revenue-table-row .revenue-table-rank::before,
+  .revenue-table-row .revenue-table-name::before,
+  .revenue-table-row .revenue-table-state::before,
+  .revenue-table-row .revenue-table-revenue::before,
+  .revenue-table-row .revenue-table-status::before,
+  .revenue-table-row .revenue-table-details::before {
+    display: none !important;
+    content: none !important;
+  }
+  
+  /* Column widths - compact */
+  .revenue-table-rank { 
+    min-width: 40px !important; 
+    width: 40px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-name { 
+    flex: 1.5 !important; 
+    min-width: 80px !important;
+    text-align: left !important;
+  }
+  
+  .revenue-table-state { 
+    min-width: 70px !important; 
+    width: 70px !important;
+    text-align: left !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-revenue { 
+    min-width: 70px !important; 
+    width: 70px !important;
+    text-align: right !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-status { 
+    min-width: 80px !important; 
+    width: 80px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-details { 
+    min-width: 35px !important; 
+    width: 35px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* 4. FIX: Expanded row - stays below the specific row */
+.revenue-table-expanded-row {
+  display: block !important;
+  width: 100% !important;
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+}
+
+.revenue-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+  display: block !important;
+  width: 100% !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    padding: 0.75rem 1rem 0.75rem 3.5rem;
+  }
+}
+
+/* 5. FIX: Mobile - prevent horizontal scroll */
+@media (max-width: 480px) {
+  .revenue-table-header {
+    display: none !important;
+  }
+  
+  .revenue-table-wrapper {
+    border: none !important;
+    border-radius: 0 !important;
+    overflow-x: visible !important;
+  }
+  
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--surface) !important;
+    min-width: auto !important;
+  }
+  
+  /* Mobile labels */
+  .revenue-table-row .revenue-table-rank::before {
+    content: "RANK: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-name::before {
+    content: "STALL: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-state::before {
+    content: "STATE: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-revenue::before {
+    content: "REVENUE: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-status::before {
+    content: "STATUS: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-details {
+    justify-content: flex-end !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin-top: 0.3rem !important;
+  }
+  
+  .revenue-table-row .revenue-table-details::before {
+    content: "DETAILS: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Mobile values */
+  .revenue-table-row .revenue-table-rank,
+  .revenue-table-row .revenue-table-name,
+  .revenue-table-row .revenue-table-state,
+  .revenue-table-row .revenue-table-revenue,
+  .revenue-table-row .revenue-table-status {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    min-width: auto !important;
+    text-align: left !important;
+  }
+  
+  .revenue-table-row .revenue-table-details {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    min-width: auto !important;
+    text-align: right !important;
+    justify-content: flex-end !important;
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.5rem !important;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.3rem !important;
+  }
+}
+
 </style>
