@@ -2195,80 +2195,79 @@
         </span>
       </div>
       
-      <!-- Expanded Row - sits BELOW -->
-      <div 
-        v-if="expandedRevenueRows.includes(item.id)" 
-        v-for="item in paginatedRevenueData" 
-        :key="'exp-'+item.id" 
-        class="revenue-table-expanded-row"
-      >
-        <div class="revenue-expanded-content">
-          <!-- Stats Grid -->
-          <div class="revenue-expanded-stats">
-            <div class="revenue-expanded-stat clickable" @click="viewAllTransactions(item)">
-              <span class="expanded-stat-label">📊 Total Transactions</span>
-              <span class="expanded-stat-value">{{ formatNumber(item.transactions || 0) }}</span>
-              <span class="expanded-stat-sub">Click to view all →</span>
-            </div>
-            <div class="revenue-expanded-stat">
-              <span class="expanded-stat-label">💰 Avg Transaction</span>
-              <span class="expanded-stat-value">{{ formatCurrency(item.avgTransaction || 0) }}</span>
-            </div>
-            <div class="revenue-expanded-stat">
-              <span class="expanded-stat-label">📈 Revenue Trend</span>
-              <span class="expanded-stat-value" :class="getRevenueTrendClass(item)">
-                {{ getRevenueTrend(item) }}
-              </span>
-            </div>
-            <div class="revenue-expanded-stat">
-              <span class="expanded-stat-label">🏆 Top Item</span>
-              <span class="expanded-stat-value">{{ item.topItem || '-' }}</span>
-            </div>
-          </div>
-          
-          <!-- Recent Transactions -->
-          <div class="revenue-expanded-transactions">
-            <div class="recent-transactions-header">
-              <span>📜 Recent Transactions</span>
-              <button @click="viewAllTransactions(item)" class="btn-modern secondary small">
-                View All →
-              </button>
-            </div>
-            
-            <div v-if="expandedTransactionLoading === item.id" class="loading-state small">
-              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-              <p>Loading transactions...</p>
-            </div>
-            
-            <div v-else-if="expandedTransactions[item.id]?.length === 0" class="empty-state-modern small">
-              <span>📭</span>
-              <p>No transactions found</p>
-            </div>
-            
-            <div v-else class="recent-transactions-list">
-              <div 
-                v-for="tx in expandedTransactions[item.id]?.slice(0, 5)" 
-                :key="tx.id" 
-                class="recent-transaction-item"
-              >
-                <span class="transaction-date">{{ formatDate(tx.created_at) }}</span>
-                <span class="transaction-id">#{{ tx.order_id || 'N/A' }}</span>
-                <span class="transaction-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
-                <span class="transaction-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-                <span :class="['transaction-status', tx.status || 'completed']">
-                  {{ tx.status || '✅ Completed' }}
-                </span>
-              </div>
-            </div>
-            
-            <div v-if="expandedTransactions[item.id]?.length > 5" class="view-more-link">
-              <button @click="viewAllTransactions(item)" class="btn-modern secondary small">
-                View all {{ expandedTransactions[item.id].length }} transactions →
-              </button>
-            </div>
-          </div>
+     <!-- Expanded Row - sits BELOW -->
+<div 
+  v-for="expItem in paginatedRevenueData" 
+  :key="'exp-'+expItem.id" 
+  class="revenue-table-expanded-row"
+>
+  <div v-if="expandedRevenueRows.includes(expItem.id)" class="revenue-expanded-content">
+    <!-- Stats Grid -->
+    <div class="revenue-expanded-stats">
+      <div class="revenue-expanded-stat clickable" @click="viewAllTransactions(expItem)">
+        <span class="expanded-stat-label">📊 Total Transactions</span>
+        <span class="expanded-stat-value">{{ formatNumber(expItem.transactions || 0) }}</span>
+        <span class="expanded-stat-sub">Click to view all →</span>
+      </div>
+      <div class="revenue-expanded-stat">
+        <span class="expanded-stat-label">💰 Avg Transaction</span>
+        <span class="expanded-stat-value">{{ formatCurrency(expItem.avgTransaction || 0) }}</span>
+      </div>
+      <div class="revenue-expanded-stat">
+        <span class="expanded-stat-label">📈 Revenue Trend</span>
+        <span class="expanded-stat-value" :class="getRevenueTrendClass(expItem)">
+          {{ getRevenueTrend(expItem) }}
+        </span>
+      </div>
+      <div class="revenue-expanded-stat">
+        <span class="expanded-stat-label">🏆 Top Item</span>
+        <span class="expanded-stat-value">{{ expItem.topItem || '-' }}</span>
+      </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="revenue-expanded-transactions">
+      <div class="recent-transactions-header">
+        <span>📜 Recent Transactions</span>
+        <button @click="viewAllTransactions(expItem)" class="btn-modern secondary small">
+          View All →
+        </button>
+      </div>
+      
+      <div v-if="expandedTransactionLoading === expItem.id" class="loading-state small">
+        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+        <p>Loading transactions...</p>
+      </div>
+      
+      <div v-else-if="expandedTransactions[expItem.id]?.length === 0" class="empty-state-modern small">
+        <span>📭</span>
+        <p>No transactions found</p>
+      </div>
+      
+      <div v-else class="recent-transactions-list">
+        <div 
+          v-for="tx in expandedTransactions[expItem.id]?.slice(0, 5)" 
+          :key="tx.id" 
+          class="recent-transaction-item"
+        >
+          <span class="transaction-date">{{ formatDate(tx.created_at) }}</span>
+          <span class="transaction-id">#{{ tx.order_id || 'N/A' }}</span>
+          <span class="transaction-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
+          <span class="transaction-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+          <span :class="['transaction-status', tx.status || 'completed']">
+            {{ tx.status || '✅ Completed' }}
+          </span>
         </div>
       </div>
+      
+      <div v-if="expandedTransactions[expItem.id]?.length > 5" class="view-more-link">
+        <button @click="viewAllTransactions(expItem)" class="btn-modern secondary small">
+          View all {{ expandedTransactions[expItem.id].length }} transactions →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
     </div>
   </div>
 
