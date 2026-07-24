@@ -2202,7 +2202,7 @@
 
 <div v-else>
   <div class="revenue-table-wrapper">
-    <!-- Table Header - EXACTLY like Stall Performance -->
+    <!-- Table Header -->
     <div class="revenue-table-header">
       <span class="revenue-table-header-rank">Rank</span>
       <span class="revenue-table-header-name">Stall</span>
@@ -2214,55 +2214,44 @@
     
     <!-- Table Body -->
     <div class="revenue-table-body">
-      <!-- Each row - EXACTLY like Stall Performance -->
       <div 
         v-for="(item, index) in paginatedRevenueData" 
         :key="item.id" 
         class="revenue-table-row clickable-item"
-  @click="viewAllTransactions(item)"
+        @click="viewAllTransactions(item)"
       >
-        <!-- Rank -->
         <span class="revenue-table-rank">
           <span class="rank-number" :class="getRankClass(index)">
             {{ index + 1 }}
           </span>
         </span>
         
-        <!-- Stall Name -->
         <span class="revenue-table-name">
           <span class="stall-name-text">{{ item.name }}</span>
           <span class="stall-code-text">{{ item.code }}</span>
         </span>
         
-        <!-- State -->
         <span class="revenue-table-state">
           <span class="state-tag">{{ item.state || '-' }}</span>
         </span>
         
-        <!-- Revenue -->
         <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
         
-        <!-- Status -->
         <span class="revenue-table-status">
           <span :class="['status-indicator', getRevenueStatusClass(item)]">
             {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
           </span>
         </span>
         
-        <!-- Details (expand icon) -->
         <span class="revenue-table-details">
-  <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
-    📋
-  </button>
-</span>
+          <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
+            📋
+          </button>
+        </span>
       </div>
-      
+    </div>  <!-- ← revenue-table-body -->
+  </div>  <!-- ← revenue-table-wrapper -->
   
-  </div>
-</div>
-    </div>
-  </div>
-
   <!-- Pagination Controls -->
   <div class="pagination-container">
     <div class="pagination-info">
@@ -2288,7 +2277,7 @@
       </button>
     </div>
   </div>
-</div>
+</div>  <!-- ← v-else -->
     </div>
   </div>
 </div>
