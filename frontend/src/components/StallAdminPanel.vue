@@ -13691,4 +13691,37 @@ async loadRevenueData() {
   }
 }
 
+/* EMERGENCY FIX - Force Revenue Table to be horizontal on desktop */
+@media (min-width: 769px) {
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .revenue-table-row > span {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-row .revenue-table-rank { min-width: 40px !important; justify-content: center !important; }
+  .revenue-table-row .revenue-table-name { flex: 1 !important; min-width: 80px !important; justify-content: flex-start !important; }
+  .revenue-table-row .revenue-table-state { min-width: 80px !important; justify-content: flex-start !important; }
+  .revenue-table-row .revenue-table-revenue { min-width: 70px !important; justify-content: flex-end !important; }
+  .revenue-table-row .revenue-table-status { min-width: 85px !important; justify-content: center !important; }
+  .revenue-table-row .revenue-table-details { min-width: 40px !important; justify-content: center !important; }
+  
+  /* Hide labels */
+  .revenue-table-row .revenue-table-rank::before,
+  .revenue-table-row .revenue-table-name::before,
+  .revenue-table-row .revenue-table-state::before,
+  .revenue-table-row .revenue-table-revenue::before,
+  .revenue-table-row .revenue-table-status::before,
+  .revenue-table-row .revenue-table-details::before {
+    display: none !important;
+    content: none !important;
+  }
+}
+
 </style>
