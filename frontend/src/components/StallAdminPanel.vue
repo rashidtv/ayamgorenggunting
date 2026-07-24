@@ -14240,4 +14240,282 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* REVENUE TABLE - FINAL FIX - ALL ISSUES       */
+/* ============================================ */
+
+/* FORCE all columns to have consistent widths */
+@media (min-width: 769px) {
+  .revenue-table-header,
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.35rem 0.75rem !important;
+    min-width: 650px !important;
+  }
+  
+  /* Give each column a fixed flex value */
+  .revenue-table-header-rank,
+  .revenue-table-rank {
+    flex: 0 0 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    text-align: center !important;
+  }
+  
+  .revenue-table-header-name,
+  .revenue-table-name {
+    flex: 2 !important;
+    min-width: 120px !important;
+    max-width: 200px !important;
+    text-align: left !important;
+  }
+  
+  .revenue-table-header-state,
+  .revenue-table-state {
+    flex: 1 !important;
+    min-width: 80px !important;
+    max-width: 100px !important;
+    text-align: left !important;
+  }
+  
+  .revenue-table-header-revenue,
+  .revenue-table-revenue {
+    flex: 1 !important;
+    min-width: 80px !important;
+    max-width: 100px !important;
+    text-align: right !important;
+  }
+  
+  .revenue-table-header-status,
+  .revenue-table-status {
+    flex: 1 !important;
+    min-width: 85px !important;
+    max-width: 100px !important;
+    text-align: center !important;
+  }
+  
+  .revenue-table-header-details,
+  .revenue-table-details {
+    flex: 0 0 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    text-align: center !important;
+  }
+  
+  /* Hide labels on desktop */
+  .revenue-table-rank::before,
+  .revenue-table-name::before,
+  .revenue-table-state::before,
+  .revenue-table-revenue::before,
+  .revenue-table-status::before,
+  .revenue-table-details::before {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* ============================================ */
+/* EXPANDED ROW - STAYS BELOW THE ROW           */
+/* ============================================ */
+
+.revenue-table-expanded-row {
+  display: block !important;
+  width: 100% !important;
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+  overflow: hidden !important;
+}
+
+.revenue-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+  display: block !important;
+  width: 100% !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 600px;
+    padding: 0.75rem 1rem 0.75rem 3.5rem;
+  }
+}
+
+/* ============================================ */
+/* MOBILE FIXES - Card view                     */
+/* ============================================ */
+
+@media (max-width: 480px) {
+  .revenue-table-header {
+    display: none !important;
+  }
+  
+  .revenue-table-wrapper {
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+  
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--surface) !important;
+    min-width: auto !important;
+  }
+  
+  /* Mobile labels */
+  .revenue-table-rank::before {
+    content: "RANK: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-name::before {
+    content: "STALL: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-state::before {
+    content: "STATE: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-revenue::before {
+    content: "REVENUE: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-status::before {
+    content: "STATUS: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-details {
+    justify-content: flex-end !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin-top: 0.3rem !important;
+  }
+  
+  .revenue-table-details::before {
+    content: "DETAILS: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-rank,
+  .revenue-table-name,
+  .revenue-table-state,
+  .revenue-table-revenue,
+  .revenue-table-status {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    text-align: left !important;
+    flex: none !important;
+    min-width: auto !important;
+    max-width: none !important;
+  }
+  
+  .revenue-table-details {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    text-align: right !important;
+    flex: none !important;
+    min-width: auto !important;
+    max-width: none !important;
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.5rem !important;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.3rem !important;
+  }
+}
+
+/* ============================================ */
+/* STATS CARDS - Responsive                     */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.4rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.3rem 0.4rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 0.85rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.5rem !important;
+  }
+}
+
+/* ============================================ */
+/* CHARTS - Stack on mobile                     */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .revenue-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .revenue-chart-container {
+    height: 200px !important;
+  }
+}
+
 </style>
