@@ -13813,4 +13813,179 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* REVENUE TAB - COMPLETE FIXES                 */
+/* ============================================ */
+
+/* 1. Stats Cards - Responsive Grid */
+.revenue-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.35rem 0.5rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.55rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .revenue-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.4rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.3rem 0.4rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 0.85rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.5rem !important;
+  }
+}
+
+/* 2. Desktop - Compact column widths */
+@media (min-width: 769px) {
+  .revenue-table-row {
+    gap: 0.3rem !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+  
+  .revenue-table-rank { 
+    min-width: 35px !important; 
+    width: 35px !important;
+    justify-content: center !important; 
+  }
+  
+  .revenue-table-name { 
+    flex: 1.5 !important; 
+    min-width: 70px !important; 
+    max-width: 160px !important;
+    justify-content: flex-start !important; 
+  }
+  
+  .revenue-table-state { 
+    min-width: 60px !important; 
+    width: 60px !important;
+    justify-content: flex-start !important; 
+  }
+  
+  .revenue-table-revenue { 
+    min-width: 60px !important; 
+    width: 60px !important;
+    justify-content: flex-end !important; 
+  }
+  
+  .revenue-table-status { 
+    min-width: 70px !important; 
+    width: 70px !important;
+    justify-content: center !important; 
+  }
+  
+  .revenue-table-details { 
+    min-width: 30px !important; 
+    width: 30px !important;
+    justify-content: center !important; 
+  }
+}
+
+/* 3. Expanded row - stays below */
+.revenue-table-expanded-row {
+  display: block !important;
+  width: 100% !important;
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.revenue-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+  display: block !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    padding: 0.75rem 1rem 0.75rem 3.5rem;
+  }
+}
+
+/* 4. Tablet - keep compact */
+@media (max-width: 768px) and (min-width: 481px) {
+  .revenue-table-header,
+  .revenue-table-row {
+    min-width: 500px !important;
+  }
+  
+  .revenue-table-rank { min-width: 30px !important; }
+  .revenue-table-name { flex: 1 !important; min-width: 60px !important; }
+  .revenue-table-state { min-width: 50px !important; }
+  .revenue-table-revenue { min-width: 50px !important; }
+  .revenue-table-status { min-width: 55px !important; }
+  .revenue-table-details { min-width: 25px !important; }
+}
+
+/* 5. Mobile - prevent overflow */
+@media (max-width: 768px) {
+  .revenue-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .revenue-table-header,
+  .revenue-table-row {
+    min-width: 450px !important;
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.5rem !important;
+    overflow-x: auto !important;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.3rem !important;
+  }
+  
+  .recent-transaction-item {
+    flex-wrap: wrap !important;
+    font-size: 0.6rem !important;
+  }
+}
+
 </style>
