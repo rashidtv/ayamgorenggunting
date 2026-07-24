@@ -3469,7 +3469,8 @@ modalTransactionsLoading: false,
 
   methods: {
 
-    async viewAllTransactions(item) {
+// ✅ KEEP THIS VERSION
+async viewAllTransactions(item) {
   this.selectedStallForModal = item
   this.transactionModal = true
   this.modalTransactionsLoading = true
@@ -3525,26 +3526,6 @@ async loadStallTransactions(stallId) {
   }
 },
   
-viewAllTransactions(item) {
-  // Show notification with transaction count
-  this.$emit('show-notification', 
-    `📊 ${item.name} - ${item.transactions || 0} transactions`, 
-    'info'
-  )
-  
-  // Load transactions for this stall using existing method
-  if (item.id) {
-    this.loadStallTransactions(item.id)
-    
-    // Expand the row if not already expanded
-    if (!this.expandedRevenueRows.includes(item.id)) {
-      this.expandedRevenueRows.push(item.id)
-    }
-  }
-  
-  // Close dropdown or any other cleanup
-  this.dropdownOpen = false
-},
   
   formatDate(dateStr) {
     if (!dateStr) return '-'
