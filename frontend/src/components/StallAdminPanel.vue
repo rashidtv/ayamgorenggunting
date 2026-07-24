@@ -3489,17 +3489,17 @@ export default {
   // =============================================
   
   toggleRevenueRowExpand(stallId) {
-    const index = this.expandedRevenueRows.indexOf(stallId)
-    if (index > -1) {
-      this.expandedRevenueRows.splice(index, 1)
-    } else {
-      this.expandedRevenueRows.push(stallId)
-      // Load transactions when expanded
-      if (!this.expandedTransactions[stallId]) {
-        this.loadStallTransactions(stallId)
-      }
+  const index = this.expandedRevenueRows.indexOf(stallId)
+  if (index > -1) {
+    this.expandedRevenueRows.splice(index, 1)
+  } else {
+    this.expandedRevenueRows.push(stallId)
+    // Load transactions when expanded - only if not already loaded
+    if (!this.expandedTransactions[stallId] || this.expandedTransactions[stallId].length === 0) {
+      this.loadStallTransactions(stallId)
     }
-  },
+  }
+},
   
 async loadStallTransactions(stallId) {
   this.expandedTransactionLoading = stallId
@@ -3517,47 +3517,19 @@ async loadStallTransactions(stallId) {
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
-    this.$set(this.expandedTransactions, stallId, res.data || [])
+    // ✅ FIX: Use direct assignment instead of $set
+    this.expandedTransactions[stallId] = res.data || []
     
   } catch (err) {
     console.error('Failed to load transactions:', err)
-    this.$set(this.expandedTransactions, stallId, [])
-    // Don't show error notification for 404 - just show empty state
+    // ✅ FIX: Use direct assignment
+    this.expandedTransactions[stallId] = []
     if (err.response?.status !== 404) {
       this.$emit('show-notification', 'Failed to load transactions', 'error')
     }
   } finally {
     this.expandedTransactionLoading = null
   }
-},
-
-generateMockTransactions(stallId) {
-  const statuses = ['completed', 'completed', 'completed', 'pending', 'completed']
-  const items = ['Ayam Goreng', 'Nasi Lemak', 'Mee Goreng', 'Roti Canai', 'Teh Tarik']
-  const transactions = []
-  
-  for (let i = 0; i < 8; i++) {
-    const date = new Date()
-    date.setHours(date.getHours() - i * 3)
-    const itemCount = Math.floor(Math.random() * 5) + 1
-    const amount = (Math.random() * 80 + 20).toFixed(2)
-    
-    transactions.push({
-      id: `tx-${i}`,
-      order_id: `ORD-${String(1000 + i).padStart(4, '0')}`,
-      created_at: date.toISOString(),
-      items_count: itemCount,
-      total_amount: parseFloat(amount),
-      status: statuses[i % statuses.length],
-      items: Array.from({ length: itemCount }, () => ({
-        name: items[Math.floor(Math.random() * items.length)],
-        quantity: Math.floor(Math.random() * 3) + 1,
-        price: (Math.random() * 20 + 5).toFixed(2)
-      }))
-    })
-  }
-  
-  return transactions
 },
   
   viewAllTransactions(item) {
@@ -12388,7 +12360,7 @@ async loadRevenueData() {
   background: var(--background);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: 0.7rem !important;  /* ✅ Force smaller size */
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
@@ -12399,6 +12371,7 @@ async loadRevenueData() {
   cursor: pointer;
   user-select: none;
   transition: var(--transition);
+  font-size: 0.7rem !important;  /* ✅ Match the header size */
 }
 
 .revenue-table-header .sortable:hover {
