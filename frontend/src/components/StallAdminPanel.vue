@@ -2282,6 +2282,250 @@
   </div>
 </div>
 
+<!-- ===== TRANSACTIONS TAB ===== -->
+<div v-if="activeTab === 'transactions'" class="tab-panel">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>📋 Transactions</h3>
+        <span class="card-subtitle">{{ filteredTransactions.length }} transactions found</span>
+      </div>
+      <div class="header-actions">
+        <button @click="refreshTransactions" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+        <button @click="exportTransactions" class="btn-modern primary small">📊 Export</button>
+      </div>
+    </div>
+    <div class="card-modern-body">
+      
+      <!-- Stats Cards -->
+      <div class="transactions-stats-grid">
+        <div class="stat-chip">
+          <span class="stat-chip-label">📊 Total Transactions</span>
+          <span class="stat-chip-value">{{ transactionStats.total }}</span>
+        </div>
+        <div class="stat-chip revenue">
+          <span class="stat-chip-label">💰 Total Revenue</span>
+          <span class="stat-chip-value">{{ formatCurrency(transactionStats.totalRevenue) }}</span>
+        </div>
+        <div class="stat-chip average">
+          <span class="stat-chip-label">📈 Avg Transaction</span>
+          <span class="stat-chip-value">{{ formatCurrency(transactionStats.average) }}</span>
+        </div>
+        <div class="stat-chip active">
+          <span class="stat-chip-label">✅ Completed</span>
+          <span class="stat-chip-value">{{ transactionStats.completed }}</span>
+        </div>
+        <div class="stat-chip warning">
+          <span class="stat-chip-label">⏳ Pending</span>
+          <span class="stat-chip-value">{{ transactionStats.pending }}</span>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="transactionSearch" 
+            placeholder="Search by order ID or stall..." 
+            class="filter-input"
+            @input="resetTransactionPagination"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="transactionStallFilter" class="filter-select" @change="resetTransactionPagination">
+            <option value="all">All Stalls</option>
+            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+              {{ stall.name }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="transactionStatusFilter" class="filter-select" @change="resetTransactionPagination">
+            <option value="all">All Status</option>
+            <option value="completed">✅ Completed</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="failed">❌ Failed</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <input 
+            type="date" 
+            v-model="transactionDateFrom" 
+            class="filter-input"
+            @change="resetTransactionPagination"
+            title="Date From"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <input 
+            type="date" 
+            v-model="transactionDateTo" 
+            class="filter-input"
+            @change="resetTransactionPagination"
+            title="Date To"
+          />
+        </div>
+
+        <div class="filter-actions">
+          <button @click="clearTransactionFilters" class="btn-modern secondary small">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div v-if="transactionsLoading" class="loading-state">
+        <div class="loading-spinner"><div class="spinner-ring"></div></div>
+        <p>Loading transactions...</p>
+      </div>
+
+      <div v-else-if="filteredTransactions.length === 0" class="empty-state-modern">
+        <span>📭</span>
+        <p>No transactions found matching your criteria</p>
+        <button @click="clearTransactionFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+          Clear Filters
+        </button>
+      </div>
+
+      <div v-else>
+        <div class="transactions-table-wrapper">
+          <!-- Table Header -->
+          <div class="transactions-table-header">
+            <span class="transactions-table-order sortable" @click="sortTransactions('order_number')">
+              Order <span class="sort-arrow">{{ getTransactionSortArrow('order_number') }}</span>
+            </span>
+            <span class="transactions-table-stall sortable" @click="sortTransactions('stall_name')">
+              Stall <span class="sort-arrow">{{ getTransactionSortArrow('stall_name') }}</span>
+            </span>
+            <span class="transactions-table-items">Items</span>
+            <span class="transactions-table-amount sortable" @click="sortTransactions('total_amount')">
+              Amount <span class="sort-arrow">{{ getTransactionSortArrow('total_amount') }}</span>
+            </span>
+            <span class="transactions-table-status sortable" @click="sortTransactions('status')">
+              Status <span class="sort-arrow">{{ getTransactionSortArrow('status') }}</span>
+            </span>
+            <span class="transactions-table-date sortable" @click="sortTransactions('created_at')">
+              Date <span class="sort-arrow">{{ getTransactionSortArrow('created_at') }}</span>
+            </span>
+            <span class="transactions-table-details">Details</span>
+          </div>
+          
+          <!-- Table Body -->
+          <div class="transactions-table-body">
+            <div 
+              v-for="tx in paginatedTransactions" 
+              :key="tx.id" 
+              class="transactions-table-row clickable-item"
+              @click="toggleTransactionExpand(tx.id)"
+            >
+              <span class="transactions-table-order">
+                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+              </span>
+              <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
+              <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
+              <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+              <span class="transactions-table-status">
+                <span :class="['status-badge', tx.status || 'completed']">
+                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+                </span>
+              </span>
+              <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
+              <span class="transactions-table-details">
+                <span class="expand-icon">{{ expandedTransactionRows.includes(tx.id) ? '▲' : '▼' }}</span>
+              </span>
+            </div>
+            
+            <!-- Expanded Row - Transaction Details -->
+            <div v-for="tx in paginatedTransactions" :key="'exp-'+tx.id" class="transactions-table-expanded-row">
+              <div v-if="expandedTransactionRows.includes(tx.id)" class="transaction-expanded-content">
+                <div class="transaction-details-grid">
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Order ID</span>
+                    <span class="detail-value">#{{ tx.order_number }}</span>
+                  </div>
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Stall</span>
+                    <span class="detail-value">{{ tx.stall_name }}</span>
+                  </div>
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Total Amount</span>
+                    <span class="detail-value">{{ formatCurrency(tx.total_amount) }}</span>
+                  </div>
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Status</span>
+                    <span :class="['status-badge', tx.status || 'completed']">
+                      {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+                    </span>
+                  </div>
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value">{{ formatFullDate(tx.created_at) }}</span>
+                  </div>
+                  <div class="transaction-detail-item">
+                    <span class="detail-label">Items Count</span>
+                    <span class="detail-value">{{ tx.item_count || tx.items?.length || 0 }}</span>
+                  </div>
+                </div>
+                
+                <!-- Items List -->
+                <div v-if="tx.items && tx.items.length > 0" class="transaction-items-list">
+                  <div class="transaction-items-header">
+                    <span>🛒 Items</span>
+                  </div>
+                  <div class="transaction-items-grid">
+                    <div v-for="(item, idx) in tx.items" :key="idx" class="transaction-item">
+                      <span class="item-name">{{ item.item_name || item.name }}</span>
+                      <span class="item-qty">× {{ item.quantity || 1 }}</span>
+                      <span class="item-price">{{ formatCurrency(item.price || 0) }}</span>
+                      <span class="item-total">{{ formatCurrency((item.price || 0) * (item.quantity || 1)) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="empty-state-modern small">
+                  <span>📭</span>
+                  <p>No items found for this transaction</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ transactionStartIndex }} - {{ transactionEndIndex }} of {{ filteredTransactions.length }} transactions
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevTransactionPage" 
+              class="pagination-btn"
+              :disabled="transactionPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ transactionPage }} of {{ transactionTotalPages }}
+            </span>
+            <button 
+              @click="nextTransactionPage" 
+              class="pagination-btn"
+              :disabled="transactionPage >= transactionTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
       <!-- ============================================ -->
       <!-- MODALS                                       -->
       <!-- ============================================ -->
@@ -2518,14 +2762,18 @@ modalTransactionsLoading: false,
         { id: 'revenue', label: 'Revenue', icon: '💰' },
         { id: 'transactions', label: 'Transactions', icon: '📋' } // ✅ Add this
       ],
-      transactions: [],
-    transactionLoading: false,
-    transactionStallFilter: 'all',
-    transactionSearch: '',
-    transactionPage: 1,
-    transactionItemsPerPage: 10,
-    expandedTransactions: {},
-    expandedTransactionLoading: null,
+    transactions: [],
+transactionsLoading: false,
+transactionPage: 1,
+transactionItemsPerPage: 10,
+transactionSearch: '',
+transactionStallFilter: 'all',
+transactionStatusFilter: 'all',
+transactionDateFrom: null,
+transactionDateTo: null,
+transactionSortBy: 'created_at',
+transactionSortOrder: 'desc',
+expandedTransactionRows: [],
 
        // ===== REVENUE TAB DATA =====
     revenuePeriod: 'week',
@@ -2723,6 +2971,107 @@ modalTransactionsLoading: false,
   },
 
   computed: {
+
+    // ===== TRANSACTIONS COMPUTED =====
+filteredTransactions() {
+  let data = this.transactions
+  
+  if (this.transactionSearch) {
+    const search = this.transactionSearch.toLowerCase()
+    data = data.filter(tx => 
+      (tx.order_number && tx.order_number.toLowerCase().includes(search)) ||
+      (tx.stall_name && tx.stall_name.toLowerCase().includes(search))
+    )
+  }
+  
+  if (this.transactionStallFilter !== 'all') {
+    data = data.filter(tx => tx.stall_id === this.transactionStallFilter)
+  }
+  
+  if (this.transactionStatusFilter !== 'all') {
+    data = data.filter(tx => (tx.status || 'completed') === this.transactionStatusFilter)
+  }
+  
+  if (this.transactionDateFrom) {
+    const from = new Date(this.transactionDateFrom)
+    from.setHours(0, 0, 0, 0)
+    data = data.filter(tx => {
+      const date = new Date(tx.created_at)
+      return date >= from
+    })
+  }
+  
+  if (this.transactionDateTo) {
+    const to = new Date(this.transactionDateTo)
+    to.setHours(23, 59, 59, 999)
+    data = data.filter(tx => {
+      const date = new Date(tx.created_at)
+      return date <= to
+    })
+  }
+  
+  // Sort
+  const sortBy = this.transactionSortBy
+  const order = this.transactionSortOrder
+  data.sort((a, b) => {
+    let valA = a[sortBy] || ''
+    let valB = b[sortBy] || ''
+    
+    if (sortBy === 'total_amount' || sortBy === 'item_count') {
+      valA = parseFloat(valA) || 0
+      valB = parseFloat(valB) || 0
+    }
+    
+    if (typeof valA === 'string') {
+      valA = valA.toLowerCase()
+      valB = valB.toLowerCase()
+    }
+    
+    if (order === 'asc') {
+      return valA > valB ? 1 : valA < valB ? -1 : 0
+    } else {
+      return valA < valB ? 1 : valA > valB ? -1 : 0
+    }
+  })
+  
+  return data
+},
+
+paginatedTransactions() {
+  const start = (this.transactionPage - 1) * this.transactionItemsPerPage
+  const end = start + this.transactionItemsPerPage
+  return this.filteredTransactions.slice(start, end)
+},
+
+transactionTotalPages() {
+  return Math.ceil(this.filteredTransactions.length / this.transactionItemsPerPage) || 1
+},
+
+transactionStartIndex() {
+  if (this.filteredTransactions.length === 0) return 0
+  return (this.transactionPage - 1) * this.transactionItemsPerPage + 1
+},
+
+transactionEndIndex() {
+  if (this.filteredTransactions.length === 0) return 0
+  return Math.min(this.transactionPage * this.transactionItemsPerPage, this.filteredTransactions.length)
+},
+
+transactionStats() {
+  const total = this.transactions.length
+  const totalRevenue = this.transactions.reduce((sum, tx) => sum + (tx.total_amount || 0), 0)
+  const average = total > 0 ? totalRevenue / total : 0
+  const completed = this.transactions.filter(tx => (tx.status || 'completed') === 'completed').length
+  const pending = this.transactions.filter(tx => (tx.status || '') === 'pending').length
+  
+  return {
+    total,
+    totalRevenue,
+    average,
+    completed,
+    pending
+  }
+},
 
       // Add this to compute trend for each stall
   getRevenueTrend() {
@@ -3469,8 +3818,158 @@ modalTransactionsLoading: false,
 
   methods: {
 
+    // =============================================
+// TRANSACTIONS METHODS
+// =============================================
+
+async loadTransactions() {
+  this.transactionsLoading = true
+  try {
+    const days = 30
+    const stallIds = this.stalls.map(s => s.id)
+    
+    if (!stallIds || stallIds.length === 0) {
+      this.transactions = []
+      this.transactionsLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=200`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    this.transactions = res.data || []
+    
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.transactions = []
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load transactions', 'error')
+    }
+  } finally {
+    this.transactionsLoading = false
+  }
+},
+
+refreshTransactions() {
+  this.loadTransactions()
+  this.$emit('show-notification', 'Transactions refreshed', 'success')
+},
+
+getTransactionStatusEmoji(status) {
+  const s = (status || '').toLowerCase()
+  if (s === 'completed') return '✅'
+  if (s === 'pending') return '⏳'
+  if (s === 'failed') return '❌'
+  return '✅'
+},
+
+toggleTransactionExpand(txId) {
+  const index = this.expandedTransactionRows.indexOf(txId)
+  if (index > -1) {
+    this.expandedTransactionRows.splice(index, 1)
+  } else {
+    this.expandedTransactionRows.push(txId)
+  }
+},
+
+// Pagination
+resetTransactionPagination() {
+  this.transactionPage = 1
+},
+
+prevTransactionPage() {
+  if (this.transactionPage > 1) {
+    this.transactionPage--
+  }
+},
+
+nextTransactionPage() {
+  if (this.transactionPage < this.transactionTotalPages) {
+    this.transactionPage++
+  }
+},
+
+clearTransactionFilters() {
+  this.transactionSearch = ''
+  this.transactionStallFilter = 'all'
+  this.transactionStatusFilter = 'all'
+  this.transactionDateFrom = null
+  this.transactionDateTo = null
+  this.transactionPage = 1
+  this.transactionSortBy = 'created_at'
+  this.transactionSortOrder = 'desc'
+  this.transactions = []
+  this.loadTransactions()
+},
+
+sortTransactions(column) {
+  if (this.transactionSortBy === column) {
+    this.transactionSortOrder = this.transactionSortOrder === 'asc' ? 'desc' : 'asc'
+  } else {
+    this.transactionSortBy = column
+    this.transactionSortOrder = column === 'created_at' ? 'desc' : 'asc'
+  }
+  this.transactionPage = 1
+},
+
+getTransactionSortArrow(column) {
+  if (this.transactionSortBy !== column) return '⇅'
+  return this.transactionSortOrder === 'asc' ? '↑' : '↓'
+},
+
+async exportTransactions() {
+  try {
+    this.$emit('show-notification', 'Exporting transactions...', 'info')
+    const ExcelJS = await import('exceljs')
+    const { saveAs } = await import('file-saver')
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('Transactions')
+    
+    sheet.addRow(['Transactions Report', ''])
+    sheet.addRow(['Generated', new Date().toLocaleString()])
+    sheet.addRow(['Total Transactions', this.transactions.length])
+    sheet.addRow(['Total Revenue', this.formatCurrency(this.transactionStats.totalRevenue)])
+    sheet.addRow([])
+    
+    sheet.addRow(['Order ID', 'Stall', 'Items', 'Amount', 'Status', 'Date'])
+    this.filteredTransactions.forEach(tx => {
+      sheet.addRow([
+        tx.order_number || 'N/A',
+        tx.stall_name || '-',
+        tx.item_count || tx.items?.length || 0,
+        tx.total_amount || 0,
+        tx.status || 'Completed',
+        this.formatFullDate(tx.created_at)
+      ])
+    })
+    
+    sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
+    const buffer = await workbook.xlsx.writeBuffer()
+    saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+      `Transactions_${new Date().toISOString().split('T')[0]}.xlsx`)
+    
+    this.$emit('show-notification', 'Transactions exported!', 'success')
+  } catch (err) {
+    console.error('Export error:', err)
+    this.$emit('show-notification', 'Export failed', 'error')
+  }
+},
+
 // ✅ KEEP THIS VERSION
 async viewAllTransactions(item) {
+  // If this is called from the revenue tab, navigate to transactions tab
+  if (this.activeTab === 'revenue') {
+    this.activeTab = 'transactions'
+    this.transactionStallFilter = item.id
+    this.transactionSearch = item.name
+    this.loadTransactions()
+    this.$emit('show-notification', `📊 Viewing transactions for ${item.name}`, 'info')
+    return
+  }
+  
+  // Otherwise open the modal
   this.selectedStallForModal = item
   this.transactionModal = true
   this.modalTransactionsLoading = true
@@ -6539,30 +7038,38 @@ async loadRevenueData() {
     // =============================================
 
     switchTab(tabId) {
-      this.activeTab = tabId
-      if (tabId === 'inventory' && this.lowStock.length > 0) {
-        this.inventoryFilter = 'low'
-      }
-      if (tabId === 'inventory') {
-        this.$nextTick(() => {
-          document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
-        })
-      }
-      if (tabId === 'revenue') {
+  this.activeTab = tabId
+  if (tabId === 'inventory' && this.lowStock.length > 0) {
+    this.inventoryFilter = 'low'
+  }
+  if (tabId === 'inventory') {
+    this.$nextTick(() => {
+      document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }
+  if (tabId === 'revenue') {
     this.$nextTick(() => {
       setTimeout(() => {
         this.loadRevenueData()
       }, 200)
     })
   }
-      if (tabId === 'dashboard') {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.initChart()
-          }, 100)
-        })
-      }
-    },
+  // ✅ ADD THIS
+  if (tabId === 'transactions') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.loadTransactions()
+      }, 200)
+    })
+  }
+  if (tabId === 'dashboard') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.initChart()
+      }, 100)
+    })
+  }
+},
 
     // =============================================
     // DATA LOADING
@@ -14626,6 +15133,302 @@ async loadRevenueData() {
   background: var(--background);
   color: var(--primary);
   transform: scale(1.1);
+}
+
+/* ============================================ */
+/* TRANSACTIONS TAB STYLES                      */
+/* ============================================ */
+
+.transactions-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.transactions-stats-grid .stat-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.transactions-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.15rem;
+}
+
+.transactions-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.transactions-stats-grid .stat-chip.revenue .stat-chip-value { color: #F94908; }
+.transactions-stats-grid .stat-chip.average .stat-chip-value { color: #7c3aed; }
+.transactions-stats-grid .stat-chip.active .stat-chip-value { color: #10b981; }
+.transactions-stats-grid .stat-chip.warning .stat-chip-value { color: #f59e0b; }
+
+/* Transactions Table */
+.transactions-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.transactions-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 750px;
+}
+
+.transactions-table-header .sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.transactions-table-header .sortable:hover {
+  color: var(--text);
+}
+
+.transactions-table-header .sort-arrow {
+  font-size: 0.5rem;
+  margin-left: 0.15rem;
+  color: var(--text-tertiary);
+}
+
+.transactions-table-order { min-width: 100px; text-align: left; }
+.transactions-table-stall { flex: 1; min-width: 100px; text-align: left; }
+.transactions-table-items { min-width: 60px; text-align: center; }
+.transactions-table-amount { min-width: 80px; text-align: right; }
+.transactions-table-status { min-width: 90px; text-align: center; }
+.transactions-table-date { min-width: 110px; text-align: left; }
+.transactions-table-details { min-width: 40px; text-align: center; }
+
+.transactions-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.transactions-table-row {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 750px;
+}
+
+.transactions-table-row:hover {
+  background: var(--background);
+}
+
+.transactions-table-row:last-child {
+  border-bottom: none;
+}
+
+.transactions-table-order { min-width: 100px; text-align: left; }
+.transactions-table-stall { flex: 1; min-width: 100px; text-align: left; }
+.transactions-table-items { min-width: 60px; text-align: center; }
+.transactions-table-amount { min-width: 80px; text-align: right; font-weight: 600; color: var(--text); }
+.transactions-table-status { min-width: 90px; text-align: center; }
+.transactions-table-date { min-width: 110px; text-align: left; color: var(--text-secondary); font-size: 0.75rem; }
+.transactions-table-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+
+.transactions-table-row:hover .transactions-table-details {
+  color: var(--primary);
+}
+
+.order-id {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+  font-family: monospace;
+}
+
+/* Expanded Transaction Details */
+.transactions-table-expanded-row {
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+}
+
+.transaction-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+}
+
+.transaction-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.transaction-detail-item {
+  background: var(--surface);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.transaction-detail-item .detail-label {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.transaction-detail-item .detail-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.transaction-items-list {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+}
+
+.transaction-items-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+.transaction-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  font-size: 0.75rem;
+}
+
+.transaction-item .item-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.transaction-item .item-qty {
+  min-width: 40px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.transaction-item .item-price {
+  min-width: 60px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.transaction-item .item-total {
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .transactions-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .transactions-table-header {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.5rem;
+    min-width: 600px;
+  }
+  
+  .transactions-table-row {
+    padding: 0.3rem 0.5rem;
+    min-width: 600px;
+  }
+  
+  .transactions-table-order { min-width: 80px; }
+  .transactions-table-stall { min-width: 70px; }
+  .transactions-table-amount { min-width: 60px; font-size: 0.8rem; }
+  .transactions-table-date { min-width: 80px; font-size: 0.7rem; }
+  
+  .transaction-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .transaction-expanded-content {
+    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .transactions-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .transactions-table-header {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.3rem;
+    min-width: 450px;
+  }
+  
+  .transactions-table-row {
+    padding: 0.2rem 0.3rem;
+    min-width: 450px;
+  }
+  
+  .transactions-table-order { min-width: 60px; font-size: 0.7rem; }
+  .transactions-table-stall { min-width: 50px; font-size: 0.7rem; }
+  .transactions-table-items { min-width: 40px; font-size: 0.7rem; }
+  .transactions-table-amount { min-width: 50px; font-size: 0.7rem; }
+  .transactions-table-status { min-width: 60px; }
+  .transactions-table-date { min-width: 60px; font-size: 0.6rem; }
+  .transactions-table-details { min-width: 30px; }
+  
+  .transaction-details-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .transaction-expanded-content {
+    padding: 0.5rem;
+  }
+  
+  .transaction-item {
+    font-size: 0.65rem;
+    flex-wrap: wrap;
+  }
+  
+  .transaction-item .item-name {
+    flex: 1 0 100%;
+  }
 }
 
 </style>
