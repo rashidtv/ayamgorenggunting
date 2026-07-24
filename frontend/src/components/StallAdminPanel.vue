@@ -2219,7 +2219,7 @@
         v-for="(item, index) in paginatedRevenueData" 
         :key="item.id" 
         class="revenue-table-row clickable-item"
-        @click="toggleRevenueRowExpand(item.id)"
+  @click="viewAllTransactions(item)"
       >
         <!-- Rank -->
         <span class="revenue-table-rank">
@@ -2251,81 +2251,13 @@
         
         <!-- Details (expand icon) -->
         <span class="revenue-table-details">
-          <span class="expand-icon">{{ expandedRevenueRows.includes(item.id) ? '▲' : '▼' }}</span>
-        </span>
+  <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
+    📋
+  </button>
+</span>
       </div>
       
-     <!-- Expanded Row - sits BELOW -->
-<div 
-  v-for="expItem in paginatedRevenueData" 
-  :key="'exp-'+expItem.id" 
-  class="revenue-table-expanded-row"
->
-  <div v-if="expandedRevenueRows.includes(expItem.id)" class="revenue-expanded-content">
-    <!-- Stats Grid -->
-    <div class="revenue-expanded-stats">
-      <div class="revenue-expanded-stat clickable" @click="viewAllTransactions(expItem)">
-        <span class="expanded-stat-label">📊 Total Transactions</span>
-        <span class="expanded-stat-value">{{ formatNumber(expItem.transactions || 0) }}</span>
-        <span class="expanded-stat-sub">Click to view all →</span>
-      </div>
-      <div class="revenue-expanded-stat">
-        <span class="expanded-stat-label">💰 Avg Transaction</span>
-        <span class="expanded-stat-value">{{ formatCurrency(expItem.avgTransaction || 0) }}</span>
-      </div>
-      <div class="revenue-expanded-stat">
-        <span class="expanded-stat-label">📈 Revenue Trend</span>
-        <span class="expanded-stat-value" :class="getRevenueTrendClass(expItem)">
-          {{ getRevenueTrend(expItem) }}
-        </span>
-      </div>
-      <div class="revenue-expanded-stat">
-        <span class="expanded-stat-label">🏆 Top Item</span>
-        <span class="expanded-stat-value">{{ expItem.topItem || '-' }}</span>
-      </div>
-    </div>
-    
-    <!-- Recent Transactions -->
-    <div class="revenue-expanded-transactions">
-      <div class="recent-transactions-header">
-        <span>📜 Recent Transactions</span>
-        <button @click="viewAllTransactions(expItem)" class="btn-modern secondary small">
-          View All →
-        </button>
-      </div>
-      
-      <div v-if="expandedTransactionLoading === expItem.id" class="loading-state small">
-        <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-        <p>Loading transactions...</p>
-      </div>
-      
-      <div v-else-if="expandedTransactions[expItem.id]?.length === 0" class="empty-state-modern small">
-        <span>📭</span>
-        <p>No transactions found</p>
-      </div>
-      
-      <div v-else class="recent-transactions-list">
-        <div 
-          v-for="tx in expandedTransactions[expItem.id]?.slice(0, 5)" 
-          :key="tx.id" 
-          class="recent-transaction-item"
-        >
-          <span class="transaction-date">{{ formatDate(tx.created_at) }}</span>
-          <span class="transaction-id">#{{ tx.order_id || 'N/A' }}</span>
-          <span class="transaction-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
-          <span class="transaction-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-          <span :class="['transaction-status', tx.status || 'completed']">
-            {{ tx.status || '✅ Completed' }}
-          </span>
-        </div>
-      </div>
-      
-      <div v-if="expandedTransactions[expItem.id]?.length > 5" class="view-more-link">
-        <button @click="viewAllTransactions(expItem)" class="btn-modern secondary small">
-          View all {{ expandedTransactions[expItem.id].length }} transactions →
-        </button>
-      </div>
-    </div>
+  
   </div>
 </div>
     </div>
@@ -2603,7 +2535,6 @@ modalTransactionsLoading: false,
     transactionSearch: '',
     transactionPage: 1,
     transactionItemsPerPage: 10,
-       expandedRevenueRows: [],
     expandedTransactions: {},
     expandedTransactionLoading: null,
 
@@ -3573,18 +3504,6 @@ modalTransactionsLoading: false,
   // REVENUE EXPANDABLE ROWS
   // =============================================
   
-  toggleRevenueRowExpand(stallId) {
-  const index = this.expandedRevenueRows.indexOf(stallId)
-  if (index > -1) {
-    this.expandedRevenueRows.splice(index, 1)
-  } else {
-    this.expandedRevenueRows.push(stallId)
-    // Load transactions when expanded - only if not already loaded
-    if (!this.expandedTransactions[stallId] || this.expandedTransactions[stallId].length === 0) {
-      this.loadStallTransactions(stallId)
-    }
-  }
-},
   
 async loadStallTransactions(stallId) {
   this.expandedTransactionLoading = stallId
@@ -14716,6 +14635,27 @@ async loadRevenueData() {
     min-width: 50px;
     font-size: 0.65rem;
   }
+}
+
+/* ============================================ */
+/* VIEW TRANSACTIONS BUTTON                     */
+/* ============================================ */
+
+.btn-view-transactions {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  transition: var(--transition);
+  color: var(--text-secondary);
+}
+
+.btn-view-transactions:hover {
+  background: var(--background);
+  color: var(--primary);
+  transform: scale(1.1);
 }
 
 </style>
