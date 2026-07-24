@@ -3501,42 +3501,71 @@ export default {
     }
   },
   
-  async loadStallTransactions(stallId) {
-    this.expandedTransactionLoading = stallId
-    try {
-      const days = this.revenuePeriod === 'today' ? 1 :
-                   this.revenuePeriod === 'week' ? 7 :
-                   this.revenuePeriod === 'month' ? 30 :
-                   this.revenuePeriod === 'quarter' ? 90 :
-                   this.revenuePeriod === 'halfyear' ? 180 :
-                   this.revenuePeriod === 'year' ? 365 :
-                   this.revenueCustomDays || 30
-      
-      const res = await axios.get(
-        `${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-      
-      // Vue.set for reactivity
-      this.$set(this.expandedTransactions, stallId, res.data || [])
-      
-    } catch (err) {
-      console.error('Failed to load transactions:', err)
-      this.$set(this.expandedTransactions, stallId, [])
-    } finally {
-      this.expandedTransactionLoading = null
+async loadStallTransactions(stallId) {
+  this.expandedTransactionLoading = stallId
+  try {
+    const days = this.revenuePeriod === 'today' ? 1 :
+                 this.revenuePeriod === 'week' ? 7 :
+                 this.revenuePeriod === 'month' ? 30 :
+                 this.revenuePeriod === 'quarter' ? 90 :
+                 this.revenuePeriod === 'halfyear' ? 180 :
+                 this.revenuePeriod === 'year' ? 365 :
+                 this.revenueCustomDays || 30
+    
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    this.$set(this.expandedTransactions, stallId, res.data || [])
+    
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.$set(this.expandedTransactions, stallId, [])
+    // Don't show error notification for 404 - just show empty state
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load transactions', 'error')
     }
-  },
+  } finally {
+    this.expandedTransactionLoading = null
+  }
+},
+
+generateMockTransactions(stallId) {
+  const statuses = ['completed', 'completed', 'completed', 'pending', 'completed']
+  const items = ['Ayam Goreng', 'Nasi Lemak', 'Mee Goreng', 'Roti Canai', 'Teh Tarik']
+  const transactions = []
+  
+  for (let i = 0; i < 8; i++) {
+    const date = new Date()
+    date.setHours(date.getHours() - i * 3)
+    const itemCount = Math.floor(Math.random() * 5) + 1
+    const amount = (Math.random() * 80 + 20).toFixed(2)
+    
+    transactions.push({
+      id: `tx-${i}`,
+      order_id: `ORD-${String(1000 + i).padStart(4, '0')}`,
+      created_at: date.toISOString(),
+      items_count: itemCount,
+      total_amount: parseFloat(amount),
+      status: statuses[i % statuses.length],
+      items: Array.from({ length: itemCount }, () => ({
+        name: items[Math.floor(Math.random() * items.length)],
+        quantity: Math.floor(Math.random() * 3) + 1,
+        price: (Math.random() * 20 + 5).toFixed(2)
+      }))
+    })
+  }
+  
+  return transactions
+},
   
   viewAllTransactions(item) {
-    // Navigate to transactions tab or open modal
-    // Option 1: Switch to transactions tab with filter
-    this.activeTab = 'transactions'
-    this.transactionStallFilter = item.id
-    
-    // Option 2: Open a modal with all transactions
-    // this.showAllTransactionsModal = true
-    // this.selectedStallForTransactions = item
+  // Show a toast notification with transaction count
+  this.$emit('show-notification', 
+    `📊 ${item.name} - ${item.transactions || 0} transactions`, 
+    'info'
+  )
   },
   
   formatDate(dateStr) {
@@ -3697,7 +3726,7 @@ export default {
     await this.loadRevenueData()
   },
 
-  async loadRevenueData() {
+async loadRevenueData() {
   this.revenueLoading = true
   try {
     const days = this.revenuePeriod === 'today' ? 1 :
@@ -3729,16 +3758,18 @@ export default {
         revenue: parseFloat(perf?.revenue) || 0,
         transactions: parseInt(perf?.items_sold) || 0,
         avgTransaction: parseFloat(perf?.avg_transaction) || 0,
-        state: stall.state || 'Unknown'
+        state: stall.state || 'Unknown',
+        // Add some mock data for demo
+        revenueGrowth: Math.round((Math.random() * 40) - 10),
+        topItem: ['Ayam Goreng', 'Nasi Lemak', 'Mee Goreng', 'Roti Canai', 'Teh Tarik'][Math.floor(Math.random() * 5)]
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
-    // ✅ Ensure charts initialize after DOM is ready
     this.$nextTick(() => {
       setTimeout(() => {
         this.initRevenueChart()
         this.initRevenueStateChart()
-      }, 150) // Slightly longer delay for reliability
+      }, 100)
     })
 
   } catch (err) {
@@ -12924,6 +12955,390 @@ export default {
   border-color: var(--primary);
   background: var(--background);
   transform: translateY(-1px);
+}
+
+/* ============================================ */
+/* REVENUE EXPANDABLE ROWS - NEW                */
+/* ============================================ */
+
+.revenue-table-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.revenue-table-main-row {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 650px;
+  gap: 0.5rem;
+}
+
+.revenue-table-main-row:hover {
+  background: var(--background);
+}
+
+/* Match existing header column widths */
+.revenue-table-main-row .revenue-table-rank { 
+  min-width: 50px; 
+  width: 50px; 
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.revenue-table-main-row .revenue-table-name { 
+  flex: 1.5; 
+  min-width: 100px; 
+  text-align: left; 
+}
+
+.revenue-table-main-row .revenue-table-state { 
+  flex: 0.8; 
+  min-width: 80px; 
+  text-align: left; 
+}
+
+.revenue-table-main-row .revenue-table-revenue { 
+  flex: 1; 
+  min-width: 80px; 
+  text-align: right; 
+  font-weight: 600; 
+  color: var(--text); 
+}
+
+.revenue-table-main-row .revenue-table-status { 
+  flex: 0.8; 
+  min-width: 80px; 
+  text-align: center; 
+}
+
+.revenue-table-main-row .revenue-table-details { 
+  min-width: 40px; 
+  width: 40px; 
+  text-align: center; 
+  font-size: 0.7rem; 
+  color: var(--text-tertiary); 
+  flex-shrink: 0;
+}
+
+.revenue-table-main-row:hover .revenue-table-details {
+  color: var(--primary);
+}
+
+.expand-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 0.6rem;
+}
+
+/* Expanded Row */
+.revenue-table-expanded-row {
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.revenue-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Expanded Stats */
+.revenue-expanded-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.revenue-expanded-stat {
+  background: var(--surface);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.revenue-expanded-stat.clickable {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.revenue-expanded-stat.clickable:hover {
+  border-color: var(--primary);
+  background: var(--background);
+  transform: translateY(-1px);
+}
+
+.expanded-stat-label {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.expanded-stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.expanded-stat-sub {
+  display: block;
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  margin-top: 0.1rem;
+  transition: var(--transition);
+}
+
+.expanded-stat-sub:hover {
+  color: var(--primary);
+}
+
+/* Trend colors */
+.trend-up { color: #10b981; }
+.trend-slight-up { color: #34d399; }
+.trend-stable { color: #f59e0b; }
+.trend-down { color: #ef4444; }
+
+/* Recent Transactions */
+.revenue-expanded-transactions {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+}
+
+.recent-transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.recent-transactions-header span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recent-transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.recent-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  font-size: 0.7rem;
+  transition: var(--transition);
+}
+
+.recent-transaction-item:hover {
+  background: var(--surface-elevated);
+}
+
+.transaction-date {
+  min-width: 80px;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+}
+
+.transaction-id {
+  min-width: 60px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.65rem;
+}
+
+.transaction-items {
+  min-width: 50px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.65rem;
+}
+
+.transaction-amount {
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
+.transaction-status {
+  padding: 0.05rem 0.3rem;
+  border-radius: 8px;
+  font-size: 0.55rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.transaction-status.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.transaction-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.transaction-status.failed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.view-more-link {
+  text-align: center;
+  margin-top: 0.35rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .revenue-table-main-row {
+    padding: 0.3rem 0.5rem;
+    min-width: 550px;
+    gap: 0.3rem;
+  }
+  
+  .revenue-table-main-row .revenue-table-rank { min-width: 35px; width: 35px; }
+  .revenue-table-main-row .revenue-table-name { min-width: 70px; }
+  .revenue-table-main-row .revenue-table-state { min-width: 60px; }
+  .revenue-table-main-row .revenue-table-revenue { min-width: 60px; font-size: 0.75rem; }
+  .revenue-table-main-row .revenue-table-status { min-width: 60px; }
+  .revenue-table-main-row .revenue-table-details { min-width: 30px; width: 30px; }
+  
+  .rank-number {
+    width: 20px;
+    height: 20px;
+    font-size: 0.55rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.25rem;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  }
+  
+  .recent-transaction-item {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+  
+  .transaction-date {
+    min-width: 65px;
+    font-size: 0.6rem;
+  }
+  
+  .transaction-id {
+    min-width: 50px;
+    font-size: 0.6rem;
+  }
+  
+  .transaction-amount {
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .revenue-table-main-row {
+    padding: 0.2rem 0.3rem;
+    min-width: 420px;
+    gap: 0.2rem;
+  }
+  
+  .revenue-table-main-row .revenue-table-rank { min-width: 25px; width: 25px; }
+  .revenue-table-main-row .revenue-table-name { min-width: 50px; }
+  .revenue-table-main-row .revenue-table-state { min-width: 45px; }
+  .revenue-table-main-row .revenue-table-revenue { min-width: 45px; font-size: 0.65rem; }
+  .revenue-table-main-row .revenue-table-status { min-width: 45px; }
+  .revenue-table-main-row .revenue-table-details { min-width: 25px; width: 25px; font-size: 0.6rem; }
+  
+  .rank-number {
+    width: 16px;
+    height: 16px;
+    font-size: 0.45rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.4rem;
+    padding: 0.05rem 0.15rem;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.35rem;
+  }
+  
+  .revenue-expanded-stat {
+    padding: 0.3rem 0.4rem;
+  }
+  
+  .expanded-stat-value {
+    font-size: 0.75rem;
+  }
+  
+  .recent-transaction-item {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.2rem;
+  }
+  
+  .transaction-date {
+    min-width: 50px;
+    font-size: 0.55rem;
+  }
+  
+  .transaction-id {
+    min-width: 40px;
+    font-size: 0.55rem;
+  }
+  
+  .transaction-amount {
+    min-width: 40px;
+    font-size: 0.6rem;
+  }
+  
+  .transaction-status {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.2rem;
+  }
 }
 
 </style>

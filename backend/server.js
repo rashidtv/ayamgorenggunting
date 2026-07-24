@@ -2243,6 +2243,223 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== TRANSACTIONS ROUTES ====================
+
+/**
+ * GET /api/transactions
+ * Get transactions with filtering by stall, date range, and limit
+ */
+app.get('/api/transactions', authenticateToken, async (req, res) => {
+  try {
+    const { stallId, days, limit, period } = req.query;
+    
+    // ✅ Use consistent date range helper
+    const dateRange = getDateRange(days, period);
+    console.log(`📊 Transactions: ${dateRange.label} (${dateRange.type})`);
+
+    // ============================================================
+    // Determine which stalls the user has access to
+    // ============================================================
+    let accessibleStallIds = [];
+    
+    if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
+      let companyId = req.user.company_id;
+      if (req.user.role === 'super_super_admin') {
+        const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
+        if (companyRes.rows[0]) {
+          companyId = companyRes.rows[0].id;
+        }
+      }
+      if (companyId) {
+        const stallRes = await pool.query('SELECT id FROM stalls WHERE company_id = $1', [companyId]);
+        accessibleStallIds = stallRes.rows.map(r => r.id);
+      }
+    } else {
+      // Stall admin or cashier - get assigned stalls
+      accessibleStallIds = req.user.assigned_stalls?.map(s => s.id) || [];
+      if (accessibleStallIds.length === 0) {
+        const assRes = await pool.query(
+          'SELECT stall_id FROM user_stall_assignments WHERE user_id = $1',
+          [req.user.id]
+        );
+        accessibleStallIds = assRes.rows.map(r => r.stall_id);
+      }
+    }
+
+    if (accessibleStallIds.length === 0) {
+      return res.json([]);
+    }
+
+    // ============================================================
+    // Filter by specific stall if provided
+    // ============================================================
+    let targetStallIds = accessibleStallIds;
+    if (stallId) {
+      const targetId = parseInt(stallId);
+      if (!accessibleStallIds.includes(targetId)) {
+        return res.status(403).json({ error: 'Access denied to this stall' });
+      }
+      targetStallIds = [targetId];
+    }
+
+    // ============================================================
+    // Build the query
+    // ============================================================
+    let query = `
+      SELECT 
+        o.id,
+        o.order_number,
+        o.total_amount,
+        o.item_count,
+        o.status,
+        o.created_at,
+        s.name as stall_name,
+        s.id as stall_id,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'item_name', sales.item_name,
+              'price', sales.price,
+              'quantity', 1
+            )
+          )
+          FROM sales
+          WHERE sales.order_id = o.id),
+          '[]'
+        ) as items
+      FROM orders o
+      LEFT JOIN stalls s ON o.stall_id = s.id
+      WHERE o.stall_id = ANY($1::int[])
+    `;
+
+    const params = [targetStallIds];
+    let paramCount = 2;
+
+    // ✅ Add date filtering
+    const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'o');
+    query += ` AND (${condition})`;
+    params.push(...dateParams);
+
+    // ✅ Order by most recent first
+    query += ` ORDER BY o.created_at DESC`;
+
+    // ✅ Add limit if provided
+    const limitNum = parseInt(limit) || 10;
+    query += ` LIMIT $${params.length + 1}`;
+    params.push(limitNum);
+
+    console.log('📊 Transactions query:', query);
+    console.log('📊 Params:', params);
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error('Transactions error:', err);
+    res.status(500).json({ error: 'Failed to fetch transactions', details: err.message });
+  }
+});
+
+/**
+ * GET /api/transactions/stall/:stallId
+ * Get all transactions for a specific stall (alternative endpoint)
+ */
+app.get('/api/transactions/stall/:stallId', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  // Check if user has access to this stall
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied to this stall' });
+  }
+
+  try {
+    const { days, limit } = req.query;
+    const dateRange = getDateRange(days || 30);
+
+    let query = `
+      SELECT 
+        o.id,
+        o.order_number,
+        o.total_amount,
+        o.item_count,
+        o.status,
+        o.created_at,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'item_name', sales.item_name,
+              'price', sales.price,
+              'quantity', 1
+            )
+          )
+          FROM sales
+          WHERE sales.order_id = o.id),
+          '[]'
+        ) as items
+      FROM orders o
+      WHERE o.stall_id = $1
+    `;
+
+    const params = [stallId];
+    let paramCount = 2;
+
+    const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'o');
+    query += ` AND (${condition})`;
+    params.push(...dateParams);
+
+    query += ` ORDER BY o.created_at DESC`;
+
+    const limitNum = parseInt(limit) || 50;
+    query += ` LIMIT $${params.length + 1}`;
+    params.push(limitNum);
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error('Stall transactions error:', err);
+    res.status(500).json({ error: 'Failed to fetch stall transactions' });
+  }
+});
+
+/**
+ * GET /api/transactions/today/:stallId
+ * Get today's transactions for a stall (summary)
+ */
+app.get('/api/transactions/today/:stallId', authenticateToken, async (req, res) => {
+  const stallId = parseInt(req.params.stallId);
+  if (isNaN(stallId)) {
+    return res.status(400).json({ error: 'Invalid stall ID' });
+  }
+
+  const allowed = await userCanAccessStall(req.user.id, stallId);
+  if (!allowed) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        COUNT(*) as transaction_count,
+        COALESCE(SUM(total_amount), 0) as total_revenue,
+        COALESCE(SUM(item_count), 0) as total_items
+       FROM orders
+       WHERE stall_id = $1 AND DATE(created_at) = CURRENT_DATE
+       AND status = 'completed'`,
+      [stallId]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Today transactions error:', err);
+    res.status(500).json({ error: 'Failed to fetch today transactions' });
+  }
+});
+
 // ==================== STALL PERFORMANCE ====================
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
