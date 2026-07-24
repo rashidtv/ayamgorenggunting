@@ -12429,7 +12429,7 @@ async loadRevenueData() {
   height: 200px;
 }
 
-/* Revenue Table - DESKTOP FIX */
+/* Revenue Table */
 .revenue-table-wrapper {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -12437,197 +12437,402 @@ async loadRevenueData() {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ✅ DESKTOP - Force table layout */
-.revenue-table-header {
-  display: flex !important;  /* Force flex on desktop */
-  padding: 0.5rem 0.75rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-  min-width: 700px;
+/* ============================================ */
+/* DESKTOP STYLES (screens > 768px)             */
+/* ============================================ */
+@media (min-width: 769px) {
+  .revenue-table-header {
+    display: flex;
+    padding: 0.5rem 0.75rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary);
+    min-width: 700px;
+  }
+
+  .revenue-table-header .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition);
+    font-size: 0.7rem;
+  }
+
+  .revenue-table-header .sortable:hover {
+    color: var(--text);
+  }
+
+  .revenue-table-header .sort-arrow {
+    font-size: 0.5rem;
+    margin-left: 0.15rem;
+    color: var(--text-tertiary);
+  }
+
+  .revenue-table-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Desktop Row - Horizontal Layout */
+  .revenue-table-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 700px;
+    background: transparent !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+    border: none !important;
+  }
+
+  .revenue-table-row:hover {
+    background: var(--background) !important;
+  }
+
+  .revenue-table-row:last-child {
+    border-bottom: none;
+  }
+
+  /* Column widths - desktop */
+  .revenue-table-rank { 
+    min-width: 50px; 
+    width: 50px; 
+    text-align: center; 
+    flex-shrink: 0;
+  }
+
+  .revenue-table-name { 
+    flex: 1.5; 
+    min-width: 100px; 
+    text-align: left; 
+  }
+
+  .revenue-table-state { 
+    flex: 0.8; 
+    min-width: 80px; 
+    text-align: left; 
+  }
+
+  .revenue-table-revenue { 
+    flex: 1; 
+    min-width: 80px; 
+    text-align: right; 
+    font-weight: 600; 
+    color: var(--text); 
+  }
+
+  .revenue-table-status { 
+    flex: 0.8; 
+    min-width: 80px; 
+    text-align: center; 
+  }
+
+  .revenue-table-details { 
+    min-width: 40px; 
+    width: 40px; 
+    text-align: center; 
+    font-size: 0.7rem; 
+    color: var(--text-tertiary); 
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row:hover .revenue-table-details {
+    color: var(--primary);
+  }
+
+  /* Hide mobile labels on desktop */
+  .revenue-table-row .revenue-table-cell::before {
+    display: none !important;
+  }
+
+  /* Expanded row - sits BELOW on desktop */
+  .revenue-table-expanded-row {
+    background: var(--background);
+    border-bottom: 1px solid var(--border-light);
+    animation: slideDown 0.3s ease;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .revenue-expanded-content {
+    padding: 0.75rem 1rem 0.75rem 3.5rem;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .revenue-expanded-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+  }
+
+  .revenue-expanded-transactions {
+    margin-top: 0.5rem;
+  }
+
+  .stall-code-text {
+    display: block;
+    font-size: 0.55rem;
+    color: var(--text-tertiary);
+    font-family: monospace;
+  }
+
+  .state-tag {
+    display: inline-block;
+    padding: 0.05rem 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+  }
 }
 
-.revenue-table-header .sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: var(--transition);
-  font-size: 0.7rem;
-}
-
-.revenue-table-header .sortable:hover {
-  color: var(--text);
-}
-
-.revenue-table-header .sort-arrow {
-  font-size: 0.5rem;
-  margin-left: 0.15rem;
-  color: var(--text-tertiary);
-}
-
-/* Column widths - desktop */
-.revenue-table-rank { 
-  min-width: 50px; 
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-.revenue-table-name { 
-  flex: 1.5; 
-  min-width: 100px; 
-  text-align: left; 
-}
-
-.revenue-table-state { 
-  flex: 0.8; 
-  min-width: 80px; 
-  text-align: left; 
-}
-
-.revenue-table-revenue { 
-  flex: 1; 
-  min-width: 80px; 
-  text-align: right; 
-}
-
-.revenue-table-transactions { 
-  flex: 0.8; 
-  min-width: 70px; 
-  text-align: right; 
-}
-
-.revenue-table-avg { 
-  flex: 0.8; 
-  min-width: 70px; 
-  text-align: right; 
-}
-
-.revenue-table-status { 
-  flex: 0.8; 
-  min-width: 80px; 
-  text-align: center; 
-}
-
-.revenue-table-details { 
-  min-width: 40px; 
-  text-align: center; 
-}
-
-.revenue-table-body {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ✅ DESKTOP - Force row layout */
-.revenue-table-row {
-  display: flex !important;  /* Force flex */
-  flex-direction: row !important;  /* Force row, not column */
-  align-items: center;
-  padding: 0.35rem 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  min-width: 700px;
-  background: var(--surface);
-  border-radius: 0;
-  margin-bottom: 0;
-}
-
-.revenue-table-row:hover {
-  background: var(--background);
-}
-
-.revenue-table-row:last-child {
-  border-bottom: none;
-}
-
-/* ✅ Hide mobile labels on desktop */
-.revenue-table-cell::before {
-  display: none !important;
-}
-
-.stall-code-text {
-  display: block;
-  font-size: 0.55rem;
-  color: var(--text-tertiary);
-  font-family: monospace;
-}
-
-.state-tag {
-  display: inline-block;
-  padding: 0.05rem 0.4rem;
-  background: var(--surface);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-}
-
-/* ✅ Tablet - Match stall performance */
-@media (max-width: 768px) {
+/* ============================================ */
+/* TABLET STYLES (481px - 768px)               */
+/* ============================================ */
+@media (max-width: 768px) and (min-width: 481px) {
   .revenue-table-header {
     font-size: 0.6rem;
     padding: 0.3rem 0.5rem;
+    min-width: 550px;
   }
-  
+
   .revenue-table-row {
     padding: 0.3rem 0.5rem;
+    min-width: 550px;
   }
-  
+
   .revenue-table-rank { min-width: 35px; }
   .revenue-table-name { min-width: 70px; }
   .revenue-table-state { min-width: 60px; }
   .revenue-table-revenue { min-width: 60px; font-size: 0.8rem; }
-  .revenue-table-transactions { min-width: 50px; font-size: 0.8rem; }
-  .revenue-table-avg { min-width: 50px; font-size: 0.8rem; }
   .revenue-table-status { min-width: 60px; }
   .revenue-table-details { min-width: 30px; }
-  
+
   .rank-number {
     width: 22px;
     height: 22px;
     font-size: 0.6rem;
   }
-  
+
   .status-indicator {
     font-size: 0.5rem;
     padding: 0.05rem 0.3rem;
   }
+
+  .revenue-expanded-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .revenue-expanded-content {
+    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  }
 }
 
-/* ✅ Mobile - Match stall performance */
+/* ============================================ */
+/* MOBILE STYLES (≤ 480px) - CARD VIEW         */
+/* ============================================ */
 @media (max-width: 480px) {
   .revenue-table-header {
-    font-size: 0.5rem;
-    padding: 0.2rem 0.3rem;
-    min-width: 400px;
+    display: none !important; /* Hide header on mobile */
   }
-  
+
+  .revenue-table-wrapper {
+    border: none;
+    border-radius: 0;
+  }
+
   .revenue-table-row {
-    padding: 0.2rem 0.3rem;
-    min-width: 400px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--surface) !important;
+    min-width: auto !important;
   }
-  
-  .revenue-table-rank { min-width: 30px; }
-  .revenue-table-name { min-width: 60px; }
-  .revenue-table-state { min-width: 50px; }
-  .revenue-table-revenue { min-width: 50px; font-size: 0.7rem; }
-  .revenue-table-transactions { min-width: 40px; font-size: 0.7rem; }
-  .revenue-table-avg { min-width: 40px; font-size: 0.7rem; }
-  .revenue-table-status { min-width: 50px; }
-  .revenue-table-details { min-width: 25px; font-size: 0.7rem; }
-  
+
+  .revenue-table-row .revenue-table-cell {
+    display: flex !important;
+    align-items: center;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Mobile labels */
+  .revenue-table-row .revenue-table-rank::before {
+    content: "RANK: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row .revenue-table-name::before {
+    content: "STALL: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row .revenue-table-state::before {
+    content: "STATE: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row .revenue-table-revenue::before {
+    content: "REVENUE: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row .revenue-table-status::before {
+    content: "STATUS: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  .revenue-table-row .revenue-table-details {
+    justify-content: flex-end;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.3rem;
+  }
+
+  .revenue-table-row .revenue-table-details::before {
+    content: "DETAILS: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+
+  /* Mobile cell values */
+  .revenue-table-row .revenue-table-rank {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+  }
+
+  .revenue-table-row .revenue-table-name {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+  }
+
+  .revenue-table-row .revenue-table-state {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+  }
+
+  .revenue-table-row .revenue-table-revenue {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .revenue-table-row .revenue-table-status {
+    min-width: auto;
+    width: 100%;
+    text-align: left;
+  }
+
+  .revenue-table-row .revenue-table-details {
+    min-width: auto;
+    width: 100%;
+    text-align: right;
+  }
+
   .rank-number {
     width: 18px;
     height: 18px;
     font-size: 0.5rem;
   }
-  
+
   .status-indicator {
     font-size: 0.45rem;
+    padding: 0.05rem 0.2rem;
+  }
+
+  /* Expanded row on mobile */
+  .revenue-table-expanded-row {
+    background: var(--background);
+    border-bottom: 1px solid var(--border-light);
+    animation: slideDown 0.3s ease;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .revenue-expanded-content {
+    padding: 0.5rem;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+  }
+
+  .revenue-expanded-stat {
+    padding: 0.3rem 0.4rem;
+  }
+
+  .expanded-stat-value {
+    font-size: 0.75rem;
+  }
+
+  .recent-transaction-item {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.2rem;
+    flex-wrap: wrap;
+  }
+
+  .transaction-date {
+    min-width: 50px;
+    font-size: 0.55rem;
+  }
+
+  .transaction-id {
+    min-width: 40px;
+    font-size: 0.55rem;
+  }
+
+  .transaction-amount {
+    min-width: 40px;
+    font-size: 0.6rem;
+  }
+
+  .transaction-status {
+    font-size: 0.5rem;
     padding: 0.05rem 0.2rem;
   }
 }
