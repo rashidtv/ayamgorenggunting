@@ -827,6 +827,66 @@
         </div>
       </div>
 
+      <!-- ============================================ -->
+<!-- TRANSACTION DETAILS MODAL - INSERT HERE      -->
+<!-- ============================================ -->
+<div v-if="transactionModal" class="modal-overlay" @click.self="transactionModal = false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>📊 {{ selectedStallForModal?.name || 'Transaction Details' }}</h3>
+      <button @click="transactionModal = false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <!-- Stats -->
+      <div class="modal-stats-grid">
+        <div class="modal-stat">
+          <span class="modal-stat-label">Total Transactions</span>
+          <span class="modal-stat-value">{{ formatNumber(selectedStallForModal?.transactions || 0) }}</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">Total Revenue</span>
+          <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.revenue || 0) }}</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">Avg Transaction</span>
+          <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.avgTransaction || 0) }}</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">Top Item</span>
+          <span class="modal-stat-value">{{ selectedStallForModal?.topItem || '-' }}</span>
+        </div>
+      </div>
+      
+      <!-- Transactions List -->
+      <div class="modal-transactions">
+        <h4>📜 Recent Transactions</h4>
+        <div v-if="modalTransactionsLoading" class="loading-state small">
+          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+          <p>Loading transactions...</p>
+        </div>
+        <div v-else-if="modalTransactions.length === 0" class="empty-state-modern small">
+          <span>📭</span>
+          <p>No transactions found</p>
+        </div>
+        <div v-else class="modal-transactions-list">
+          <div v-for="tx in modalTransactions" :key="tx.id" class="modal-transaction-item">
+            <span class="modal-tx-date">{{ formatDate(tx.created_at) }}</span>
+            <span class="modal-tx-id">#{{ tx.order_id || 'N/A' }}</span>
+            <span class="modal-tx-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
+            <span class="modal-tx-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+            <span :class="['transaction-status', tx.status || 'completed']">
+              {{ tx.status || '✅ Completed' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="transactionModal = false" class="btn-modern secondary">Close</button>
+    </div>
+  </div>
+</div>
+
       <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
         <div class="sub-tabs">
@@ -2524,6 +2584,10 @@ export default {
   data() {
     return {
       activeTab: 'dashboard',
+      transactionModal: false,
+selectedStallForModal: null,
+modalTransactions: [],
+modalTransactionsLoading: false,
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
@@ -3484,6 +3548,26 @@ export default {
 },
 
   methods: {
+
+    async viewAllTransactions(item) {
+  this.selectedStallForModal = item
+  this.transactionModal = true
+  this.modalTransactionsLoading = true
+  
+  try {
+    const days = 30
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallId=${item.id}&days=${days}&limit=50`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    this.modalTransactions = res.data || []
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.modalTransactions = []
+  } finally {
+    this.modalTransactionsLoading = false
+  }
+},
 
       // =============================================
   // REVENUE EXPANDABLE ROWS
@@ -14515,6 +14599,122 @@ async loadRevenueData() {
   
   .revenue-chart-container {
     height: 200px !important;
+  }
+}
+
+/* ============================================ */
+/* TRANSACTION MODAL STYLES                     */
+/* ============================================ */
+
+.modal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.modal-stat {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.modal-stat-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.15rem;
+}
+
+.modal-stat-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-transactions {
+  margin-top: 0.5rem;
+}
+
+.modal-transactions h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.modal-transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.modal-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.modal-tx-date {
+  min-width: 100px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.modal-tx-id {
+  min-width: 80px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: monospace;
+}
+
+.modal-tx-items {
+  min-width: 60px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.modal-tx-amount {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .modal-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .modal-transaction-item {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .modal-tx-date {
+    min-width: 70px;
+    font-size: 0.6rem;
+  }
+  
+  .modal-tx-id {
+    min-width: 50px;
+    font-size: 0.6rem;
+  }
+  
+  .modal-tx-amount {
+    min-width: 50px;
+    font-size: 0.65rem;
   }
 }
 
