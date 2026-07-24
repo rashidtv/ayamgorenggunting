@@ -2142,134 +2142,129 @@
 
 <div v-else>
   <div class="revenue-table-wrapper">
-    <!-- Table Header -->
+    <!-- Table Header - EXACTLY like Stall Performance -->
     <div class="revenue-table-header">
-      <span class="revenue-table-rank sortable" @click="sortRevenue('rank')">
-        Rank <span class="sort-arrow">{{ getRevenueSortArrow('rank') }}</span>
-      </span>
-      <span class="revenue-table-name sortable" @click="sortRevenue('name')">
-        Stall <span class="sort-arrow">{{ getRevenueSortArrow('name') }}</span>
-      </span>
-      <span class="revenue-table-state sortable" @click="sortRevenue('state')">
-        State <span class="sort-arrow">{{ getRevenueSortArrow('state') }}</span>
-      </span>
-      <span class="revenue-table-revenue sortable" @click="sortRevenue('revenue')">
-        Revenue <span class="sort-arrow">{{ getRevenueSortArrow('revenue') }}</span>
-      </span>
-      <span class="revenue-table-status sortable" @click="sortRevenue('status')">
-        Status <span class="sort-arrow">{{ getRevenueSortArrow('status') }}</span>
-      </span>
-      <span class="revenue-table-details">Details</span>
+      <span class="revenue-table-header-rank">Rank</span>
+      <span class="revenue-table-header-name">Stall</span>
+      <span class="revenue-table-header-state">State</span>
+      <span class="revenue-table-header-revenue">Revenue</span>
+      <span class="revenue-table-header-status">Status</span>
+      <span class="revenue-table-header-details">Details</span>
     </div>
     
     <!-- Table Body -->
     <div class="revenue-table-body">
+      <!-- Each row - EXACTLY like Stall Performance -->
       <div 
         v-for="(item, index) in paginatedRevenueData" 
         :key="item.id" 
-        class="revenue-table-row"
+        class="revenue-table-row clickable-item"
+        @click="toggleRevenueRowExpand(item.id)"
       >
-        <!-- Main Row -->
-        <div class="revenue-table-main-row clickable-item" @click="toggleRevenueRowExpand(item.id)">
-          <span class="revenue-table-rank">
-            <span class="rank-number" :class="getRankClass(index)">
-              {{ index + 1 }}
-            </span>
+        <!-- Rank -->
+        <span class="revenue-table-rank">
+          <span class="rank-number" :class="getRankClass(index)">
+            {{ index + 1 }}
           </span>
-          
-          <span class="revenue-table-name">
-            <span class="stall-name-text">{{ item.name }}</span>
-            <span class="stall-code-text">{{ item.code }}</span>
-          </span>
-          
-          <span class="revenue-table-state">
-            <span class="state-tag">{{ item.state || '-' }}</span>
-          </span>
-          
-          <span class="revenue-table-revenue">
-            {{ formatCurrency(item.revenue || 0) }}
-          </span>
-          
-          <span class="revenue-table-status">
-            <span :class="['status-indicator', getRevenueStatusClass(item)]">
-              {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
-            </span>
-          </span>
-          
-          <span class="revenue-table-details">
-            <span class="expand-icon">{{ expandedRevenueRows.includes(item.id) ? '▲' : '▼' }}</span>
-          </span>
-        </div>
+        </span>
         
-        <!-- Expanded Details Row -->
-        <div v-if="expandedRevenueRows.includes(item.id)" class="revenue-table-expanded-row">
-          <div class="revenue-expanded-content">
-            <!-- Stats Grid -->
-            <div class="revenue-expanded-stats">
-              <div class="revenue-expanded-stat clickable" @click="viewAllTransactions(item)">
-  <span class="expanded-stat-label">📊 Total Transactions</span>
-  <span class="expanded-stat-value">{{ formatNumber(item.transactions || 0) }}</span>
-  <span class="expanded-stat-sub">Click to view all →</span>
-</div>
-              <div class="revenue-expanded-stat">
-                <span class="expanded-stat-label">💰 Avg Transaction</span>
-                <span class="expanded-stat-value">{{ formatCurrency(item.avgTransaction || 0) }}</span>
-              </div>
-              <div class="revenue-expanded-stat">
-                <span class="expanded-stat-label">📈 Revenue Trend</span>
-                <span class="expanded-stat-value" :class="getRevenueTrendClass(item)">
-                  {{ getRevenueTrend(item) }}
+        <!-- Stall Name -->
+        <span class="revenue-table-name">
+          <span class="stall-name-text">{{ item.name }}</span>
+          <span class="stall-code-text">{{ item.code }}</span>
+        </span>
+        
+        <!-- State -->
+        <span class="revenue-table-state">
+          <span class="state-tag">{{ item.state || '-' }}</span>
+        </span>
+        
+        <!-- Revenue -->
+        <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+        
+        <!-- Status -->
+        <span class="revenue-table-status">
+          <span :class="['status-indicator', getRevenueStatusClass(item)]">
+            {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
+          </span>
+        </span>
+        
+        <!-- Details (expand icon) -->
+        <span class="revenue-table-details">
+          <span class="expand-icon">{{ expandedRevenueRows.includes(item.id) ? '▲' : '▼' }}</span>
+        </span>
+      </div>
+      
+      <!-- Expanded Row - sits BELOW -->
+      <div 
+        v-if="expandedRevenueRows.includes(item.id)" 
+        v-for="item in paginatedRevenueData" 
+        :key="'exp-'+item.id" 
+        class="revenue-table-expanded-row"
+      >
+        <div class="revenue-expanded-content">
+          <!-- Stats Grid -->
+          <div class="revenue-expanded-stats">
+            <div class="revenue-expanded-stat clickable" @click="viewAllTransactions(item)">
+              <span class="expanded-stat-label">📊 Total Transactions</span>
+              <span class="expanded-stat-value">{{ formatNumber(item.transactions || 0) }}</span>
+              <span class="expanded-stat-sub">Click to view all →</span>
+            </div>
+            <div class="revenue-expanded-stat">
+              <span class="expanded-stat-label">💰 Avg Transaction</span>
+              <span class="expanded-stat-value">{{ formatCurrency(item.avgTransaction || 0) }}</span>
+            </div>
+            <div class="revenue-expanded-stat">
+              <span class="expanded-stat-label">📈 Revenue Trend</span>
+              <span class="expanded-stat-value" :class="getRevenueTrendClass(item)">
+                {{ getRevenueTrend(item) }}
+              </span>
+            </div>
+            <div class="revenue-expanded-stat">
+              <span class="expanded-stat-label">🏆 Top Item</span>
+              <span class="expanded-stat-value">{{ item.topItem || '-' }}</span>
+            </div>
+          </div>
+          
+          <!-- Recent Transactions -->
+          <div class="revenue-expanded-transactions">
+            <div class="recent-transactions-header">
+              <span>📜 Recent Transactions</span>
+              <button @click="viewAllTransactions(item)" class="btn-modern secondary small">
+                View All →
+              </button>
+            </div>
+            
+            <div v-if="expandedTransactionLoading === item.id" class="loading-state small">
+              <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+              <p>Loading transactions...</p>
+            </div>
+            
+            <div v-else-if="expandedTransactions[item.id]?.length === 0" class="empty-state-modern small">
+              <span>📭</span>
+              <p>No transactions found</p>
+            </div>
+            
+            <div v-else class="recent-transactions-list">
+              <div 
+                v-for="tx in expandedTransactions[item.id]?.slice(0, 5)" 
+                :key="tx.id" 
+                class="recent-transaction-item"
+              >
+                <span class="transaction-date">{{ formatDate(tx.created_at) }}</span>
+                <span class="transaction-id">#{{ tx.order_id || 'N/A' }}</span>
+                <span class="transaction-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
+                <span class="transaction-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+                <span :class="['transaction-status', tx.status || 'completed']">
+                  {{ tx.status || '✅ Completed' }}
                 </span>
-              </div>
-              <div class="revenue-expanded-stat">
-                <span class="expanded-stat-label">🏆 Top Item</span>
-                <span class="expanded-stat-value">{{ item.topItem || '-' }}</span>
               </div>
             </div>
             
-            <!-- Recent Transactions -->
-            <div class="revenue-expanded-transactions">
-              <div class="recent-transactions-header">
-                <span>📜 Recent Transactions</span>
-                <button 
-                  @click="viewAllTransactions(item)" 
-                  class="btn-modern secondary small"
-                >
-                  View All →
-                </button>
-              </div>
-              
-              <div v-if="expandedTransactionLoading === item.id" class="loading-state small">
-                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-                <p>Loading transactions...</p>
-              </div>
-              
-              <div v-else-if="expandedTransactions[item.id]?.length === 0" class="empty-state-modern small">
-                <span>📭</span>
-                <p>No transactions found</p>
-              </div>
-              
-              <div v-else class="recent-transactions-list">
-                <div 
-                  v-for="tx in expandedTransactions[item.id]?.slice(0, 5)" 
-                  :key="tx.id" 
-                  class="recent-transaction-item"
-                >
-                  <span class="transaction-date">{{ formatDate(tx.created_at) }}</span>
-                  <span class="transaction-id">#{{ tx.order_id || 'N/A' }}</span>
-                  <span class="transaction-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
-                  <span class="transaction-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-                  <span :class="['transaction-status', tx.status || 'completed']">
-                    {{ tx.status || '✅ Completed' }}
-                  </span>
-                </div>
-              </div>
-              
-              <div v-if="expandedTransactions[item.id]?.length > 5" class="view-more-link">
-                <button @click="viewAllTransactions(item)" class="btn-modern secondary small">
-                  View all {{ expandedTransactions[item.id].length }} transactions →
-                </button>
-              </div>
+            <div v-if="expandedTransactions[item.id]?.length > 5" class="view-more-link">
+              <button @click="viewAllTransactions(item)" class="btn-modern secondary small">
+                View all {{ expandedTransactions[item.id].length }} transactions →
+              </button>
             </div>
           </div>
         </div>
@@ -12430,7 +12425,7 @@ async loadRevenueData() {
 }
 
 /* ============================================ */
-/* REVENUE TABLE - MATCH STALL PERFORMANCE      */
+/* REVENUE TABLE - EXACTLY LIKE STALL PERFORMANCE */
 /* ============================================ */
 
 .revenue-table-wrapper {
@@ -12440,7 +12435,7 @@ async loadRevenueData() {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Header - Exactly like stall performance */
+/* Header - EXACTLY like Stall Performance */
 .revenue-table-header {
   display: flex;
   align-items: center;
@@ -12472,7 +12467,7 @@ async loadRevenueData() {
   gap: 0.15rem;
 }
 
-/* Row - Exactly like stall performance */
+/* Row - EXACTLY like Stall Performance */
 .revenue-table-row {
   display: flex;
   align-items: center;
@@ -12484,9 +12479,6 @@ async loadRevenueData() {
   transition: var(--transition);
   flex-shrink: 0;
   min-width: 650px;
-  flex-direction: row !important;
-  background: transparent !important;
-  margin: 0 !important;
 }
 
 .revenue-table-row:hover {
@@ -12495,7 +12487,7 @@ async loadRevenueData() {
   transform: translateX(2px);
 }
 
-/* Column widths - match stall performance */
+/* Column widths - EXACTLY like Stall Performance */
 .revenue-table-rank { min-width: 40px; text-align: center; }
 .revenue-table-name { flex: 1; min-width: 80px; text-align: left; }
 .revenue-table-state { min-width: 80px; text-align: left; }
@@ -12507,7 +12499,7 @@ async loadRevenueData() {
   color: var(--primary);
 }
 
-/* Rank numbers - match stall performance */
+/* Rank numbers - EXACTLY like Stall Performance */
 .rank-number {
   display: inline-flex;
   align-items: center;
@@ -12525,7 +12517,7 @@ async loadRevenueData() {
 .rank-number.silver { background: #d1d5db; color: #374151; }
 .rank-number.bronze { background: #f59e0b; color: #78350f; }
 
-/* Status indicator - match stall performance */
+/* Status indicator - EXACTLY like Stall Performance */
 .status-indicator {
   display: inline-flex;
   align-items: center;
@@ -12554,6 +12546,14 @@ async loadRevenueData() {
   border-radius: 10px;
   font-size: 0.6rem;
   color: var(--text-secondary);
+}
+
+/* Stall code text */
+.stall-code-text {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
 }
 
 /* ============================================ */
@@ -12735,6 +12735,7 @@ async loadRevenueData() {
 /* RESPONSIVE - MATCH STALL PERFORMANCE         */
 /* ============================================ */
 
+/* Tablet */
 @media (max-width: 768px) {
   .revenue-table-header {
     gap: 0.3rem;
@@ -12784,6 +12785,7 @@ async loadRevenueData() {
   }
 }
 
+/* Mobile - Card view with labels */
 @media (max-width: 480px) {
   .revenue-table-header {
     display: none !important;
@@ -12806,11 +12808,18 @@ async loadRevenueData() {
     min-width: auto !important;
   }
   
-  .revenue-table-row .revenue-table-cell {
+  .revenue-table-row .revenue-table-rank,
+  .revenue-table-row .revenue-table-name,
+  .revenue-table-row .revenue-table-state,
+  .revenue-table-row .revenue-table-revenue,
+  .revenue-table-row .revenue-table-status,
+  .revenue-table-row .revenue-table-details {
     display: flex !important;
     align-items: center;
     padding: 0.15rem 0 !important;
     width: 100% !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
   }
   
   /* Mobile labels */
@@ -12860,7 +12869,7 @@ async loadRevenueData() {
   }
   
   .revenue-table-row .revenue-table-details {
-    justify-content: flex-end;
+    justify-content: flex-end !important;
     padding-top: 0.3rem !important;
     border-top: 1px solid var(--border-light);
     margin-top: 0.3rem;
@@ -12875,7 +12884,7 @@ async loadRevenueData() {
     flex-shrink: 0;
   }
   
-  /* Mobile values - left aligned */
+  /* Mobile values - full width */
   .revenue-table-row .revenue-table-rank,
   .revenue-table-row .revenue-table-name,
   .revenue-table-row .revenue-table-state,
@@ -12947,75 +12956,9 @@ async loadRevenueData() {
   }
 }
 
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: var(--text-secondary);
-}
-
-.loading-state .loading-spinner {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-}
-
-.loading-state .spinner-ring {
-  width: 100%;
-  height: 100%;
-  border: 3px solid var(--border);
-  border-radius: 50%;
-  border-top-color: var(--primary);
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive - Revenue Tab */
-@media (max-width: 1024px) {
-  .revenue-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .revenue-charts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .revenue-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .revenue-stats-grid .stat-chip .stat-chip-value {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .revenue-stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-  
-  .revenue-stats-grid .stat-chip {
-    padding: 0.35rem 0.6rem;
-  }
-  
-  .revenue-stats-grid .stat-chip .stat-chip-value {
-    font-size: 0.9rem;
-  }
-  
-  .revenue-stats-grid .stat-chip .stat-chip-label {
-    font-size: 0.55rem;
-  }
-}
-
+/* ============================================ */
+/* KPI CARD - CLICKABLE                        */
+/* ============================================ */
 .kpi-card.clickable {
   cursor: pointer;
 }
