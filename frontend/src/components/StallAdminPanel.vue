@@ -13724,4 +13724,93 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* REVENUE TAB - MOBILE FIXES                   */
+/* ============================================ */
+
+/* 1. Stack charts on mobile */
+@media (max-width: 768px) {
+  .revenue-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .revenue-chart-card {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  .revenue-chart-container {
+    height: 180px !important;
+    width: 100% !important;
+  }
+}
+
+/* 2. Fix expanded row - stays below */
+.revenue-table-expanded-row {
+  display: block !important;
+  width: 100% !important;
+  background: var(--background);
+  border-bottom: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+  overflow: hidden !important;
+}
+
+.revenue-expanded-content {
+  padding: 0.75rem 1rem 0.75rem 3.5rem;
+  display: block !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* 3. Prevent overflow on mobile */
+@media (max-width: 768px) {
+  .revenue-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .revenue-table-header,
+  .revenue-table-row {
+    min-width: 500px !important;
+  }
+  
+  .revenue-expanded-content {
+    padding: 0.5rem !important;
+    overflow-x: auto !important;
+  }
+  
+  .revenue-expanded-stats {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.3rem !important;
+  }
+  
+  .recent-transaction-item {
+    flex-wrap: wrap !important;
+    font-size: 0.6rem !important;
+  }
+  
+  .transaction-date {
+    min-width: 60px !important;
+  }
+  
+  .transaction-id {
+    min-width: 40px !important;
+  }
+  
+  .transaction-amount {
+    min-width: 40px !important;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
 </style>
