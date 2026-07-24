@@ -2536,8 +2536,15 @@ export default {
         { id: 'stalls', label: 'Stalls', icon: '🏪' },
         { id: 'users', label: 'Users', icon: '👥' },
         { id: 'menu', label: 'Menu', icon: '📋' },
-        { id: 'revenue', label: 'Revenue', icon: '💰' }
+        { id: 'revenue', label: 'Revenue', icon: '💰' },
+        { id: 'transactions', label: 'Transactions', icon: '📋' } // ✅ Add this
       ],
+      transactions: [],
+    transactionLoading: false,
+    transactionStallFilter: 'all',
+    transactionSearch: '',
+    transactionPage: 1,
+    transactionItemsPerPage: 10,
        expandedRevenueRows: [],
     expandedTransactions: {},
     expandedTransactionLoading: null,
@@ -3533,12 +3540,23 @@ async loadStallTransactions(stallId) {
 },
   
   viewAllTransactions(item) {
-  // Show a toast notification with transaction count
+  // ✅ Navigate to transactions tab with filter
+  this.activeTab = 'transactions'
+  // Pass stall ID as filter
+  this.transactionStallFilter = item.id
+  this.transactionSearch = item.name
+  
+  // Load transactions for this stall
+  this.loadTransactionsData()
+  
+  // Close the expanded row
+  this.expandedRevenueRows = []
+  
   this.$emit('show-notification', 
-    `📊 ${item.name} - ${item.transactions || 0} transactions`, 
+    `📊 Viewing transactions for ${item.name}`, 
     'info'
   )
-  },
+},
   
   formatDate(dateStr) {
     if (!dateStr) return '-'
@@ -3716,6 +3734,7 @@ async loadRevenueData() {
       return
     }
 
+    // ✅ Get stall performance data
     const res = await axios.get(
       `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
       { headers: { Authorization: `Bearer ${this.token}` } }
@@ -3723,17 +3742,58 @@ async loadRevenueData() {
 
     const performanceData = res.data || []
     
+    // ✅ Get transactions to find top items per stall
+    let transactionsData = []
+    try {
+      const txRes = await axios.get(
+        `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=100`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      )
+      transactionsData = txRes.data || []
+    } catch (txErr) {
+      console.warn('Could not load transactions for top items:', txErr)
+    }
+
+    // ✅ Build revenue data with real top items
     this.revenueData = this.stalls.map(stall => {
       const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      
+      // ✅ Find top item from real transactions
+      let topItem = '-'
+      const stallTransactions = transactionsData.filter(tx => tx.stall_id === stall.id)
+      
+      if (stallTransactions.length > 0) {
+        // Count items sold per stall
+        const itemCount = {}
+        stallTransactions.forEach(tx => {
+          if (tx.items && Array.isArray(tx.items)) {
+            tx.items.forEach(item => {
+              const name = item.item_name || item.name
+              if (name) {
+                itemCount[name] = (itemCount[name] || 0) + (item.quantity || 1)
+              }
+            })
+          }
+        })
+        
+        // Find top item
+        let maxCount = 0
+        for (const [name, count] of Object.entries(itemCount)) {
+          if (count > maxCount) {
+            maxCount = count
+            topItem = name
+          }
+        }
+      }
+
       return {
         ...stall,
         revenue: parseFloat(perf?.revenue) || 0,
         transactions: parseInt(perf?.items_sold) || 0,
         avgTransaction: parseFloat(perf?.avg_transaction) || 0,
         state: stall.state || 'Unknown',
-        // Add some mock data for demo
-        revenueGrowth: Math.round((Math.random() * 40) - 10),
-        topItem: ['Ayam Goreng', 'Nasi Lemak', 'Mee Goreng', 'Roti Canai', 'Teh Tarik'][Math.floor(Math.random() * 5)]
+        revenueGrowth: Math.round((Math.random() * 40) - 10), // Keep this for now
+        topItem: topItem // ✅ Real top item from transactions
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
@@ -12360,7 +12420,7 @@ async loadRevenueData() {
   background: var(--background);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.7rem !important;  /* ✅ Force smaller size */
+  font-size: 0.7rem;  /* ✅ REMOVED !important - let cascade work */
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
@@ -12371,7 +12431,7 @@ async loadRevenueData() {
   cursor: pointer;
   user-select: none;
   transition: var(--transition);
-  font-size: 0.7rem !important;  /* ✅ Match the header size */
+  font-size: 0.7rem;  /* ✅ REMOVED !important */
 }
 
 .revenue-table-header .sortable:hover {
@@ -12384,6 +12444,7 @@ async loadRevenueData() {
   color: var(--text-tertiary);
 }
 
+/* Column widths - desktop */
 .revenue-table-rank { min-width: 50px; text-align: center; }
 .revenue-table-name { flex: 1.5; min-width: 100px; text-align: left; }
 .revenue-table-state { flex: 0.8; min-width: 80px; text-align: left; }
@@ -12414,19 +12475,6 @@ async loadRevenueData() {
 
 .revenue-table-row:last-child {
   border-bottom: none;
-}
-
-.revenue-table-rank { min-width: 50px; text-align: center; }
-.revenue-table-name { flex: 1.5; min-width: 100px; text-align: left; }
-.revenue-table-state { flex: 0.8; min-width: 80px; text-align: left; }
-.revenue-table-revenue { flex: 1; min-width: 80px; text-align: right; font-weight: 600; color: var(--text); }
-.revenue-table-transactions { flex: 0.8; min-width: 70px; text-align: right; color: var(--text-secondary); }
-.revenue-table-avg { flex: 0.8; min-width: 70px; text-align: right; color: var(--text-secondary); }
-.revenue-table-status { flex: 0.8; min-width: 80px; text-align: center; }
-.revenue-table-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
-
-.revenue-table-row:hover .revenue-table-details {
-  color: var(--primary);
 }
 
 .stall-code-text {
