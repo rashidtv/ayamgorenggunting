@@ -16154,4 +16154,128 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* UNIFY ALL TABLES - DESKTOP COLUMN WIDTHS    */
+/* ============================================ */
+
+/* 1. REVENUE TABLE - Match Inventory widths */
+.revenue-table-wrapper {
+  min-width: 600px !important;
+}
+
+.revenue-table-header,
+.revenue-table-row {
+  min-width: 600px !important;
+}
+
+/* Match Inventory column widths */
+.revenue-table-cell.rank {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  justify-content: center !important;
+}
+
+.revenue-table-cell.name {
+  flex: 1 !important;
+  min-width: 100px !important;
+}
+
+.revenue-table-cell.state {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+.revenue-table-cell.revenue {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  justify-content: flex-end !important;
+}
+
+.revenue-table-cell.status {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  justify-content: center !important;
+}
+
+.revenue-table-cell.actions {
+  width: 50px !important;
+  min-width: 50px !important;
+  max-width: 50px !important;
+  justify-content: center !important;
+}
+
+/* 2. TRANSACTIONS TABLE - Match Inventory widths */
+.transactions-table-wrapper {
+  min-width: 700px !important;
+}
+
+.transactions-table-header,
+.transactions-table-row {
+  min-width: 700px !important;
+}
+
+/* Match Inventory column widths */
+.transactions-table-cell.order {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+}
+
+.transactions-table-cell.stall {
+  flex: 1 !important;
+  min-width: 80px !important;
+}
+
+.transactions-table-cell.items {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  justify-content: center !important;
+}
+
+.transactions-table-cell.amount {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  justify-content: flex-end !important;
+}
+
+.transactions-table-cell.status {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  justify-content: center !important;
+}
+
+.transactions-table-cell.date {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
+
+.transactions-table-cell.actions {
+  width: 50px !important;
+  min-width: 50px !important;
+  max-width: 50px !important;
+  justify-content: center !important;
+}
+
+/* 3. Fix header font size to match Inventory */
+.revenue-table-header,
+.transactions-table-header {
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* 4. Fix cell padding to match Inventory */
+.revenue-table-row,
+.transactions-table-row {
+  padding: 0.5rem 0.75rem !important;
+}
+
 </style>
