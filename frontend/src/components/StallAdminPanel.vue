@@ -2522,14 +2522,6 @@
 <div class="transaction-items-section">
   <h4>🛒 Items</h4>
   
-  <!-- Debug info - shows what items exist -->
-  <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; overflow: auto; max-height: 100px;">
-    <strong>🔍 Debug Info:</strong>
-    <div>Items found: {{ getTransactionItems(selectedTransaction).length }}</div>
-    <div>Raw items: {{ selectedTransaction?.items }}</div>
-    <div>Available keys: {{ selectedTransaction ? Object.keys(selectedTransaction).join(', ') : 'none' }}</div>
-  </div>
-  
   <div v-if="getTransactionItems(selectedTransaction).length > 0" class="transaction-items-list">
     <div class="transaction-items-header">
       <span class="item-header-name">Item</span>
