@@ -4068,49 +4068,15 @@ async loadTransactions() {
   }
 },
 
-// ✅ REPLACE with this:
+// ✅ THIS IS THE PERMANENT FIX - Use after backend changes
 getProcessedByName(transaction) {
   if (!transaction) return 'System'
   
-  // EXISTING BEHAVIOR - stays first
-  const directName = transaction.user_name || 
-                     transaction.cashier_name || 
-                     transaction.processed_by ||
-                     transaction.created_by
-  
-  if (directName) {
-    console.log('👤 Found direct user name:', directName)
-    return directName
-  }
-  
-  // NEW: Check all fields for user/cashier related names (SAFE ADDITION)
-  const userFields = ['username', 'full_name', 'staff_name', 'employee_name', 'cashier', 'user']
-  for (const key of userFields) {
-    if (transaction[key] && typeof transaction[key] === 'string' && transaction[key].trim()) {
-      console.log('👤 Found user in field:', key, '=', transaction[key])
-      return transaction[key]
-    }
-  }
-  
-  // NEW: Check nested objects
-  if (transaction.user && typeof transaction.user === 'object') {
-    const userName = transaction.user.username || transaction.user.full_name || transaction.user.name
-    if (userName) {
-      console.log('👤 Found user in nested object:', userName)
-      return userName
-    }
-  }
-  
-  if (transaction.cashier && typeof transaction.cashier === 'object') {
-    const cashierName = transaction.cashier.username || transaction.cashier.full_name || transaction.cashier.name
-    if (cashierName) {
-      console.log('👤 Found cashier in nested object:', cashierName)
-      return cashierName
-    }
-  }
-  
-  console.log('👤 No user found, returning System')
-  return 'System'  // ← Same fallback as before
+  // These fields will now have real data from the backend
+  return transaction.cashier_name || 
+         transaction.user_full_name || 
+         transaction.username || 
+         'System'
 },
 
 

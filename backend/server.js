@@ -1890,10 +1890,10 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
     
     // Create the order
     const orderResult = await client.query(
-      `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status)
-       VALUES ($1, $2, $3, $4, 'completed')
+      `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id)
+       VALUES ($1, $2, $3, $4, 'completed', $5)
        RETURNING id, order_number, total_amount, item_count`,
-      [targetStallId, orderNumber, total, itemCount || items.length]
+      [targetStallId, orderNumber, total, itemCount || items.length, req.user.id]  // ← ADD req.user.id
     );
     
     const order = orderResult.rows[0];
@@ -2306,31 +2306,35 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
     // Build the query
     // ============================================================
     let query = `
-      SELECT 
-        o.id,
-        o.order_number,
-        o.total_amount,
-        o.item_count,
-        o.status,
-        o.created_at,
-        s.name as stall_name,
-        s.id as stall_id,
-        COALESCE(
-          (SELECT json_agg(
-            json_build_object(
-              'item_name', sales.item_name,
-              'price', sales.price,
-              'quantity', 1
-            )
+    SELECT 
+      o.id,
+      o.order_number,
+      o.total_amount,
+      o.item_count,
+      o.status,
+      o.created_at,
+      o.user_id,
+      s.name as stall_name,
+      s.id as stall_id,
+      u.username as cashier_name,        -- ← ADD THIS
+      u.full_name as user_full_name,     -- ← ADD THIS
+      COALESCE(
+        (SELECT json_agg(
+          json_build_object(
+            'item_name', sales.item_name,
+            'price', sales.price,
+            'quantity', 1
           )
-          FROM sales
-          WHERE sales.order_id = o.id),
-          '[]'
-        ) as items
-      FROM orders o
-      LEFT JOIN stalls s ON o.stall_id = s.id
-      WHERE o.stall_id = ANY($1::int[])
-    `;
+        )
+        FROM sales
+        WHERE sales.order_id = o.id),
+        '[]'
+      ) as items
+    FROM orders o
+    LEFT JOIN stalls s ON o.stall_id = s.id
+    LEFT JOIN users u ON o.user_id = u.id   -- ← ADD THIS JOIN
+    WHERE o.stall_id = ANY($1::int[])
+  `;
 
     const params = [targetStallIds];
     let paramCount = 2;
