@@ -2281,6 +2281,7 @@
     </div>
   </div>
 </div>
+</div> 
 
 <!-- ===== TRANSACTIONS TAB ===== -->
 <div v-if="activeTab === 'transactions'" class="tab-panel">
