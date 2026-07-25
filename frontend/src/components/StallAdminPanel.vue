@@ -2435,7 +2435,7 @@
                   {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
                 </span>
               </span>
-              <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
+              <span class="transactions-table-date">{{ formatTableDate(tx.created_at) }}</span>
               <span class="transactions-table-details">
                 <span class="view-details-btn">👁️</span>
               </span>
@@ -2517,11 +2517,19 @@
         </div>
       </div>
       
-     <!-- Items List -->
+     <!-- ✅ REPLACE the items section with this: -->
+<!-- Items List -->
 <div class="transaction-items-section">
   <h4>🛒 Items</h4>
   
-  <!-- Try multiple possible item structures -->
+  <!-- Debug info - shows what items exist -->
+  <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; overflow: auto; max-height: 100px;">
+    <strong>🔍 Debug Info:</strong>
+    <div>Items found: {{ getTransactionItems(selectedTransaction).length }}</div>
+    <div>Raw items: {{ selectedTransaction?.items }}</div>
+    <div>Available keys: {{ selectedTransaction ? Object.keys(selectedTransaction).join(', ') : 'none' }}</div>
+  </div>
+  
   <div v-if="getTransactionItems(selectedTransaction).length > 0" class="transaction-items-list">
     <div class="transaction-items-header">
       <span class="item-header-name">Item</span>
@@ -2543,6 +2551,9 @@
   <div v-else class="empty-state-modern small">
     <span>📭</span>
     <p>No items found for this transaction</p>
+    <p style="font-size: 0.6rem; color: var(--text-tertiary);">
+      Raw data: {{ selectedTransaction?.items ? JSON.stringify(selectedTransaction.items).substring(0, 100) : 'null' }}
+    </p>
   </div>
 </div>
       
@@ -3844,6 +3855,23 @@ transactionStats() {
 
   methods: {
 
+    // =============================================
+// NEW METHOD - For transactions table only
+// =============================================
+formatTableDate(dateStr) {
+  if (!dateStr) return ''
+  
+  const date = new Date(dateStr)
+  
+  // Always show date only (no time) for the table
+  return date.toLocaleDateString('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+},
+
     async fetchFullTransaction(transactionId) {
   if (!transactionId) return
   
@@ -3882,98 +3910,105 @@ transactionStats() {
 // TRANSACTION ITEM HELPERS
 // =============================================
 
+// ✅ REPLACE with this:
 getTransactionItems(transaction) {
   if (!transaction) return []
   
-  console.log('🔍 Looking for items in transaction:', {
-    has_items: !!transaction.items,
-    items_type: typeof transaction.items,
-    items_is_array: Array.isArray(transaction.items),
-    items_length: transaction.items?.length,
-    has_order_items: !!transaction.order_items,
-    has_details: !!transaction.details,
-    has_data: !!transaction.data
-  })
-  
-  // Try multiple possible locations
-  if (transaction.items && Array.isArray(transaction.items) && transaction.items.length > 0) {
+  // EXISTING BEHAVIOR - stays first
+  if (transaction.items && Array.isArray(transaction.items)) {
+    if (transaction.items.length > 0) {
+      console.log('📦 First item structure:', transaction.items[0])
+    }
     return transaction.items
   }
   
-  if (transaction.order_items && Array.isArray(transaction.order_items) && transaction.order_items.length > 0) {
-    return transaction.order_items
+  // NEW: Check alternative locations (SAFE ADDITIONS)
+  const alternatives = ['order_items', 'details', 'products', 'menu_items', 'orderItems', 'orderDetails']
+  for (const key of alternatives) {
+    if (transaction[key] && Array.isArray(transaction[key]) && transaction[key].length > 0) {
+      console.log('🔍 Found items in:', key, transaction[key].length, 'items')
+      return transaction[key]
+    }
   }
   
-  if (transaction.details && Array.isArray(transaction.details) && transaction.details.length > 0) {
-    return transaction.details
+  // NEW: Check if items is a string that needs parsing
+  if (transaction.items && typeof transaction.items === 'string') {
+    try {
+      const parsed = JSON.parse(transaction.items)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log('🔍 Parsed items from string:', parsed.length, 'items')
+        return parsed
+      }
+    } catch (e) {
+      // Silent fail - keep empty array
+      console.warn('Could not parse items string')
+    }
   }
   
-  // Check if items are in a nested object
+  // NEW: Check if there's a nested data object with items
   if (transaction.data) {
     if (transaction.data.items && Array.isArray(transaction.data.items)) {
+      console.log('🔍 Found items in data.items')
       return transaction.data.items
     }
     if (transaction.data.order_items && Array.isArray(transaction.data.order_items)) {
+      console.log('🔍 Found items in data.order_items')
       return transaction.data.order_items
     }
   }
   
-  // Check if items is a string that needs parsing
-  if (transaction.items && typeof transaction.items === 'string') {
-    try {
-      const parsed = JSON.parse(transaction.items)
-      if (Array.isArray(parsed)) {
-        return parsed
-      }
-    } catch (e) {
-      console.warn('Could not parse items string:', e)
-    }
-  }
-  
-  // If we have an item_count but no items, try to fetch full transaction
-  if (transaction.item_count > 0 || transaction.total_items > 0) {
-    this.fetchFullTransaction(transaction.id)
-    return []
-  }
-  
-  return []
+  return []  // ← Same fallback as before
 },
 
+
+
+// ✅ ADD THIS NEW METHOD:
 getItemName(item) {
   if (!item) return 'Unknown Item'
-  return item.item_name || item.name || item.product_name || item.menu_name || 'Unknown Item'
+  
+  // Try all possible name fields
+  return item.item_name || 
+         item.name || 
+         item.product_name || 
+         item.menu_name || 
+         item.title || 
+         item.description ||
+         'Unknown Item'
 },
 
 getItemQuantity(item) {
   if (!item) return 0
-  return item.quantity || item.qty || item.count || 1
+  return parseInt(item.quantity || item.qty || item.count || 1)
 },
 
 getItemPrice(item) {
   if (!item) return 0
-  return item.price || item.unit_price || item.cost || 0
+  return parseFloat(item.price || item.unit_price || item.cost || 0)
 },
 
 getItemTotal(item) {
-  const qty = this.getItemQuantity(item)
-  const price = this.getItemPrice(item)
-  return qty * price
+  return this.getItemQuantity(item) * this.getItemPrice(item)
 },
 
 // =============================================
 // IMPROVED TRANSACTION DETAIL VIEW
 // =============================================
 
+// ✅ REPLACE with this:
 async viewTransactionDetails(tx) {
-  console.log('📋 Opening transaction:', tx)
+  console.log('📋 Transaction keys:', Object.keys(tx))
+  console.log('📋 Items:', tx.items)
+  console.log('📋 User fields:', {
+    user_name: tx.user_name,
+    cashier_name: tx.cashier_name,
+    processed_by: tx.processed_by,
+    created_by: tx.created_by,
+    user_id: tx.user_id,
+    cashier_id: tx.cashier_id
+  })
   
-  // Try to fetch full transaction details if we have an ID
-  if (tx.id && (!tx.items || tx.items.length === 0)) {
-    await this.fetchFullTransaction(tx.id)
-  } else {
-    this.selectedTransaction = tx
-  }
-  
+  // Just use the data we already have - no fetch attempt
+  this.selectedTransaction = tx
   this.transactionDetailModal = true
 },
 
@@ -4041,33 +4076,49 @@ async loadTransactions() {
   }
 },
 
+// ✅ REPLACE with this:
 getProcessedByName(transaction) {
   if (!transaction) return 'System'
   
-  // Try to find the cashier from your users list
-  if (transaction.user_id) {
-    const user = this.users.find(u => u.id === transaction.user_id)
-    if (user) {
-      return user.username || user.full_name || 'User'
+  // EXISTING BEHAVIOR - stays first
+  const directName = transaction.user_name || 
+                     transaction.cashier_name || 
+                     transaction.processed_by ||
+                     transaction.created_by
+  
+  if (directName) {
+    console.log('👤 Found direct user name:', directName)
+    return directName
+  }
+  
+  // NEW: Check all fields for user/cashier related names (SAFE ADDITION)
+  const userFields = ['username', 'full_name', 'staff_name', 'employee_name', 'cashier', 'user']
+  for (const key of userFields) {
+    if (transaction[key] && typeof transaction[key] === 'string' && transaction[key].trim()) {
+      console.log('👤 Found user in field:', key, '=', transaction[key])
+      return transaction[key]
     }
   }
   
-  if (transaction.cashier_id) {
-    const user = this.users.find(u => u.id === transaction.cashier_id)
-    if (user) {
-      return user.username || user.full_name || 'Cashier'
+  // NEW: Check nested objects
+  if (transaction.user && typeof transaction.user === 'object') {
+    const userName = transaction.user.username || transaction.user.full_name || transaction.user.name
+    if (userName) {
+      console.log('👤 Found user in nested object:', userName)
+      return userName
     }
   }
   
-  // Check if any user has a matching username in the transaction
-  for (const user of this.users) {
-    if (user.username && transaction.cashier_name && 
-        user.username.toLowerCase() === transaction.cashier_name.toLowerCase()) {
-      return user.username
+  if (transaction.cashier && typeof transaction.cashier === 'object') {
+    const cashierName = transaction.cashier.username || transaction.cashier.full_name || transaction.cashier.name
+    if (cashierName) {
+      console.log('👤 Found cashier in nested object:', cashierName)
+      return cashierName
     }
   }
   
-  return 'System'
+  console.log('👤 No user found, returning System')
+  return 'System'  // ← Same fallback as before
 },
 
 
