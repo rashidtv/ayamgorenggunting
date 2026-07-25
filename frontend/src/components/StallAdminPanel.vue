@@ -2512,32 +2512,39 @@
         </div>
         <div class="transaction-detail-card">
           <span class="detail-label">👤 Processed By</span>
-          <span class="detail-value">{{ selectedTransaction?.user_name || selectedTransaction?.cashier_name || 'System' }}</span>
+          <span class="detail-value"> {{ getProcessedByName(selectedTransaction) }}
+  </span>
         </div>
       </div>
       
-      <!-- Items List -->
-      <div class="transaction-items-section">
-        <h4>🛒 Items</h4>
-        <div v-if="selectedTransaction?.items && selectedTransaction.items.length > 0" class="transaction-items-list">
-          <div class="transaction-items-header">
-            <span class="item-header-name">Item</span>
-            <span class="item-header-qty">Qty</span>
-            <span class="item-header-price">Price</span>
-            <span class="item-header-total">Total</span>
-          </div>
-          <div v-for="(item, idx) in selectedTransaction.items" :key="idx" class="transaction-item-row">
-            <span class="item-name">{{ item.item_name || item.name }}</span>
-            <span class="item-qty">× {{ item.quantity || 1 }}</span>
-            <span class="item-price">{{ formatCurrency(item.price || 0) }}</span>
-            <span class="item-total">{{ formatCurrency((item.price || 0) * (item.quantity || 1)) }}</span>
-          </div>
-        </div>
-        <div v-else class="empty-state-modern small">
-          <span>📭</span>
-          <p>No items found for this transaction</p>
-        </div>
-      </div>
+     <!-- Items List -->
+<div class="transaction-items-section">
+  <h4>🛒 Items</h4>
+  
+  <!-- Try multiple possible item structures -->
+  <div v-if="getTransactionItems(selectedTransaction).length > 0" class="transaction-items-list">
+    <div class="transaction-items-header">
+      <span class="item-header-name">Item</span>
+      <span class="item-header-qty">Qty</span>
+      <span class="item-header-price">Price</span>
+      <span class="item-header-total">Total</span>
+    </div>
+    <div 
+      v-for="(item, idx) in getTransactionItems(selectedTransaction)" 
+      :key="idx" 
+      class="transaction-item-row"
+    >
+      <span class="item-name">{{ getItemName(item) }}</span>
+      <span class="item-qty">× {{ getItemQuantity(item) }}</span>
+      <span class="item-price">{{ formatCurrency(getItemPrice(item)) }}</span>
+      <span class="item-total">{{ formatCurrency(getItemTotal(item)) }}</span>
+    </div>
+  </div>
+  <div v-else class="empty-state-modern small">
+    <span>📭</span>
+    <p>No items found for this transaction</p>
+  </div>
+</div>
       
     </div>
     <div class="modal-modern-footer">
@@ -3836,6 +3843,161 @@ transactionStats() {
 },
 
   methods: {
+
+    // =============================================
+// TRANSACTION ITEM HELPERS
+// =============================================
+
+getTransactionItems(transaction) {
+  if (!transaction) return []
+  
+  // Try multiple possible structures
+  if (transaction.items && Array.isArray(transaction.items) && transaction.items.length > 0) {
+    return transaction.items
+  }
+  
+  if (transaction.order_items && Array.isArray(transaction.order_items)) {
+    return transaction.order_items
+  }
+  
+  if (transaction.details && Array.isArray(transaction.details)) {
+    return transaction.details
+  }
+  
+  // Check if items are in a nested object
+  if (transaction.data && transaction.data.items && Array.isArray(transaction.data.items)) {
+    return transaction.data.items
+  }
+  
+  return []
+},
+
+getItemName(item) {
+  if (!item) return 'Unknown Item'
+  return item.item_name || item.name || item.product_name || item.menu_name || 'Unknown Item'
+},
+
+getItemQuantity(item) {
+  if (!item) return 0
+  return item.quantity || item.qty || item.count || 1
+},
+
+getItemPrice(item) {
+  if (!item) return 0
+  return item.price || item.unit_price || item.cost || 0
+},
+
+getItemTotal(item) {
+  const qty = this.getItemQuantity(item)
+  const price = this.getItemPrice(item)
+  return qty * price
+},
+
+// =============================================
+// IMPROVED TRANSACTION DETAIL VIEW
+// =============================================
+
+async viewTransactionDetails(tx) {
+  // Try to fetch full transaction details if we only have partial data
+  if (tx.id && (!tx.items || tx.items.length === 0)) {
+    try {
+      const res = await axios.get(`${API_BASE}/transactions/${tx.id}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      this.selectedTransaction = res.data
+    } catch (err) {
+      console.warn('Could not fetch full transaction details:', err)
+      this.selectedTransaction = tx
+    }
+  } else {
+    this.selectedTransaction = tx
+  }
+  
+  this.transactionDetailModal = true
+},
+
+// Also update loadTransactions to fetch items
+async loadTransactions() {
+  this.transactionsLoading = true
+  try {
+    const days = 30
+    const stallIds = this.stalls.map(s => s.id)
+    
+    if (!stallIds || stallIds.length === 0) {
+      this.transactions = []
+      this.transactionsLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=200`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Process transactions to ensure items are properly formatted
+    this.transactions = (res.data || []).map(tx => {
+      // If items are stored as a string (JSON), parse them
+      if (tx.items && typeof tx.items === 'string') {
+        try {
+          tx.items = JSON.parse(tx.items)
+        } catch (e) {
+          tx.items = []
+        }
+      }
+      
+      // If items are stored as an object with keys, convert to array
+      if (tx.items && typeof tx.items === 'object' && !Array.isArray(tx.items)) {
+        tx.items = Object.values(tx.items)
+      }
+      
+      // Ensure items is always an array
+      if (!tx.items || !Array.isArray(tx.items)) {
+        tx.items = []
+      }
+      
+      // If item_count is missing, calculate it
+      if (!tx.item_count && tx.items.length > 0) {
+        tx.item_count = tx.items.reduce((sum, item) => sum + (this.getItemQuantity(item) || 0), 0)
+      }
+      
+      return tx
+    })
+    
+    console.log('✅ Transactions loaded:', this.transactions.length)
+    
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.transactions = []
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load transactions', 'error')
+    }
+  } finally {
+    this.transactionsLoading = false
+  }
+}
+
+    getProcessedByName(transaction) {
+  if (!transaction) return 'System'
+  
+  // Check all possible field names for the user/cashier name
+  const name = transaction.user_name || 
+               transaction.cashier_name || 
+               transaction.processed_by ||
+               transaction.user?.username ||
+               transaction.cashier?.username ||
+               transaction.created_by ||
+               null
+  
+  if (name) return name
+  
+  // If we have a user_id but no name, try to find the user
+  if (transaction.user_id) {
+    const user = this.users.find(u => u.id === transaction.user_id)
+    if (user) return user.username || user.full_name || 'User'
+  }
+  
+  return 'System'
+},
 
 
 // Open transaction detail modal
