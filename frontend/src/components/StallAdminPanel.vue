@@ -15591,4 +15591,140 @@ async loadRevenueData() {
   background: var(--background);
 }
 
+/* ============================================ */
+/* GLOBAL TABLE FIXES - Applies to ALL Tables  */
+/* ============================================ */
+
+/* ✅ Fix for all table cells on mobile */
+@media (max-width: 768px) {
+  /* All table wrappers */
+  .inventory-table-wrapper,
+  .revenue-table-wrapper,
+  .transactions-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* All table rows become cards */
+  .inventory-table-row,
+  .revenue-table-row,
+  .transactions-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    min-width: unset !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 0.5rem !important;
+    background: var(--surface) !important;
+  }
+  
+  /* All table cells */
+  .inventory-table-cell,
+  .revenue-table-cell,
+  .transactions-table-cell {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    flex-shrink: 1 !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+  }
+  
+  /* ✅ FIX: Allow text to wrap and break */
+  .inventory-table-cell .stall-name,
+  .inventory-table-cell .stall-code,
+  .revenue-table-cell .stall-name-text,
+  .revenue-table-cell .stall-code-text,
+  .revenue-table-cell .state-tag,
+  .transactions-table-cell .order-id,
+  .transactions-table-cell .stall,
+  .transactions-table-cell .status-badge {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+  }
+  
+  /* ✅ FIX: Prevent overflow in all cells */
+  .inventory-table-cell.items,
+  .revenue-table-cell.name,
+  .revenue-table-cell.state,
+  .transactions-table-cell.order,
+  .transactions-table-cell.stall,
+  .transactions-table-cell.date {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  /* ✅ FIX: Ensure long text doesn't break layout */
+  .inventory-item-inline,
+  .status-indicator,
+  .status-badge {
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+}
+
+/* ✅ Fix for all table headers on mobile - hide them */
+@media (max-width: 768px) {
+  .inventory-table-header,
+  .revenue-table-header,
+  .transactions-table-header {
+    display: none !important;
+  }
+}
+
+/* ✅ Fix for checkbox cells on mobile */
+@media (max-width: 768px) {
+  .inventory-table-cell.checkbox {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    padding-bottom: 0.3rem !important;
+    margin-bottom: 0.3rem !important;
+  }
+  
+  .inventory-table-cell.checkbox::before {
+    content: "Select: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+}
+
+/* ✅ Fix for action buttons on mobile */
+@media (max-width: 768px) {
+  .inventory-table-cell.actions,
+  .revenue-table-cell.actions,
+  .transactions-table-cell.actions {
+    justify-content: flex-start !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin-top: 0.3rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+  }
+  
+  .inventory-table-cell.actions::before,
+  .revenue-table-cell.actions::before,
+  .transactions-table-cell.actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+}
+
 </style>
