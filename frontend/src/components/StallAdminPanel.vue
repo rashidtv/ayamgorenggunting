@@ -3844,6 +3844,40 @@ transactionStats() {
 
   methods: {
 
+    async fetchFullTransaction(transactionId) {
+  if (!transactionId) return
+  
+  try {
+    console.log('🔄 Fetching full transaction details for:', transactionId)
+    const res = await axios.get(`${API_BASE}/transactions/${transactionId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    console.log('✅ Full transaction data:', res.data)
+    
+    // Update the selected transaction with full data
+    this.selectedTransaction = {
+      ...this.selectedTransaction,
+      ...res.data
+    }
+    
+    // Also update in the transactions list
+    const index = this.transactions.findIndex(t => t.id === transactionId)
+    if (index !== -1) {
+      this.transactions[index] = {
+        ...this.transactions[index],
+        ...res.data
+      }
+    }
+    
+  } catch (err) {
+    console.error('Failed to fetch full transaction:', err)
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Could not load full transaction details', 'error')
+    }
+  }
+},
+
     // =============================================
 // TRANSACTION ITEM HELPERS
 // =============================================
@@ -3851,22 +3885,55 @@ transactionStats() {
 getTransactionItems(transaction) {
   if (!transaction) return []
   
-  // Try multiple possible structures
+  console.log('🔍 Looking for items in transaction:', {
+    has_items: !!transaction.items,
+    items_type: typeof transaction.items,
+    items_is_array: Array.isArray(transaction.items),
+    items_length: transaction.items?.length,
+    has_order_items: !!transaction.order_items,
+    has_details: !!transaction.details,
+    has_data: !!transaction.data
+  })
+  
+  // Try multiple possible locations
   if (transaction.items && Array.isArray(transaction.items) && transaction.items.length > 0) {
     return transaction.items
   }
   
-  if (transaction.order_items && Array.isArray(transaction.order_items)) {
+  if (transaction.order_items && Array.isArray(transaction.order_items) && transaction.order_items.length > 0) {
     return transaction.order_items
   }
   
-  if (transaction.details && Array.isArray(transaction.details)) {
+  if (transaction.details && Array.isArray(transaction.details) && transaction.details.length > 0) {
     return transaction.details
   }
   
   // Check if items are in a nested object
-  if (transaction.data && transaction.data.items && Array.isArray(transaction.data.items)) {
-    return transaction.data.items
+  if (transaction.data) {
+    if (transaction.data.items && Array.isArray(transaction.data.items)) {
+      return transaction.data.items
+    }
+    if (transaction.data.order_items && Array.isArray(transaction.data.order_items)) {
+      return transaction.data.order_items
+    }
+  }
+  
+  // Check if items is a string that needs parsing
+  if (transaction.items && typeof transaction.items === 'string') {
+    try {
+      const parsed = JSON.parse(transaction.items)
+      if (Array.isArray(parsed)) {
+        return parsed
+      }
+    } catch (e) {
+      console.warn('Could not parse items string:', e)
+    }
+  }
+  
+  // If we have an item_count but no items, try to fetch full transaction
+  if (transaction.item_count > 0 || transaction.total_items > 0) {
+    this.fetchFullTransaction(transaction.id)
+    return []
   }
   
   return []
@@ -3898,17 +3965,11 @@ getItemTotal(item) {
 // =============================================
 
 async viewTransactionDetails(tx) {
-  // Try to fetch full transaction details if we only have partial data
+  console.log('📋 Opening transaction:', tx)
+  
+  // Try to fetch full transaction details if we have an ID
   if (tx.id && (!tx.items || tx.items.length === 0)) {
-    try {
-      const res = await axios.get(`${API_BASE}/transactions/${tx.id}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      this.selectedTransaction = res.data
-    } catch (err) {
-      console.warn('Could not fetch full transaction details:', err)
-      this.selectedTransaction = tx
-    }
+    await this.fetchFullTransaction(tx.id)
   } else {
     this.selectedTransaction = tx
   }
@@ -3934,9 +3995,11 @@ async loadTransactions() {
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
-    // Process transactions to ensure items are properly formatted
+    console.log('📋 Raw transactions from API:', res.data)
+    
+    // Process each transaction
     this.transactions = (res.data || []).map(tx => {
-      // If items are stored as a string (JSON), parse them
+      // Parse items if they're a string
       if (tx.items && typeof tx.items === 'string') {
         try {
           tx.items = JSON.parse(tx.items)
@@ -3945,25 +4008,27 @@ async loadTransactions() {
         }
       }
       
-      // If items are stored as an object with keys, convert to array
+      // If items is an object, convert to array
       if (tx.items && typeof tx.items === 'object' && !Array.isArray(tx.items)) {
         tx.items = Object.values(tx.items)
       }
       
-      // Ensure items is always an array
+      // Ensure items is an array
       if (!tx.items || !Array.isArray(tx.items)) {
         tx.items = []
       }
       
-      // If item_count is missing, calculate it
+      // Calculate item_count if missing
       if (!tx.item_count && tx.items.length > 0) {
-        tx.item_count = tx.items.reduce((sum, item) => sum + (this.getItemQuantity(item) || 0), 0)
+        tx.item_count = tx.items.reduce((sum, item) => {
+          return sum + (parseInt(item.quantity || item.qty || 1) || 1)
+        }, 0)
       }
       
       return tx
     })
     
-    console.log('✅ Transactions loaded:', this.transactions.length)
+    console.log('✅ Processed transactions:', this.transactions)
     
   } catch (err) {
     console.error('Failed to load transactions:', err)
@@ -3976,24 +4041,30 @@ async loadTransactions() {
   }
 },
 
-    getProcessedByName(transaction) {
+getProcessedByName(transaction) {
   if (!transaction) return 'System'
   
-  // Check all possible field names for the user/cashier name
-  const name = transaction.user_name || 
-               transaction.cashier_name || 
-               transaction.processed_by ||
-               transaction.user?.username ||
-               transaction.cashier?.username ||
-               transaction.created_by ||
-               null
-  
-  if (name) return name
-  
-  // If we have a user_id but no name, try to find the user
+  // Try to find the cashier from your users list
   if (transaction.user_id) {
     const user = this.users.find(u => u.id === transaction.user_id)
-    if (user) return user.username || user.full_name || 'User'
+    if (user) {
+      return user.username || user.full_name || 'User'
+    }
+  }
+  
+  if (transaction.cashier_id) {
+    const user = this.users.find(u => u.id === transaction.cashier_id)
+    if (user) {
+      return user.username || user.full_name || 'Cashier'
+    }
+  }
+  
+  // Check if any user has a matching username in the transaction
+  for (const user of this.users) {
+    if (user.username && transaction.cashier_name && 
+        user.username.toLowerCase() === transaction.cashier_name.toLowerCase()) {
+      return user.username
+    }
   }
   
   return 'System'
