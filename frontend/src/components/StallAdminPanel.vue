@@ -2186,102 +2186,101 @@
         </div>
       </div>
 
-<!-- Revenue Table -->
-<div v-if="revenueLoading" class="loading-state">
-  <div class="loading-spinner"><div class="spinner-ring"></div></div>
-  <p>Loading revenue data...</p>
-</div>
-
-<div v-else-if="filteredRevenueData.length === 0" class="empty-state-modern">
-  <span>💰</span>
-  <p>No revenue data available for the selected filters</p>
-  <button @click="clearRevenueFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-    Clear Filters
-  </button>
-</div>
-
-<div v-else>
-  <div class="revenue-table-wrapper">
-    <!-- Table Header -->
-    <div class="revenue-table-header">
-      <span class="revenue-table-header-rank">Rank</span>
-      <span class="revenue-table-header-name">Stall</span>
-      <span class="revenue-table-header-state">State</span>
-      <span class="revenue-table-header-revenue">Revenue</span>
-      <span class="revenue-table-header-status">Status</span>
-      <span class="revenue-table-header-details">Details</span>
-    </div>
-    
-    <!-- Table Body -->
-    <div class="revenue-table-body">
-      <div 
-        v-for="(item, index) in paginatedRevenueData" 
-        :key="item.id" 
-        class="revenue-table-row clickable-item"
-        @click="viewAllTransactions(item)"
-      >
-        <span class="revenue-table-rank">
-          <span class="rank-number" :class="getRankClass(index)">
-            {{ index + 1 }}
-          </span>
-        </span>
-        
-        <span class="revenue-table-name">
-          <span class="stall-name-text">{{ item.name }}</span>
-          <span class="stall-code-text">{{ item.code }}</span>
-        </span>
-        
-        <span class="revenue-table-state">
-          <span class="state-tag">{{ item.state || '-' }}</span>
-        </span>
-        
-        <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-        
-        <span class="revenue-table-status">
-          <span :class="['status-indicator', getRevenueStatusClass(item)]">
-            {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
-          </span>
-        </span>
-        
-        <span class="revenue-table-details">
-          <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
-            📋
-          </button>
-        </span>
+      <!-- Revenue Table -->
+      <div v-if="revenueLoading" class="loading-state">
+        <div class="loading-spinner"><div class="spinner-ring"></div></div>
+        <p>Loading revenue data...</p>
       </div>
-    </div>  <!-- ← revenue-table-body -->
-  </div>  <!-- ← revenue-table-wrapper -->
-  
-  <!-- Pagination Controls -->
-  <div class="pagination-container">
-    <div class="pagination-info">
-      Showing {{ revenueStartIndex }} - {{ revenueEndIndex }} of {{ filteredRevenueData.length }} stalls
-    </div>
-    <div class="pagination-controls">
-      <button 
-        @click="prevRevenuePage" 
-        class="pagination-btn"
-        :disabled="revenuePage <= 1"
-      >
-        ◀ Previous
-      </button>
-      <span class="pagination-page">
-        Page {{ revenuePage }} of {{ revenueTotalPages }}
-      </span>
-      <button 
-        @click="nextRevenuePage" 
-        class="pagination-btn"
-        :disabled="revenuePage >= revenueTotalPages"
-      >
-        Next ▶
-      </button>
+
+      <div v-else-if="filteredRevenueData.length === 0" class="empty-state-modern">
+        <span>💰</span>
+        <p>No revenue data available for the selected filters</p>
+        <button @click="clearRevenueFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+          Clear Filters
+        </button>
+      </div>
+
+      <div v-else>
+        <div class="revenue-table-wrapper">
+          <!-- Table Header -->
+          <div class="revenue-table-header">
+            <span class="revenue-table-header-rank">Rank</span>
+            <span class="revenue-table-header-name">Stall</span>
+            <span class="revenue-table-header-state">State</span>
+            <span class="revenue-table-header-revenue">Revenue</span>
+            <span class="revenue-table-header-status">Status</span>
+            <span class="revenue-table-header-details">Details</span>
+          </div>
+          
+          <!-- Table Body -->
+          <div class="revenue-table-body">
+            <div 
+              v-for="(item, index) in paginatedRevenueData" 
+              :key="item.id" 
+              class="revenue-table-row clickable-item"
+              @click="viewAllTransactions(item)"
+            >
+              <span class="revenue-table-rank">
+                <span class="rank-number" :class="getRankClass(index)">
+                  {{ index + 1 }}
+                </span>
+              </span>
+              
+              <span class="revenue-table-name">
+                <span class="stall-name-text">{{ item.name }}</span>
+                <span class="stall-code-text">{{ item.code }}</span>
+              </span>
+              
+              <span class="revenue-table-state">
+                <span class="state-tag">{{ item.state || '-' }}</span>
+              </span>
+              
+              <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+              
+              <span class="revenue-table-status">
+                <span :class="['status-indicator', getRevenueStatusClass(item)]">
+                  {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
+                </span>
+              </span>
+              
+              <span class="revenue-table-details">
+                <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
+                  📋
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ revenueStartIndex }} - {{ revenueEndIndex }} of {{ filteredRevenueData.length }} stalls
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevRevenuePage" 
+              class="pagination-btn"
+              :disabled="revenuePage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ revenuePage }} of {{ revenueTotalPages }}
+            </span>
+            <button 
+              @click="nextRevenuePage" 
+              class="pagination-btn"
+              :disabled="revenuePage >= revenueTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>  <!-- ← v-else -->
-    </div>
-  </div>
-</div>
-</div> 
+</div> <!-- ✅ REVENUE TAB CLOSED -->
 
 <!-- ===== TRANSACTIONS TAB ===== -->
 <div v-if="activeTab === 'transactions'" class="tab-panel">
@@ -2417,36 +2416,68 @@
             <span class="transactions-table-details">Details</span>
           </div>
           
-          
           <!-- Table Body -->
-<div class="transactions-table-body">
-  <div 
-    v-for="tx in paginatedTransactions" 
-    :key="tx.id" 
-    class="transactions-table-row clickable-item"
-    @click="viewTransactionDetails(tx)"
-  >
-    <span class="transactions-table-order">
-      <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
-    </span>
-    <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
-    <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
-    <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-    <span class="transactions-table-status">
-      <span :class="['status-badge', tx.status || 'completed']">
-        {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-      </span>
-    </span>
-    <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
-    <span class="transactions-table-details">
-      <span class="view-details-btn">👁️</span>
-    </span>
-  </div>
-</div>
+          <div class="transactions-table-body">
+            <div 
+              v-for="tx in paginatedTransactions" 
+              :key="tx.id" 
+              class="transactions-table-row clickable-item"
+              @click="viewTransactionDetails(tx)"
+            >
+              <span class="transactions-table-order">
+                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+              </span>
+              <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
+              <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
+              <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+              <span class="transactions-table-status">
+                <span :class="['status-badge', tx.status || 'completed']">
+                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+                </span>
+              </span>
+              <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
+              <span class="transactions-table-details">
+                <span class="view-details-btn">👁️</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- ===== TRANSACTION DETAILS MODAL ===== -->
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ transactionStartIndex }} - {{ transactionEndIndex }} of {{ filteredTransactions.length }} transactions
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevTransactionPage" 
+              class="pagination-btn"
+              :disabled="transactionPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ transactionPage }} of {{ transactionTotalPages }}
+            </span>
+            <button 
+              @click="nextTransactionPage" 
+              class="pagination-btn"
+              :disabled="transactionPage >= transactionTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> <!-- ✅ TRANSACTIONS TAB CLOSED -->
+
+      <!-- ============================================ -->
+      <!-- MODALS                                       -->
+      <!-- ============================================ -->
+
+      <!-- ===== TRANSACTION DETAILS MODAL ===== -->
 <div v-if="transactionDetailModal" class="modal-overlay" @click.self="transactionDetailModal = false">
   <div class="modal-modern modal-lg">
     <div class="modal-modern-header">
@@ -2514,40 +2545,6 @@
     </div>
   </div>
 </div>
-
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ transactionStartIndex }} - {{ transactionEndIndex }} of {{ filteredTransactions.length }} transactions
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevTransactionPage" 
-              class="pagination-btn"
-              :disabled="transactionPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ transactionPage }} of {{ transactionTotalPages }}
-            </span>
-            <button 
-              @click="nextTransactionPage" 
-              class="pagination-btn"
-              :disabled="transactionPage >= transactionTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-      <!-- ============================================ -->
-      <!-- MODALS                                       -->
-      <!-- ============================================ -->
       
       <!-- STALL MODAL -->
       <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
