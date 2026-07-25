@@ -2416,85 +2416,103 @@
             <span class="transactions-table-details">Details</span>
           </div>
           
+          
           <!-- Table Body -->
-          <div class="transactions-table-body">
-            <div 
-              v-for="tx in paginatedTransactions" 
-              :key="tx.id" 
-              class="transactions-table-row clickable-item"
-              @click="toggleTransactionExpand(tx.id)"
-            >
-              <span class="transactions-table-order">
-                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
-              </span>
-              <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
-              <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
-              <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-              <span class="transactions-table-status">
-                <span :class="['status-badge', tx.status || 'completed']">
-                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-                </span>
-              </span>
-              <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
-              <span class="transactions-table-details">
-                <span class="expand-icon">{{ expandedTransactionRows.includes(tx.id) ? '▲' : '▼' }}</span>
-              </span>
-            </div>
-            
-            <!-- Expanded Row - Transaction Details -->
-            <div v-for="tx in paginatedTransactions" :key="'exp-'+tx.id" class="transactions-table-expanded-row">
-              <div v-if="expandedTransactionRows.includes(tx.id)" class="transaction-expanded-content">
-                <div class="transaction-details-grid">
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Order ID</span>
-                    <span class="detail-value">#{{ tx.order_number }}</span>
-                  </div>
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Stall</span>
-                    <span class="detail-value">{{ tx.stall_name }}</span>
-                  </div>
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Total Amount</span>
-                    <span class="detail-value">{{ formatCurrency(tx.total_amount) }}</span>
-                  </div>
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Status</span>
-                    <span :class="['status-badge', tx.status || 'completed']">
-                      {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-                    </span>
-                  </div>
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Date</span>
-                    <span class="detail-value">{{ formatFullDate(tx.created_at) }}</span>
-                  </div>
-                  <div class="transaction-detail-item">
-                    <span class="detail-label">Items Count</span>
-                    <span class="detail-value">{{ tx.item_count || tx.items?.length || 0 }}</span>
-                  </div>
-                </div>
-                
-                <!-- Items List -->
-                <div v-if="tx.items && tx.items.length > 0" class="transaction-items-list">
-                  <div class="transaction-items-header">
-                    <span>🛒 Items</span>
-                  </div>
-                  <div class="transaction-items-grid">
-                    <div v-for="(item, idx) in tx.items" :key="idx" class="transaction-item">
-                      <span class="item-name">{{ item.item_name || item.name }}</span>
-                      <span class="item-qty">× {{ item.quantity || 1 }}</span>
-                      <span class="item-price">{{ formatCurrency(item.price || 0) }}</span>
-                      <span class="item-total">{{ formatCurrency((item.price || 0) * (item.quantity || 1)) }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="empty-state-modern small">
-                  <span>📭</span>
-                  <p>No items found for this transaction</p>
-                </div>
-              </div>
-            </div>
+<div class="transactions-table-body">
+  <div 
+    v-for="tx in paginatedTransactions" 
+    :key="tx.id" 
+    class="transactions-table-row clickable-item"
+    @click="viewTransactionDetails(tx)"
+  >
+    <span class="transactions-table-order">
+      <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+    </span>
+    <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
+    <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
+    <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+    <span class="transactions-table-status">
+      <span :class="['status-badge', tx.status || 'completed']">
+        {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+      </span>
+    </span>
+    <span class="transactions-table-date">{{ formatShortDate(tx.created_at) }}</span>
+    <span class="transactions-table-details">
+      <span class="view-details-btn">👁️</span>
+    </span>
+  </div>
+</div>
           </div>
         </div>
+
+        <!-- ===== TRANSACTION DETAILS MODAL ===== -->
+<div v-if="transactionDetailModal" class="modal-overlay" @click.self="transactionDetailModal = false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>📋 Transaction #{{ selectedTransaction?.order_number || 'N/A' }}</h3>
+      <button @click="transactionDetailModal = false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      
+      <!-- Transaction Info -->
+      <div class="transaction-detail-grid">
+        <div class="transaction-detail-card">
+          <span class="detail-label">Order ID</span>
+          <span class="detail-value">#{{ selectedTransaction?.order_number || 'N/A' }}</span>
+        </div>
+        <div class="transaction-detail-card">
+          <span class="detail-label">Stall</span>
+          <span class="detail-value">{{ selectedTransaction?.stall_name || '-' }}</span>
+        </div>
+        <div class="transaction-detail-card">
+          <span class="detail-label">Total Amount</span>
+          <span class="detail-value">{{ formatCurrency(selectedTransaction?.total_amount || 0) }}</span>
+        </div>
+        <div class="transaction-detail-card">
+          <span class="detail-label">Status</span>
+          <span :class="['status-badge', selectedTransaction?.status || 'completed']">
+            {{ getTransactionStatusEmoji(selectedTransaction?.status) }} {{ selectedTransaction?.status || 'Completed' }}
+          </span>
+        </div>
+        <div class="transaction-detail-card">
+          <span class="detail-label">📅 Date & Time</span>
+          <span class="detail-value">{{ formatFullDateTime(selectedTransaction?.created_at) }}</span>
+        </div>
+        <div class="transaction-detail-card">
+          <span class="detail-label">👤 Processed By</span>
+          <span class="detail-value">{{ selectedTransaction?.user_name || selectedTransaction?.cashier_name || 'System' }}</span>
+        </div>
+      </div>
+      
+      <!-- Items List -->
+      <div class="transaction-items-section">
+        <h4>🛒 Items</h4>
+        <div v-if="selectedTransaction?.items && selectedTransaction.items.length > 0" class="transaction-items-list">
+          <div class="transaction-items-header">
+            <span class="item-header-name">Item</span>
+            <span class="item-header-qty">Qty</span>
+            <span class="item-header-price">Price</span>
+            <span class="item-header-total">Total</span>
+          </div>
+          <div v-for="(item, idx) in selectedTransaction.items" :key="idx" class="transaction-item-row">
+            <span class="item-name">{{ item.item_name || item.name }}</span>
+            <span class="item-qty">× {{ item.quantity || 1 }}</span>
+            <span class="item-price">{{ formatCurrency(item.price || 0) }}</span>
+            <span class="item-total">{{ formatCurrency((item.price || 0) * (item.quantity || 1)) }}</span>
+          </div>
+        </div>
+        <div v-else class="empty-state-modern small">
+          <span>📭</span>
+          <p>No items found for this transaction</p>
+        </div>
+      </div>
+      
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="transactionDetailModal = false" class="btn-modern secondary">Close</button>
+    </div>
+  </div>
+</div>
 
         <!-- Pagination Controls -->
         <div class="pagination-container">
@@ -2748,6 +2766,9 @@ export default {
 
   data() {
     return {
+
+      transactionDetailModal: false,
+selectedTransaction: null,
       activeTab: 'dashboard',
       transactionModal: false,
 selectedStallForModal: null,
@@ -3818,6 +3839,26 @@ transactionStats() {
 
   methods: {
 
+
+// Open transaction detail modal
+viewTransactionDetails(tx) {
+  this.selectedTransaction = tx
+  this.transactionDetailModal = true
+},
+
+// Format full date and time
+formatFullDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-MY', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+},
     // =============================================
 // TRANSACTIONS METHODS
 // =============================================
@@ -15176,7 +15217,10 @@ async loadRevenueData() {
 .transactions-stats-grid .stat-chip.active .stat-chip-value { color: #10b981; }
 .transactions-stats-grid .stat-chip.warning .stat-chip-value { color: #f59e0b; }
 
-/* Transactions Table */
+/* ============================================ */
+/* TRANSACTIONS TABLE - DESKTOP                 */
+/* ============================================ */
+
 .transactions-table-wrapper {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -15184,17 +15228,18 @@ async loadRevenueData() {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Header - Consistent widths */
 .transactions-table-header {
   display: flex;
   padding: 0.5rem 0.75rem;
   background: var(--background);
   border-bottom: 1px solid var(--border);
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
-  min-width: 750px;
+  min-width: 800px;
 }
 
 .transactions-table-header .sortable {
@@ -15213,19 +15258,64 @@ async loadRevenueData() {
   color: var(--text-tertiary);
 }
 
-.transactions-table-order { min-width: 100px; text-align: left; }
-.transactions-table-stall { flex: 1; min-width: 100px; text-align: left; }
-.transactions-table-items { min-width: 60px; text-align: center; }
-.transactions-table-amount { min-width: 80px; text-align: right; }
-.transactions-table-status { min-width: 90px; text-align: center; }
-.transactions-table-date { min-width: 110px; text-align: left; }
-.transactions-table-details { min-width: 40px; text-align: center; }
-
-.transactions-table-body {
-  display: flex;
-  flex-direction: column;
+/* Fixed column widths - consistent */
+.transactions-table-order { 
+  width: 110px; 
+  min-width: 110px; 
+  max-width: 110px;
+  text-align: left; 
+  flex-shrink: 0;
 }
 
+.transactions-table-stall { 
+  width: 150px; 
+  min-width: 150px; 
+  max-width: 150px;
+  text-align: left; 
+  flex-shrink: 0;
+}
+
+.transactions-table-items { 
+  width: 60px; 
+  min-width: 60px; 
+  max-width: 60px;
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.transactions-table-amount { 
+  width: 100px; 
+  min-width: 100px; 
+  max-width: 100px;
+  text-align: right; 
+  flex-shrink: 0;
+}
+
+.transactions-table-status { 
+  width: 110px; 
+  min-width: 110px; 
+  max-width: 110px;
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.transactions-table-date { 
+  width: 140px; 
+  min-width: 140px; 
+  max-width: 140px;
+  text-align: left; 
+  flex-shrink: 0;
+}
+
+.transactions-table-details { 
+  width: 50px; 
+  min-width: 50px; 
+  max-width: 50px;
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+/* Rows - Same fixed widths */
 .transactions-table-row {
   display: flex;
   align-items: center;
@@ -15233,7 +15323,7 @@ async loadRevenueData() {
   border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: var(--transition);
-  min-width: 750px;
+  min-width: 800px;
 }
 
 .transactions-table-row:hover {
@@ -15244,13 +15334,68 @@ async loadRevenueData() {
   border-bottom: none;
 }
 
-.transactions-table-order { min-width: 100px; text-align: left; }
-.transactions-table-stall { flex: 1; min-width: 100px; text-align: left; }
-.transactions-table-items { min-width: 60px; text-align: center; }
-.transactions-table-amount { min-width: 80px; text-align: right; font-weight: 600; color: var(--text); }
-.transactions-table-status { min-width: 90px; text-align: center; }
-.transactions-table-date { min-width: 110px; text-align: left; color: var(--text-secondary); font-size: 0.75rem; }
-.transactions-table-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+/* Cell values */
+.transactions-table-order { 
+  width: 110px; 
+  min-width: 110px; 
+  max-width: 110px;
+  text-align: left; 
+  flex-shrink: 0;
+}
+
+.transactions-table-stall { 
+  width: 150px; 
+  min-width: 150px; 
+  max-width: 150px;
+  text-align: left; 
+  flex-shrink: 0;
+}
+
+.transactions-table-items { 
+  width: 60px; 
+  min-width: 60px; 
+  max-width: 60px;
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.transactions-table-amount { 
+  width: 100px; 
+  min-width: 100px; 
+  max-width: 100px;
+  text-align: right; 
+  font-weight: 600; 
+  color: var(--text); 
+  flex-shrink: 0;
+}
+
+.transactions-table-status { 
+  width: 110px; 
+  min-width: 110px; 
+  max-width: 110px;
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+.transactions-table-date { 
+  width: 140px; 
+  min-width: 140px; 
+  max-width: 140px;
+  text-align: left; 
+  color: var(--text-secondary); 
+  font-size: 0.75rem; 
+  flex-shrink: 0;
+}
+
+.transactions-table-details { 
+  width: 50px; 
+  min-width: 50px; 
+  max-width: 50px;
+  text-align: center; 
+  font-size: 0.8rem; 
+  color: var(--text-tertiary); 
+  flex-shrink: 0;
+}
 
 .transactions-table-row:hover .transactions-table-details {
   color: var(--primary);
@@ -15263,33 +15408,195 @@ async loadRevenueData() {
   font-family: monospace;
 }
 
-/* Expanded Transaction Details */
-.transactions-table-expanded-row {
-  background: var(--background);
-  border-bottom: 1px solid var(--border-light);
-  animation: slideDown 0.3s ease;
+.view-details-btn {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  transition: var(--transition);
 }
 
-.transaction-expanded-content {
-  padding: 0.75rem 1rem 0.75rem 3.5rem;
+.transactions-table-row:hover .view-details-btn {
+  opacity: 1;
 }
 
-.transaction-details-grid {
+.status-badge.completed { background: #d1fae5; color: #059669; }
+.status-badge.pending { background: #fef3c7; color: #d97706; }
+.status-badge.failed { background: #fee2e2; color: #dc2626; }
+
+/* ============================================ */
+/* RESPONSIVE - TABLET                          */
+/* ============================================ */
+@media (max-width: 768px) {
+  .transactions-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .transactions-table-header {
+    font-size: 0.55rem;
+    padding: 0.3rem 0.5rem;
+    min-width: 650px;
+  }
+  
+  .transactions-table-row {
+    padding: 0.3rem 0.5rem;
+    min-width: 650px;
+  }
+  
+  .transactions-table-order { width: 80px; min-width: 80px; max-width: 80px; font-size: 0.7rem; }
+  .transactions-table-stall { width: 120px; min-width: 120px; max-width: 120px; font-size: 0.7rem; }
+  .transactions-table-items { width: 50px; min-width: 50px; max-width: 50px; font-size: 0.7rem; }
+  .transactions-table-amount { width: 80px; min-width: 80px; max-width: 80px; font-size: 0.7rem; }
+  .transactions-table-status { width: 90px; min-width: 90px; max-width: 90px; }
+  .transactions-table-date { width: 100px; min-width: 100px; max-width: 100px; font-size: 0.65rem; }
+  .transactions-table-details { width: 40px; min-width: 40px; max-width: 40px; }
+}
+
+/* ============================================ */
+/* RESPONSIVE - MOBILE - Card View              */
+/* ============================================ */
+@media (max-width: 480px) {
+  .transactions-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .transactions-table-header {
+    display: none !important;
+  }
+  
+  .transactions-table-wrapper {
+    border: none;
+    border-radius: 0;
+  }
+  
+  .transactions-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--surface) !important;
+    min-width: auto !important;
+  }
+  
+  /* Mobile labels */
+  .transactions-table-row .transactions-table-order::before {
+    content: "Order: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-stall::before {
+    content: "Stall: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-items::before {
+    content: "Items: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-amount::before {
+    content: "Amount: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-status::before {
+    content: "Status: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-date::before {
+    content: "Date: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .transactions-table-row .transactions-table-details {
+    justify-content: flex-end !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light);
+    margin-top: 0.3rem;
+  }
+  
+  .transactions-table-row .transactions-table-details::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* Mobile values */
+  .transactions-table-row .transactions-table-order,
+  .transactions-table-row .transactions-table-stall,
+  .transactions-table-row .transactions-table-items,
+  .transactions-table-row .transactions-table-amount,
+  .transactions-table-row .transactions-table-status,
+  .transactions-table-row .transactions-table-date,
+  .transactions-table-row .transactions-table-details {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.15rem 0 !important;
+    width: 100% !important;
+    text-align: left !important;
+    min-width: auto !important;
+    max-width: none !important;
+    justify-content: flex-start !important;
+  }
+  
+  .transactions-table-row .transactions-table-details {
+    justify-content: flex-end !important;
+  }
+  
+  .order-id {
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================ */
+/* TRANSACTION DETAIL MODAL                     */
+/* ============================================ */
+
+.transaction-detail-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.transaction-detail-item {
-  background: var(--surface);
-  padding: 0.4rem 0.6rem;
+.transaction-detail-card {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   text-align: center;
 }
 
-.transaction-detail-item .detail-label {
+.transaction-detail-card .detail-label {
   display: block;
   font-size: 0.55rem;
   color: var(--text-secondary);
@@ -15297,138 +15604,74 @@ async loadRevenueData() {
   margin-bottom: 0.1rem;
 }
 
-.transaction-detail-item .detail-value {
+.transaction-detail-card .detail-value {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
 }
 
-.transaction-items-list {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  padding: 0.5rem;
+.transaction-items-section {
+  margin-top: 0.5rem;
+}
+
+.transaction-items-section h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
 }
 
 .transaction-items-header {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.35rem;
-}
-
-.transaction-items-grid {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
 }
 
-.transaction-item {
+.item-header-name { flex: 2; text-align: left; }
+.item-header-qty { flex: 0.5; text-align: center; }
+.item-header-price { flex: 1; text-align: right; }
+.item-header-total { flex: 1; text-align: right; }
+
+.transaction-item-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: var(--radius-sm);
-  background: var(--background);
-  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.8rem;
 }
 
-.transaction-item .item-name {
-  flex: 1;
-  font-weight: 500;
-  color: var(--text);
-}
+.transaction-item-row .item-name { flex: 2; text-align: left; font-weight: 500; }
+.transaction-item-row .item-qty { flex: 0.5; text-align: center; color: var(--text-secondary); }
+.transaction-item-row .item-price { flex: 1; text-align: right; color: var(--text-secondary); }
+.transaction-item-row .item-total { flex: 1; text-align: right; font-weight: 600; color: var(--text); }
 
-.transaction-item .item-qty {
-  min-width: 40px;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.transaction-item .item-price {
-  min-width: 60px;
-  text-align: right;
-  color: var(--text-secondary);
-}
-
-.transaction-item .item-total {
-  min-width: 60px;
-  text-align: right;
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .transactions-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .transactions-table-header {
-    font-size: 0.6rem;
-    padding: 0.3rem 0.5rem;
-    min-width: 600px;
-  }
-  
-  .transactions-table-row {
-    padding: 0.3rem 0.5rem;
-    min-width: 600px;
-  }
-  
-  .transactions-table-order { min-width: 80px; }
-  .transactions-table-stall { min-width: 70px; }
-  .transactions-table-amount { min-width: 60px; font-size: 0.8rem; }
-  .transactions-table-date { min-width: 80px; font-size: 0.7rem; }
-  
-  .transaction-details-grid {
+  .transaction-detail-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .transaction-expanded-content {
-    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .transactions-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .transaction-detail-grid {
+    grid-template-columns: 1fr;
   }
   
-  .transactions-table-header {
+  .transaction-items-header {
     font-size: 0.5rem;
-    padding: 0.2rem 0.3rem;
-    min-width: 450px;
   }
   
-  .transactions-table-row {
-    padding: 0.2rem 0.3rem;
-    min-width: 450px;
-  }
-  
-  .transactions-table-order { min-width: 60px; font-size: 0.7rem; }
-  .transactions-table-stall { min-width: 50px; font-size: 0.7rem; }
-  .transactions-table-items { min-width: 40px; font-size: 0.7rem; }
-  .transactions-table-amount { min-width: 50px; font-size: 0.7rem; }
-  .transactions-table-status { min-width: 60px; }
-  .transactions-table-date { min-width: 60px; font-size: 0.6rem; }
-  .transactions-table-details { min-width: 30px; }
-  
-  .transaction-details-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .transaction-expanded-content {
-    padding: 0.5rem;
-  }
-  
-  .transaction-item {
-    font-size: 0.65rem;
+  .transaction-item-row {
+    font-size: 0.7rem;
     flex-wrap: wrap;
   }
   
-  .transaction-item .item-name {
-    flex: 1 0 100%;
-  }
+  .transaction-item-row .item-name { flex: 1 0 100%; }
 }
 
 </style>
