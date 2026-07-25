@@ -16255,4 +16255,108 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* FIX: REVENUE & TRANSACTIONS TABLES - DESKTOP ONLY */
+/* ============================================ */
+
+/* 1. Revenue Table - Fill container like Inventory */
+.revenue-table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.revenue-table-header,
+.revenue-table-row {
+  min-width: auto !important;
+  width: 100% !important;
+}
+
+/* Keep column widths */
+.revenue-table-cell.rank {
+  width: 40px !important;
+  min-width: 40px !important;
+  flex-shrink: 0 !important;
+}
+.revenue-table-cell.name {
+  flex: 1 !important;
+  min-width: 100px !important;
+}
+.revenue-table-cell.state {
+  width: 80px !important;
+  min-width: 80px !important;
+  flex-shrink: 0 !important;
+}
+.revenue-table-cell.revenue {
+  width: 80px !important;
+  min-width: 80px !important;
+  flex-shrink: 0 !important;
+}
+.revenue-table-cell.status {
+  width: 100px !important;
+  min-width: 100px !important;
+  flex-shrink: 0 !important;
+}
+.revenue-table-cell.actions {
+  width: 50px !important;
+  min-width: 50px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 2. Transactions Table - Fill container like Inventory */
+.transactions-table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.transactions-table-header,
+.transactions-table-row {
+  min-width: auto !important;
+  width: 100% !important;
+}
+
+/* Keep column widths */
+.transactions-table-cell.order {
+  width: 100px !important;
+  min-width: 100px !important;
+  flex-shrink: 0 !important;
+}
+.transactions-table-cell.stall {
+  flex: 1 !important;
+  min-width: 80px !important;
+}
+.transactions-table-cell.items {
+  width: 60px !important;
+  min-width: 60px !important;
+  flex-shrink: 0 !important;
+}
+.transactions-table-cell.amount {
+  width: 80px !important;
+  min-width: 80px !important;
+  flex-shrink: 0 !important;
+  justify-content: flex-end !important;
+}
+.transactions-table-cell.status {
+  width: 100px !important;
+  min-width: 100px !important;
+  flex-shrink: 0 !important;
+  justify-content: center !important;
+}
+.transactions-table-cell.date {
+  width: 120px !important;
+  min-width: 120px !important;
+  flex-shrink: 0 !important;
+}
+.transactions-table-cell.actions {
+  width: 50px !important;
+  min-width: 50px !important;
+  flex-shrink: 0 !important;
+  justify-content: center !important;
+}
+
 </style>
