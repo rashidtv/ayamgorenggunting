@@ -16154,6 +16154,105 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* FIX: TRANSACTION STATS - MATCH REVENUE TAB  */
+/* ============================================ */
 
+/* Make transaction stats look like revenue stats */
+.transactions-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.transactions-stats-grid .stat-chip {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0.5rem 1rem !important;
+  background: var(--background) !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--border) !important;
+  text-align: center !important;
+}
+
+.transactions-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.65rem !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.15rem !important;
+}
+
+.transactions-stats-grid .stat-chip .stat-chip-value {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+}
+
+/* ============================================ */
+/* FIX: TABLE WIDTH - FILL FULL CONTAINER      */
+/* ============================================ */
+
+/* Make revenue and transaction tables fill full width */
+.revenue-table-wrapper,
+.transactions-table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+.revenue-table-header,
+.revenue-table-row,
+.transactions-table-header,
+.transactions-table-row {
+  width: 100% !important;
+  min-width: auto !important;  /* Remove fixed min-width on desktop */
+}
+
+/* Keep min-width for content to prevent wrapping issues */
+.revenue-table-cell,
+.transactions-table-cell {
+  flex-shrink: 0 !important;
+}
+
+/* But allow cells to grow to fill space */
+.revenue-table-cell.name,
+.transactions-table-cell.stall {
+  flex: 1 !important;
+  min-width: 80px !important;
+}
+
+/* ============================================ */
+/* RESPONSIVE - KEEP WHAT'S WORKING            */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  /* Transaction stats - 2 columns on mobile */
+  .transactions-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip {
+    padding: 0.4rem 0.6rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem !important;
+  }
+  
+  /* Tables should still overflow scroll on mobile */
+  .revenue-table-wrapper,
+  .transactions-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
 
 </style>
