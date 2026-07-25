@@ -2394,54 +2394,61 @@
       </div>
 
       <div v-else>
-        <!-- ===== TRANSACTIONS TABLE - IDENTICAL PATTERN TO INVENTORY ===== -->
-<div class="transactions-table-wrapper">
-  <!-- Table Header -->
-  <div class="transactions-table-header">
-    <div class="transactions-table-cell order">Order</div>
-    <div class="transactions-table-cell stall">Stall</div>
-    <div class="transactions-table-cell items">Items</div>
-    <div class="transactions-table-cell amount">Amount</div>
-    <div class="transactions-table-cell status">Status</div>
-    <div class="transactions-table-cell date">Date</div>
-    <div class="transactions-table-cell actions">Details</div>
-  </div>
-
-  <!-- Table Body -->
-  <div class="transactions-table-body">
-    <div 
-      v-for="tx in paginatedTransactions" 
-      :key="tx.id" 
-      class="transactions-table-row clickable-item"
-      @click="viewTransactionDetails(tx)"
-    >
-      <div class="transactions-table-cell order">
-        <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
-      </div>
-      <div class="transactions-table-cell stall">
-        {{ tx.stall_name || '-' }}
-      </div>
-      <div class="transactions-table-cell items">
-        {{ tx.item_count || tx.items?.length || 0 }}
-      </div>
-      <div class="transactions-table-cell amount">
-        {{ formatCurrency(tx.total_amount || 0) }}
-      </div>
-      <div class="transactions-table-cell status">
-        <span :class="['status-badge', tx.status || 'completed']">
-          {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-        </span>
-      </div>
-      <div class="transactions-table-cell date">
-        {{ formatTableDate(tx.created_at) }}
-      </div>
-      <div class="transactions-table-cell actions">
-        <span class="view-details-btn">👁️</span>
-      </div>
-    </div>
-  </div>
-</div>
-
+        <!-- Table - EXACTLY like Revenue Table -->
+        <div class="revenue-table-wrapper">
+          <!-- Table Header -->
+          <div class="revenue-table-header">
+            <span class="revenue-table-header-rank">Order</span>
+            <span class="revenue-table-header-name">Stall</span>
+            <span class="revenue-table-header-revenue">Amount</span>
+            <span class="revenue-table-header-status">Status</span>
+            <span class="revenue-table-header-state">Date</span>
+            <span class="revenue-table-header-details">Details</span>
+          </div>
+          
+          <!-- Table Body -->
+          <div class="revenue-table-body">
+            <div 
+              v-for="(tx, index) in paginatedTransactions" 
+              :key="tx.id" 
+              class="revenue-table-row clickable-item"
+              @click="viewTransactionDetails(tx)"
+            >
+              <!-- Order ID -->
+              <span class="revenue-table-rank">
+                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+              </span>
+              
+              <!-- Stall Name -->
+              <span class="revenue-table-name">
+                <span class="stall-name-text">{{ tx.stall_name || '-' }}</span>
+              </span>
+              
+              <!-- Amount -->
+              <span class="revenue-table-revenue">{{ formatCurrency(tx.total_amount || 0) }}</span>
+              
+              <!-- Status -->
+              <span class="revenue-table-status">
+                <span :class="['status-indicator', tx.status || 'completed']">
+                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+                </span>
+              </span>
+              
+              <!-- Date -->
+              <span class="revenue-table-state">
+                <span class="state-tag">{{ formatTableDate(tx.created_at) }}</span>
+              </span>
+              
+              <!-- Details -->
+              <span class="revenue-table-details">
+                <button @click.stop="viewTransactionDetails(tx)" class="btn-view-transactions" title="View Details">
+                  👁️
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+        
         <!-- Pagination Controls -->
         <div class="pagination-container">
           <div class="pagination-info">
