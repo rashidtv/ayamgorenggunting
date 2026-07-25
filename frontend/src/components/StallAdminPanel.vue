@@ -3974,7 +3974,7 @@ async loadTransactions() {
   } finally {
     this.transactionsLoading = false
   }
-}
+},
 
     getProcessedByName(transaction) {
   if (!transaction) return 'System'
