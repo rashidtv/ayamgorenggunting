@@ -2394,54 +2394,53 @@
       </div>
 
       <div v-else>
-        <div class="transactions-table-wrapper">
-          <!-- Table Header -->
-          <div class="transactions-table-header">
-            <span class="transactions-table-order sortable" @click="sortTransactions('order_number')">
-              Order <span class="sort-arrow">{{ getTransactionSortArrow('order_number') }}</span>
-            </span>
-            <span class="transactions-table-stall sortable" @click="sortTransactions('stall_name')">
-              Stall <span class="sort-arrow">{{ getTransactionSortArrow('stall_name') }}</span>
-            </span>
-            <span class="transactions-table-items">Items</span>
-            <span class="transactions-table-amount sortable" @click="sortTransactions('total_amount')">
-              Amount <span class="sort-arrow">{{ getTransactionSortArrow('total_amount') }}</span>
-            </span>
-            <span class="transactions-table-status sortable" @click="sortTransactions('status')">
-              Status <span class="sort-arrow">{{ getTransactionSortArrow('status') }}</span>
-            </span>
-            <span class="transactions-table-date sortable" @click="sortTransactions('created_at')">
-              Date <span class="sort-arrow">{{ getTransactionSortArrow('created_at') }}</span>
-            </span>
-            <span class="transactions-table-details">Details</span>
-          </div>
-          
-          <!-- Table Body -->
-          <div class="transactions-table-body">
-            <div 
-              v-for="tx in paginatedTransactions" 
-              :key="tx.id" 
-              class="transactions-table-row clickable-item"
-              @click="viewTransactionDetails(tx)"
-            >
-              <span class="transactions-table-order">
-                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
-              </span>
-              <span class="transactions-table-stall">{{ tx.stall_name || '-' }}</span>
-              <span class="transactions-table-items">{{ tx.item_count || tx.items?.length || 0 }}</span>
-              <span class="transactions-table-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-              <span class="transactions-table-status">
-                <span :class="['status-badge', tx.status || 'completed']">
-                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-                </span>
-              </span>
-              <span class="transactions-table-date">{{ formatTableDate(tx.created_at) }}</span>
-              <span class="transactions-table-details">
-                <span class="view-details-btn">👁️</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <!-- ===== TRANSACTIONS TABLE - IDENTICAL PATTERN TO INVENTORY ===== -->
+<div class="transactions-table-wrapper">
+  <!-- Table Header -->
+  <div class="transactions-table-header">
+    <div class="transactions-table-cell order">Order</div>
+    <div class="transactions-table-cell stall">Stall</div>
+    <div class="transactions-table-cell items">Items</div>
+    <div class="transactions-table-cell amount">Amount</div>
+    <div class="transactions-table-cell status">Status</div>
+    <div class="transactions-table-cell date">Date</div>
+    <div class="transactions-table-cell actions">Details</div>
+  </div>
+
+  <!-- Table Body -->
+  <div class="transactions-table-body">
+    <div 
+      v-for="tx in paginatedTransactions" 
+      :key="tx.id" 
+      class="transactions-table-row clickable-item"
+      @click="viewTransactionDetails(tx)"
+    >
+      <div class="transactions-table-cell order">
+        <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+      </div>
+      <div class="transactions-table-cell stall">
+        {{ tx.stall_name || '-' }}
+      </div>
+      <div class="transactions-table-cell items">
+        {{ tx.item_count || tx.items?.length || 0 }}
+      </div>
+      <div class="transactions-table-cell amount">
+        {{ formatCurrency(tx.total_amount || 0) }}
+      </div>
+      <div class="transactions-table-cell status">
+        <span :class="['status-badge', tx.status || 'completed']">
+          {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+        </span>
+      </div>
+      <div class="transactions-table-cell date">
+        {{ formatTableDate(tx.created_at) }}
+      </div>
+      <div class="transactions-table-cell actions">
+        <span class="view-details-btn">👁️</span>
+      </div>
+    </div>
+  </div>
+</div>
 
         <!-- Pagination Controls -->
         <div class="pagination-container">
@@ -15417,407 +15416,6 @@ async loadRevenueData() {
 }
 
 /* ============================================ */
-/* TRANSACTIONS TAB STYLES                      */
-/* ============================================ */
-
-.transactions-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.transactions-stats-grid .stat-chip {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  text-align: center;
-}
-
-.transactions-stats-grid .stat-chip .stat-chip-label {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 0.15rem;
-}
-
-.transactions-stats-grid .stat-chip .stat-chip-value {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.transactions-stats-grid .stat-chip.revenue .stat-chip-value { color: #F94908; }
-.transactions-stats-grid .stat-chip.average .stat-chip-value { color: #7c3aed; }
-.transactions-stats-grid .stat-chip.active .stat-chip-value { color: #10b981; }
-.transactions-stats-grid .stat-chip.warning .stat-chip-value { color: #f59e0b; }
-
-/* ============================================ */
-/* TRANSACTIONS TABLE - DESKTOP                 */
-/* ============================================ */
-
-.transactions-table-wrapper {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Header - Consistent widths */
-.transactions-table-header {
-  display: flex;
-  padding: 0.5rem 0.75rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-  min-width: 800px;
-}
-
-.transactions-table-header .sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: var(--transition);
-}
-
-.transactions-table-header .sortable:hover {
-  color: var(--text);
-}
-
-.transactions-table-header .sort-arrow {
-  font-size: 0.5rem;
-  margin-left: 0.15rem;
-  color: var(--text-tertiary);
-}
-
-/* Fixed column widths - consistent */
-.transactions-table-order { 
-  width: 110px; 
-  min-width: 110px; 
-  max-width: 110px;
-  text-align: left; 
-  flex-shrink: 0;
-}
-
-.transactions-table-stall { 
-  width: 150px; 
-  min-width: 150px; 
-  max-width: 150px;
-  text-align: left; 
-  flex-shrink: 0;
-}
-
-.transactions-table-items { 
-  width: 60px; 
-  min-width: 60px; 
-  max-width: 60px;
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-.transactions-table-amount { 
-  width: 100px; 
-  min-width: 100px; 
-  max-width: 100px;
-  text-align: right; 
-  flex-shrink: 0;
-}
-
-.transactions-table-status { 
-  width: 110px; 
-  min-width: 110px; 
-  max-width: 110px;
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-.transactions-table-date { 
-  width: 140px; 
-  min-width: 140px; 
-  max-width: 140px;
-  text-align: left; 
-  flex-shrink: 0;
-}
-
-.transactions-table-details { 
-  width: 50px; 
-  min-width: 50px; 
-  max-width: 50px;
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-/* Rows - Same fixed widths */
-.transactions-table-row {
-  display: flex;
-  align-items: center;
-  padding: 0.35rem 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: var(--transition);
-  min-width: 800px;
-}
-
-.transactions-table-row:hover {
-  background: var(--background);
-}
-
-.transactions-table-row:last-child {
-  border-bottom: none;
-}
-
-/* Cell values */
-.transactions-table-order { 
-  width: 110px; 
-  min-width: 110px; 
-  max-width: 110px;
-  text-align: left; 
-  flex-shrink: 0;
-}
-
-.transactions-table-stall { 
-  width: 150px; 
-  min-width: 150px; 
-  max-width: 150px;
-  text-align: left; 
-  flex-shrink: 0;
-}
-
-.transactions-table-items { 
-  width: 60px; 
-  min-width: 60px; 
-  max-width: 60px;
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-.transactions-table-amount { 
-  width: 100px; 
-  min-width: 100px; 
-  max-width: 100px;
-  text-align: right; 
-  font-weight: 600; 
-  color: var(--text); 
-  flex-shrink: 0;
-}
-
-.transactions-table-status { 
-  width: 110px; 
-  min-width: 110px; 
-  max-width: 110px;
-  text-align: center; 
-  flex-shrink: 0;
-}
-
-.transactions-table-date { 
-  width: 140px; 
-  min-width: 140px; 
-  max-width: 140px;
-  text-align: left; 
-  color: var(--text-secondary); 
-  font-size: 0.75rem; 
-  flex-shrink: 0;
-}
-
-.transactions-table-details { 
-  width: 50px; 
-  min-width: 50px; 
-  max-width: 50px;
-  text-align: center; 
-  font-size: 0.8rem; 
-  color: var(--text-tertiary); 
-  flex-shrink: 0;
-}
-
-.transactions-table-row:hover .transactions-table-details {
-  color: var(--primary);
-}
-
-.order-id {
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text);
-  font-family: monospace;
-}
-
-.view-details-btn {
-  font-size: 0.9rem;
-  opacity: 0.6;
-  transition: var(--transition);
-}
-
-.transactions-table-row:hover .view-details-btn {
-  opacity: 1;
-}
-
-.status-badge.completed { background: #d1fae5; color: #059669; }
-.status-badge.pending { background: #fef3c7; color: #d97706; }
-.status-badge.failed { background: #fee2e2; color: #dc2626; }
-
-/* ============================================ */
-/* RESPONSIVE - TABLET                          */
-/* ============================================ */
-@media (max-width: 768px) {
-  .transactions-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .transactions-table-header {
-    font-size: 0.55rem;
-    padding: 0.3rem 0.5rem;
-    min-width: 650px;
-  }
-  
-  .transactions-table-row {
-    padding: 0.3rem 0.5rem;
-    min-width: 650px;
-  }
-  
-  .transactions-table-order { width: 80px; min-width: 80px; max-width: 80px; font-size: 0.7rem; }
-  .transactions-table-stall { width: 120px; min-width: 120px; max-width: 120px; font-size: 0.7rem; }
-  .transactions-table-items { width: 50px; min-width: 50px; max-width: 50px; font-size: 0.7rem; }
-  .transactions-table-amount { width: 80px; min-width: 80px; max-width: 80px; font-size: 0.7rem; }
-  .transactions-table-status { width: 90px; min-width: 90px; max-width: 90px; }
-  .transactions-table-date { width: 100px; min-width: 100px; max-width: 100px; font-size: 0.65rem; }
-  .transactions-table-details { width: 40px; min-width: 40px; max-width: 40px; }
-}
-
-/* ============================================ */
-/* RESPONSIVE - MOBILE - Card View              */
-/* ============================================ */
-@media (max-width: 480px) {
-  .transactions-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .transactions-table-header {
-    display: none !important;
-  }
-  
-  .transactions-table-wrapper {
-    border: none;
-    border-radius: 0;
-  }
-  
-  .transactions-table-row {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    padding: 0.5rem !important;
-    margin-bottom: 0.5rem !important;
-    border: 1px solid var(--border) !important;
-    border-radius: var(--radius-sm) !important;
-    background: var(--surface) !important;
-    min-width: auto !important;
-  }
-  
-  /* Mobile labels */
-  .transactions-table-row .transactions-table-order::before {
-    content: "Order: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-stall::before {
-    content: "Stall: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-items::before {
-    content: "Items: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-amount::before {
-    content: "Amount: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-status::before {
-    content: "Status: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-date::before {
-    content: "Date: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  .transactions-table-row .transactions-table-details {
-    justify-content: flex-end !important;
-    padding-top: 0.3rem !important;
-    border-top: 1px solid var(--border-light);
-    margin-top: 0.3rem;
-  }
-  
-  .transactions-table-row .transactions-table-details::before {
-    content: "Actions: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
-  }
-  
-  /* Mobile values */
-  .transactions-table-row .transactions-table-order,
-  .transactions-table-row .transactions-table-stall,
-  .transactions-table-row .transactions-table-items,
-  .transactions-table-row .transactions-table-amount,
-  .transactions-table-row .transactions-table-status,
-  .transactions-table-row .transactions-table-date,
-  .transactions-table-row .transactions-table-details {
-    display: flex !important;
-    align-items: center !important;
-    padding: 0.15rem 0 !important;
-    width: 100% !important;
-    text-align: left !important;
-    min-width: auto !important;
-    max-width: none !important;
-    justify-content: flex-start !important;
-  }
-  
-  .transactions-table-row .transactions-table-details {
-    justify-content: flex-end !important;
-  }
-  
-  .order-id {
-    font-size: 0.75rem;
-  }
-}
-
-/* ============================================ */
 /* TRANSACTION DETAIL MODAL                     */
 /* ============================================ */
 
@@ -15912,6 +15510,85 @@ async loadRevenueData() {
   }
   
   .transaction-item-row .item-name { flex: 1 0 100%; }
+}
+
+/* ============================================ */
+/* TRANSACTIONS TABLE - EXACTLY LIKE INVENTORY */
+/* ============================================ */
+
+.transactions-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.transactions-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 700px;
+}
+
+.transactions-table-cell {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.transactions-table-cell.order { 
+  width: 100px; 
+  flex-shrink: 0; 
+}
+.transactions-table-cell.stall { 
+  flex: 1; 
+  min-width: 80px; 
+}
+.transactions-table-cell.items { 
+  width: 60px; 
+  flex-shrink: 0; 
+  justify-content: center; 
+}
+.transactions-table-cell.amount { 
+  width: 80px; 
+  flex-shrink: 0; 
+  justify-content: flex-end; 
+  font-weight: 600;
+}
+.transactions-table-cell.status { 
+  width: 100px; 
+  flex-shrink: 0; 
+  justify-content: center; 
+}
+.transactions-table-cell.date { 
+  width: 120px; 
+  flex-shrink: 0; 
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.transactions-table-cell.actions { 
+  width: 50px; 
+  flex-shrink: 0; 
+  justify-content: center; 
+}
+
+.transactions-table-row {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+  align-items: center;
+  min-width: 700px;
+}
+
+.transactions-table-row:hover {
+  background: var(--background);
 }
 
 </style>
