@@ -16072,4 +16072,86 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* FIXES FOR REMAINING RESPONSIVE ISSUES       */
+/* ============================================ */
+
+/* 1. INVENTORY TAB - Stall title and name left aligned */
+@media (max-width: 768px) {
+  .inventory-table-cell.name {
+    text-align: left !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+  }
+  
+  .inventory-table-cell.name .stall-name,
+  .inventory-table-cell.name .stall-code {
+    text-align: left !important;
+  }
+}
+
+/* 2. STALL MANAGEMENT TAB - Stall name and code left aligned */
+@media (max-width: 768px) {
+  /* Using the same class as inventory since it uses .inventory-table-cell */
+  .inventory-table-cell.name {
+    text-align: left !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+  }
+  
+  .inventory-table-cell.name .stall-name,
+  .inventory-table-cell.name .stall-code {
+    text-align: left !important;
+  }
+}
+
+/* 3. TRANSACTIONS TAB - Smaller font on mobile */
+@media (max-width: 768px) {
+  .transactions-table-cell {
+    font-size: 0.8rem !important;
+  }
+  
+  .transactions-table-cell .order-id {
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+  }
+  
+  .transactions-table-cell .status-badge {
+    font-size: 0.7rem !important;
+    padding: 0.1rem 0.4rem !important;
+  }
+  
+  /* Reduce label font size too */
+  .transactions-table-cell::before {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* 4. REVENUE TAB - Bigger rank number on mobile */
+@media (max-width: 768px) {
+  .revenue-table-cell .rank-number {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Also fix for Performance tab rank numbers on mobile */
+@media (max-width: 768px) {
+  .performance-table-cell .rank-number {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Fix for Stall Performance table rank on mobile */
+@media (max-width: 768px) {
+  .stall-table-rank .rank-number {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
 </style>
