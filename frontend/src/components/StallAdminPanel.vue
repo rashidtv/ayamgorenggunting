@@ -15727,4 +15727,349 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* COMPLETE TABLE FIXES - ALL TABS             */
+/* ============================================ */
+
+/* ============================================ */
+/* 1. INVENTORY & STALL MANAGEMENT - Mobile     */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  /* All inventory-type tables - align left */
+  .inventory-table-row,
+  .inventory-table-cell {
+    text-align: left !important;
+    justify-content: flex-start !important;
+  }
+  
+  .inventory-table-cell.checkbox {
+    justify-content: flex-start !important;
+  }
+  
+  /* Stats cards in inventory/stall tabs - 2 per row */
+  .inventory-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .inventory-stats-grid .stat-chip {
+    padding: 0.4rem 0.6rem !important;
+  }
+  
+  .inventory-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .inventory-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* ============================================ */
+/* 2. TRANSACTIONS TABLE - DESKTOP FIX         */
+/* ============================================ */
+
+/* Fix order ID and stall name truncation on desktop */
+.transactions-table-cell.order {
+  min-width: 120px !important;
+  max-width: 160px !important;
+}
+
+.transactions-table-cell.stall {
+  min-width: 100px !important;
+  max-width: 180px !important;
+}
+
+.transactions-table-cell .order-id,
+.transactions-table-cell .stall {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  max-width: 100% !important;
+}
+
+/* Allow hover to show full text if needed */
+.transactions-table-row:hover .order-id,
+.transactions-table-row:hover .stall {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  background: var(--surface) !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* ============================================ */
+/* 3. TRANSACTIONS TABLE - MOBILE FIX          */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  /* Hide header on mobile */
+  .transactions-table-header {
+    display: none !important;
+  }
+  
+  /* Row becomes card */
+  .transactions-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    min-width: unset !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 0.5rem !important;
+    background: var(--surface) !important;
+  }
+  
+  /* All cells align left */
+  .transactions-table-cell {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+  
+  /* Mobile labels - matching Inventory style */
+  .transactions-table-cell.order::before {
+    content: "Order: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .transactions-table-cell.stall::before {
+    content: "Stall: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .transactions-table-cell.items::before {
+    content: "Items: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .transactions-table-cell.amount::before {
+    content: "Amount: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .transactions-table-cell.status::before {
+    content: "Status: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .transactions-table-cell.date::before {
+    content: "Date: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* Actions with border and label */
+  .transactions-table-cell.actions {
+    border-top: 1px solid var(--border-light) !important;
+    padding-top: 0.3rem !important;
+    margin-top: 0.3rem !important;
+    justify-content: flex-start !important;
+  }
+  .transactions-table-cell.actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* Fix text wrapping */
+  .transactions-table-cell .order-id,
+  .transactions-table-cell .stall,
+  .transactions-table-cell .status-badge {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ============================================ */
+/* 4. TRANSACTIONS STATS - 2 CARDS PER ROW     */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .transactions-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip {
+    padding: 0.4rem 0.6rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .transactions-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* ============================================ */
+/* 5. REVENUE STATS - 2 CARDS PER ROW (Mobile) */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .revenue-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip {
+    padding: 0.4rem 0.6rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .revenue-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* ============================================ */
+/* 6. USERS STATS - 2 CARDS PER ROW (Mobile)   */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .users-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .users-stats-grid .stat-chip {
+    padding: 0.4rem 0.6rem !important;
+  }
+  
+  .users-stats-grid .stat-chip .stat-chip-value {
+    font-size: 1rem !important;
+  }
+  
+  .users-stats-grid .stat-chip .stat-chip-label {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* ============================================ */
+/* 7. USERS TABLE - MOBILE FIX                 */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  .users-table-header {
+    display: none !important;
+  }
+  
+  .users-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    min-width: unset !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 0.5rem !important;
+    background: var(--surface) !important;
+  }
+  
+  .users-table-cell {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+  
+  /* Mobile labels - matching Inventory */
+  .users-table-cell.username::before {
+    content: "Username: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .users-table-cell.fullname::before {
+    content: "Full Name: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .users-table-cell.role::before {
+    content: "Role: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .users-table-cell.stalls::before {
+    content: "Stalls: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  .users-table-cell.status::before {
+    content: "Status: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .users-table-cell.actions {
+    border-top: 1px solid var(--border-light) !important;
+    padding-top: 0.3rem !important;
+    margin-top: 0.3rem !important;
+    justify-content: flex-start !important;
+  }
+  .users-table-cell.actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+}
+
 </style>
