@@ -126,11 +126,11 @@
                 :company-logo="companyLogo"
               />
               
-              <!-- Stall Admin -->
+<!-- Stall Admin -->
 <StallAdminPanel
   v-else-if="user.role === 'stall_admin'"
   :token="token || ''"
-  :user="user"                    <!-- ✅ ADD THIS -->
+  :user="user"                    
   @show-notification="showNotification"
 />
               
