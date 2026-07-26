@@ -2283,7 +2283,7 @@
 </div> <!-- ✅ REVENUE TAB CLOSED -->
 
 <!-- ===== TRANSACTIONS TAB ===== -->
-<div v-if="activeTab === 'transactions'" class="tab-panel">
+<div v-if="activeTab === 'transactions'" class="tab-panel transactions-tab">
   <div class="card-modern">
     <div class="card-modern-header">
       <div>
@@ -16460,6 +16460,12 @@ async loadRevenueData() {
   .revenue-table-wrapper .order-id {
     white-space: nowrap !important;
     font-size: 0.8rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .transactions-tab .revenue-table-row .revenue-table-state::before {
+    content: "Date: " !important;
   }
 }
 
