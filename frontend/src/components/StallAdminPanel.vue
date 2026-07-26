@@ -2353,26 +2353,6 @@
           </select>
         </div>
 
-        <div class="filter-group">
-          <input 
-            type="date" 
-            v-model="transactionDateFrom" 
-            class="filter-input"
-            @change="resetTransactionPagination"
-            title="Date From"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <input 
-            type="date" 
-            v-model="transactionDateTo" 
-            class="filter-input"
-            @change="resetTransactionPagination"
-            title="Date To"
-          />
-        </div>
-
         <div class="filter-actions">
           <button @click="clearTransactionFilters" class="btn-modern secondary small">
             Clear Filters
@@ -2781,6 +2761,7 @@ export default {
 
   data() {
     return {
+      stallPerformanceAllTime: [],
 
       transactionDetailModal: false,
 selectedTransaction: null,
@@ -3118,13 +3099,14 @@ transactionStats() {
   },
 
       // ===== REVENUE COMPUTED =====
-  getRevenuePeriodLabel() {
-    const p = this.revenuePeriods.find(p => p.value === this.revenuePeriod)
-    if (this.revenuePeriod === 'custom') {
-      return `Custom (${this.revenueCustomDays} days)`
-    }
-    return p ? p.label : 'Week'
-  },
+ getRevenuePeriodLabel() {
+  // Use periods instead of revenuePeriods
+  const p = this.periods.find(p => p.value === this.selectedPeriod)
+  if (this.selectedPeriod === 'custom') {
+    return `Custom (${this.customDays} days)`
+  }
+  return p ? p.label : 'Week'
+},
 
   filteredRevenueData() {
     let data = this.revenueData
@@ -3568,11 +3550,12 @@ transactionStats() {
     },
 
     stallPerformanceSubtitle() {
-      const count = this.displayStalls.length
-      if (count === 0) return 'No stalls with sales (all-time)'
-      if (count === 1) return 'Top stall by total revenue (all-time)'
-      return `Top ${count} stalls by total revenue (all-time)`
-    },
+  const count = this.displayStalls.length
+  const periodLabel = this.getPeriodLabel()
+  if (count === 0) return `No stalls with sales for ${periodLabel}`
+  if (count === 1) return `Top stall by revenue for ${periodLabel}`
+  return `Top ${count} stalls by revenue for ${periodLabel}`
+},
 
     displayStalls() {
       const stallsWithSales = this.stallPerformance.filter(stall => 
@@ -4033,7 +4016,6 @@ async viewTransactionDetails(tx) {
   this.transactionDetailModal = true
 },
 
-// Also update loadTransactions to fetch items
 async loadTransactions() {
   this.transactionsLoading = true
   try {
@@ -7580,42 +7562,57 @@ switchTab(tabId) {
       }
     },
 
-    async loadStallPerformance() {
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
-        this.stallPerformance = []
-        this.stallPerformancePeriod = []
-        return
-      }
-      
-      try {
-        const allTimeRes = await axios.get(
-          `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.stallPerformance = this.mergeStallData(allTimeRes.data || [])
-        
-        const days = this.getPeriodDays()
-        const periodRes = await axios.get(
-          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
-        
-        if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
-          this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
-          this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
-        }
-        
-        console.log('✅ All-time stalls:', this.stallPerformance.length)
-        console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
-        
-      } catch (err) {
-        console.error('Failed to load stall performance:', err)
-        this.stallPerformance = []
-        this.stallPerformancePeriod = []
-      }
-    },
+async loadStallPerformance() {
+  const stallIds = this.stalls.map(s => s.id)
+  if (!stallIds || stallIds.length === 0) {
+    this.stallPerformance = []
+    this.stallPerformancePeriod = []
+    return
+  }
+  
+  try {
+    // All-time data (for reference)
+    const allTimeRes = await axios.get(
+      `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Period data - use selected period
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
+    
+    const periodRes = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Store all-time data separately if needed
+    this.stallPerformanceAllTime = this.mergeStallData(allTimeRes.data || [])
+    
+    // Use period data for the main display
+    this.stallPerformance = this.mergeStallData(periodRes.data || [])
+    this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
+    
+    if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
+      this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
+      this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
+    }
+    
+    console.log('✅ All-time stalls:', this.stallPerformanceAllTime?.length || 0)
+    console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
+    
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+    this.stallPerformancePeriod = []
+  }
+},
 
     mergeStallData(performanceData) {
       return this.stalls.map(stall => {
