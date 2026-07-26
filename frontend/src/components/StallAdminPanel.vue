@@ -930,31 +930,33 @@
       </div>
       
       <div class="card-modern-body">
-        <!-- Filter Bar -->
-        <div class="filter-bar-modern">
-          <div class="filter-group">
-            <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-              <option value="all">All Stalls</option>
-              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                {{ stall.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="filter-group">
-            <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
-              <option value="all">All Status</option>
-              <option value="open">🟢 Open</option>
-              <option value="closed">⚪ Closed</option>
-            </select>
-          </div>
-          
-          <div class="filter-actions">
-            <button @click="clearShiftFilters" class="btn-modern secondary small">
-              Clear Filters
-            </button>
-          </div>
-        </div>
+<!-- Filter Bar -->
+<div class="filter-bar-modern">
+  <div class="filter-group">
+    <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+      <!-- Super Admins see "All Stalls" option -->
+      <option v-if="isSuperAdmin" value="all">All Stalls</option>
+      <!-- Stall Admins see only their assigned stalls -->
+      <option v-for="stall in accessibleStalls" :key="stall.id" :value="stall.id">
+        {{ stall.name }}
+      </option>
+    </select>
+  </div>
+  
+  <div class="filter-group">
+    <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
+      <option value="all">All Status</option>
+      <option value="open">🟢 Open</option>
+      <option value="closed">⚪ Closed</option>
+    </select>
+  </div>
+  
+  <div class="filter-actions">
+    <button @click="clearShiftFilters" class="btn-modern secondary small">
+      Clear Filters
+    </button>
+  </div>
+</div>
         
         <!-- Shift History Table -->
         <div v-if="shiftHistoryLoading" class="loading-state">
@@ -2883,7 +2885,8 @@ export default {
 
   data() {
     return {
-      shiftHistory: [],
+    user: null,
+    shiftHistory: [],
     shiftHistoryLoading: false,
     shiftHistoryTotal: 0,
     shiftHistoryStallFilter: 'all',
@@ -3105,6 +3108,32 @@ expandedTransactionRows: [],
   },
 
   computed: {
+
+      // ===== USER ROLE =====
+  isSuperAdmin() {
+    const userRole = this.user?.role || this.authStore?.user?.role;
+    return userRole === 'super_admin' || userRole === 'super_super_admin';
+  },
+  
+  accessibleStalls() {
+    // Get stalls the user has access to
+    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+    
+    if (this.isSuperAdmin) {
+      // Super admins see all stalls
+      return this.stalls;
+    }
+    
+    // Stall admins see only assigned stalls
+    if (assignedStalls.length > 0) {
+      return assignedStalls;
+    }
+    
+    // Fallback: use the stalls list (but filtered by assigned)
+    return this.stalls.filter(stall => 
+      assignedStalls.some(assigned => assigned.id === stall.id)
+    );
+  },
 
      filteredShiftHistory() {
     let data = this.shiftHistory;
@@ -4010,13 +4039,45 @@ async loadShiftHistory() {
   this.shiftHistoryLoading = true;
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    const stallId = this.shiftHistoryStallFilter !== 'all' ? this.shiftHistoryStallFilter : null;
+    
+    // Check user role
+    const userRole = this.user?.role || this.authStore?.user?.role;
+    const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
     
     let url;
-    if (stallId) {
-      url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
+    let params = {};
+    
+    if (isSuperAdmin) {
+      // Super Admin - can view all shifts
+      url = `${API_BASE_URL}/shifts/history/all`;
+      // Add optional filters if needed
+      if (this.shiftHistoryStallFilter && this.shiftHistoryStallFilter !== 'all') {
+        url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
+      }
     } else {
-      url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
+      // Stall Admin / Cashier - only view assigned stalls
+      let stallId = this.shiftHistoryStallFilter;
+      
+      // If "all" is selected, use the first assigned stall
+      if (stallId === 'all' || !stallId) {
+        // Get the first stall from the user's assigned stalls
+        const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+        if (assignedStalls.length > 0) {
+          stallId = assignedStalls[0].id;
+        } else {
+          // Fallback: try to get from stalls list
+          stallId = this.stalls.length > 0 ? this.stalls[0].id : null;
+        }
+      }
+      
+      if (!stallId) {
+        this.shiftHistory = [];
+        this.shiftHistoryTotal = 0;
+        this.shiftHistoryLoading = false;
+        return;
+      }
+      
+      url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
     }
     
     const res = await axios.get(
@@ -4054,7 +4115,17 @@ async viewShiftDetails(shift) {
 },
 
 clearShiftFilters() {
-  this.shiftHistoryStallFilter = 'all';
+  const isSuperAdmin = this.user?.role === 'super_admin' || this.user?.role === 'super_super_admin';
+  
+  // Super Admin: default to "All Stalls"
+  // Stall Admin: default to first assigned stall
+  if (isSuperAdmin) {
+    this.shiftHistoryStallFilter = 'all';
+  } else {
+    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+    this.shiftHistoryStallFilter = assignedStalls.length > 0 ? assignedStalls[0].id : null;
+  }
+  
   this.shiftHistoryStatusFilter = 'all';
   this.shiftCurrentPage = 1;
   this.loadShiftHistory();
