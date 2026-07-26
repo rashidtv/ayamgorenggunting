@@ -127,11 +127,12 @@
               />
               
               <!-- Stall Admin -->
-              <StallAdminPanel
-                v-else-if="user.role === 'stall_admin'"
-                :token="token || ''"
-                @show-notification="showNotification"
-              />
+<StallAdminPanel
+  v-else-if="user.role === 'stall_admin'"
+  :token="token || ''"
+  :user="user"                    <!-- ✅ ADD THIS -->
+  @show-notification="showNotification"
+/>
               
               <!-- Cashier -->
               <StallView

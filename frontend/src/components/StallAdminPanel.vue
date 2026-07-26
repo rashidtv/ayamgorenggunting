@@ -2887,7 +2887,8 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.c
 export default {
   props: {
     token: { type: String, required: true },
-    companyLogo: { type: String, default: null }
+    companyLogo: { type: String, default: null },
+    user: { type: Object, default: null }
   },
 
   data() {
@@ -3117,28 +3118,32 @@ expandedTransactionRows: [],
   computed: {
 
       // ===== USER ROLE =====
-  isSuperAdmin() {
-    const userRole = this.user?.role || this.authStore?.user?.role;
+   isSuperAdmin() {
+    const userData = this.user || this.authStore?.user;
+    const userRole = userData?.role;
     return userRole === 'super_admin' || userRole === 'super_super_admin';
   },
   
   accessibleStalls() {
-    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+    // Try props.user first, then fallback to authStore
+    const userData = this.user || this.authStore?.user;
     
-    console.log('🔍 accessibleStalls - user object:', this.user);
-    console.log('🔍 accessibleStalls - authStore user:', this.authStore?.user);
-    console.log('🔍 accessibleStalls - assignedStalls:', assignedStalls);
-    console.log('🔍 accessibleStalls - all stalls:', this.stalls);
-    console.log('🔍 accessibleStalls - isSuperAdmin:', this.isSuperAdmin);
+    console.log('🔍 userData:', userData);
+    
+    // Get assigned stalls from user data
+    const assignedStalls = userData?.assigned_stalls || [];
+    
+    console.log('🔍 assignedStalls:', assignedStalls);
+    console.log('🔍 all stalls:', this.stalls);
+    console.log('🔍 isSuperAdmin:', this.isSuperAdmin);
     
     if (this.isSuperAdmin) {
       return this.stalls;
     }
     
-    // If assignedStalls is empty, try to get from user.stalls or use all stalls as fallback
+    // If assignedStalls is empty, fallback to all stalls (temporary)
     if (assignedStalls.length === 0) {
-      // For Stall Admin, return all stalls they have access to
-      // If no assigned stalls, return all stalls (or filter by user)
+      console.warn('⚠️ No assigned stalls found, using all stalls as fallback');
       return this.stalls;
     }
     
@@ -4057,11 +4062,19 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    // Get the user's assigned stalls
-    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+    // Get user data from props or authStore
+    const userData = this.user || this.authStore?.user;
+    const assignedStalls = userData?.assigned_stalls || [];
     
-    // If no stalls assigned, show empty
-    if (assignedStalls.length === 0) {
+    console.log('📊 loadShiftHistory - userData:', userData);
+    console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
+    
+    // If no stalls assigned, try using all stalls
+    let stallsToFetch = assignedStalls.length > 0 ? assignedStalls : this.stalls;
+    
+    console.log('📊 stallsToFetch:', stallsToFetch);
+    
+    if (stallsToFetch.length === 0) {
       this.shiftHistory = [];
       this.shiftHistoryTotal = 0;
       this.shiftHistoryLoading = false;
@@ -4071,9 +4084,9 @@ async loadShiftHistory() {
     let allShifts = [];
     let totalCount = 0;
     
-    // CASE 1: "All My Stalls" selected - fetch shifts for EVERY assigned stall
+    // CASE 1: "All My Stalls" selected - fetch shifts for ALL assigned stalls
     if (this.shiftHistoryStallFilter === 'all') {
-      for (const stall of assignedStalls) {
+      for (const stall of stallsToFetch) {
         try {
           const res = await axios.get(
             `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`,
@@ -4088,11 +4101,7 @@ async loadShiftHistory() {
         }
       }
       
-      // Sort all shifts by date (newest first)
       allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
-      
-      console.log(`📊 Total shifts found across all stalls: ${allShifts.length}`);
-      
       this.shiftHistory = allShifts;
       this.shiftHistoryTotal = totalCount;
     } 
