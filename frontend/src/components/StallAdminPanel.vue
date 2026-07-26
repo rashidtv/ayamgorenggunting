@@ -13610,7 +13610,7 @@ async loadRevenueData() {
  /* Revenue tab - show "State:" */
 @media (max-width: 768px) {
   .tab-panel:not(.transactions-tab) .revenue-table-row .revenue-table-state::before {
-    content: "State: " !important;
+    content: "STATE: " !important;
     font-weight: 600 !important;
     font-size: 0.6rem !important;
     color: var(--text-secondary) !important;
@@ -13622,7 +13622,7 @@ async loadRevenueData() {
 /* Transactions tab - show "Date:" */
 @media (max-width: 768px) {
   .transactions-tab .revenue-table-row .revenue-table-state::before {
-    content: "Date: " !important;
+    content: "DATE: " !important;
     font-weight: 600 !important;
     font-size: 0.6rem !important;
     color: var(--text-secondary) !important;
