@@ -14931,7 +14931,7 @@ async loadRevenueData() {
   }
   
  .revenue-table-row .revenue-table-state::before {
-  content: "State: " !important;
+  content: "Date: " !important;  /* ← Changed from "State:" to "Date:" */
   font-weight: 600 !important;
   font-size: 0.6rem !important;
   color: var(--text-secondary) !important;
