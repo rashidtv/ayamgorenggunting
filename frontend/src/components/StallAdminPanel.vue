@@ -931,17 +931,16 @@
       
       <div class="card-modern-body">
 <!-- Filter Bar -->
-<div class="filter-bar-modern">
-  <div class="filter-group">
-    <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-      <!-- Super Admins see "All Stalls" option -->
-      <option v-if="isSuperAdmin" value="all">All Stalls</option>
-      <!-- Stall Admins see only their assigned stalls -->
-      <option v-for="stall in accessibleStalls" :key="stall.id" :value="stall.id">
-        {{ stall.name }}
-      </option>
-    </select>
-  </div>
+<div class="filter-group">
+  <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+    <!-- Super Admins see "All Stalls" option -->
+    <option v-if="isSuperAdmin" value="all">🌐 All Stalls</option>
+    <!-- All users see their accessible stalls -->
+    <option v-for="stall in accessibleStalls" :key="stall.id" :value="stall.id">
+      {{ stall.name }}
+    </option>
+  </select>
+</div>
   
   <div class="filter-group">
     <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
@@ -4040,45 +4039,35 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    // Check user role
+    // Check if user is Super Admin
     const userRole = this.user?.role || this.authStore?.user?.role;
     const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
     
     let url;
-    let params = {};
     
-    if (isSuperAdmin) {
-      // Super Admin - can view all shifts
-      url = `${API_BASE_URL}/shifts/history/all`;
-      // Add optional filters if needed
-      if (this.shiftHistoryStallFilter && this.shiftHistoryStallFilter !== 'all') {
-        url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
+    // ✅ FIX: If "All Stalls" is selected AND user is Super Admin, use /history/all
+    if (this.shiftHistoryStallFilter === 'all') {
+      if (isSuperAdmin) {
+        // Super Admin - get all shifts
+        url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
+      } else {
+        // Stall Admin - "All Stalls" means get first assigned stall
+        const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
+        const stallId = assignedStalls.length > 0 ? assignedStalls[0].id : (this.stalls.length > 0 ? this.stalls[0].id : null);
+        if (!stallId) {
+          this.shiftHistory = [];
+          this.shiftHistoryTotal = 0;
+          this.shiftHistoryLoading = false;
+          return;
+        }
+        url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
       }
     } else {
-      // Stall Admin / Cashier - only view assigned stalls
-      let stallId = this.shiftHistoryStallFilter;
-      
-      // If "all" is selected, use the first assigned stall
-      if (stallId === 'all' || !stallId) {
-        // Get the first stall from the user's assigned stalls
-        const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
-        if (assignedStalls.length > 0) {
-          stallId = assignedStalls[0].id;
-        } else {
-          // Fallback: try to get from stalls list
-          stallId = this.stalls.length > 0 ? this.stalls[0].id : null;
-        }
-      }
-      
-      if (!stallId) {
-        this.shiftHistory = [];
-        this.shiftHistoryTotal = 0;
-        this.shiftHistoryLoading = false;
-        return;
-      }
-      
-      url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
+      // Specific stall selected
+      url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
     }
+    
+    console.log('📊 Loading shift history from:', url);
     
     const res = await axios.get(
       url,
@@ -4115,7 +4104,8 @@ async viewShiftDetails(shift) {
 },
 
 clearShiftFilters() {
-  const isSuperAdmin = this.user?.role === 'super_admin' || this.user?.role === 'super_super_admin';
+  const userRole = this.user?.role || this.authStore?.user?.role;
+  const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
   
   // Super Admin: default to "All Stalls"
   // Stall Admin: default to first assigned stall
