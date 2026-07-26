@@ -888,24 +888,172 @@
   </div>
 </div>
 
-      <!-- ===== STALLS TAB ===== -->
-      <div v-if="activeTab === 'stalls'" class="tab-panel">
-        <div class="sub-tabs">
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'management' }"
-            @click="stallSubTab = 'management'"
-          >
-            🏪 Stall Management
-          </button>
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'performance' }"
-            @click="stallSubTab = 'performance'"
-          >
-            📊 Stall Performance
-          </button>
+    <!-- ===== STALLS TAB ===== -->
+<div v-if="activeTab === 'stalls'" class="tab-panel">
+  <div class="sub-tabs">
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'management' }"
+      @click="stallSubTab = 'management'"
+    >
+      🏪 Stall Management
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'performance' }"
+      @click="stallSubTab = 'performance'"
+    >
+      📊 Stall Performance
+    </button>
+    <button 
+      class="sub-tab" 
+      :class="{ active: stallSubTab === 'shifts' }"
+      @click="stallSubTab = 'shifts'"
+    >
+      🕐 Shift History
+    </button>
+  </div>
+  
+  <!-- ✅ REPLACE THIS ENTIRE SECTION -->
+  <!-- Shift History Sub-Tab - FULL CONTENT -->
+  <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+    <div class="card-modern">
+      <div class="card-modern-header">
+        <div>
+          <h3>🕐 Shift History</h3>
+          <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
         </div>
+        <div class="header-actions">
+          <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
+          <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
+        </div>
+      </div>
+      
+      <div class="card-modern-body">
+        <!-- Filter Bar -->
+        <div class="filter-bar-modern">
+          <div class="filter-group">
+            <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+              <option value="all">All Stalls</option>
+              <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                {{ stall.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
+              <option value="all">All Status</option>
+              <option value="open">🟢 Open</option>
+              <option value="closed">⚪ Closed</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <input 
+              type="date" 
+              v-model="shiftHistoryDateFrom" 
+              class="filter-input"
+              @change="resetShiftPagination"
+              title="Date From"
+            />
+          </div>
+          
+          <div class="filter-group">
+            <input 
+              type="date" 
+              v-model="shiftHistoryDateTo" 
+              class="filter-input"
+              @change="resetShiftPagination"
+              title="Date To"
+            />
+          </div>
+          
+          <div class="filter-actions">
+            <button @click="clearShiftFilters" class="btn-modern secondary small">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+        
+        <!-- Shift History Table -->
+        <div v-if="shiftHistoryLoading" class="loading-state">
+          <div class="loading-spinner"><div class="spinner-ring"></div></div>
+          <p>Loading shift history...</p>
+        </div>
+        
+        <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
+          <span>🕐</span>
+          <p>No shifts found matching your criteria</p>
+        </div>
+        
+        <div v-else>
+          <div class="shift-history-table-wrapper">
+            <div class="shift-history-table-header">
+              <span class="shift-history-header-date">Date</span>
+              <span class="shift-history-header-stall">Stall</span>
+              <span class="shift-history-header-revenue">Revenue</span>
+              <span class="shift-history-header-transactions">Orders</span>
+              <span class="shift-history-header-float">Float</span>
+              <span class="shift-history-header-variance">Variance</span>
+              <span class="shift-history-header-status">Status</span>
+              <span class="shift-history-header-details">Details</span>
+            </div>
+            
+            <div class="shift-history-table-body">
+              <div 
+                v-for="shift in paginatedShiftHistory" 
+                :key="shift.id" 
+                class="shift-history-table-row clickable-item"
+                @click="viewShiftDetails(shift)"
+              >
+                <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
+                <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
+                <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
+                <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
+                <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
+                <span class="shift-history-variance" :class="getVarianceClass(shift)">
+                  {{ formatCurrency(shift.variance) }}
+                </span>
+                <span class="shift-history-status">
+                  <span class="status-badge" :class="shift.status">
+                    {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+                  </span>
+                </span>
+                <span class="shift-history-details">👆</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Pagination -->
+          <div class="pagination-container">
+            <div class="pagination-info">
+              Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
+            </div>
+            <div class="pagination-controls">
+              <button 
+                @click="prevShiftPage" 
+                class="pagination-btn"
+                :disabled="shiftCurrentPage <= 1"
+              >
+                ◀ Previous
+              </button>
+              <span class="pagination-page">
+                Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
+              </span>
+              <button 
+                @click="nextShiftPage" 
+                class="pagination-btn"
+                :disabled="shiftCurrentPage >= shiftTotalPages"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
         
         <!-- Stall Management -->
         <div v-if="stallSubTab === 'management'" class="sub-tab-content">
@@ -2755,6 +2903,18 @@ export default {
 
   data() {
     return {
+      shiftHistory: [],
+    shiftHistoryLoading: false,
+    shiftHistoryTotal: 0,
+    shiftHistoryStallFilter: 'all',
+    shiftHistoryStatusFilter: 'all',
+    shiftHistoryDateFrom: null,
+    shiftHistoryDateTo: null,
+    shiftCurrentPage: 1,
+    shiftItemsPerPage: 10,
+    shiftDetailModal: false,
+    selectedShift: null,
+    shiftExportLoading: false,
       stallPerformanceAllTime: [],
       transactionDetailModal: false,
 selectedTransaction: null,
@@ -2967,6 +3127,58 @@ expandedTransactionRows: [],
   },
 
   computed: {
+
+     filteredShiftHistory() {
+    let data = this.shiftHistory;
+    
+    if (this.shiftHistoryStallFilter !== 'all') {
+      data = data.filter(s => s.stall_id === this.shiftHistoryStallFilter);
+    }
+    
+    if (this.shiftHistoryStatusFilter !== 'all') {
+      data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
+    }
+    
+    if (this.shiftHistoryDateFrom) {
+      const from = new Date(this.shiftHistoryDateFrom);
+      from.setHours(0, 0, 0, 0);
+      data = data.filter(s => {
+        const date = new Date(s.opened_at);
+        return date >= from;
+      });
+    }
+    
+    if (this.shiftHistoryDateTo) {
+      const to = new Date(this.shiftHistoryDateTo);
+      to.setHours(23, 59, 59, 999);
+      data = data.filter(s => {
+        const date = new Date(s.opened_at);
+        return date <= to;
+      });
+    }
+    
+    return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+  },
+  
+  paginatedShiftHistory() {
+    const start = (this.shiftCurrentPage - 1) * this.shiftItemsPerPage;
+    const end = start + this.shiftItemsPerPage;
+    return this.filteredShiftHistory.slice(start, end);
+  },
+  
+  shiftTotalPages() {
+    return Math.ceil(this.filteredShiftHistory.length / this.shiftItemsPerPage) || 1;
+  },
+  
+  shiftStartIndex() {
+    if (this.filteredShiftHistory.length === 0) return 0;
+    return (this.shiftCurrentPage - 1) * this.shiftItemsPerPage + 1;
+  },
+  
+  shiftEndIndex() {
+    if (this.filteredShiftHistory.length === 0) return 0;
+    return Math.min(this.shiftCurrentPage * this.shiftItemsPerPage, this.filteredShiftHistory.length);
+  },
 
     // ===== TRANSACTIONS COMPUTED =====
 filteredTransactions() {
@@ -3832,6 +4044,208 @@ displayStalls() {
 },
 
   methods: {
+
+    // ===== SHIFT HISTORY API METHODS =====
+async loadShiftHistory() {
+  this.shiftHistoryLoading = true;
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const stallId = this.shiftHistoryStallFilter !== 'all' ? this.shiftHistoryStallFilter : null;
+    
+    let url;
+    if (stallId) {
+      url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
+    } else {
+      url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
+    }
+    
+    const res = await axios.get(
+      url,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    this.shiftHistory = res.data.shifts || [];
+    this.shiftHistoryTotal = res.data.total || 0;
+  } catch (err) {
+    console.error('Failed to load shift history:', err);
+    this.shiftHistory = [];
+    this.shiftHistoryTotal = 0;
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load shift history', 'error');
+    }
+  } finally {
+    this.shiftHistoryLoading = false;
+  }
+},
+
+async viewShiftDetails(shift) {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const res = await axios.get(
+      `${API_BASE_URL}/shifts/${shift.id}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    this.selectedShift = res.data;
+    this.shiftDetailModal = true;
+  } catch (err) {
+    console.error('Failed to load shift details:', err);
+    this.$emit('show-notification', 'Failed to load shift details', 'error');
+  }
+},
+
+clearShiftFilters() {
+  this.shiftHistoryStallFilter = 'all';
+  this.shiftHistoryStatusFilter = 'all';
+  this.shiftHistoryDateFrom = null;
+  this.shiftHistoryDateTo = null;
+  this.shiftCurrentPage = 1;
+  this.loadShiftHistory();
+},
+
+async exportShiftHistory() {
+  this.shiftExportLoading = true;
+  try {
+    this.$emit('show-notification', 'Exporting shift history...', 'info');
+    const ExcelJS = await import('exceljs');
+    const { saveAs } = await import('file-saver');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Shift History');
+    
+    sheet.addRow(['Shift History Report', '']);
+    sheet.addRow(['Generated', new Date().toLocaleString()]);
+    sheet.addRow(['Total Shifts', this.filteredShiftHistory.length]);
+    sheet.addRow([]);
+    
+    sheet.addRow(['Date', 'Stall', 'Revenue', 'Orders', 'Float', 'Variance', 'Status']);
+    this.filteredShiftHistory.forEach(shift => {
+      sheet.addRow([
+        this.formatDate(shift.opened_at),
+        this.getStallName(shift.stall_id),
+        shift.revenue || 0,
+        shift.transaction_count || 0,
+        shift.starting_float || 0,
+        shift.variance || 0,
+        shift.status || 'closed'
+      ]);
+    });
+    
+    sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+      `Shift_History_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    this.$emit('show-notification', 'Shift history exported!', 'success');
+  } catch (err) {
+    console.error('Export error:', err);
+    this.$emit('show-notification', 'Export failed', 'error');
+  } finally {
+    this.shiftExportLoading = false;
+  }
+},
+
+async exportShiftReport() {
+  if (!this.selectedShift) return;
+  
+  try {
+    this.$emit('show-notification', 'Exporting shift report...', 'info');
+    const ExcelJS = await import('exceljs');
+    const { saveAs } = await import('file-saver');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Shift Report');
+    
+    sheet.addRow(['Shift Report', '']);
+    sheet.addRow(['Stall', this.getStallName(this.selectedShift.stall_id)]);
+    sheet.addRow(['Opened', this.formatDateTime(this.selectedShift.opened_at)]);
+    sheet.addRow(['Closed', this.formatDateTime(this.selectedShift.closed_at) || 'Open']);
+    sheet.addRow(['Status', this.selectedShift.status]);
+    sheet.addRow(['Revenue', this.selectedShift.revenue]);
+    sheet.addRow(['Orders', this.selectedShift.transaction_count]);
+    sheet.addRow(['Starting Float', this.selectedShift.starting_float]);
+    sheet.addRow(['Ending Cash', this.selectedShift.ending_cash]);
+    sheet.addRow(['Expected Cash', this.selectedShift.expected_cash]);
+    sheet.addRow(['Variance', this.selectedShift.variance]);
+    sheet.addRow([]);
+    
+    sheet.addRow(['Orders', '']);
+    sheet.addRow(['Order ID', 'Amount', 'Items', 'Status', 'Time']);
+    (this.selectedShift.transactions || []).forEach(tx => {
+      sheet.addRow([
+        tx.order_number || 'N/A',
+        tx.total_amount || 0,
+        tx.item_count || 0,
+        tx.status || 'completed',
+        this.formatTime(tx.created_at)
+      ]);
+    });
+    
+    sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+      `Shift_Report_${this.selectedShift.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    this.$emit('show-notification', 'Shift report exported!', 'success');
+  } catch (err) {
+    console.error('Export error:', err);
+    this.$emit('show-notification', 'Export failed', 'error');
+  }
+},
+
+formatDateTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-MY', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  } catch {
+    return '';
+  }
+},
+
+formatTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+},
+
+     // ===== SHIFT HISTORY METHODS =====
+  getStallName(stallId) {
+    const stall = this.stalls.find(s => s.id === stallId);
+    return stall ? stall.name : 'Unknown';
+  },
+  
+  getVarianceClass(shift) {
+    const variance = parseFloat(shift.variance) || 0;
+    if (variance > 0) return 'over';
+    if (variance < 0) return 'short';
+    return 'balanced';
+  },
+  
+  resetShiftPagination() {
+    this.shiftCurrentPage = 1;
+  },
+  
+  prevShiftPage() {
+    if (this.shiftCurrentPage > 1) {
+      this.shiftCurrentPage--;
+    }
+  },
+  
+  nextShiftPage() {
+    if (this.shiftCurrentPage < this.shiftTotalPages) {
+      this.shiftCurrentPage++;
+    }
+  },
 
 async refreshAllDataForPeriod() {
   try {
