@@ -3411,19 +3411,20 @@ transactionStats() {
     },
 
     performanceStats() {
-      let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
-      
-      this.stallPerformance.forEach(stall => {
-        const revenue = stall.revenue || 0
-        if (revenue === 0) noSales++
-        else if (revenue > 1000) excellent++
-        else if (revenue > 500) good++
-        else if (revenue > 100) average++
-        else poor++
-      })
-      
-      return { excellent, good, average, poor, noSales }
-    },
+  let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+  
+  // ✅ Use stallPerformance (period data) instead of stallPerformanceAllTime
+  this.stallPerformance.forEach(stall => {
+    const revenue = stall.revenue || 0
+    if (revenue === 0) noSales++
+    else if (revenue > 1000) excellent++
+    else if (revenue > 500) good++
+    else if (revenue > 100) average++
+    else poor++
+  })
+  
+  return { excellent, good, average, poor, noSales }
+},
 
     filteredPerformanceList() {
       let list = this.stallPerformance.filter(stall => {
@@ -3542,7 +3543,7 @@ transactionStats() {
       return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
     },
 
-    stallPerformanceSubtitle() {
+stallPerformanceSubtitle() {
   const count = this.displayStalls.length
   const periodLabel = this.getPeriodLabel()
   if (count === 0) return `No stalls with sales for ${periodLabel}`
@@ -3550,15 +3551,16 @@ transactionStats() {
   return `Top ${count} stalls by revenue for ${periodLabel}`
 },
 
-    displayStalls() {
-      const stallsWithSales = this.stallPerformance.filter(stall => 
-        (stall.revenue || 0) > 0 || (stall.items || 0) > 0
-      )
-      if (this.showAllStalls) {
-        return stallsWithSales
-      }
-      return stallsWithSales.slice(0, 5)
-    },
+displayStalls() {
+  // ✅ Use stallPerformancePeriod (period data) instead of stallPerformance
+  const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
+    (stall.revenue || 0) > 0 || (stall.items || 0) > 0
+  )
+  if (this.showAllStalls) {
+    return stallsWithSales
+  }
+  return stallsWithSales.slice(0, 5)
+},
     
     displayMenuItems() {
       if (this.showAllMenuItems) {
@@ -4081,36 +4083,6 @@ formatFullDateTime(dateStr) {
     // =============================================
 // TRANSACTIONS METHODS
 // =============================================
-
-async loadTransactions() {
-  this.transactionsLoading = true
-  try {
-    const days = 30
-    const stallIds = this.stalls.map(s => s.id)
-    
-    if (!stallIds || stallIds.length === 0) {
-      this.transactions = []
-      this.transactionsLoading = false
-      return
-    }
-
-    const res = await axios.get(
-      `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=200`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    )
-    
-    this.transactions = res.data || []
-    
-  } catch (err) {
-    console.error('Failed to load transactions:', err)
-    this.transactions = []
-    if (err.response?.status !== 404) {
-      this.$emit('show-notification', 'Failed to load transactions', 'error')
-    }
-  } finally {
-    this.transactionsLoading = false
-  }
-},
 
 refreshTransactions() {
   this.loadTransactions()
