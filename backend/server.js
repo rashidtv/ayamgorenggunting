@@ -7,35 +7,26 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
-const shiftRoutes = require('./routes/shifts');
 
 process.env.TZ = 'UTC';
 
 // ============================================
-// ✅ ADD THIS - DATE RANGE HELPER FUNCTIONS
+// DATE RANGE HELPER FUNCTIONS
 // ============================================
 function getDateRange(days, period = null) {
   const dayRange = parseInt(days) || 7;
   
-  // TODAY
   if (dayRange === 1 || period === 'today') {
     const now = new Date();
-    // Get today's date in Malaysia time
     const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
     malaysiaToday.setHours(0, 0, 0, 0);
-    
-    // ✅ Start date: Malaysia midnight (UTC)
     const startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-    
-    // ✅ End date: Malaysia midnight + 24 hours - 1ms (UTC)
     const endDate = new Date(startDate);
     endDate.setUTCDate(endDate.getUTCDate() + 1);
     endDate.setUTCMilliseconds(-1);
-    
     return { startDate, endDate, type: 'today', label: 'Today' };
   }
   
-  // WEEK
   if (dayRange === 7 || period === 'week') {
     const now = new Date();
     const currentDay = now.getUTCDay();
@@ -49,7 +40,6 @@ function getDateRange(days, period = null) {
     return { startDate: monday, endDate: sunday, type: 'week', label: 'Week' };
   }
   
-  // OTHER
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - dayRange);
   const endDate = new Date();
@@ -58,13 +48,10 @@ function getDateRange(days, period = null) {
 
 function buildDateCondition(dateRange, paramStart, tableAlias = 'sales') {
   const { startDate, endDate } = dateRange;
-  
   const start = startDate ? startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const end = endDate ? endDate.toISOString() : new Date().toISOString();
-  
   const condition = `${tableAlias}.created_at >= $${paramStart} AND ${tableAlias}.created_at <= $${paramStart + 1}`;
   const params = [start, end];
-  
   return { condition, params };
 }
 
@@ -84,7 +71,7 @@ const port = process.env.PORT || 10000;
 
 // ============ INCREASE PAYLOAD SIZE LIMITS ============
 app.use(express.json({ 
-  limit: '50mb',  // Allow up to 50MB for JSON payloads
+  limit: '50mb',
   verify: (req, res, buf) => {
     req.rawBody = buf.toString()
   }
@@ -115,30 +102,24 @@ const pool = new Pool({
   keepAlive: true,
 });
 
-// ✅ FORCE UTC ON ALL CONNECTIONS
 pool.on('connect', (client) => {
   client.query("SET TIMEZONE TO 'UTC'");
 });
 
-// ✅ FORCE UTC ON ALL QUERIES
 pool.on('acquire', (client) => {
   client.query("SET TIMEZONE TO 'UTC'");
 });
 
-// Handle pool errors without crashing
 pool.on('error', (err) => {
   console.error('Unexpected database error:', err.message);
 });
 
 // ============ FILE UPLOAD CONFIGURATION ============
-
-// Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure multer for file uploads (including PDF)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -152,9 +133,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { 
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif', 'application/pdf'];
     if (allowed.includes(file.mimetype)) {
@@ -165,12 +144,9 @@ const upload = multer({
   }
 });
 
-// Serve uploaded files
 app.use('/uploads', express.static(uploadDir));
-app.use('/api/shifts', shiftRoutes);
 
 // ==================== PERMISSION HELPERS ====================
-
 const isCompanyAdmin = (req) => {
   if (!req.user) return false;
   if (req.user.role === 'super_super_admin' || req.user.role === 'super_admin') {
@@ -191,9 +167,7 @@ const userCanAccessCompany = (user, companyId) => {
 };
 
 // ==================== HELPER FUNCTIONS ====================
-
 function getUnit(materialName) {
-  // Only Chicken exists now, always return 'pieces'
   return 'pieces';
 }
 
@@ -228,7 +202,6 @@ async function userCanAccessStall(userId, stallId) {
 }
 
 // ==================== AUTHENTICATION ====================
-
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -240,7 +213,6 @@ const authenticateToken = async (req, res, next) => {
     const user = await getUserById(decoded.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
     
-    // Ensure company_id is set for admin users if missing
     if (!user.company_id && (user.role === 'super_admin' || user.role === 'super_super_admin')) {
       const companyRes = await pool.query('SELECT id FROM companies LIMIT 1');
       if (companyRes.rows[0]) {
@@ -255,8 +227,9 @@ const authenticateToken = async (req, res, next) => {
   });
 };
 
-// ==================== MOUNT SHIFT ROUTES ====================
-app.use('/api/shifts', shiftRoutes(authenticateToken));
+// ============================================
+// AUTH ROUTES
+// ============================================
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
@@ -268,7 +241,6 @@ app.post('/api/login', async (req, res) => {
     const valid = bcrypt.compareSync(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // ✅ ADD THIS - First login check
     if (user.is_first_login === true) {
       return res.json({
         requiresReset: true,
@@ -279,7 +251,6 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    // ✅ EXISTING CODE - Token generation (unchanged)
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET || 'fallback_secret',
@@ -305,11 +276,9 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ==================== FIRST LOGIN RESET ====================
 app.post('/api/auth/first-login-reset', async (req, res) => {
   const { userId, currentPassword, newPassword } = req.body;
   
-  // Validate new password
   if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
     return res.status(400).json({ error: 'Password must contain only letters and numbers' });
   }
@@ -322,14 +291,10 @@ app.post('/api/auth/first-login-reset', async (req, res) => {
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
     
-    // Verify current password
     const valid = bcrypt.compareSync(currentPassword, user.password);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
     
-    // Hash new password
     const hashedPassword = bcrypt.hashSync(newPassword, 10);
-    
-    // Update password and set is_first_login to false
     await pool.query(
       'UPDATE users SET password = $1, is_first_login = false WHERE id = $2',
       [hashedPassword, userId]
@@ -342,7 +307,152 @@ app.post('/api/auth/first-login-reset', async (req, res) => {
   }
 });
 
-// ==================== IMAGE UPLOAD ROUTE ====================
+// ============================================
+// PASSWORD RESET ROUTES
+// ============================================
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  try {
+    const userRes = await pool.query(
+      'SELECT id, username, email FROM users WHERE email = $1',
+      [email]
+    );
+    
+    if (userRes.rows.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with this email, a reset link has been sent.' 
+      });
+    }
+
+    const user = userRes.rows[0];
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+    
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at) 
+       VALUES ($1, $2, $3)`,
+      [user.id, token, expiresAt]
+    );
+    
+    await sendPasswordResetEmail(user.email, user.username, token);
+    console.log(`🔑 Password reset link sent to ${user.email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'If an account exists with this email, a reset link has been sent.' 
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+app.post('/api/auth/validate-reset-token', async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM password_reset_tokens 
+       WHERE token = $1 AND used = false AND expires_at > NOW()`,
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        valid: false, 
+        error: 'Invalid or expired token' 
+      });
+    }
+    
+    res.json({ valid: true });
+  } catch (err) {
+    console.error('Validate token error:', err);
+    res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token and new password are required' });
+  }
+  
+  if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain only letters and numbers' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const tokenRes = await client.query(
+      `SELECT * FROM password_reset_tokens 
+       WHERE token = $1 AND used = false AND expires_at > NOW()`,
+      [token]
+    );
+    
+    if (tokenRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
+    
+    const resetToken = tokenRes.rows[0];
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    
+    await client.query(
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedPassword, resetToken.user_id]
+    );
+    
+    await client.query(
+      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
+      [resetToken.id]
+    );
+    
+    await client.query('COMMIT');
+    
+    const userRes = await client.query('SELECT email FROM users WHERE id = $1', [resetToken.user_id]);
+    const userEmail = userRes.rows[0]?.email;
+    
+    if (userEmail) {
+      await sendPasswordResetConfirmation(userEmail);
+    }
+    
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================
+// IMAGE UPLOAD ROUTE
+// ============================================
 
 app.post('/api/upload/menu-image', authenticateToken, upload.single('image'), async (req, res) => {
   try {
@@ -350,7 +460,6 @@ app.post('/api/upload/menu-image', authenticateToken, upload.single('image'), as
       return res.status(400).json({ error: 'No image uploaded' });
     }
     
-    // Get the base URL
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     
@@ -366,7 +475,9 @@ app.post('/api/upload/menu-image', authenticateToken, upload.single('image'), as
   }
 });
 
-// ==================== INVENTORY ROUTES ====================
+// ============================================
+// INVENTORY ROUTES
+// ============================================
 
 app.get('/api/inventory', authenticateToken, async (req, res) => {
   try {
@@ -397,7 +508,6 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
       [stallIds]
     );
     
-    // Ensure alert_level is set to 10 for Chicken if not set
     const results = inventoryRes.rows.map(item => ({
       ...item,
       alert_level: item.material_name === 'Chicken' ? (item.alert_level || 10) : item.alert_level
@@ -410,8 +520,6 @@ app.get('/api/inventory', authenticateToken, async (req, res) => {
   }
 });
 
-
-// ==================== INVENTORY UPDATE ROUTE ====================
 app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   const { materialName, newLevel, stallId, alertLevel } = req.body;
   let targetStallId = stallId ? parseInt(stallId) : null;
@@ -429,7 +537,6 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: 'Access denied' });
 
   try {
-    // Always use alert level 10 for Chicken
     const finalAlertLevel = materialName === 'Chicken' ? 10 : (alertLevel || 10);
 
     const checkRes = await pool.query(
@@ -457,7 +564,9 @@ app.post('/api/inventory/update', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== SALES ROUTES ====================
+// ============================================
+// SALES ROUTES
+// ============================================
 
 app.post('/api/sell', authenticateToken, async (req, res) => {
   const { itemName, price, stallId } = req.body;
@@ -474,20 +583,15 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    // ✅ FIX: Define utcNow here
     const utcNow = new Date().toISOString();
     
-    // Insert the sale with explicit UTC timestamp
     await client.query(
       'INSERT INTO sales (stall_id, item_name, price, created_at) VALUES ($1, $2, $3, $4)',
       [targetStallId, itemName, price, utcNow]
     );
     
-    // Check for recipe
     const recipeRes = await client.query('SELECT material_name, quantity_used FROM recipes WHERE item_name = $1', [itemName]);
     
-    // If recipe exists, update inventory
     if (recipeRes.rows.length > 0) {
       for (const recipe of recipeRes.rows) {
         await client.query(
@@ -512,7 +616,6 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== STALL TODAY SALES ====================
 app.get('/api/stall-today-sales', authenticateToken, async (req, res) => {
   let targetStallId = req.query.stallId ? parseInt(req.query.stallId) : null;
   if (!targetStallId) {
@@ -546,15 +649,9 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
   try {
     const { stallId, days, period } = req.query;
     let targetStallId = stallId ? parseInt(stallId) : null;
-    
-    // ✅ Use consistent date range helper
     const dateRange = getDateRange(days, period);
     console.log(`📊 Sales analytics: ${dateRange.label} (${dateRange.type})`);
-    console.log(`📊 Date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate ? dateRange.endDate.toISOString() : 'now'}`);
 
-    // ============================================================
-    // SUPER ADMIN / SUPER SUPER ADMIN
-    // ============================================================
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
       let companyId = req.user.company_id;
       if (req.user.role === 'super_super_admin') {
@@ -575,10 +672,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
         return res.json({ dailySales: [], productSales: {} });
       }
 
-      // ✅ Build query based on view type
       let dailyQuery;
       if (dateRange.type === 'today') {
-        // ✅ TODAY VIEW: Group by hour
         dailyQuery = `
           SELECT 
             DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') as date, 
@@ -588,7 +683,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
           WHERE sales.stall_id = ANY($1::int[])
         `;
       } else {
-        // ✅ OTHER VIEWS: Group by date
         dailyQuery = `
           SELECT 
             DATE(sales.created_at + INTERVAL '8 hours') as date, 
@@ -628,7 +722,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering using helper
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       dailyQuery += ` AND ${condition}`;
       productQuery += ` AND ${condition}`;
@@ -636,7 +729,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       topStallQuery += ` AND ${condition}`;
       params.push(...dateParams);
       
-      // ✅ Group by appropriate time unit
       if (dateRange.type === 'today') {
         dailyQuery += ` GROUP BY DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') ORDER BY date`;
       } else {
@@ -671,9 +763,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       });
     }
 
-    // ============================================================
-    // STALL ADMIN / CASHIER - Same logic
-    // ============================================================
     let stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
     
     if (stallIds.length === 0) {
@@ -692,7 +781,6 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
       stallIds = [targetStallId];
     }
 
-    // ✅ Same queries for stall admin
     let dailyQuery;
     if (dateRange.type === 'today') {
       dailyQuery = `
@@ -788,13 +876,8 @@ app.get('/api/sales-analytics', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== COMPANY MANAGEMENT ====================
-
-// IMPORTANT: Specific company routes MUST come BEFORE generic /api/companies routes
-
-// ==================== COMPANY STALLS ====================
 // ============================================
-// GET COMPANY STALLS
+// COMPANY & STALL ROUTES
 // ============================================
 
 app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) => {
@@ -803,8 +886,6 @@ app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) 
     return res.status(400).json({ error: 'Invalid company ID' });
   }
 
-  // Super Super Admin and Super Admin can view any company's stalls
-  // Stall Admin can only view their own company's stalls
   if (req.user.role === 'stall_admin') {
     const userCheck = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
     if (userCheck.rows[0]?.company_id !== companyId) {
@@ -838,12 +919,7 @@ app.get('/api/companies/:companyId/stalls', authenticateToken, async (req, res) 
   }
 });
 
-// ============================================
-// GET ALL USERS (Super Admin Only)
-// ============================================
-
 app.get('/api/users/all', authenticateToken, async (req, res) => {
-  // Allow super_super_admin, super_admin, and stall_admin
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin' && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -852,7 +928,6 @@ app.get('/api/users/all', authenticateToken, async (req, res) => {
     let query, params;
     
     if (req.user.role === 'stall_admin') {
-      // Get company_id(s) from stalls assigned to this user
       const companyRes = await pool.query(`
         SELECT DISTINCT s.company_id 
         FROM stalls s 
@@ -889,7 +964,6 @@ app.get('/api/users/all', authenticateToken, async (req, res) => {
       `;
       params = [companyIds];
     } else {
-      // super_admin or super_super_admin – get all
       const companyFilter = req.user.role === 'super_admin' ? ' AND u.company_id = $1' : '';
       const filterParam = req.user.role === 'super_admin' ? [req.user.company_id] : [];
       
@@ -925,10 +999,6 @@ app.get('/api/users/all', authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================
-// GET ALL STALLS (Super Admin Only)
-// ============================================
-
 app.get('/api/stalls/all', authenticateToken, async (req, res) => {
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin' && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
@@ -938,7 +1008,6 @@ app.get('/api/stalls/all', authenticateToken, async (req, res) => {
     let query, params;
     
     if (req.user.role === 'stall_admin') {
-      // Get company_id(s) from stalls assigned to this user
       const companyRes = await pool.query(`
         SELECT DISTINCT s.company_id 
         FROM stalls s 
@@ -968,7 +1037,6 @@ app.get('/api/stalls/all', authenticateToken, async (req, res) => {
       `;
       params = [companyIds];
     } else {
-      // super_admin or super_super_admin – get all
       const companyFilter = req.user.role === 'super_admin' ? ' WHERE s.company_id = $1' : '';
       const filterParam = req.user.role === 'super_admin' ? [req.user.company_id] : [];
       
@@ -1002,7 +1070,6 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   const companyId = parseInt(req.params.companyId);
   if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
 
-  // Permission check
   if (req.user.role === 'stall_admin') {
     const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
     if (userCompany.rows[0]?.company_id !== companyId) {
@@ -1020,18 +1087,13 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   );
   const stallId = result.rows[0].id;
 
-  // ✅ If user is stall_admin, auto-assign them
   if (req.user.role === 'stall_admin') {
     await pool.query(
       'INSERT INTO user_stall_assignments (user_id, stall_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [req.user.id, stallId]
     );
     console.log(`✅ Auto-assigned stall_admin ${req.user.username} to new stall ${stallId}`);
-  }
-  
-  // ✅ NEW: If user is super_admin, assign to the first stall_admin in the company
-  else if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
-    // Find the first stall_admin in this company
+  } else if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
     const stallAdminRes = await pool.query(`
       SELECT id FROM users 
       WHERE company_id = $1 AND role = 'stall_admin' 
@@ -1053,10 +1115,6 @@ app.post('/api/companies/:companyId/stalls', authenticateToken, async (req, res)
   res.json({ success: true, stallId });
 });
 
-// ============================================
-// UPDATE STALL
-// ============================================
-
 app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.id);
   if (isNaN(stallId)) {
@@ -1066,13 +1124,11 @@ app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
   const { name, code, location, is_active } = req.body;
 
   try {
-    // Check if stall exists
     const stallCheck = await pool.query('SELECT * FROM stalls WHERE id = $1', [stallId]);
     if (stallCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Stall not found' });
     }
 
-    // Check if user has permission
     if (req.user.role === 'stall_admin') {
       const access = await userCanAccessStall(req.user.id, stallId);
       if (!access) {
@@ -1082,7 +1138,6 @@ app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // Build update query dynamically
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -1124,20 +1179,13 @@ app.put('/api/stalls/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================
-// GET COMPANY USERS
-// ============================================
-
 app.get('/api/companies/:companyId/users', authenticateToken, async (req, res) => {
   const companyId = parseInt(req.params.companyId);
   if (isNaN(companyId)) {
     return res.status(400).json({ error: 'Invalid company ID' });
   }
 
-  // Super Super Admin and Super Admin can view any company's users
-  // Stall Admin can only view their own company's users
   if (req.user.role === 'stall_admin') {
-    // Check if user belongs to this company
     const userCheck = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
     if (userCheck.rows[0]?.company_id !== companyId) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -1182,20 +1230,14 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
 
   const { username, password, full_name, role, stall_ids } = req.body;
 
-  // ✅ Allow stall_admin to create users for stalls they own
   if (req.user.role === 'stall_admin') {
-    // Check if user belongs to this company
     const userCompany = await pool.query('SELECT company_id FROM users WHERE id = $1', [req.user.id]);
     if (userCompany.rows[0]?.company_id !== companyId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    
-    // Stall Admin can only create cashiers
     if (role !== 'cashier') {
       return res.status(403).json({ error: 'Stall Admin can only create Cashiers' });
     }
-    
-    // Check if they're assigning to stalls they manage
     if (stall_ids && stall_ids.length > 0) {
       const userStalls = await pool.query('SELECT stall_id FROM user_stall_assignments WHERE user_id = $1', [req.user.id]);
       const allowedStallIds = userStalls.rows.map(r => r.stall_id);
@@ -1205,9 +1247,7 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
     }
   } else if (req.user.role === 'cashier') {
     return res.status(403).json({ error: 'Cashier cannot create users' });
-  }
-  // ✅ Super admin can create any user (existing behavior)
-  else if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+  } else if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -1227,7 +1267,6 @@ app.post('/api/companies/:companyId/users', authenticateToken, async (req, res) 
   res.json({ success: true });
 });
 
-// ==================== COMPANY LOW STOCK ====================
 app.get('/api/companies/:companyId/low-stock', authenticateToken, async (req, res) => {
   const companyId = parseInt(req.params.companyId);
   if (isNaN(companyId)) return res.status(400).json({ error: 'Invalid company ID' });
@@ -1242,13 +1281,7 @@ app.get('/api/companies/:companyId/low-stock', authenticateToken, async (req, re
   res.json(result.rows);
 });
 
-// ==================== GENERIC COMPANY ROUTES ====================
-// ============================================
-// GET ALL COMPANIES (WITH COUNTS)
-// ============================================
-
 app.get('/api/companies', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can view all companies
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -1275,7 +1308,6 @@ app.get('/api/companies', authenticateToken, async (req, res) => {
       LEFT JOIN registration_requests rr ON rr.company_name = c.name AND rr.status = 'approved'
       ORDER BY c.name
     `);
-    
     res.json(result.rows);
   } catch (err) {
     console.error('Get companies error:', err);
@@ -1309,12 +1341,10 @@ app.delete('/api/companies/:id', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== STALL TOGGLE ====================
 app.put('/api/stalls/:stallId/toggle', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   if (isNaN(stallId)) return res.status(400).json({ error: 'Invalid stall ID' });
 
-  // Check if user has permission
   if (req.user.role === 'stall_admin') {
     const access = await userCanAccessStall(req.user.id, stallId);
     if (!access) {
@@ -1330,12 +1360,10 @@ app.put('/api/stalls/:stallId/toggle', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== STALL DELETE ====================
 app.delete('/api/stalls/:id', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.id);
   if (isNaN(stallId)) return res.status(400).json({ error: 'Invalid stall ID' });
 
-  // Check if user has permission
   if (req.user.role === 'stall_admin') {
     const access = await userCanAccessStall(req.user.id, stallId);
     if (!access) {
@@ -1358,7 +1386,10 @@ app.delete('/api/stalls/:id', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== USER DELETE ====================
+// ============================================
+// USER ROUTES
+// ============================================
+
 app.delete('/api/users/:id', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req) && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
@@ -1374,7 +1405,6 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== USER UPDATE ====================
 app.put('/api/users/:id', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req) && req.user.role !== 'stall_admin') {
     return res.status(403).json({ error: 'Forbidden' });
@@ -1396,7 +1426,10 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== SYSTEM HEALTH (SSA only) ====================
+// ============================================
+// SYSTEM ROUTES
+// ============================================
+
 app.get('/api/system/health', authenticateToken, async (req, res) => {
   if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
   const totalUsers = (await pool.query('SELECT COUNT(*) FROM users')).rows[0].count;
@@ -1405,7 +1438,6 @@ app.get('/api/system/health', authenticateToken, async (req, res) => {
   res.json({ total_users: parseInt(totalUsers), total_stalls: parseInt(totalStalls), db_size_mb: parseInt(dbSize), uptime: 99.95 });
 });
 
-// ==================== GLOBAL ANNOUNCEMENTS (SSA only) ====================
 app.get('/api/announcements', authenticateToken, async (req, res) => {
   if (req.user.role !== 'super_super_admin') return res.status(403).json({ error: 'Forbidden' });
   const result = await pool.query('SELECT * FROM announcements ORDER BY created_at DESC');
@@ -1428,17 +1460,16 @@ app.delete('/api/announcements/:id', authenticateToken, async (req, res) => {
   res.json({ success: true });
 });
 
-// ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// ==================== MENU MANAGEMENT ====================
+// ============================================
+// MENU ROUTES
+// ============================================
 
-// Get all menu items (with recipes) – Allow any authenticated user
 app.get('/api/menu', authenticateToken, async (req, res) => {
   try {
-    // First check if image column exists (for backward compatibility)
     const columnCheck = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
@@ -1447,7 +1478,6 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
     
     let query;
     if (columnCheck.rows.length > 0) {
-      // Image column exists - use full query
       query = `
         SELECT m.item_name, m.price, m.description, m.category, m.image,
           COALESCE(
@@ -1461,7 +1491,6 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
         ORDER BY m.item_name
       `;
     } else {
-      // Image column doesn't exist - use query without image
       query = `
         SELECT m.item_name, m.price, m.description, m.category,
           COALESCE(
@@ -1484,7 +1513,6 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new menu item with recipe
 app.post('/api/menu', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
@@ -1494,8 +1522,7 @@ app.post('/api/menu', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Item name and price are required' });
   }
 
-  // Validate image size if provided
-  if (image && image.length > 5 * 1024 * 1024) { // 5MB limit
+  if (image && image.length > 5 * 1024 * 1024) {
     return res.status(413).json({ error: 'Image too large. Maximum size is 5MB.' });
   }
 
@@ -1536,15 +1563,13 @@ app.post('/api/menu', authenticateToken, async (req, res) => {
   }
 });
 
-// Update menu item
 app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
   const { itemName } = req.params;
   const { price, description, category, recipe, image } = req.body;
   
-  // Validate image size if provided
-  if (image && image.length > 5 * 1024 * 1024) { // 5MB limit
+  if (image && image.length > 5 * 1024 * 1024) {
     return res.status(413).json({ error: 'Image too large. Maximum size is 5MB.' });
   }
 
@@ -1582,7 +1607,6 @@ app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete menu item
 app.delete('/api/menu/:itemName', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
@@ -1604,12 +1628,10 @@ app.delete('/api/menu/:itemName', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== MENU ASSIGNMENT ROUTES ====================
+// ============================================
+// MENU ASSIGNMENT ROUTES
+// ============================================
 
-/**
- * GET /api/menu/assignments/:stallId
- * Get all menu items assigned to a specific stall
- */
 app.get('/api/menu/assignments/:stallId', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   
@@ -1617,14 +1639,12 @@ app.get('/api/menu/assignments/:stallId', authenticateToken, async (req, res) =>
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, stallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
   }
 
   try {
-    // Get all assigned menu items for this stall
     const result = await pool.query(
       `SELECT item_name FROM stall_menu_assignments 
        WHERE stall_id = $1 AND is_active = true
@@ -1639,11 +1659,6 @@ app.get('/api/menu/assignments/:stallId', authenticateToken, async (req, res) =>
   }
 });
 
-/**
- * POST /api/menu/assignments
- * Save menu assignments for a stall
- * Body: { stallId: number, items: string[] }
- */
 app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
   const { stallId, items } = req.body;
   
@@ -1656,13 +1671,11 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, targetStallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
   }
 
-  // Validate items array
   if (!Array.isArray(items)) {
     return res.status(400).json({ error: 'Items must be an array' });
   }
@@ -1671,7 +1684,6 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // First, deactivate all current assignments for this stall
     await client.query(
       `UPDATE stall_menu_assignments 
        SET is_active = false, updated_at = CURRENT_TIMESTAMP 
@@ -1679,10 +1691,8 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
       [targetStallId]
     );
 
-    // If there are items to assign, activate them
     if (items.length > 0) {
       for (const itemName of items) {
-        // Verify the item exists in menu_items
         const itemCheck = await client.query(
           'SELECT item_name FROM menu_items WHERE item_name = $1',
           [itemName]
@@ -1719,12 +1729,7 @@ app.post('/api/menu/assignments', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/menu/assignments/all
- * Get all menu assignments for all stalls (Super Admin only)
- */
 app.get('/api/menu/assignments/all', authenticateToken, async (req, res) => {
-  // Only super_admin and super_super_admin can view all
   if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -1741,7 +1746,6 @@ app.get('/api/menu/assignments/all', authenticateToken, async (req, res) => {
       FROM stalls s
     `;
 
-    // If super_admin, only show their company's stalls
     if (req.user.role === 'super_admin') {
       query += ` WHERE s.company_id = $1`;
       const result = await pool.query(query, [req.user.company_id]);
@@ -1756,10 +1760,6 @@ app.get('/api/menu/assignments/all', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/menu/assignments/:stallId/:itemName
- * Remove a specific menu item assignment from a stall
- */
 app.delete('/api/menu/assignments/:stallId/:itemName', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   const { itemName } = req.params;
@@ -1768,7 +1768,6 @@ app.delete('/api/menu/assignments/:stallId/:itemName', authenticateToken, async 
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, stallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
@@ -1789,17 +1788,12 @@ app.delete('/api/menu/assignments/:stallId/:itemName', authenticateToken, async 
   }
 });
 
-/**
- * POST /api/menu/assignments/bulk
- * Bulk assign menu items to multiple stalls (Super Admin only)
- */
 app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
-  // Only super_admin and super_super_admin can do bulk operations
   if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const { assignments } = req.body; // [{ stallId: 1, items: ['item1', 'item2'] }]
+  const { assignments } = req.body;
 
   if (!Array.isArray(assignments) || assignments.length === 0) {
     return res.status(400).json({ error: 'Assignments array is required' });
@@ -1816,7 +1810,6 @@ app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
         continue;
       }
 
-      // Deactivate all current assignments for this stall
       await client.query(
         `UPDATE stall_menu_assignments 
          SET is_active = false, updated_at = CURRENT_TIMESTAMP 
@@ -1824,9 +1817,7 @@ app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
         [stallId]
       );
 
-      // Activate new assignments
       for (const itemName of items) {
-        // Check if item exists
         const itemCheck = await client.query(
           'SELECT item_name FROM menu_items WHERE item_name = $1',
           [itemName]
@@ -1855,16 +1846,13 @@ app.post('/api/menu/assignments/bulk', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== ORDERS ROUTES ====================
+// ============================================
+// ORDERS ROUTES
+// ============================================
 
-/**
- * POST /api/orders
- * Create a new order with multiple items
- */
 app.post('/api/orders', authenticateToken, async (req, res) => {
   const { stallId, items, total, itemCount } = req.body;
   
-  // Validate required fields
   if (!stallId) {
     return res.status(400).json({ error: 'Stall ID is required' });
   }
@@ -1880,7 +1868,6 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, targetStallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
@@ -1890,24 +1877,20 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    // Create the order
     const orderResult = await client.query(
       `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id)
        VALUES ($1, $2, $3, $4, 'completed', $5)
        RETURNING id, order_number, total_amount, item_count`,
-      [targetStallId, orderNumber, total, itemCount || items.length, req.user.id]  // ← ADD req.user.id
+      [targetStallId, orderNumber, total, itemCount || items.length, req.user.id]
     );
     
     const order = orderResult.rows[0];
 
-    // Record individual sales linked to this order
     for (const item of items) {
       const quantity = item.quantity || 1;
       for (let i = 0; i < quantity; i++) {
-        // ✅ FIXED: Define utcNow here
         const utcNow = new Date().toISOString();
         
         await client.query(
@@ -1941,17 +1924,12 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/orders/stall/:stallId
- * Get all orders for a specific stall
- */
 app.get('/api/orders/stall/:stallId', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   if (isNaN(stallId)) {
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, stallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
@@ -1981,10 +1959,6 @@ app.get('/api/orders/stall/:stallId', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/orders/:orderId
- * Get a specific order by ID
- */
 app.get('/api/orders/:orderId', authenticateToken, async (req, res) => {
   const orderId = parseInt(req.params.orderId);
   if (isNaN(orderId)) {
@@ -2012,7 +1986,6 @@ app.get('/api/orders/:orderId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Check if user has access to this stall
     const order = result.rows[0];
     const allowed = await userCanAccessStall(req.user.id, order.stall_id);
     if (!allowed && req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
@@ -2026,10 +1999,6 @@ app.get('/api/orders/:orderId', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/orders/today/:stallId
- * Get today's orders for a stall (including grouped total)
- */
 app.get('/api/orders/today/:stallId', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   if (isNaN(stallId)) {
@@ -2060,11 +2029,12 @@ app.get('/api/orders/today/:stallId', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== MATERIALS ====================
-// Get all available materials – Allow any authenticated user
+// ============================================
+// MATERIALS ROUTE
+// ============================================
+
 app.get('/api/materials', authenticateToken, async (req, res) => {
   try {
-    // Only return Chicken as the only material
     res.json(['Chicken']);
   } catch (err) {
     console.error('Error in /api/materials:', err);
@@ -2072,18 +2042,16 @@ app.get('/api/materials', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== MENU PERFORMANCE ====================
+// ============================================
+// MENU PERFORMANCE ROUTE
+// ============================================
+
 app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   try {
     const { days, stallId, itemName, period } = req.query;
-    
-    // ✅ Use consistent date range helper
     const dateRange = getDateRange(days, period);
     console.log(`📊 Menu performance: ${dateRange.label} (${dateRange.type})`);
 
-    // ============================================================
-    // If itemName is provided, get breakdown by stall
-    // ============================================================
     if (itemName) {
       let stallIds = [];
       
@@ -2111,7 +2079,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
         return res.json([]);
       }
       
-      // ✅ Build the query with proper date filtering
       let query = `
         SELECT 
           st.name as stall_name,
@@ -2126,23 +2093,16 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [itemName, stallIds];
       let paramCount = 3;
       
-      // ✅ Add date filtering using the helper
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 's');
       query += ` AND (${condition})`;
       params.push(...dateParams);
       
       query += ` GROUP BY st.name ORDER BY quantity DESC`;
       
-      console.log('📊 Menu performance query:', query);
-      console.log('📊 Params:', params);
-      
       const result = await pool.query(query, params);
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // If stallId is provided, get data for that specific stall
-    // ============================================================
     if (stallId) {
       const targetStallId = parseInt(stallId);
       const allowed = await userCanAccessStall(req.user.id, targetStallId);
@@ -2159,7 +2119,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [targetStallId];
       let paramCount = 2;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
@@ -2170,9 +2129,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // SUPER ADMIN / SUPER SUPER ADMIN
-    // ============================================================
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
       let companyId = req.user.company_id;
       if (req.user.role === 'super_super_admin') {
@@ -2195,7 +2151,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       const params = [companyId];
       let paramCount = 2;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
@@ -2206,9 +2161,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // STALL ADMIN / CASHIER
-    // ============================================================
     let stallIds = [];
     
     if (req.user.role === 'stall_admin' || req.user.role === 'cashier') {
@@ -2232,7 +2184,6 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
     const params = [stallIds];
     let paramCount = 2;
     
-    // ✅ Add date filtering - QUALIFY with sales.
     const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
     query += ` AND (${condition})`;
     params.push(...dateParams);
@@ -2248,23 +2199,16 @@ app.get('/api/menu-performance', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== TRANSACTIONS ROUTES ====================
+// ============================================
+// TRANSACTIONS ROUTES
+// ============================================
 
-/**
- * GET /api/transactions
- * Get transactions with filtering by stall, date range, and limit
- */
 app.get('/api/transactions', authenticateToken, async (req, res) => {
   try {
     const { stallId, days, limit, period } = req.query;
-    
-    // ✅ Use consistent date range helper
     const dateRange = getDateRange(days, period);
     console.log(`📊 Transactions: ${dateRange.label} (${dateRange.type})`);
 
-    // ============================================================
-    // Determine which stalls the user has access to
-    // ============================================================
     let accessibleStallIds = [];
     
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
@@ -2280,7 +2224,6 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
         accessibleStallIds = stallRes.rows.map(r => r.id);
       }
     } else {
-      // Stall admin or cashier - get assigned stalls
       accessibleStallIds = req.user.assigned_stalls?.map(s => s.id) || [];
       if (accessibleStallIds.length === 0) {
         const assRes = await pool.query(
@@ -2295,9 +2238,6 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
       return res.json([]);
     }
 
-    // ============================================================
-    // Filter by specific stall if provided
-    // ============================================================
     let targetStallIds = accessibleStallIds;
     if (stallId) {
       const targetId = parseInt(stallId);
@@ -2307,58 +2247,49 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
       targetStallIds = [targetId];
     }
 
-    // ============================================================
-    // Build the query
-    // ============================================================
     let query = `
-    SELECT 
-      o.id,
-      o.order_number,
-      o.total_amount,
-      o.item_count,
-      o.status,
-      o.created_at,
-      o.user_id,
-      s.name as stall_name,
-      s.id as stall_id,
-      u.username as cashier_name,        -- ← ADD THIS
-      u.full_name as user_full_name,     -- ← ADD THIS
-      COALESCE(
-        (SELECT json_agg(
-          json_build_object(
-            'item_name', sales.item_name,
-            'price', sales.price,
-            'quantity', 1
+      SELECT 
+        o.id,
+        o.order_number,
+        o.total_amount,
+        o.item_count,
+        o.status,
+        o.created_at,
+        o.user_id,
+        s.name as stall_name,
+        s.id as stall_id,
+        u.username as cashier_name,
+        u.full_name as user_full_name,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'item_name', sales.item_name,
+              'price', sales.price,
+              'quantity', 1
+            )
           )
-        )
-        FROM sales
-        WHERE sales.order_id = o.id),
-        '[]'
-      ) as items
-    FROM orders o
-    LEFT JOIN stalls s ON o.stall_id = s.id
-    LEFT JOIN users u ON o.user_id = u.id   -- ← ADD THIS JOIN
-    WHERE o.stall_id = ANY($1::int[])
-  `;
+          FROM sales
+          WHERE sales.order_id = o.id),
+          '[]'
+        ) as items
+      FROM orders o
+      LEFT JOIN stalls s ON o.stall_id = s.id
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.stall_id = ANY($1::int[])
+    `;
 
     const params = [targetStallIds];
     let paramCount = 2;
 
-    // ✅ Add date filtering
     const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'o');
     query += ` AND (${condition})`;
     params.push(...dateParams);
 
-    // ✅ Order by most recent first
     query += ` ORDER BY o.created_at DESC`;
 
-    // ✅ Add limit if provided
     const limitNum = parseInt(limit) || 10;
     query += ` LIMIT $${params.length + 1}`;
     params.push(limitNum);
-
-    console.log('📊 Transactions query:', query);
-    console.log('📊 Params:', params);
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -2369,17 +2300,12 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/transactions/stall/:stallId
- * Get all transactions for a specific stall (alternative endpoint)
- */
 app.get('/api/transactions/stall/:stallId', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   if (isNaN(stallId)) {
     return res.status(400).json({ error: 'Invalid stall ID' });
   }
 
-  // Check if user has access to this stall
   const allowed = await userCanAccessStall(req.user.id, stallId);
   if (!allowed) {
     return res.status(403).json({ error: 'Access denied to this stall' });
@@ -2435,10 +2361,6 @@ app.get('/api/transactions/stall/:stallId', authenticateToken, async (req, res) 
   }
 });
 
-/**
- * GET /api/transactions/today/:stallId
- * Get today's transactions for a stall (summary)
- */
 app.get('/api/transactions/today/:stallId', authenticateToken, async (req, res) => {
   const stallId = parseInt(req.params.stallId);
   if (isNaN(stallId)) {
@@ -2469,19 +2391,16 @@ app.get('/api/transactions/today/:stallId', authenticateToken, async (req, res) 
   }
 });
 
-// ==================== STALL PERFORMANCE ====================
+// ============================================
+// STALL PERFORMANCE ROUTE
+// ============================================
+
 app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   try {
     const { days, stallId, stallIds, period } = req.query;
-    
-    // ✅ Use consistent date range helper
     const dateRange = getDateRange(days, period);
     console.log(`📊 Stall performance: ${dateRange.label} (${dateRange.type})`);
-    console.log(`📊 Date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate ? dateRange.endDate.toISOString() : 'now'}`);
 
-    // ============================================================
-    // Handle multiple stall IDs (comma-separated string)
-    // ============================================================
     if (stallIds) {
       const ids = stallIds.split(',').map(Number).filter(id => !isNaN(id));
       
@@ -2496,7 +2415,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
         }
       }
       
-      // ✅ Build query with consistent date filtering - QUALIFY column names
       let query = `
         SELECT 
           s.id,
@@ -2515,7 +2433,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       params.push(ids);
       paramCount++;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       conditions.push(`(${condition})`);
       params.push(...dateParams);
@@ -2529,9 +2446,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // If a specific stallId is provided
-    // ============================================================
     if (stallId) {
       const targetStallId = parseInt(stallId);
       const allowed = await userCanAccessStall(req.user.id, targetStallId);
@@ -2557,7 +2471,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       params.push(targetStallId);
       paramCount++;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       conditions.push(`(${condition})`);
       params.push(...dateParams);
@@ -2571,9 +2484,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // SUPER ADMIN / SUPER SUPER ADMIN
-    // ============================================================
     if (req.user.role === 'super_admin' || req.user.role === 'super_super_admin') {
       let companyId = req.user.company_id;
       if (req.user.role === 'super_super_admin') {
@@ -2603,7 +2513,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [companyId];
       let paramCount = 2;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
@@ -2616,9 +2525,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // STALL ADMIN
-    // ============================================================
     if (req.user.role === 'stall_admin') {
       const stallIds = req.user.assigned_stalls?.map(s => s.id) || [];
       
@@ -2642,7 +2548,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [stallIds];
       let paramCount = 2;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
@@ -2655,9 +2560,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       return res.json(result.rows);
     }
 
-    // ============================================================
-    // CASHIER
-    // ============================================================
     if (req.user.role === 'cashier') {
       const stallId = req.user.assigned_stalls?.[0]?.id;
       
@@ -2681,7 +2583,6 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
       const params = [stallId];
       let paramCount = 2;
       
-      // ✅ Add date filtering - QUALIFY with sales.
       const { condition, params: dateParams } = buildDateCondition(dateRange, paramCount, 'sales');
       query += ` AND (${condition})`;
       params.push(...dateParams);
@@ -2701,43 +2602,12 @@ app.get('/api/stall-performance', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== GRACEFUL SHUTDOWN ====================
-
-const gracefulShutdown = async () => {
-  console.log('🛑 Shutting down gracefully...');
-  try {
-    await pool.end();
-    console.log('✅ Database connections closed');
-  } catch (err) {
-    console.error('❌ Error closing database connections:', err.message);
-  }
-  process.exit(0);
-};
-
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  gracefulShutdown();
-});
-
-// ==================== START SERVER ====================
-if (require.main === module) {
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${port}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📁 Upload directory: ${uploadDir}`);
-  });
-}
-
-// =============================================
+// ============================================
 // SYSTEM BANNER ROUTES
-// =============================================
+// ============================================
 
-// Get system banner (public - no auth required)
 app.get('/api/system/banner', async (req, res) => {
   try {
-    // Check if system_settings table exists, if not create it
     const tableCheck = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -2746,7 +2616,6 @@ app.get('/api/system/banner', async (req, res) => {
     `);
     
     if (!tableCheck.rows[0].exists) {
-      // Create table if it doesn't exist
       await pool.query(`
         CREATE TABLE IF NOT EXISTS system_settings (
           id INTEGER PRIMARY KEY DEFAULT 1,
@@ -2755,7 +2624,6 @@ app.get('/api/system/banner', async (req, res) => {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      // Insert default record
       await pool.query(`INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
     }
     
@@ -2771,7 +2639,6 @@ app.get('/api/system/banner', async (req, res) => {
   }
 });
 
-// Upload system banner (Super Super Admin only)
 app.post('/api/system/banner', authenticateToken, upload.single('banner'), async (req, res) => {
   if (req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Only System Administrators can upload banners' });
@@ -2784,8 +2651,6 @@ app.post('/api/system/banner', authenticateToken, upload.single('banner'), async
 
     const baseUrl = process.env.BASE_URL || `https://${req.get('host')}`;
     const cleanBaseUrl = baseUrl.replace(/^http:\/\//, 'https://');
-
-    // ✅ Correct URL
     const bannerUrl = `${cleanBaseUrl}/uploads/${req.file.filename}`;
 
     await pool.query(`
@@ -2814,9 +2679,7 @@ app.post('/api/system/banner', authenticateToken, upload.single('banner'), async
   }
 });
 
-// Remove system banner (Super Super Admin only)
 app.delete('/api/system/banner', authenticateToken, async (req, res) => {
-  // Check if user is Super Super Admin
   if (req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Only System Administrators can remove banners' });
   }
@@ -2832,33 +2695,28 @@ app.delete('/api/system/banner', authenticateToken, async (req, res) => {
   }
 });
 
-// =============================================
+// ============================================
 // REGISTRATION ROUTES
-// =============================================
+// ============================================
 
-// server.js - Registration request route
 app.post('/api/register/request', async (req, res) => {
   const { company_name, contact_person, email, phone, ic_number, payment_receipt } = req.body;
   
-  // ✅ Validate required fields
   if (!company_name || !contact_person || !email || !phone || !ic_number) {
     return res.status(400).json({ error: 'All fields are required' });
   }
   
-  // ✅ Validate IC number format
   const icRegex = /^\d{6}-\d{2}-\d{4}$/;
   if (!icRegex.test(ic_number)) {
     return res.status(400).json({ error: 'Invalid IC number format. Use: XXXXXX-XX-XXXX' });
   }
   
-  // ✅ Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
   
   try {
-    // ✅ Check if IC number already registered
     const icCheck = await pool.query(
       'SELECT id, status FROM registration_requests WHERE ic_number = $1',
       [ic_number]
@@ -2870,10 +2728,8 @@ app.post('/api/register/request', async (req, res) => {
       } else if (status === 'approved') {
         return res.status(400).json({ error: 'This IC number is already registered. Please login.' });
       }
-      // If rejected, allow resubmission
     }
     
-    // ✅ Check if email already registered
     const emailCheck = await pool.query(
       'SELECT id, status FROM registration_requests WHERE email = $1',
       [email]
@@ -2887,7 +2743,6 @@ app.post('/api/register/request', async (req, res) => {
       }
     }
     
-    // ✅ Check if company name already exists (case-insensitive)
     const companyCheck = await pool.query(
       'SELECT id FROM companies WHERE LOWER(name) = LOWER($1)',
       [company_name]
@@ -2896,7 +2751,6 @@ app.post('/api/register/request', async (req, res) => {
       return res.status(400).json({ error: 'This company already exists. Please contact support.' });
     }
     
-    // ✅ Insert registration request
     const result = await pool.query(
       `INSERT INTO registration_requests 
        (company_name, contact_person, email, phone, ic_number, payment_receipt)
@@ -2906,8 +2760,6 @@ app.post('/api/register/request', async (req, res) => {
     );
     
     const request = result.rows[0];
-    
-    // Send email
     await sendRegistrationReceived(
       request.email,
       request.company_name,
@@ -2925,9 +2777,7 @@ app.post('/api/register/request', async (req, res) => {
   }
 });
 
-// Get pending registrations (Super Admin only)
 app.get('/api/register/pending', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can access
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -2943,7 +2793,6 @@ app.get('/api/register/pending', authenticateToken, async (req, res) => {
   }
 });
 
-// server.js - Approval route (SAFE VERSION)
 app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
@@ -2955,7 +2804,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Get the registration request
     const requestRes = await client.query(
       'SELECT * FROM registration_requests WHERE id = $1 AND status = $2',
       [id, 'pending']
@@ -2968,7 +2816,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
     
     const request = requestRes.rows[0];
     
-    // ✅ Check if company already exists (by name, case-insensitive)
     let companyRes = await client.query(
       'SELECT id FROM companies WHERE LOWER(name) = LOWER($1)',
       [request.company_name]
@@ -2976,12 +2823,9 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
     
     let companyId;
     if (companyRes.rows.length > 0) {
-      // Company already exists - reuse it
       companyId = companyRes.rows[0].id;
       console.log(`✅ Company "${request.company_name}" already exists, using ID: ${companyId}`);
     } else {
-      // ✅ Create new company - let PostgreSQL auto-generate the ID
-      // This is the ONLY change - removing the hardcoded ID
       const newCompany = await client.query(
         `INSERT INTO companies (name, created_by) VALUES ($1, $2) RETURNING id`,
         [request.company_name, req.user.id]
@@ -2990,8 +2834,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       console.log(`✅ Created new company: ${request.company_name} (ID: ${companyId})`);
     }
     
-    // ✅ The rest of the code stays exactly the same
-    // Check if user already exists for this email
     let userRes = await client.query(
       'SELECT id, username FROM users WHERE email = $1',
       [request.email]
@@ -3021,7 +2863,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       
       console.log(`✅ Updated existing user: ${username} (ID: ${userId})`);
     } else {
-      // Find a unique username
       let usernameExists = true;
       let counter = companyId;
       while (usernameExists) {
@@ -3051,7 +2892,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
       console.log(`✅ Created new user: ${username} (ID: ${userId})`);
     }
     
-    // Update registration request status
     await client.query(
       `UPDATE registration_requests SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [id]
@@ -3059,7 +2899,6 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
     
     await client.query('COMMIT');
     
-    // Send welcome email
     await sendRegistrationApproved(
       request.email,
       request.company_name,
@@ -3090,12 +2929,7 @@ app.post('/api/register/approve/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================
-// REJECT REGISTRATION (WITH HISTORY)
-// ============================================
-
 app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
-  // Only super_super_admin and super_admin can reject
   if (req.user.role !== 'super_super_admin' && req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -3103,13 +2937,11 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { rejection_reason } = req.body;
   
-  // Validate rejection reason
   if (!rejection_reason || rejection_reason.trim() === '') {
     return res.status(400).json({ error: 'Rejection reason is required' });
   }
   
   try {
-    // Get current rejection count and history
     const currentRes = await pool.query(
       'SELECT rejection_count, rejection_history FROM registration_requests WHERE id = $1 AND status = $2',
       [id, 'pending']
@@ -3122,7 +2954,6 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
     const current = currentRes.rows[0];
     const newCount = (current.rejection_count || 0) + 1;
     
-    // Build new rejection history entry
     const rejectionEntry = {
       attempt: newCount,
       reason: rejection_reason.trim(),
@@ -3131,14 +2962,12 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
       rejected_at: new Date().toISOString()
     };
     
-    // Update history
     let history = current.rejection_history || [];
     if (typeof history === 'string') {
       history = JSON.parse(history);
     }
     history.push(rejectionEntry);
     
-    // Update the registration request
     const result = await pool.query(
       `UPDATE registration_requests 
        SET status = 'rejected', 
@@ -3158,7 +2987,6 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
     
     const { email, company_name, contact_person, rejection_reason: savedReason, rejection_count } = result.rows[0];
     
-    // Send rejection email
     await sendRegistrationRejected(
       email,
       company_name,
@@ -3179,18 +3007,11 @@ app.post('/api/register/reject/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================
-// RESUBMIT REGISTRATION - WITH FILE UPLOAD
-// ============================================
-
 app.post('/api/register/resubmit/:id', upload.single('payment_receipt'), async (req, res) => {
   const { id } = req.params;
-  
-  // Get fields from body
   const { company_name, contact_person, email, phone, ic_number } = req.body;
   
   try {
-    // Get current registration request
     let currentRes;
     if (!isNaN(parseInt(id))) {
       currentRes = await pool.query(
@@ -3211,50 +3032,41 @@ app.post('/api/register/resubmit/:id', upload.single('payment_receipt'), async (
     const current = currentRes.rows[0];
     const requestId = current.id;
     
-    // Check if max resubmit attempts reached
     if (current.rejection_count >= 3) {
       return res.status(400).json({ 
         error: 'Maximum resubmit attempts reached. Please contact support.' 
       });
     }
     
-    // Validate required fields
     if (!company_name || !contact_person || !email || !phone || !ic_number) {
       return res.status(400).json({ error: 'All fields are required' });
     }
     
-    // Validate IC number format
     const icRegex = /^\d{6}-\d{2}-\d{4}$/;
     if (!icRegex.test(ic_number)) {
       return res.status(400).json({ error: 'Invalid IC number format. Use: XXXXXX-XX-XXXX' });
     }
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // ✅ Handle payment_receipt - check if file was uploaded
     let finalReceipt = current.payment_receipt;
     
     if (req.file) {
-      // New file uploaded - save the path
       const baseUrl = process.env.BASE_URL || 'https://api.chickoryhub.com';
       finalReceipt = `${baseUrl}/uploads/${req.file.filename}`;
       console.log('📎 New receipt uploaded:', req.file.filename);
     } else if (req.body.payment_receipt) {
-      // String receipt provided (existing receipt)
       finalReceipt = req.body.payment_receipt;
       console.log('📎 Using existing receipt (string)');
     }
     
-    // ✅ Ensure we have a receipt
     if (!finalReceipt) {
       return res.status(400).json({ error: 'Payment receipt is required' });
     }
     
-    // ✅ Update the registration request
     await pool.query(
       `UPDATE registration_requests 
        SET company_name = $1,
@@ -3271,7 +3083,6 @@ app.post('/api/register/resubmit/:id', upload.single('payment_receipt'), async (
       [company_name, contact_person, email, phone, ic_number, finalReceipt, requestId]
     );
     
-    // Send confirmation email
     await sendRegistrationReceived(email, company_name, contact_person);
     
     res.json({ 
@@ -3283,10 +3094,6 @@ app.post('/api/register/resubmit/:id', upload.single('payment_receipt'), async (
     res.status(500).json({ error: 'Failed to resubmit registration. Please try again.' });
   }
 });
-
-// ============================================
-// GET REJECTION HISTORY (PUBLIC - for email links)
-// ============================================
 
 app.get('/api/register/rejection-history/:id', async (req, res) => {
   const { id } = req.params;
@@ -3336,12 +3143,7 @@ app.get('/api/register/rejection-history/:id', async (req, res) => {
   }
 });
 
-// ============================================
-// AUTO-DELETE REJECTED REGISTRATIONS (30 days)
-// ============================================
-
 app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
-  // Only super_super_admin can trigger cleanup
   if (req.user.role !== 'super_super_admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -3350,7 +3152,6 @@ app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    // First, get the items to be deleted (for logging)
     const itemsToDelete = await pool.query(
       'SELECT id, company_name, email, updated_at FROM registration_requests WHERE status = $1 AND updated_at < $2',
       ['rejected', thirtyDaysAgo.toISOString()]
@@ -3358,7 +3159,6 @@ app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
     
     console.log(`🗑️ Found ${itemsToDelete.rows.length} registrations to delete`);
     
-    // Delete the items
     const result = await pool.query(
       `DELETE FROM registration_requests 
        WHERE status = 'rejected' 
@@ -3378,204 +3178,11 @@ app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
   }
 });
 
-// ==================== PASSWORD RESET ROUTES ====================
+// ============================================
+// SHIFT MANAGEMENT ROUTES (NEW)
+// ============================================
 
-/**
- * POST /api/auth/forgot-password
- * Request password reset link
- */
-app.post('/api/auth/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Invalid email format' });
-  }
-
-  try {
-    // Find user by email
-    const userRes = await pool.query(
-      'SELECT id, username, email FROM users WHERE email = $1',
-      [email]
-    );
-    
-    if (userRes.rows.length === 0) {
-      // For security, don't reveal if email exists or not
-      return res.json({ 
-        success: true, 
-        message: 'If an account exists with this email, a reset link has been sent.' 
-      });
-    }
-
-    const user = userRes.rows[0];
-    
-    // Generate unique token
-    const crypto = require('crypto');
-    const token = crypto.randomBytes(32).toString('hex');
-    
-    // Set expiry (1 hour from now)
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1);
-    
-    // Store token in database
-    await pool.query(
-      `INSERT INTO password_reset_tokens (user_id, token, expires_at) 
-       VALUES ($1, $2, $3)`,
-      [user.id, token, expiresAt]
-    );
-    
-    // Build reset URL
-    const resetUrl = `${process.env.APP_URL || 'https://chickoryhub.com'}/reset-password?token=${token}`;
-    
-    // Send email with reset link
-    await sendPasswordResetEmail(user.email, user.username, token);
-    
-    console.log(`🔑 Password reset link sent to ${user.email}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'If an account exists with this email, a reset link has been sent.' 
-    });
-    
-  } catch (err) {
-    console.error('Forgot password error:', err);
-    res.status(500).json({ error: 'Failed to process request' });
-  }
-});
-
-app.post('/api/auth/validate-reset-token', async (req, res) => {
-  const { token } = req.body;
-  
-  console.log('🔍 Validating token:', token);
-  console.log('🔍 Token length:', token?.length);
-  
-  if (!token) {
-    console.log('❌ No token provided');
-    return res.status(400).json({ error: 'Token is required' });
-  }
-
-  try {
-    const result = await pool.query(
-      `SELECT * FROM password_reset_tokens 
-       WHERE token = $1 AND used = false AND expires_at > NOW()`,
-      [token]
-    );
-    
-    console.log('🔍 Query result rows:', result.rows.length);
-    console.log('🔍 Current time:', new Date().toISOString());
-    
-    if (result.rows.length > 0) {
-      console.log('✅ Token found:', {
-        id: result.rows[0].id,
-        user_id: result.rows[0].user_id,
-        expires_at: result.rows[0].expires_at,
-        used: result.rows[0].used
-      });
-    }
-    
-    if (result.rows.length === 0) {
-      console.log('❌ No valid token found');
-      return res.status(400).json({ 
-        valid: false, 
-        error: 'Invalid or expired token' 
-      });
-    }
-    
-    res.json({ valid: true });
-    
-  } catch (err) {
-    console.error('❌ Validate token error:', err);
-    res.status(500).json({ error: 'Failed to validate token' });
-  }
-});
-
-/**
- * POST /api/auth/reset-password
- * Reset password using token
- */
-// ==================== PASSWORD RESET (FROM EMAIL) ====================
-app.post('/api/auth/reset-password', async (req, res) => {
-  const { token, newPassword } = req.body;
-  
-  if (!token || !newPassword) {
-    return res.status(400).json({ error: 'Token and new password are required' });
-  }
-  
-  // Validate new password
-  if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
-    return res.status(400).json({ error: 'Password must contain only letters and numbers' });
-  }
-  if (newPassword.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    // Get token from database
-    const tokenRes = await client.query(
-      `SELECT * FROM password_reset_tokens 
-       WHERE token = $1 AND used = false AND expires_at > NOW()`,
-      [token]
-    );
-    
-    if (tokenRes.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Invalid or expired token' });
-    }
-    
-    const resetToken = tokenRes.rows[0];
-    
-    // Hash new password
-    const hashedPassword = bcrypt.hashSync(newPassword, 10);
-    
-    // Update user password
-    await client.query(
-      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [hashedPassword, resetToken.user_id]
-    );
-    
-    // Mark token as used
-    await client.query(
-      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
-      [resetToken.id]
-    );
-    
-    await client.query('COMMIT');
-    
-    // Get user email for confirmation
-    const userRes = await client.query('SELECT email FROM users WHERE id = $1', [resetToken.user_id]);
-    const userEmail = userRes.rows[0]?.email;
-    
-    // Send confirmation email
-    if (userEmail) {
-      await sendPasswordResetConfirmation(userEmail);
-    }
-    
-    res.json({ success: true, message: 'Password reset successfully' });
-    
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Failed to reset password' });
-  } finally {
-    client.release();
-  }
-});
-
-// =============================================
-// SHIFT MANAGEMENT ROUTES
-// =============================================
-
-/**
- * GET /api/shifts/current - Get current open shift
- */
+// GET /api/shifts/current - Get current open shift
 app.get('/api/shifts/current', authenticateToken, async (req, res) => {
   const { stallId } = req.query;
   
@@ -3601,12 +3208,11 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
     
     const shift = result.rows[0];
     
-    // Get shift stats
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
-       FROM orders
+       FROM orders 
        WHERE shift_id = $1`,
       [shift.id]
     );
@@ -3621,9 +3227,7 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * POST /api/shifts/open - Open a new shift
- */
+// POST /api/shifts/open - Open a new shift
 app.post('/api/shifts/open', authenticateToken, async (req, res) => {
   const { stallId, startingFloat, notes } = req.body;
   const userId = req.user.id;
@@ -3633,7 +3237,6 @@ app.post('/api/shifts/open', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if there's already an open shift
     const existing = await pool.query(
       'SELECT id FROM shifts WHERE stall_id = $1 AND status = $2',
       [stallId, 'open']
@@ -3657,9 +3260,7 @@ app.post('/api/shifts/open', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * POST /api/shifts/close - Close a shift
- */
+// POST /api/shifts/close - Close a shift
 app.post('/api/shifts/close', authenticateToken, async (req, res) => {
   const { shiftId, endingCash, notes } = req.body;
   const userId = req.user.id;
@@ -3669,7 +3270,6 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Get the shift
     const shiftResult = await pool.query(
       `SELECT * FROM shifts WHERE id = $1 AND status = 'open'`,
       [shiftId]
@@ -3681,12 +3281,11 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
-    // Get shift revenue
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
-       FROM orders
+       FROM orders 
        WHERE shift_id = $1`,
       [shiftId]
     );
@@ -3721,9 +3320,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/shifts/history - Get shift history for a stall
- */
+// GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3768,7 +3365,6 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     
     const result = await pool.query(queryText, params);
     
-    // Get total count
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM shifts WHERE stall_id = $1`,
       [stallId]
@@ -3784,13 +3380,10 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/shifts/history/all - Get all shifts (admin)
- */
+// GET /api/shifts/history/all - Get all shifts (admin only)
 app.get('/api/shifts/history/all', authenticateToken, async (req, res) => {
-  // Only super_admin and super_super_admin can view all shifts
   if (req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error: 'Forbidden - Admin access required' });
   }
   
   const { limit = 100, offset = 0, from, to, status } = req.query;
@@ -3834,11 +3427,7 @@ app.get('/api/shifts/history/all', authenticateToken, async (req, res) => {
     
     const result = await pool.query(queryText, params);
     
-    // Get total count
-    const countResult = await pool.query(
-      `SELECT COUNT(*) FROM shifts`,
-      []
-    );
+    const countResult = await pool.query(`SELECT COUNT(*) FROM shifts`);
     
     res.json({
       shifts: result.rows,
@@ -3850,9 +3439,7 @@ app.get('/api/shifts/history/all', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/shifts/:shiftId - Get shift details
- */
+// GET /api/shifts/:shiftId - Get shift details with transactions
 app.get('/api/shifts/:shiftId', authenticateToken, async (req, res) => {
   const { shiftId } = req.params;
   
@@ -3877,7 +3464,6 @@ app.get('/api/shifts/:shiftId', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
-    // Get transactions for this shift (from orders table)
     const txResult = await pool.query(
       `SELECT * FROM orders WHERE shift_id = $1 ORDER BY created_at DESC`,
       [shiftId]
@@ -3892,8 +3478,33 @@ app.get('/api/shifts/:shiftId', authenticateToken, async (req, res) => {
   }
 });
 
-// =============================================
-// END OF SHIFT MANAGEMENT ROUTES
-// =============================================
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+
+const gracefulShutdown = async () => {
+  console.log('🛑 Shutting down gracefully...');
+  try {
+    await pool.end();
+    console.log('✅ Database connections closed');
+  } catch (err) {
+    console.error('❌ Error closing database connections:', err.message);
+  }
+  process.exit(0);
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// ============================================
+// START SERVER
+// ============================================
+if (require.main === module) {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${port}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📁 Upload directory: ${uploadDir}`);
+  });
+}
 
 module.exports = app;
