@@ -891,21 +891,169 @@
       <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
         <div class="sub-tabs">
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'management' }"
-            @click="stallSubTab = 'management'"
-          >
-            🏪 Stall Management
-          </button>
-          <button 
-            class="sub-tab" 
-            :class="{ active: stallSubTab === 'performance' }"
-            @click="stallSubTab = 'performance'"
-          >
-            📊 Stall Performance
+  <button 
+    class="sub-tab" 
+    :class="{ active: stallSubTab === 'management' }"
+    @click="stallSubTab = 'management'"
+  >
+    🏪 Stall Management
+  </button>
+  <button 
+    class="sub-tab" 
+    :class="{ active: stallSubTab === 'performance' }"
+    @click="stallSubTab = 'performance'"
+  >
+    📊 Stall Performance
+  </button>
+  <!-- ===== NEW: Shift History Sub-Tab ===== -->
+  <button 
+    class="sub-tab" 
+    :class="{ active: stallSubTab === 'shifts' }"
+    @click="stallSubTab = 'shifts'; loadShiftHistory()"
+  >
+    🕐 Shift History
+  </button>
+</div>
+
+<!-- ===== SHIFT HISTORY SUB-TAB ===== -->
+<div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🕐 Shift History</h3>
+        <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
+      </div>
+      <div class="header-actions">
+        <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
+      </div>
+    </div>
+    
+    <div class="card-modern-body">
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <div class="filter-group">
+          <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+            <option value="all">All Stalls</option>
+            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+              {{ stall.name }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
+            <option value="all">All Status</option>
+            <option value="open">🟢 Open</option>
+            <option value="closed">⚪ Closed</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <input 
+            type="date" 
+            v-model="shiftHistoryDateFrom" 
+            class="filter-input"
+            @change="resetShiftPagination"
+            title="Date From"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <input 
+            type="date" 
+            v-model="shiftHistoryDateTo" 
+            class="filter-input"
+            @change="resetShiftPagination"
+            title="Date To"
+          />
+        </div>
+        
+        <div class="filter-actions">
+          <button @click="clearShiftFilters" class="btn-modern secondary small">
+            Clear Filters
           </button>
         </div>
+      </div>
+      
+      <!-- Shift History Table -->
+      <div v-if="shiftHistoryLoading" class="loading-state">
+        <div class="loading-spinner"><div class="spinner-ring"></div></div>
+        <p>Loading shift history...</p>
+      </div>
+      
+      <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
+        <span>🕐</span>
+        <p>No shifts found matching your criteria</p>
+      </div>
+      
+      <div v-else>
+        <div class="shift-history-table-wrapper">
+          <div class="shift-history-table-header">
+            <span class="shift-history-header-date">Date</span>
+            <span class="shift-history-header-stall">Stall</span>
+            <span class="shift-history-header-revenue">Revenue</span>
+            <span class="shift-history-header-transactions">Orders</span>
+            <span class="shift-history-header-float">Float</span>
+            <span class="shift-history-header-variance">Variance</span>
+            <span class="shift-history-header-status">Status</span>
+            <span class="shift-history-header-details">Details</span>
+          </div>
+          
+          <div class="shift-history-table-body">
+            <div 
+              v-for="shift in paginatedShiftHistory" 
+              :key="shift.id" 
+              class="shift-history-table-row clickable-item"
+              @click="viewShiftDetails(shift)"
+            >
+              <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
+              <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
+              <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
+              <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
+              <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
+              <span class="shift-history-variance" :class="getVarianceClass(shift)">
+                {{ formatCurrency(shift.variance) }}
+              </span>
+              <span class="shift-history-status">
+                <span class="status-badge" :class="shift.status">
+                  {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+                </span>
+              </span>
+              <span class="shift-history-details">👆</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevShiftPage" 
+              class="pagination-btn"
+              :disabled="shiftCurrentPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
+            </span>
+            <button 
+              @click="nextShiftPage" 
+              class="pagination-btn"
+              :disabled="shiftCurrentPage >= shiftTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
         
         <!-- Stall Management -->
         <div v-if="stallSubTab === 'management'" class="sub-tab-content">
@@ -2716,6 +2864,118 @@
       </div>
     </div>
   </div>
+
+<!-- ===== SHIFT DETAIL MODAL ===== -->
+<div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>🕐 Shift Details</h3>
+      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div v-if="selectedShift">
+        <!-- Shift Info -->
+        <div class="shift-detail-grid">
+          <div class="shift-detail-item">
+            <span class="label">Stall</span>
+            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Opened</span>
+            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Opened By</span>
+            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Closed</span>
+            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Closed By</span>
+            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Status</span>
+            <span class="value">
+              <span class="status-badge" :class="selectedShift.status">
+                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+              </span>
+            </span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Starting Float</span>
+            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Revenue</span>
+            <span class="value revenue">{{ formatCurrency(selectedShift.revenue) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Orders</span>
+            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Expected Cash</span>
+            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Ending Cash</span>
+            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Variance</span>
+            <span class="value" :class="getVarianceClass(selectedShift)">
+              {{ formatCurrency(selectedShift.variance) }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Notes -->
+        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
+          <div v-if="selectedShift.notes">
+            <strong>Opening Notes:</strong>
+            <p>{{ selectedShift.notes }}</p>
+          </div>
+          <div v-if="selectedShift.closing_notes">
+            <strong>Closing Notes:</strong>
+            <p>{{ selectedShift.closing_notes }}</p>
+          </div>
+        </div>
+        
+        <!-- Transactions -->
+        <div class="shift-detail-transactions">
+          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
+          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
+            <span>📭</span>
+            <p>No orders for this shift</p>
+          </div>
+          <div v-else class="shift-transaction-list">
+            <div 
+              v-for="tx in selectedShift.transactions" 
+              :key="tx.id" 
+              class="shift-transaction-item"
+            >
+              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
+              <span class="tx-id">#{{ tx.order_number }}</span>
+              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
+              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
+              <span class="tx-status" :class="tx.status || 'completed'">
+                {{ tx.status || 'completed' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
+      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
+    </div>
+  </div>
+</div>
+
 </template>
 
 <script>
@@ -2755,6 +3015,19 @@ export default {
 
   data() {
     return {
+
+       shiftHistory: [],
+    shiftHistoryLoading: false,
+    shiftHistoryTotal: 0,
+    shiftHistoryStallFilter: 'all',
+    shiftHistoryStatusFilter: 'all',
+    shiftHistoryDateFrom: null,
+    shiftHistoryDateTo: null,
+    shiftCurrentPage: 1,
+    shiftItemsPerPage: 10,
+    shiftDetailModal: false,
+    selectedShift: null,
+    shiftExportLoading: false,
       stallPerformanceAllTime: [],
       transactionDetailModal: false,
 selectedTransaction: null,
@@ -2967,6 +3240,59 @@ expandedTransactionRows: [],
   },
 
   computed: {
+
+    // ===== Shift history computed =====
+  filteredShiftHistory() {
+    let data = this.shiftHistory;
+    
+    if (this.shiftHistoryStallFilter !== 'all') {
+      data = data.filter(s => s.stall_id === this.shiftHistoryStallFilter);
+    }
+    
+    if (this.shiftHistoryStatusFilter !== 'all') {
+      data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
+    }
+    
+    if (this.shiftHistoryDateFrom) {
+      const from = new Date(this.shiftHistoryDateFrom);
+      from.setHours(0, 0, 0, 0);
+      data = data.filter(s => {
+        const date = new Date(s.opened_at);
+        return date >= from;
+      });
+    }
+    
+    if (this.shiftHistoryDateTo) {
+      const to = new Date(this.shiftHistoryDateTo);
+      to.setHours(23, 59, 59, 999);
+      data = data.filter(s => {
+        const date = new Date(s.opened_at);
+        return date <= to;
+      });
+    }
+    
+    return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+  },
+  
+  paginatedShiftHistory() {
+    const start = (this.shiftCurrentPage - 1) * this.shiftItemsPerPage;
+    const end = start + this.shiftItemsPerPage;
+    return this.filteredShiftHistory.slice(start, end);
+  },
+  
+  shiftTotalPages() {
+    return Math.ceil(this.filteredShiftHistory.length / this.shiftItemsPerPage) || 1;
+  },
+  
+  shiftStartIndex() {
+    if (this.filteredShiftHistory.length === 0) return 0;
+    return (this.shiftCurrentPage - 1) * this.shiftItemsPerPage + 1;
+  },
+  
+  shiftEndIndex() {
+    if (this.filteredShiftHistory.length === 0) return 0;
+    return Math.min(this.shiftCurrentPage * this.shiftItemsPerPage, this.filteredShiftHistory.length);
+  },
 
     // ===== TRANSACTIONS COMPUTED =====
 filteredTransactions() {
@@ -3832,6 +4158,179 @@ displayStalls() {
 },
 
   methods: {
+
+    async loadShiftHistory() {
+    this.shiftHistoryLoading = true;
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+      const stallId = this.shiftHistoryStallFilter !== 'all' ? this.shiftHistoryStallFilter : null;
+      
+      let url;
+      if (stallId) {
+        url = `${API_BASE}/shifts/history?stallId=${stallId}&limit=1000`;
+      } else {
+        url = `${API_BASE}/shifts/history/all?limit=1000`;
+      }
+      
+      const res = await axios.get(
+        url,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
+      
+      this.shiftHistory = res.data.shifts || [];
+      this.shiftHistoryTotal = res.data.total || 0;
+    } catch (err) {
+      console.error('Failed to load shift history:', err);
+      this.shiftHistory = [];
+      this.shiftHistoryTotal = 0;
+      if (err.response?.status !== 404) {
+        this.$emit('show-notification', 'Failed to load shift history', 'error');
+      }
+    } finally {
+      this.shiftHistoryLoading = false;
+    }
+  },
+  
+  async viewShiftDetails(shift) {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+      const res = await axios.get(
+        `${API_BASE}/shifts/${shift.id}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
+      this.selectedShift = res.data;
+      this.shiftDetailModal = true;
+    } catch (err) {
+      console.error('Failed to load shift details:', err);
+      this.$emit('show-notification', 'Failed to load shift details', 'error');
+    }
+  },
+  
+  getStallName(stallId) {
+    const stall = this.stalls.find(s => s.id === stallId);
+    return stall ? stall.name : 'Unknown';
+  },
+  
+  getVarianceClass(shift) {
+    const variance = parseFloat(shift.variance) || 0;
+    if (variance > 0) return 'over';
+    if (variance < 0) return 'short';
+    return 'balanced';
+  },
+  
+  resetShiftPagination() {
+    this.shiftCurrentPage = 1;
+  },
+  
+  prevShiftPage() {
+    if (this.shiftCurrentPage > 1) {
+      this.shiftCurrentPage--;
+    }
+  },
+  
+  nextShiftPage() {
+    if (this.shiftCurrentPage < this.shiftTotalPages) {
+      this.shiftCurrentPage++;
+    }
+  },
+  
+  clearShiftFilters() {
+    this.shiftHistoryStallFilter = 'all';
+    this.shiftHistoryStatusFilter = 'all';
+    this.shiftHistoryDateFrom = null;
+    this.shiftHistoryDateTo = null;
+    this.shiftCurrentPage = 1;
+    this.loadShiftHistory();
+  },
+  
+  async exportShiftHistory() {
+    this.shiftExportLoading = true;
+    try {
+      this.$emit('show-notification', 'Exporting shift history...', 'info');
+      const ExcelJS = await import('exceljs');
+      const { saveAs } = await import('file-saver');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Shift History');
+      
+      sheet.addRow(['Shift History Report', '']);
+      sheet.addRow(['Generated', new Date().toLocaleString()]);
+      sheet.addRow(['Total Shifts', this.filteredShiftHistory.length]);
+      sheet.addRow([]);
+      
+      sheet.addRow(['Date', 'Stall', 'Revenue', 'Orders', 'Float', 'Variance', 'Status']);
+      this.filteredShiftHistory.forEach(shift => {
+        sheet.addRow([
+          this.formatDate(shift.opened_at),
+          this.getStallName(shift.stall_id),
+          shift.revenue || 0,
+          shift.transaction_count || 0,
+          shift.starting_float || 0,
+          shift.variance || 0,
+          shift.status || 'closed'
+        ]);
+      });
+      
+      sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+        `Shift_History_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      this.$emit('show-notification', 'Shift history exported!', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      this.$emit('show-notification', 'Export failed', 'error');
+    } finally {
+      this.shiftExportLoading = false;
+    }
+  },
+  
+  async exportShiftReport() {
+    if (!this.selectedShift) return;
+    
+    try {
+      this.$emit('show-notification', 'Exporting shift report...', 'info');
+      const ExcelJS = await import('exceljs');
+      const { saveAs } = await import('file-saver');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Shift Report');
+      
+      sheet.addRow(['Shift Report', '']);
+      sheet.addRow(['Stall', this.getStallName(this.selectedShift.stall_id)]);
+      sheet.addRow(['Opened', this.formatDateTime(this.selectedShift.opened_at)]);
+      sheet.addRow(['Closed', this.formatDateTime(this.selectedShift.closed_at) || 'Open']);
+      sheet.addRow(['Status', this.selectedShift.status]);
+      sheet.addRow(['Revenue', this.selectedShift.revenue]);
+      sheet.addRow(['Orders', this.selectedShift.transaction_count]);
+      sheet.addRow(['Starting Float', this.selectedShift.starting_float]);
+      sheet.addRow(['Ending Cash', this.selectedShift.ending_cash]);
+      sheet.addRow(['Expected Cash', this.selectedShift.expected_cash]);
+      sheet.addRow(['Variance', this.selectedShift.variance]);
+      sheet.addRow([]);
+      
+      sheet.addRow(['Orders', '']);
+      sheet.addRow(['Order ID', 'Amount', 'Items', 'Status', 'Time']);
+      (this.selectedShift.transactions || []).forEach(tx => {
+        sheet.addRow([
+          tx.order_number || 'N/A',
+          tx.total_amount || 0,
+          tx.item_count || 0,
+          tx.status || 'completed',
+          this.formatTime(tx.created_at)
+        ]);
+      });
+      
+      sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+        `Shift_Report_${this.selectedShift.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      this.$emit('show-notification', 'Shift report exported!', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      this.$emit('show-notification', 'Export failed', 'error');
+    }
+  }
+},
 
 async refreshAllDataForPeriod() {
   try {
@@ -16477,6 +16976,239 @@ async loadStallPerformance() {
   .transactions-tab .revenue-table-row .revenue-table-state::before {
     content: "DATE: " !important;
   }
+}
+
+/* ============================================ */
+/* SHIFT HISTORY TABLE                         */
+/* ============================================ */
+.shift-history-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shift-history-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 700px;
+}
+
+.shift-history-table-row {
+  display: flex;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+  align-items: center;
+  min-width: 700px;
+  cursor: pointer;
+}
+
+.shift-history-table-row:hover {
+  background: var(--background);
+}
+
+.shift-history-header-date { min-width: 100px; text-align: left; }
+.shift-history-header-stall { flex: 1; text-align: left; }
+.shift-history-header-revenue { min-width: 80px; text-align: right; }
+.shift-history-header-transactions { min-width: 80px; text-align: center; }
+.shift-history-header-float { min-width: 80px; text-align: right; }
+.shift-history-header-variance { min-width: 80px; text-align: right; }
+.shift-history-header-status { min-width: 90px; text-align: center; }
+.shift-history-header-details { min-width: 40px; text-align: center; }
+
+.shift-history-date { min-width: 100px; font-size: 0.8rem; color: var(--text); }
+.shift-history-stall { flex: 1; font-weight: 500; font-size: 0.8rem; }
+.shift-history-revenue { min-width: 80px; text-align: right; font-weight: 600; color: var(--primary); }
+.shift-history-transactions { min-width: 80px; text-align: center; font-size: 0.8rem; }
+.shift-history-float { min-width: 80px; text-align: right; font-size: 0.8rem; }
+.shift-history-variance { min-width: 80px; text-align: right; font-weight: 600; font-size: 0.8rem; }
+.shift-history-variance.over { color: #10b981; }
+.shift-history-variance.short { color: #ef4444; }
+.shift-history-variance.balanced { color: #2563eb; }
+.shift-history-status { min-width: 90px; text-align: center; }
+.shift-history-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+
+.shift-history-table-row:hover .shift-history-details {
+  color: var(--primary);
+}
+
+/* ============================================ */
+/* SHIFT DETAIL MODAL                          */
+/* ============================================ */
+.shift-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.shift-detail-item {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.shift-detail-item .label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.shift-detail-item .value {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.shift-detail-item .value.revenue {
+  color: var(--primary);
+}
+
+.shift-detail-item .value.over {
+  color: #10b981;
+}
+
+.shift-detail-item .value.short {
+  color: #ef4444;
+}
+
+.shift-detail-notes {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.shift-detail-notes p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.shift-detail-transactions {
+  margin-top: 1rem;
+}
+
+.shift-detail-transactions h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.shift-transaction-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.shift-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.shift-transaction-item .tx-time {
+  min-width: 55px;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.shift-transaction-item .tx-id {
+  min-width: 80px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-family: monospace;
+}
+
+.shift-transaction-item .tx-items {
+  min-width: 50px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.shift-transaction-item .tx-amount {
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.shift-transaction-item .tx-status {
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.shift-transaction-item .tx-status.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-transaction-item .tx-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.shift-transaction-item .tx-status.failed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
+@media (max-width: 768px) {
+  .shift-history-table-header {
+    font-size: 0.55rem;
+    min-width: 600px;
+  }
+  
+  .shift-history-table-row {
+    min-width: 600px;
+  }
+  
+  .shift-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .shift-detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .shift-history-header-date { min-width: 70px; }
+  .shift-history-header-revenue { min-width: 60px; }
+  .shift-history-header-transactions { min-width: 60px; }
+  .shift-history-header-float { min-width: 60px; }
+  .shift-history-header-variance { min-width: 60px; }
+  .shift-history-header-status { min-width: 70px; }
+  
+  .shift-history-date { min-width: 70px; font-size: 0.7rem; }
+  .shift-history-revenue { min-width: 60px; font-size: 0.7rem; }
+  .shift-history-transactions { min-width: 60px; font-size: 0.7rem; }
+  .shift-history-float { min-width: 60px; font-size: 0.7rem; }
+  .shift-history-variance { min-width: 60px; font-size: 0.7rem; }
+  .shift-history-status { min-width: 70px; }
 }
 
 </style>

@@ -1,5 +1,63 @@
 <template>
   <div class="stall-view" :class="{ 'with-cart': cartItems.length > 0 }">
+
+      <!-- ===== SHIFT STATUS BAR ===== -->
+    <div v-if="shift.enabled" class="shift-status-bar">
+      <div class="shift-status-left">
+        <span class="shift-indicator" :class="shiftStatus ? 'open' : 'closed'">
+          {{ shiftStatus ? '🟢 OPEN' : '⚪ CLOSED' }}
+        </span>
+        <span class="shift-time" v-if="shiftStatus">
+          Opened: {{ formatTime(currentShift?.opened_at) }}
+        </span>
+        <span class="shift-time" v-else>
+          No active shift
+        </span>
+      </div>
+      <div class="shift-status-right">
+        <span class="shift-stats" v-if="shiftStatus">
+          Revenue: {{ formatCurrency(shiftRevenue) }} | 
+          Orders: {{ todayTransactions.length }}
+        </span>
+        <button @click="openShiftModal" v-if="!shiftStatus" class="btn-shift open">
+          🟢 Open Shift
+        </button>
+        <button @click="closeShiftModal" v-else class="btn-shift close">
+          🔴 Close Shift
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== TODAY'S TRANSACTIONS ===== -->
+    <div v-if="shift.enabled && shiftStatus" class="today-transactions">
+      <div class="today-transactions-header">
+        <h4>📋 Today's Orders ({{ todayTransactions.length }})</h4>
+        <button @click="refreshTodayTransactions" class="btn-refresh">⟳</button>
+      </div>
+      <div class="today-transactions-list">
+        <div v-if="todayTransactions.length === 0" class="empty-state">
+          <span>📭</span>
+          <p>No orders yet today</p>
+        </div>
+        <div 
+          v-for="tx in todayTransactions.slice(0, 10)" 
+          :key="tx.id" 
+          class="today-transaction-item"
+          @click="viewTransaction(tx)"
+        >
+          <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
+          <span class="tx-id">#{{ tx.order_number }}</span>
+          <span class="tx-items">{{ tx.item_count || 0 }} items</span>
+          <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
+          <span class="tx-status" :class="tx.status || 'completed'">
+            {{ tx.status || 'completed' }}
+          </span>
+        </div>
+        <div v-if="todayTransactions.length > 10" class="view-more">
+          <button @click="viewAllTransactions">View All {{ todayTransactions.length }} →</button>
+        </div>
+      </div>
+    </div>
     <!-- Connection Status -->
     <div v-if="connectionError" class="connection-banner error">
       <div class="banner-content">
@@ -324,6 +382,105 @@
       <p>Loading stall data...</p>
     </div>
   </div>
+ <!-- ===== OPEN SHIFT MODAL ===== -->
+    <div v-if="showOpenShiftModal" class="modal-overlay" @click.self="showOpenShiftModal=false">
+      <div class="modal-modern">
+        <div class="modal-modern-header">
+          <h3>🟢 Open Shift</h3>
+          <button @click="showOpenShiftModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="modal-form-group">
+            <label>Starting Cash Float (RM)</label>
+            <input 
+              type="number" 
+              v-model.number="shift.floatInput" 
+              placeholder="Enter starting cash amount"
+              min="0"
+              step="0.01"
+              class="filter-input"
+            />
+            <small>Enter the amount of cash in the register at the start of the shift</small>
+          </div>
+          <div class="modal-form-group">
+            <label>Notes (Optional)</label>
+            <input v-model="shift.notes" placeholder="Any notes for this shift" class="filter-input" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showOpenShiftModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmOpenShift" class="btn-modern primary" :disabled="shift.floatInput < 0 || shift.loading">
+            {{ shift.loading ? 'Opening...' : 'Open Shift' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CLOSE SHIFT MODAL ===== -->
+    <div v-if="showCloseShiftModal" class="modal-overlay" @click.self="showCloseShiftModal=false">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🔴 Close Shift</h3>
+          <button @click="showCloseShiftModal=false" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="shift-summary-grid">
+            <div class="shift-summary-item">
+              <span class="label">Opened</span>
+              <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Revenue</span>
+              <span class="value revenue">{{ formatCurrency(shiftRevenue) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Transactions</span>
+              <span class="value">{{ todayTransactions.length }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Starting Float</span>
+              <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Expected Cash</span>
+              <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenue) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Ending Cash</span>
+              <input 
+                type="number" 
+                v-model.number="shift.endingCash" 
+                placeholder="Enter cash count"
+                min="0"
+                step="0.01"
+                class="filter-input"
+              />
+            </div>
+          </div>
+          
+          <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
+            <strong>Variance:</strong> 
+            {{ formatCurrency(shift.endingCash - (shiftStartingFloat + shiftRevenue)) }}
+            <span v-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) > 0">(Over)</span>
+            <span v-else-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) < 0">(Short)</span>
+            <span v-else>(Balanced ✅)</span>
+          </div>
+          
+          <div class="modal-form-group" style="margin-top: 1rem;">
+            <label>Closing Notes (Optional)</label>
+            <input v-model="shift.closeNotes" placeholder="Any notes for closing" class="filter-input" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="showCloseShiftModal=false" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmCloseShift" class="btn-modern primary" :disabled="shift.endingCash < 0 || shift.loading">
+            {{ shift.loading ? 'Closing...' : 'Close Shift' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script>
@@ -341,6 +498,23 @@ export default {
   },
   data() {
     return {
+      // ===== Shift data =====
+shift: {
+  enabled: true, // Set to false to disable shift features
+  currentShift: null,
+  status: false,
+  startTime: null,
+  startingFloat: 0,
+  revenue: 0,
+  todayTransactions: [],
+  showOpenModal: false,
+  showCloseModal: false,
+  floatInput: 0,
+  endingCash: 0,
+  notes: '',
+  closeNotes: '',
+  loading: false
+},
       inventory: [],
       processedInventory: [],
       todaySales: { items_sold: 0, total_revenue: 0 },
@@ -364,6 +538,42 @@ export default {
     }
   },
   computed: {
+
+    // ===== Shift computed =====
+shiftStatus() {
+  if (!this.shift || !this.shift.enabled) return false;
+  return this.shift.status || false;
+},
+
+currentShift() {
+  if (!this.shift || !this.shift.enabled) return null;
+  return this.shift.currentShift || null;
+},
+
+shiftRevenue() {
+  if (!this.shift || !this.shift.enabled) return 0;
+  return this.shift.revenue || 0;
+},
+
+todayTransactions() {
+  if (!this.shift || !this.shift.enabled) return [];
+  return this.shift.todayTransactions || [];
+},
+
+shiftStartingFloat() {
+  if (!this.shift || !this.shift.enabled) return 0;
+  return this.shift.startingFloat || 0;
+},
+
+showOpenShiftModal() {
+  if (!this.shift || !this.shift.enabled) return false;
+  return this.shift.showOpenModal || false;
+},
+
+showCloseShiftModal() {
+  if (!this.shift || !this.shift.enabled) return false;
+  return this.shift.showCloseModal || false;
+},
     authStore() { return useAuthStore() },
     lowStockCount() { return this.processedInventory.filter(item => item.current_level <= item.alert_level).length },
     activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId },
@@ -378,16 +588,219 @@ export default {
     }
   },
   mounted() {
-    this.loadData()
-    this.loadMenu()
-    this.interval = setInterval(this.loadData, 30000)
-  },
+  this.loadData()
+  this.loadMenu()
+  this.interval = setInterval(this.loadData, 30000)
+  
+  if (this.shift && this.shift.enabled) {
+    this.loadCurrentShift();
+  }
+},
+
   beforeUnmount() {
     clearInterval(this.interval)
   },
   methods: {
     formatCurrency, 
     formatNumber,
+
+    // =============================================
+// SHIFT METHODS
+// =============================================
+
+async loadCurrentShift() {
+  if (!this.shift || !this.shift.enabled) return;
+  
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const res = await axios.get(
+      `${API_BASE}/shifts/current?stallId=${this.stallId}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    if (res.data) {
+      this.shift.currentShift = res.data;
+      this.shift.status = true;
+      this.shift.startTime = res.data.opened_at;
+      this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
+      this.shift.revenue = parseFloat(res.data.revenue) || 0;
+      await this.loadTodayTransactions();
+    } else {
+      this.shift.currentShift = null;
+      this.shift.status = false;
+      this.shift.todayTransactions = [];
+      this.shift.revenue = 0;
+    }
+  } catch (err) {
+    console.warn('Failed to load current shift:', err);
+    this.shift.status = false;
+    this.shift.currentShift = null;
+  }
+},
+
+async loadTodayTransactions() {
+  if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+  
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const today = new Date().toISOString().split('T')[0];
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallId=${this.stallId}&date=${today}&limit=100`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    this.shift.todayTransactions = res.data || [];
+    
+    this.shift.revenue = this.shift.todayTransactions.reduce((sum, tx) => 
+      sum + parseFloat(tx.total_amount || 0), 0
+    );
+  } catch (err) {
+    console.warn('Failed to load today transactions:', err);
+    this.shift.todayTransactions = [];
+  }
+},
+
+openShiftModal() {
+  if (!this.shift || !this.shift.enabled) return;
+  this.shift.floatInput = 0;
+  this.shift.notes = '';
+  this.shift.showOpenModal = true;
+},
+
+async confirmOpenShift() {
+  if (!this.shift || !this.shift.enabled) return;
+  
+  if (this.shift.floatInput < 0) {
+    this.$emit('show-notification', 'Please enter a valid starting cash amount', 'warning');
+    return;
+  }
+  
+  this.shift.loading = true;
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    await axios.post(
+      `${API_BASE}/shifts/open`,
+      {
+        stallId: this.stallId,
+        startingFloat: this.shift.floatInput,
+        notes: this.shift.notes
+      },
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    this.shift.showOpenModal = false;
+    this.$emit('show-notification', 'Shift opened successfully!', 'success');
+    await this.loadCurrentShift();
+    
+  } catch (err) {
+    console.error('Failed to open shift:', err);
+    this.$emit('show-notification', err.response?.data?.error || 'Failed to open shift', 'error');
+  } finally {
+    this.shift.loading = false;
+  }
+},
+
+closeShiftModal() {
+  if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+  this.shift.endingCash = 0;
+  this.shift.closeNotes = '';
+  this.shift.showCloseModal = true;
+},
+
+async confirmCloseShift() {
+  if (!this.shift || !this.shift.enabled || !this.shift.status) {
+    this.$emit('show-notification', 'No active shift to close', 'warning');
+    return;
+  }
+  
+  if (this.shift.endingCash < 0) {
+    this.$emit('show-notification', 'Please enter the ending cash count', 'warning');
+    return;
+  }
+  
+  this.shift.loading = true;
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    await axios.post(
+      `${API_BASE}/shifts/close`,
+      {
+        shiftId: this.shift.currentShift.id,
+        endingCash: this.shift.endingCash,
+        notes: this.shift.closeNotes
+      },
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    this.shift.showCloseModal = false;
+    this.$emit('show-notification', 'Shift closed successfully!', 'success');
+    await this.loadCurrentShift();
+    
+  } catch (err) {
+    console.error('Failed to close shift:', err);
+    this.$emit('show-notification', err.response?.data?.error || 'Failed to close shift', 'error');
+  } finally {
+    this.shift.loading = false;
+  }
+},
+
+getVarianceClass() {
+  const expected = this.shiftStartingFloat + this.shiftRevenue;
+  const variance = this.shift.endingCash - expected;
+  if (variance > 0) return 'over';
+  if (variance < 0) return 'short';
+  return 'balanced';
+},
+
+refreshTodayTransactions() {
+  this.loadTodayTransactions();
+},
+
+viewTransaction(tx) {
+  // Open transaction detail - reuse existing method
+  this.$emit('view-transaction', tx);
+},
+
+viewAllTransactions() {
+  // Navigate to transactions view
+  this.$emit('switch-tab', 'transactions');
+},
+
+formatTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+},
+
+formatDateTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-MY', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  } catch {
+    return '';
+  }
+},
+
+formatCurrency(amount) {
+  const num = Number(amount) || 0;
+  return new Intl.NumberFormat('en-MY', { 
+    style: 'currency', 
+    currency: 'MYR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(num);
+},
 
     getIcon(itemName) {
       return this.iconMap[itemName] || '🍗'
@@ -2043,6 +2456,349 @@ async sellAll() {
 @media (min-width: 769px) {
   .item-recipe-info {
     gap: 0.5rem;
+  }
+}
+
+/* ============================================ */
+/* SHIFT STATUS BAR                            */
+/* ============================================ */
+.shift-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shift-status-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shift-indicator {
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+}
+
+.shift-indicator.open {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-indicator.closed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.shift-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.shift-status-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shift-stats {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.btn-shift {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-shift.open {
+  background: #10b981;
+  color: white;
+}
+
+.btn-shift.open:hover {
+  background: #059669;
+}
+
+.btn-shift.close {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-shift.close:hover {
+  background: #dc2626;
+}
+
+/* ============================================ */
+/* TODAY'S TRANSACTIONS                        */
+/* ============================================ */
+.today-transactions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.today-transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.today-transactions-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  padding: 0.1rem 0.3rem;
+  transition: var(--transition);
+}
+
+.btn-refresh:hover {
+  color: var(--primary);
+  transform: rotate(180deg);
+}
+
+.today-transactions-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.today-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.today-transaction-item:hover {
+  background: var(--background);
+}
+
+.tx-time {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  min-width: 55px;
+}
+
+.tx-id {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-family: monospace;
+  min-width: 80px;
+}
+
+.tx-items {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 50px;
+}
+
+.tx-amount {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+  min-width: 60px;
+  text-align: right;
+}
+
+.tx-status {
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.tx-status.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.tx-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.tx-status.failed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.view-more {
+  text-align: center;
+  padding: 0.35rem;
+}
+
+.view-more button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.view-more button:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  color: var(--text-secondary);
+}
+
+.empty-state span {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* ============================================ */
+/* SHIFT MODALS                                */
+/* ============================================ */
+.shift-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.shift-summary-item {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.shift-summary-item .label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.shift-summary-item .value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.shift-summary-item .value.revenue {
+  color: var(--primary);
+}
+
+.shift-summary-item input {
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+
+.shift-variance {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.shift-variance.over {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-variance.short {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.shift-variance.balanced {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* ============================================ */
+/* RESPONSIVE                                   */
+/* ============================================ */
+@media (max-width: 768px) {
+  .shift-status-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+  
+  .shift-status-left,
+  .shift-status-right {
+    justify-content: center;
+  }
+  
+  .shift-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .today-transaction-item {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  
+  .tx-time {
+    min-width: 45px;
+    font-size: 0.6rem;
+  }
+  
+  .tx-id {
+    min-width: 60px;
+    font-size: 0.7rem;
+  }
+  
+  .tx-amount {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .shift-summary-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>
