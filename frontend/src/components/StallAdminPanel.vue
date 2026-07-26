@@ -14930,14 +14930,14 @@ async loadRevenueData() {
     flex-shrink: 0 !important;
   }
   
-  .revenue-table-row .revenue-table-state::before {
-    content: "STATE: " !important;
-    font-weight: 600 !important;
-    font-size: 0.6rem !important;
-    color: var(--text-secondary) !important;
-    min-width: 60px !important;
-    flex-shrink: 0 !important;
-  }
+ .revenue-table-row .revenue-table-state::before {
+  content: "State: " !important;
+  font-weight: 600 !important;
+  font-size: 0.6rem !important;
+  color: var(--text-secondary) !important;
+  min-width: 60px !important;
+  flex-shrink: 0 !important;
+}
   
   .revenue-table-row .revenue-table-revenue::before {
     content: "REVENUE: " !important;
