@@ -4025,6 +4025,8 @@ export default {
   },
 
   methods: {
+
+    
     // =============================================
     // SHIFT HISTORY METHODS - MOVED INSIDE METHODS
     // =============================================
@@ -6276,14 +6278,22 @@ export default {
     },
 
     toggleDropdown() {
-      this.dropdownOpen = !this.dropdownOpen
-      if (this.dropdownOpen) this.periodDropdownOpen = false
-    },
+  console.log('🔄 toggleDropdown called!');
+  this.dropdownOpen = !this.dropdownOpen;
+  console.log('📊 dropdownOpen is now:', this.dropdownOpen);
+  if (this.dropdownOpen) {
+    this.periodDropdownOpen = false;
+  }
+},
 
     togglePeriodDropdown() {
-      this.periodDropdownOpen = !this.periodDropdownOpen
-      if (this.periodDropdownOpen) this.dropdownOpen = false
-    },
+  console.log('🔄 togglePeriodDropdown called!');
+  this.periodDropdownOpen = !this.periodDropdownOpen;
+  console.log('📊 periodDropdownOpen is now:', this.periodDropdownOpen);
+  if (this.periodDropdownOpen) {
+    this.dropdownOpen = false;
+  }
+},
 
     selectTab(tabId) {
       this.activeTab = tabId
