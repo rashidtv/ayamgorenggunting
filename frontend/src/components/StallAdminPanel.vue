@@ -16366,4 +16366,81 @@ async loadRevenueData() {
   justify-content: center !important;
 }
 
+/* ============================================ */
+/* TRANSACTIONS TABLE - DESKTOP OVERLAP FIX     */
+/* ============================================ */
+
+/* Fix column widths for Transactions table on desktop only */
+@media (min-width: 769px) {
+  .revenue-table-wrapper .revenue-table-header-rank,
+  .revenue-table-wrapper .revenue-table-rank {
+    min-width: 100px !important;
+    width: 100px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-wrapper .revenue-table-header-name,
+  .revenue-table-wrapper .revenue-table-name {
+    flex: 2 !important;
+    min-width: 120px !important;
+    max-width: 200px !important;
+  }
+  
+  .revenue-table-wrapper .revenue-table-header-revenue,
+  .revenue-table-wrapper .revenue-table-revenue {
+    min-width: 100px !important;
+    width: 100px !important;
+    flex-shrink: 0 !important;
+    text-align: right !important;
+  }
+  
+  .revenue-table-wrapper .revenue-table-header-status,
+  .revenue-table-wrapper .revenue-table-status {
+    min-width: 110px !important;
+    width: 110px !important;
+    flex-shrink: 0 !important;
+    text-align: center !important;
+  }
+  
+  .revenue-table-wrapper .revenue-table-header-state,
+  .revenue-table-wrapper .revenue-table-state {
+    min-width: 120px !important;
+    width: 120px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .revenue-table-wrapper .revenue-table-header-details,
+  .revenue-table-wrapper .revenue-table-details {
+    min-width: 60px !important;
+    width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: center !important;
+  }
+  
+  /* Fix text truncation to prevent overflow */
+  .revenue-table-wrapper .order-id {
+    display: inline-block !important;
+    max-width: 90px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  .revenue-table-wrapper .stall-name-text {
+    display: inline-block !important;
+    max-width: 180px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  .revenue-table-wrapper .state-tag {
+    display: inline-block !important;
+    max-width: 110px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
 </style>
