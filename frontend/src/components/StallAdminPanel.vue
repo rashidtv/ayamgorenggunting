@@ -990,28 +990,28 @@
   
   <!-- Table Body -->
   <div class="shift-history-table-body">
-    <div 
-      v-for="shift in paginatedShiftHistory" 
-      :key="shift.id" 
-      class="shift-history-table-row clickable-item"
-      @click="viewShiftDetails(shift)"
-    >
-      <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
-      <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
-      <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
-      <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
-      <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
-      <span class="shift-history-variance" :class="getVarianceClass(shift)">
-        {{ formatCurrency(shift.variance) }}
+  <div 
+    v-for="shift in paginatedShiftHistory" 
+    :key="shift.id" 
+    class="shift-history-table-row clickable-item"
+    @click="viewShiftDetails(shift)"
+  >
+    <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
+    <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
+    <span class="shift-history-revenue" data-label="Revenue">{{ formatCurrency(shift.revenue) }}</span>
+    <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
+    <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
+    <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
+      {{ formatCurrency(shift.variance) }}
+    </span>
+    <span class="shift-history-status" data-label="Status">
+      <span class="status-badge" :class="shift.status">
+        {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
       </span>
-      <span class="shift-history-status">
-        <span class="status-badge" :class="shift.status">
-          {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-        </span>
-      </span>
-      <span class="shift-history-details">👆</span>
-    </div>
+    </span>
+    <span class="shift-history-details" data-label="Details">👆</span>
   </div>
+</div>
 </div>
         
         <!-- Pagination -->
@@ -16994,6 +16994,188 @@ async loadStallPerformance() {
 
 .shift-history-table-row:hover .shift-history-details {
   color: var(--primary);
+}
+
+/* ============================================ */
+/* SHIFT HISTORY TABLE - FIX COLUMN ALIGNMENT   */
+/* ============================================ */
+
+.shift-history-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: 1rem;
+}
+
+/* Table Header - Fixed Columns */
+.shift-history-table-header {
+  display: grid;
+  grid-template-columns: 120px 1fr 100px 80px 100px 100px 90px 50px;
+  background: var(--background);
+  border-bottom: 2px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 700px;
+}
+
+/* Table Row - Fixed Columns */
+.shift-history-table-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 100px 80px 100px 100px 90px 50px;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  align-items: center;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 700px;
+}
+
+.shift-history-table-row:hover {
+  background: var(--background);
+}
+
+/* Individual Column Styles */
+.shift-history-date {
+  font-size: 0.8rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.shift-history-stall {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.shift-history-revenue {
+  text-align: right;
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.85rem;
+}
+
+.shift-history-transactions {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.shift-history-float {
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.shift-history-variance {
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.shift-history-variance.over {
+  color: #10b981;
+}
+
+.shift-history-variance.short {
+  color: #ef4444;
+}
+
+.shift-history-variance.balanced {
+  color: #2563eb;
+}
+
+.shift-history-status {
+  text-align: center;
+}
+
+.shift-history-status .status-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.shift-history-status .status-badge.open {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-history-status .status-badge.closed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.shift-history-details {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.shift-history-table-row:hover .shift-history-details {
+  color: var(--primary);
+}
+
+/* Responsive - Stack on Mobile */
+@media (max-width: 768px) {
+  .shift-history-table-header {
+    display: none;
+  }
+  
+  .shift-history-table-row {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    gap: 0.25rem;
+    min-width: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+  }
+  
+  .shift-history-table-row > span {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.15rem 0;
+  }
+  
+  .shift-history-table-row > span::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  
+  .shift-history-date::before {
+    content: "Date:";
+  }
+  .shift-history-stall::before {
+    content: "Stall:";
+  }
+  .shift-history-revenue::before {
+    content: "Revenue:";
+  }
+  .shift-history-transactions::before {
+    content: "Orders:";
+  }
+  .shift-history-float::before {
+    content: "Float:";
+  }
+  .shift-history-variance::before {
+    content: "Variance:";
+  }
+  .shift-history-status::before {
+    content: "Status:";
+  }
+  .shift-history-details::before {
+    content: "Details:";
+  }
 }
 
 </style>
