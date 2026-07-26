@@ -5,13 +5,13 @@
     <div class="controls-section">
       <div class="controls-row">
         <!-- Tab Dropdown -->
-        <div class="tab-dropdown">
-          <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
-            <span class="dropdown-icon">{{ activeTabIcon }}</span>
-            <span class="dropdown-label">{{ activeTabLabel }}</span>
-            <span class="dropdown-arrow">▼</span>
-          </button>
-          <div v-show="dropdownOpen" class="dropdown-menu">
+<div class="tab-dropdown" :class="{ open: dropdownOpen }">
+  <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
+    <span class="dropdown-icon">{{ activeTabIcon }}</span>
+    <span class="dropdown-label">{{ activeTabLabel }}</span>
+    <span class="dropdown-arrow">▼</span>
+  </button>
+  <div v-show="dropdownOpen" class="dropdown-menu">
             <button 
               v-for="tab in tabs" 
               :key="tab.id"
@@ -28,14 +28,13 @@
         </div>
 
         <!-- Period Dropdown -->
-        <div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper">
-
-          <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
-            <span class="dropdown-icon">📅</span>
-            <span class="dropdown-label">{{ getPeriodLabel() }}</span>
-            <span class="dropdown-arrow">▼</span>
-          </button>
-          <div v-show="periodDropdownOpen" class="dropdown-menu period-menu">
+<div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper" :class="{ open: periodDropdownOpen }">
+  <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
+    <span class="dropdown-icon">📅</span>
+    <span class="dropdown-label">{{ getPeriodLabel() }}</span>
+    <span class="dropdown-arrow">▼</span>
+  </button>
+  <div v-show="periodDropdownOpen" class="dropdown-menu period-menu">
             <button 
               v-for="p in periods" 
               :key="p.value"
@@ -6315,13 +6314,16 @@ export default {
       this.refreshAllDataForPeriod()
     },
 
-    handleClickOutside(event) {
-      const container = this.$el
-      if (container && !container.contains(event.target)) {
-        this.dropdownOpen = false
-        this.periodDropdownOpen = false
-      }
-    },
+   handleClickOutside(event) {
+  const container = this.$el;
+  if (container && !container.contains(event.target)) {
+    // Don't close if clicking inside dropdown
+    if (!event.target.closest('.dropdown-menu') && !event.target.closest('.dropdown-toggle')) {
+      this.dropdownOpen = false;
+      this.periodDropdownOpen = false;
+    }
+  }
+},
 
     applyCustomRange() {
       if (!this.customDateStart || !this.customDateEnd) {
@@ -8258,7 +8260,15 @@ export default {
   transition: transform 0.2s ease;
 }
 
-.dropdown-menu {
+/* ✅ ADD THIS - Permanent Fix */
+/* Show dropdown only when the parent has the open class */
+.tab-dropdown .dropdown-menu,
+.period-dropdown-wrapper .dropdown-menu {
+  display: none !important;
+}
+
+.tab-dropdown.open .dropdown-menu,
+.period-dropdown-wrapper.open .dropdown-menu {
   display: block !important;
 }
 
@@ -16845,11 +16855,7 @@ body {
 /* FORCE DROPDOWN VISIBILITY - EMERGENCY FIX    */
 /* ============================================ */
 
-/* Override v-show display:none */
-.tab-dropdown .dropdown-menu,
-.period-dropdown-wrapper .dropdown-menu {
-  display: block !important;
-}
+
 
 /* But only show when the parent has the open class or when toggled */
 /* This ensures the dropdown is visible when v-show is true */
