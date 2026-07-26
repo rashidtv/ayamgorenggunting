@@ -2132,13 +2132,7 @@
 
       <!-- Filter Bar -->
       <div class="filter-bar-modern">
-        <div class="filter-group">
-          <select v-model="revenuePeriod" class="filter-select" @change="loadRevenueData">
-            <option v-for="p in revenuePeriods" :key="p.value" :value="p.value">
-              {{ p.label }}
-            </option>
-          </select>
-        </div>
+        
         
         <div class="filter-group">
           <select v-model="revenueStateFilter" class="filter-select" @change="resetRevenuePagination">
@@ -2762,7 +2756,6 @@ export default {
   data() {
     return {
       stallPerformanceAllTime: [],
-
       transactionDetailModal: false,
 selectedTransaction: null,
       activeTab: 'dashboard',
@@ -3823,41 +3816,41 @@ transactionStats() {
 
   methods: {
 
-     async refreshAllDataForPeriod() {
-    try {
-      console.log('🔄 Refreshing all data for period:', this.selectedPeriod)
-      
-      this.stallPerformance = []
-      this.menuPerformance = []
-      this.salesTrend = []
-      this.consolidatedSales.topStall = '-'
-      this.consolidatedSales.topRevenue = 0
-      this.consolidatedSales.totalRevenue = 0
-      this.consolidatedSales.totalItems = 0
-      this.revenueData = []
-      this.transactions = []
-      
-      await this.loadSalesAnalytics()
-      await this.loadStallPerformance()
-      await this.loadMenuPerformance()
-      await this.loadRevenueData()
-      await this.loadTransactions()
-      
-      this.resetChartNavigation()
-      
-      this.$nextTick(() => {
-        this.initChart()
-        this.initRevenueChart()
-        this.initRevenueStateChart()
-      })
-      
-      this.$emit('show-notification', `Data updated for ${this.getPeriodLabel()}`, 'success')
-      
-    } catch (err) {
-      console.error('Error refreshing data for period:', err)
-      this.$emit('show-notification', 'Failed to update data for period', 'error')
-    }
-  },
+async refreshAllDataForPeriod() {
+  try {
+    console.log('🔄 Refreshing all data for period:', this.selectedPeriod)
+    
+    this.stallPerformance = []
+    this.menuPerformance = []
+    this.salesTrend = []
+    this.consolidatedSales.topStall = '-'
+    this.consolidatedSales.topRevenue = 0
+    this.consolidatedSales.totalRevenue = 0
+    this.consolidatedSales.totalItems = 0
+    this.revenueData = []
+    this.transactions = []
+    
+    await this.loadSalesAnalytics()
+    await this.loadStallPerformance()
+    await this.loadMenuPerformance()
+    await this.loadRevenueData()
+    await this.loadTransactions()  // ← This should now use the selected period
+    
+    this.resetChartNavigation()
+    
+    this.$nextTick(() => {
+      this.initChart()
+      this.initRevenueChart()
+      this.initRevenueStateChart()
+    })
+    
+    this.$emit('show-notification', `Data updated for ${this.getPeriodLabel()}`, 'success')
+    
+  } catch (err) {
+    console.error('Error refreshing data for period:', err)
+    this.$emit('show-notification', 'Failed to update data for period', 'error')
+  }
+},
 
     // =============================================
 // NEW METHOD - For transactions table only
