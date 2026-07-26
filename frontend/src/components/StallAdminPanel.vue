@@ -14945,7 +14945,7 @@ async loadRevenueData() {
   }
   
  .revenue-table-row .revenue-table-state::before {
-  content: "Date: " !important;  /* ← Changed from "State:" to "Date:" */
+  content: "STATE: " !important;  /* ← Changed from "State:" to "Date:" */
   font-weight: 600 !important;
   font-size: 0.6rem !important;
   color: var(--text-secondary) !important;
@@ -16479,7 +16479,7 @@ async loadRevenueData() {
 
 @media (max-width: 768px) {
   .transactions-tab .revenue-table-row .revenue-table-state::before {
-    content: "Date: " !important;
+    content: "DATE: " !important;
   }
 }
 
