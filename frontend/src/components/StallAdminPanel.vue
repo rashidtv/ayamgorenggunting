@@ -8191,6 +8191,9 @@ export default {
 /* ============================================ */
 .controls-section {
   margin-bottom: 1.25rem;
+  overflow: visible !important;  /* ← ADD THIS */
+  position: relative;
+  z-index: 100;
 }
 
 .controls-row {
@@ -8202,6 +8205,9 @@ export default {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  overflow: visible !important;  /* ← ADD THIS */
+  position: relative;
+  z-index: 100;
 }
 
 /* ============================================ */
@@ -8211,12 +8217,14 @@ export default {
   position: relative;
   min-width: 160px;
   flex-shrink: 0;
+  z-index: 1000;  /* ← ADD THIS */
 }
 
 .period-dropdown-wrapper {
   position: relative;
   min-width: 140px;
   flex-shrink: 0;
+  z-index: 1000;  /* ← ADD THIS */
 }
 
 .dropdown-toggle {
@@ -8261,10 +8269,12 @@ export default {
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  z-index: 50;
+  z-index: 9999;  /* ← CHANGE THIS from 50 to 9999 */
   animation: dropdownSlide 0.2s ease;
   padding: 0.25rem 0 !important;
   min-width: 180px;
+  max-height: 400px;
+  overflow-y: auto;  /* ← ADD THIS for scroll if many items */
 }
 
 .period-menu {
