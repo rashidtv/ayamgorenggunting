@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+const shiftRoutes = require('./routes/shifts');
+
 process.env.TZ = 'UTC';
 
 // ============================================
@@ -166,6 +168,7 @@ const upload = multer({
 
 // Serve uploaded files
 app.use('/uploads', express.static(uploadDir));
+app.use('/api/shifts', shiftRoutes);
 
 // ==================== PERMISSION HELPERS ====================
 
