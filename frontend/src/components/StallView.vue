@@ -381,8 +381,8 @@
       <div class="loading-spinner"><div class="spinner-ring"></div></div>
       <p>Loading stall data...</p>
     </div>
-  </div>
- <!-- ===== OPEN SHIFT MODAL ===== -->
+
+    <!-- ===== OPEN SHIFT MODAL ===== -->
     <div v-if="showOpenShiftModal" class="modal-overlay" @click.self="showOpenShiftModal=false">
       <div class="modal-modern">
         <div class="modal-modern-header">
@@ -479,7 +479,8 @@
         </div>
       </div>
     </div>
-  </div>
+
+  </div>  <!-- ← This ONE closing div closes .stall-view -->
 
 </template>
 
