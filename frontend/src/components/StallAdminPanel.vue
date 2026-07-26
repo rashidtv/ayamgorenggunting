@@ -932,13 +932,22 @@
       <!-- Filter Bar -->
       <div class="filter-bar-modern">
         <div class="filter-group">
-          <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-            <option v-if="isSuperAdmin" value="all">🌐 All Stalls</option>
-            <option v-for="stall in accessibleStalls" :key="stall.id" :value="stall.id">
-              {{ stall.name }}
-            </option>
-          </select>
-        </div>
+  <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+    <!-- "All Stalls" option with role-based label -->
+    <option value="all">
+      {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
+    </option>
+    
+    <!-- Individual stalls the user has access to -->
+    <option 
+      v-for="stall in accessibleStalls" 
+      :key="stall.id" 
+      :value="stall.id"
+    >
+      {{ stall.name }}
+    </option>
+  </select>
+</div>
         <div class="filter-group">
           <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
             <option value="all">All Status</option>
@@ -3109,24 +3118,24 @@ expandedTransactionRows: [],
     return userRole === 'super_admin' || userRole === 'super_super_admin';
   },
   
-  accessibleStalls() {
+    accessibleStalls() {
     // Get stalls the user has access to
     const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
     
     if (this.isSuperAdmin) {
-      // Super admins see all stalls
-      return this.stalls;
+      // Super admins see ALL stalls in the system
+      return this.stalls; // All stalls
     }
     
     // Stall admins see only assigned stalls
-    if (assignedStalls.length > 0) {
-      return assignedStalls;
+    return assignedStalls;
+  },
+
+  allStallsLabel() {
+    if (this.isSuperAdmin) {
+      return '🌐 All Stalls (Entire System)';
     }
-    
-    // Fallback: use the stalls list (but filtered by assigned)
-    return this.stalls.filter(stall => 
-      assignedStalls.some(assigned => assigned.id === stall.id)
-    );
+    return '📋 All My Stalls';
   },
 
      filteredShiftHistory() {
@@ -4034,43 +4043,66 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    // Check if user is Super Admin
     const userRole = this.user?.role || this.authStore?.user?.role;
     const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
     
     let url;
+    let allShifts = [];
+    let totalCount = 0;
     
-    // ✅ FIX: If "All Stalls" is selected AND user is Super Admin, use /history/all
+    // CASE 1: "All Stalls" selected
     if (this.shiftHistoryStallFilter === 'all') {
       if (isSuperAdmin) {
-        // Super Admin - get all shifts
+        // Super Admin: Get ALL stalls in the system
         url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
+        const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
+        this.shiftHistory = res.data.shifts || [];
+        this.shiftHistoryTotal = res.data.total || 0;
       } else {
-        // Stall Admin - "All Stalls" means get first assigned stall
+        // Stall Admin: Get ALL their assigned stalls (combined)
         const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
-        const stallId = assignedStalls.length > 0 ? assignedStalls[0].id : (this.stalls.length > 0 ? this.stalls[0].id : null);
-        if (!stallId) {
+        
+        if (assignedStalls.length === 0) {
           this.shiftHistory = [];
           this.shiftHistoryTotal = 0;
           this.shiftHistoryLoading = false;
           return;
         }
-        url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
+        
+        // Fetch shifts for each assigned stall and combine
+        for (const stall of assignedStalls) {
+          try {
+            const res = await axios.get(
+              `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`,
+              { headers: { Authorization: `Bearer ${this.token}` } }
+            );
+            const shifts = res.data.shifts || [];
+            allShifts = [...allShifts, ...shifts];
+            totalCount += res.data.total || 0;
+          } catch (err) {
+            console.warn(`Failed to load shifts for stall ${stall.id}:`, err);
+          }
+        }
+        
+        // Sort all shifts by date (newest first)
+        allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+        
+        this.shiftHistory = allShifts;
+        this.shiftHistoryTotal = totalCount;
       }
-    } else {
-      // Specific stall selected
+    } 
+    // CASE 2: Specific stall selected
+    else if (this.shiftHistoryStallFilter) {
       url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
+      this.shiftHistory = res.data.shifts || [];
+      this.shiftHistoryTotal = res.data.total || 0;
     }
-    
-    console.log('📊 Loading shift history from:', url);
-    
-    const res = await axios.get(
-      url,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    this.shiftHistory = res.data.shifts || [];
-    this.shiftHistoryTotal = res.data.total || 0;
+    // CASE 3: No selection (fallback)
+    else {
+      this.shiftHistory = [];
+      this.shiftHistoryTotal = 0;
+    }
   } catch (err) {
     console.error('Failed to load shift history:', err);
     this.shiftHistory = [];
@@ -4099,18 +4131,9 @@ async viewShiftDetails(shift) {
 },
 
 clearShiftFilters() {
-  const userRole = this.user?.role || this.authStore?.user?.role;
-  const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
-  
-  // Super Admin: default to "All Stalls"
-  // Stall Admin: default to first assigned stall
-  if (isSuperAdmin) {
-    this.shiftHistoryStallFilter = 'all';
-  } else {
-    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
-    this.shiftHistoryStallFilter = assignedStalls.length > 0 ? assignedStalls[0].id : null;
-  }
-  
+  // Default to "All Stalls" for both Super Admin and Stall Admin
+  // The meaning of "All Stalls" is different based on role
+  this.shiftHistoryStallFilter = 'all';
   this.shiftHistoryStatusFilter = 'all';
   this.shiftCurrentPage = 1;
   this.loadShiftHistory();
