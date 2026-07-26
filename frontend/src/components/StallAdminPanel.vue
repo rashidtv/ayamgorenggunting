@@ -16764,4 +16764,81 @@ export default {
   .shift-history-status { min-width: 70px; }
 }
 
+/* ============================================ */
+/* EMERGENCY DROPDOWN FIX - FORCE VISIBILITY   */
+/* ============================================ */
+
+/* Force dropdown containers to be above everything */
+.tab-dropdown,
+.period-dropdown-wrapper {
+  position: relative !important;
+  z-index: 99999 !important;
+  overflow: visible !important;
+}
+
+/* Force dropdown toggle buttons to be clickable */
+.dropdown-toggle {
+  position: relative !important;
+  z-index: 99999 !important;
+  cursor: pointer !important;
+}
+
+/* Force dropdown menu to be visible when open */
+.dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: auto !important;
+  margin-top: 4px !important;
+  background: white !important;
+  border: 2px solid #f94908 !important; /* RED BORDER FOR TESTING */
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+  z-index: 999999 !important;
+  min-width: 200px !important;
+  padding: 8px 0 !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Force dropdown items to be visible */
+.dropdown-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 16px !important;
+  background: white !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9 !important;
+}
+
+.dropdown-item.active {
+  background: #f94908 !important;
+  color: white !important;
+}
+
+/* Make sure parent containers don't clip */
+.controls-section,
+.controls-row,
+.controls-section *,
+.controls-row * {
+  overflow: visible !important;
+  clip-path: none !important;
+}
+
+/* Force body to allow overflow */
+body {
+  overflow-x: visible !important;
+}
+
 </style>
