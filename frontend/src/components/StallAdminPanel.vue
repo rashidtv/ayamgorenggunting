@@ -8259,6 +8259,10 @@ export default {
 }
 
 .dropdown-menu {
+  display: block !important;
+}
+
+.dropdown-menu {
   position: absolute;
   top: 100%;
   left: 0;
