@@ -7,7 +7,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
-
 const shiftRoutes = require('./routes/shifts');
 
 process.env.TZ = 'UTC';
@@ -255,6 +254,9 @@ const authenticateToken = async (req, res, next) => {
     next();
   });
 };
+
+// ==================== MOUNT SHIFT ROUTES ====================
+app.use('/api/shifts', shiftRoutes(authenticateToken));
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
