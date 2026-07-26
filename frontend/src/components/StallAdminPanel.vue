@@ -933,12 +933,12 @@
       <div class="filter-bar-modern">
         <div class="filter-group">
   <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-    <!-- "All Stalls" option with role-based label -->
+    <!-- "All My Stalls" option -->
     <option value="all">
       {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
     </option>
     
-    <!-- Individual stalls the user has access to -->
+    <!-- Individual stalls -->
     <option 
       v-for="stall in accessibleStalls" 
       :key="stall.id" 
@@ -3118,16 +3118,26 @@ expandedTransactionRows: [],
     return userRole === 'super_admin' || userRole === 'super_super_admin';
   },
   
-    accessibleStalls() {
-    // Get stalls the user has access to
+  accessibleStalls() {
     const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
     
+    console.log('🔍 accessibleStalls - user object:', this.user);
+    console.log('🔍 accessibleStalls - authStore user:', this.authStore?.user);
+    console.log('🔍 accessibleStalls - assignedStalls:', assignedStalls);
+    console.log('🔍 accessibleStalls - all stalls:', this.stalls);
+    console.log('🔍 accessibleStalls - isSuperAdmin:', this.isSuperAdmin);
+    
     if (this.isSuperAdmin) {
-      // Super admins see ALL stalls in the system
-      return this.stalls; // All stalls
+      return this.stalls;
     }
     
-    // Stall admins see only assigned stalls
+    // If assignedStalls is empty, try to get from user.stalls or use all stalls as fallback
+    if (assignedStalls.length === 0) {
+      // For Stall Admin, return all stalls they have access to
+      // If no assigned stalls, return all stalls (or filter by user)
+      return this.stalls;
+    }
+    
     return assignedStalls;
   },
 
