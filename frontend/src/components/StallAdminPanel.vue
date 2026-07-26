@@ -16443,4 +16443,24 @@ async loadRevenueData() {
   }
 }
 
+/* ============================================ */
+/* TRANSACTIONS TABLE - WIDER ORDER ID COLUMN   */
+/* ============================================ */
+
+/* Desktop only - make Order ID column wider */
+@media (min-width: 769px) {
+  .revenue-table-wrapper .revenue-table-header-rank,
+  .revenue-table-wrapper .revenue-table-rank {
+    min-width: 180px !important;
+    width: 200px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Ensure text stays readable */
+  .revenue-table-wrapper .order-id {
+    white-space: nowrap !important;
+    font-size: 0.8rem !important;
+  }
+}
+
 </style>
