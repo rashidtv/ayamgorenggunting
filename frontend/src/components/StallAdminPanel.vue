@@ -3055,10 +3055,25 @@ transactionEndIndex() {
 
 transactionStats() {
   const total = this.transactions.length
-  const totalRevenue = this.transactions.reduce((sum, tx) => sum + (tx.total_amount || 0), 0)
+  
+  // ✅ Check if transactions have the right structure
+  const totalRevenue = this.transactions.reduce((sum, tx) => {
+    // Try different possible property names for amount
+    const amount = tx.total_amount || tx.amount || tx.total || 0
+    return sum + parseFloat(amount)
+  }, 0)
+  
   const average = total > 0 ? totalRevenue / total : 0
-  const completed = this.transactions.filter(tx => (tx.status || 'completed') === 'completed').length
-  const pending = this.transactions.filter(tx => (tx.status || '') === 'pending').length
+  
+  const completed = this.transactions.filter(tx => {
+    const status = (tx.status || '').toLowerCase()
+    return status === 'completed'
+  }).length
+  
+  const pending = this.transactions.filter(tx => {
+    const status = (tx.status || '').toLowerCase()
+    return status === 'pending'
+  }).length
   
   return {
     total,
@@ -4037,6 +4052,11 @@ async loadTransactions() {
     )
     
     this.transactions = res.data || []
+
+    if (this.transactions.length > 0) {
+      console.log('📋 First transaction structure:', this.transactions[0])
+      console.log('📋 Amount field:', this.transactions[0].total_amount || this.transactions[0].amount || this.transactions[0].total)
+    }
     
   } catch (err) {
     console.error('Failed to load transactions:', err)
