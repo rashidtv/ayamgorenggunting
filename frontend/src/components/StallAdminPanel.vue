@@ -16906,4 +16906,71 @@ body {
   display: block !important;
 }
 
+/* ============================================ */
+/* EMERGENCY DROPDOWN FIX - FORCE VISIBILITY   */
+/* ============================================ */
+
+/* Force ALL dropdowns to be visible by overriding inline styles */
+.dropdown-menu[style*="display: none"] {
+  display: block !important;
+}
+
+/* Alternative: force by attribute */
+.dropdown-menu[style*="display: none"] {
+  display: block !important;
+}
+
+/* Force period dropdown to be visible when open */
+.period-dropdown-wrapper .dropdown-menu[style*="display: none"] {
+  display: block !important;
+}
+
+/* Force tab dropdown to be visible when open */
+.tab-dropdown .dropdown-menu[style*="display: none"] {
+  display: block !important;
+}
+
+/* Also ensure normal display when not hidden */
+.dropdown-menu {
+  display: block !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: auto !important;
+  margin-top: 4px !important;
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+  z-index: 999999 !important;
+  min-width: 200px !important;
+  padding: 8px 0 !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+/* Dropdown items */
+.dropdown-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 16px !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9 !important;
+}
+
+.dropdown-item.active {
+  background: #f94908 !important;
+  color: white !important;
+}
+
 </style>
