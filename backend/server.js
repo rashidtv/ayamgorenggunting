@@ -9,6 +9,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const shiftRoutes = require('./routes/shifts');
+const pool = require('./db');
 
 process.env.TZ = 'UTC';
 
