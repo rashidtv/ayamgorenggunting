@@ -11,7 +11,7 @@
             <span class="dropdown-label">{{ activeTabLabel }}</span>
             <span class="dropdown-arrow">▼</span>
           </button>
-          <div v-if="dropdownOpen" class="dropdown-menu">
+          <div v-show="dropdownOpen" class="dropdown-menu">
             <button 
               v-for="tab in tabs" 
               :key="tab.id"
@@ -35,7 +35,7 @@
             <span class="dropdown-label">{{ getPeriodLabel() }}</span>
             <span class="dropdown-arrow">▼</span>
           </button>
-          <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
+          <div v-show="periodDropdownOpen" class="dropdown-menu period-menu">
             <button 
               v-for="p in periods" 
               :key="p.value"
