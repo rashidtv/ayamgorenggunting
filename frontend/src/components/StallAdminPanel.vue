@@ -28,7 +28,8 @@
         </div>
 
         <!-- Period Dropdown -->
-        <div v-if="activeTab === 'dashboard'" class="period-dropdown-wrapper">
+        <div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper">
+
           <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
             <span class="dropdown-icon">📅</span>
             <span class="dropdown-label">{{ getPeriodLabel() }}</span>
@@ -2811,7 +2812,7 @@ transactionSortOrder: 'desc',
 expandedTransactionRows: [],
 
        // ===== REVENUE TAB DATA =====
-    revenuePeriod: 'week',
+    
     revenueStateFilter: 'All States',
     revenueStallFilter: 'all',
     revenueMinAmount: 0,
@@ -2824,20 +2825,6 @@ expandedTransactionRows: [],
     revenueChartInstance: null,
     revenueStateChartInstance: null,
     revenueLoading: false,
-    
-    revenuePeriods: [
-      { value: 'today', label: 'Today' },
-      { value: 'week', label: 'Week' },
-      { value: 'month', label: 'Month' },
-      { value: 'quarter', label: 'Quarter' },
-      { value: 'halfyear', label: 'Half Year' },
-      { value: 'year', label: 'Year' },
-      { value: 'custom', label: 'Custom Range' }
-    ],
-    
-    revenueCustomStart: null,
-    revenueCustomEnd: null,
-    revenueCustomDays: 30,
 
       showStallMenuView: false,
     loadingStallMenus: false,
@@ -3853,6 +3840,42 @@ transactionStats() {
 
   methods: {
 
+     async refreshAllDataForPeriod() {
+    try {
+      console.log('🔄 Refreshing all data for period:', this.selectedPeriod)
+      
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+      this.revenueData = []
+      this.transactions = []
+      
+      await this.loadSalesAnalytics()
+      await this.loadStallPerformance()
+      await this.loadMenuPerformance()
+      await this.loadRevenueData()
+      await this.loadTransactions()
+      
+      this.resetChartNavigation()
+      
+      this.$nextTick(() => {
+        this.initChart()
+        this.initRevenueChart()
+        this.initRevenueStateChart()
+      })
+      
+      this.$emit('show-notification', `Data updated for ${this.getPeriodLabel()}`, 'success')
+      
+    } catch (err) {
+      console.error('Error refreshing data for period:', err)
+      this.$emit('show-notification', 'Failed to update data for period', 'error')
+    }
+  },
+
     // =============================================
 // NEW METHOD - For transactions table only
 // =============================================
@@ -4014,7 +4037,15 @@ async viewTransactionDetails(tx) {
 async loadTransactions() {
   this.transactionsLoading = true
   try {
-    const days = 30
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
+    
     const stallIds = this.stalls.map(s => s.id)
     
     if (!stallIds || stallIds.length === 0) {
@@ -4028,40 +4059,7 @@ async loadTransactions() {
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
-    console.log('📋 Raw transactions from API:', res.data)
-    
-    // Process each transaction
-    this.transactions = (res.data || []).map(tx => {
-      // Parse items if they're a string
-      if (tx.items && typeof tx.items === 'string') {
-        try {
-          tx.items = JSON.parse(tx.items)
-        } catch (e) {
-          tx.items = []
-        }
-      }
-      
-      // If items is an object, convert to array
-      if (tx.items && typeof tx.items === 'object' && !Array.isArray(tx.items)) {
-        tx.items = Object.values(tx.items)
-      }
-      
-      // Ensure items is an array
-      if (!tx.items || !Array.isArray(tx.items)) {
-        tx.items = []
-      }
-      
-      // Calculate item_count if missing
-      if (!tx.item_count && tx.items.length > 0) {
-        tx.item_count = tx.items.reduce((sum, item) => {
-          return sum + (parseInt(item.quantity || item.qty || 1) || 1)
-        }, 0)
-      }
-      
-      return tx
-    })
-    
-    console.log('✅ Processed transactions:', this.transactions)
+    this.transactions = res.data || []
     
   } catch (err) {
     console.error('Failed to load transactions:', err)
@@ -4474,13 +4472,14 @@ async loadStallTransactions(stallId) {
 async loadRevenueData() {
   this.revenueLoading = true
   try {
-    const days = this.revenuePeriod === 'today' ? 1 :
-                 this.revenuePeriod === 'week' ? 7 :
-                 this.revenuePeriod === 'month' ? 30 :
-                 this.revenuePeriod === 'quarter' ? 90 :
-                 this.revenuePeriod === 'halfyear' ? 180 :
-                 this.revenuePeriod === 'year' ? 365 :
-                 this.revenueCustomDays || 30
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
 
     const stallIds = this.stalls.map(s => s.id)
     if (!stallIds || stallIds.length === 0) {
@@ -4489,7 +4488,6 @@ async loadRevenueData() {
       return
     }
 
-    // Get stall performance data
     const res = await axios.get(
       `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
       { headers: { Authorization: `Bearer ${this.token}` } }
@@ -4497,8 +4495,7 @@ async loadRevenueData() {
 
     const performanceData = res.data || []
     
-    // Get previous period data for growth calculation
-    const prevDays = days * 2  // Get data from previous period
+    const prevDays = days * 2
     let prevPerformanceData = []
     try {
       const prevRes = await axios.get(
@@ -4510,7 +4507,6 @@ async loadRevenueData() {
       console.warn('Could not load previous period data:', prevErr)
     }
 
-    // Get transactions for top items
     let transactionsData = []
     try {
       const txRes = await axios.get(
@@ -4522,22 +4518,19 @@ async loadRevenueData() {
       console.warn('Could not load transactions for top items:', txErr)
     }
 
-    // Build revenue data with REAL data
     this.revenueData = this.stalls.map(stall => {
       const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
       const currentRevenue = parseFloat(perf?.revenue) || 0
       
-      // Calculate growth from previous period
       let revenueGrowth = 0
       const prevPerf = prevPerformanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
       const prevRevenue = parseFloat(prevPerf?.revenue) || 0
       if (prevRevenue > 0) {
         revenueGrowth = ((currentRevenue - prevRevenue) / prevRevenue) * 100
       } else if (currentRevenue > 0) {
-        revenueGrowth = 100  // 100% growth if previous was 0
+        revenueGrowth = 100
       }
       
-      // Find top item from real transactions
       let topItem = '-'
       const stallTransactions = transactionsData.filter(tx => tx.stall_id === stall.id)
       
@@ -4569,8 +4562,8 @@ async loadRevenueData() {
         transactions: parseInt(perf?.items_sold) || 0,
         avgTransaction: parseFloat(perf?.avg_transaction) || 0,
         state: stall.state || 'Unknown',
-        revenueGrowth: Math.round(revenueGrowth),  // ✅ REAL growth calculation
-        topItem: topItem  // ✅ Real top item from transactions
+        revenueGrowth: Math.round(revenueGrowth),
+        topItem: topItem
       }
     }).sort((a, b) => b.revenue - a.revenue)
 
@@ -6150,18 +6143,20 @@ async loadRevenueData() {
     },
 
     selectPeriod(value) {
-      this.selectedPeriod = value
-      this.periodDropdownOpen = false
-      if (value === 'custom') {
-        const end = new Date()
-        const start = new Date()
-        start.setDate(start.getDate() - 30)
-        this.customDateStart = start.toISOString().split('T')[0]
-        this.customDateEnd = end.toISOString().split('T')[0]
-      } else {
-        this.refreshAllData()
-      }
-    },
+  this.selectedPeriod = value
+  this.periodDropdownOpen = false
+  
+  if (value === 'custom') {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(start.getDate() - 30)
+    this.customDateStart = start.toISOString().split('T')[0]
+    this.customDateEnd = end.toISOString().split('T')[0]
+    return
+  }
+  
+  this.refreshAllDataForPeriod()
+},
 
     handleClickOutside(event) {
       const container = this.$el
@@ -6171,24 +6166,30 @@ async loadRevenueData() {
       }
     },
 
-    applyCustomRange() {
-      if (!this.customDateStart || !this.customDateEnd) {
-        this.$emit('show-notification', 'Please select both start and end dates', 'warning')
-        return
-      }
-      const start = new Date(this.customDateStart)
-      const end = new Date(this.customDateEnd)
-      if (start > end) {
-        this.$emit('show-notification', 'Start date must be before end date', 'error')
-        return
-      }
-      const diffTime = Math.abs(end - start)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      this.customDays = diffDays + 1
-      this.periodDropdownOpen = false
-      this.refreshAllData()
-      this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
-    },
+applyCustomRange() {
+  if (!this.customDateStart || !this.customDateEnd) {
+    this.$emit('show-notification', 'Please select both start and end dates', 'warning')
+    return
+  }
+  
+  const start = new Date(this.customDateStart)
+  const end = new Date(this.customDateEnd)
+  
+  if (start > end) {
+    this.$emit('show-notification', 'Start date must be before end date', 'error')
+    return
+  }
+  
+  const diffTime = Math.abs(end - start)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  this.customDays = diffDays + 1
+  this.selectedPeriod = 'custom'
+  this.periodDropdownOpen = false
+  
+  this.refreshAllDataForPeriod()
+  
+  this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
+},
 
     // =============================================
     // FORMATTING
@@ -7324,16 +7325,19 @@ async loadRevenueData() {
     // TAB MANAGEMENT
     // =============================================
 
-    switchTab(tabId) {
+switchTab(tabId) {
   this.activeTab = tabId
+  
   if (tabId === 'inventory' && this.lowStock.length > 0) {
     this.inventoryFilter = 'low'
   }
+  
   if (tabId === 'inventory') {
     this.$nextTick(() => {
       document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
     })
   }
+  
   if (tabId === 'revenue') {
     this.$nextTick(() => {
       setTimeout(() => {
@@ -7341,7 +7345,7 @@ async loadRevenueData() {
       }, 200)
     })
   }
-  // ✅ ADD THIS
+  
   if (tabId === 'transactions') {
     this.$nextTick(() => {
       setTimeout(() => {
@@ -7349,11 +7353,21 @@ async loadRevenueData() {
       }, 200)
     })
   }
+  
   if (tabId === 'dashboard') {
     this.$nextTick(() => {
       setTimeout(() => {
         this.initChart()
       }, 100)
+    })
+  }
+  
+  // Refresh data when switching to any tab that needs it
+  if (['stalls', 'menu', 'revenue', 'transactions'].includes(tabId)) {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.refreshAllDataForPeriod()
+      }, 300)
     })
   }
 },
