@@ -5,13 +5,13 @@
     <div class="controls-section">
       <div class="controls-row">
         <!-- Tab Dropdown -->
-<div class="tab-dropdown" :class="{ open: dropdownOpen }">
-  <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
-    <span class="dropdown-icon">{{ activeTabIcon }}</span>
-    <span class="dropdown-label">{{ activeTabLabel }}</span>
-    <span class="dropdown-arrow">▼</span>
-  </button>
-  <div v-show="dropdownOpen" class="dropdown-menu">
+        <div class="tab-dropdown">
+          <button class="dropdown-toggle" :class="{ open: dropdownOpen }" @click="toggleDropdown">
+            <span class="dropdown-icon">{{ activeTabIcon }}</span>
+            <span class="dropdown-label">{{ activeTabLabel }}</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div v-if="dropdownOpen" class="dropdown-menu">
             <button 
               v-for="tab in tabs" 
               :key="tab.id"
@@ -28,13 +28,14 @@
         </div>
 
         <!-- Period Dropdown -->
-<div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper" :class="{ open: periodDropdownOpen }">
-  <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
-    <span class="dropdown-icon">📅</span>
-    <span class="dropdown-label">{{ getPeriodLabel() }}</span>
-    <span class="dropdown-arrow">▼</span>
-  </button>
-  <div v-show="periodDropdownOpen" class="dropdown-menu period-menu">
+        <div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper">
+
+          <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
+            <span class="dropdown-icon">📅</span>
+            <span class="dropdown-label">{{ getPeriodLabel() }}</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div v-if="periodDropdownOpen" class="dropdown-menu period-menu">
             <button 
               v-for="p in periods" 
               :key="p.value"
@@ -890,169 +891,21 @@
       <!-- ===== STALLS TAB ===== -->
       <div v-if="activeTab === 'stalls'" class="tab-panel">
         <div class="sub-tabs">
-  <button 
-    class="sub-tab" 
-    :class="{ active: stallSubTab === 'management' }"
-    @click="stallSubTab = 'management'"
-  >
-    🏪 Stall Management
-  </button>
-  <button 
-    class="sub-tab" 
-    :class="{ active: stallSubTab === 'performance' }"
-    @click="stallSubTab = 'performance'"
-  >
-    📊 Stall Performance
-  </button>
-  <!-- ===== NEW: Shift History Sub-Tab ===== -->
-  <button 
-    class="sub-tab" 
-    :class="{ active: stallSubTab === 'shifts' }"
-    @click="stallSubTab = 'shifts'; loadShiftHistory()"
-  >
-    🕐 Shift History
-  </button>
-</div>
-
-<!-- ===== SHIFT HISTORY SUB-TAB ===== -->
-<div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🕐 Shift History</h3>
-        <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
-      </div>
-      <div class="header-actions">
-        <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
-      </div>
-    </div>
-    
-    <div class="card-modern-body">
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-group">
-          <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-            <option value="all">All Stalls</option>
-            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-              {{ stall.name }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
-            <option value="all">All Status</option>
-            <option value="open">🟢 Open</option>
-            <option value="closed">⚪ Closed</option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <input 
-            type="date" 
-            v-model="shiftHistoryDateFrom" 
-            class="filter-input"
-            @change="resetShiftPagination"
-            title="Date From"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <input 
-            type="date" 
-            v-model="shiftHistoryDateTo" 
-            class="filter-input"
-            @change="resetShiftPagination"
-            title="Date To"
-          />
-        </div>
-        
-        <div class="filter-actions">
-          <button @click="clearShiftFilters" class="btn-modern secondary small">
-            Clear Filters
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'management' }"
+            @click="stallSubTab = 'management'"
+          >
+            🏪 Stall Management
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'performance' }"
+            @click="stallSubTab = 'performance'"
+          >
+            📊 Stall Performance
           </button>
         </div>
-      </div>
-      
-      <!-- Shift History Table -->
-      <div v-if="shiftHistoryLoading" class="loading-state">
-        <div class="loading-spinner"><div class="spinner-ring"></div></div>
-        <p>Loading shift history...</p>
-      </div>
-      
-      <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
-        <span>🕐</span>
-        <p>No shifts found matching your criteria</p>
-      </div>
-      
-      <div v-else>
-        <div class="shift-history-table-wrapper">
-          <div class="shift-history-table-header">
-            <span class="shift-history-header-date">Date</span>
-            <span class="shift-history-header-stall">Stall</span>
-            <span class="shift-history-header-revenue">Revenue</span>
-            <span class="shift-history-header-transactions">Orders</span>
-            <span class="shift-history-header-float">Float</span>
-            <span class="shift-history-header-variance">Variance</span>
-            <span class="shift-history-header-status">Status</span>
-            <span class="shift-history-header-details">Details</span>
-          </div>
-          
-          <div class="shift-history-table-body">
-            <div 
-              v-for="shift in paginatedShiftHistory" 
-              :key="shift.id" 
-              class="shift-history-table-row clickable-item"
-              @click="viewShiftDetails(shift)"
-            >
-              <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
-              <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
-              <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
-              <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
-              <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
-              <span class="shift-history-variance" :class="getVarianceClass(shift)">
-                {{ formatCurrency(shift.variance) }}
-              </span>
-              <span class="shift-history-status">
-                <span class="status-badge" :class="shift.status">
-                  {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-                </span>
-              </span>
-              <span class="shift-history-details">👆</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Pagination -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevShiftPage" 
-              class="pagination-btn"
-              :disabled="shiftCurrentPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
-            </span>
-            <button 
-              @click="nextShiftPage" 
-              class="pagination-btn"
-              :disabled="shiftCurrentPage >= shiftTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
         
         <!-- Stall Management -->
         <div v-if="stallSubTab === 'management'" class="sub-tab-content">
@@ -2863,118 +2716,6 @@
       </div>
     </div>
   </div>
-
-<!-- ===== SHIFT DETAIL MODAL ===== -->
-<div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>🕐 Shift Details</h3>
-      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <div v-if="selectedShift">
-        <!-- Shift Info -->
-        <div class="shift-detail-grid">
-          <div class="shift-detail-item">
-            <span class="label">Stall</span>
-            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Opened</span>
-            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Opened By</span>
-            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Closed</span>
-            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Closed By</span>
-            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Status</span>
-            <span class="value">
-              <span class="status-badge" :class="selectedShift.status">
-                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-              </span>
-            </span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Starting Float</span>
-            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Revenue</span>
-            <span class="value revenue">{{ formatCurrency(selectedShift.revenue) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Orders</span>
-            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Expected Cash</span>
-            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Ending Cash</span>
-            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Variance</span>
-            <span class="value" :class="getVarianceClass(selectedShift)">
-              {{ formatCurrency(selectedShift.variance) }}
-            </span>
-          </div>
-        </div>
-        
-        <!-- Notes -->
-        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
-          <div v-if="selectedShift.notes">
-            <strong>Opening Notes:</strong>
-            <p>{{ selectedShift.notes }}</p>
-          </div>
-          <div v-if="selectedShift.closing_notes">
-            <strong>Closing Notes:</strong>
-            <p>{{ selectedShift.closing_notes }}</p>
-          </div>
-        </div>
-        
-        <!-- Transactions -->
-        <div class="shift-detail-transactions">
-          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
-          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
-            <span>📭</span>
-            <p>No orders for this shift</p>
-          </div>
-          <div v-else class="shift-transaction-list">
-            <div 
-              v-for="tx in selectedShift.transactions" 
-              :key="tx.id" 
-              class="shift-transaction-item"
-            >
-              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
-              <span class="tx-id">#{{ tx.order_number }}</span>
-              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
-              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
-              <span class="tx-status" :class="tx.status || 'completed'">
-                {{ tx.status || 'completed' }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
-      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
-    </div>
-  </div>
-</div>
-
 </template>
 
 <script>
@@ -3014,26 +2755,14 @@ export default {
 
   data() {
     return {
-      shiftHistory: [],
-      shiftHistoryLoading: false,
-      shiftHistoryTotal: 0,
-      shiftHistoryStallFilter: 'all',
-      shiftHistoryStatusFilter: 'all',
-      shiftHistoryDateFrom: null,
-      shiftHistoryDateTo: null,
-      shiftCurrentPage: 1,
-      shiftItemsPerPage: 10,
-      shiftDetailModal: false,
-      selectedShift: null,
-      shiftExportLoading: false,
       stallPerformanceAllTime: [],
       transactionDetailModal: false,
-      selectedTransaction: null,
+selectedTransaction: null,
       activeTab: 'dashboard',
       transactionModal: false,
-      selectedStallForModal: null,
-      modalTransactions: [],
-      modalTransactionsLoading: false,
+selectedStallForModal: null,
+modalTransactions: [],
+modalTransactionsLoading: false,
       tabs: [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
@@ -3041,37 +2770,45 @@ export default {
         { id: 'users', label: 'Users', icon: '👥' },
         { id: 'menu', label: 'Menu', icon: '📋' },
         { id: 'revenue', label: 'Revenue', icon: '💰' },
-        { id: 'transactions', label: 'Transactions', icon: '📋' }
+        { id: 'transactions', label: 'Transactions', icon: '📋' } // ✅ Add this
       ],
-      transactions: [],
-      transactionsLoading: false,
-      transactionPage: 1,
-      transactionItemsPerPage: 10,
-      transactionSearch: '',
-      transactionStallFilter: 'all',
-      transactionStatusFilter: 'all',
-      transactionDateFrom: null,
-      transactionDateTo: null,
-      transactionSortBy: 'created_at',
-      transactionSortOrder: 'desc',
-      expandedTransactionRows: [],
-      revenueStateFilter: 'All States',
-      revenueStallFilter: 'all',
-      revenueMinAmount: 0,
-      revenueSearch: '',
-      revenuePage: 1,
-      revenueItemsPerPage: 10,
-      revenueSortBy: 'revenue',
-      revenueSortOrder: 'desc',
-      revenueData: [],
-      revenueChartInstance: null,
-      revenueStateChartInstance: null,
-      revenueLoading: false,
+    transactions: [],
+transactionsLoading: false,
+transactionPage: 1,
+transactionItemsPerPage: 10,
+transactionSearch: '',
+transactionStallFilter: 'all',
+transactionStatusFilter: 'all',
+transactionDateFrom: null,
+transactionDateTo: null,
+transactionSortBy: 'created_at',
+transactionSortOrder: 'desc',
+expandedTransactionRows: [],
+
+       // ===== REVENUE TAB DATA =====
+    
+    revenueStateFilter: 'All States',
+    revenueStallFilter: 'all',
+    revenueMinAmount: 0,
+    revenueSearch: '',
+    revenuePage: 1,
+    revenueItemsPerPage: 10,
+    revenueSortBy: 'revenue',
+    revenueSortOrder: 'desc',
+    revenueData: [],
+    revenueChartInstance: null,
+    revenueStateChartInstance: null,
+    revenueLoading: false,
+
       showStallMenuView: false,
-      loadingStallMenus: false,
-      stallMenuAssignments: [],
-      expandedStallMenus: [],
-      assignMode: 'single',
+    loadingStallMenus: false,
+    stallMenuAssignments: [],
+    expandedStallMenus: [],
+
+      // Mode toggle
+      assignMode: 'single', // 'single' or 'bulk'
+      
+      // Bulk assign to multiple stalls
       selectedStallsForAssign: [],
       selectAllStallsForAssign: false,
       selectedMenuItemsForBulk: [],
@@ -3080,6 +2817,8 @@ export default {
       bulkAssignToStallsLoading: false,
       bulkAssignMessage: '',
       bulkAssignMessageType: 'success',
+
+      // Menu Tab Data
       menuSearch: '',
       menuCategoryFilter: 'all',
       menuStateFilter: 'All States',
@@ -3087,12 +2826,15 @@ export default {
       menuItemsPerPage: 10,
       selectedMenuItems: [],
       selectAllMenuItems: false,
+      
+      // Menu Performance Data
       menuPerformancePage: 1,
       menuPerformancePerPage: 10,
       menuPerformanceCategoryFilter: 'all',
       menuPerformanceStateFilter: 'All States',
       menuPerformanceSortBy: 'rank',
       menuPerformanceSortOrder: 'desc',
+
       userStateFilter: 'All States',
       stallPerformancePeriod: [],
       userCurrentPage: 1,
@@ -3117,6 +2859,7 @@ export default {
       quickUpdateStallId: null,
       quickUpdateStallName: '',
       quickUpdateItems: [],
+
       malaysiaStates: [
         'All States', 'Selangor', 'Kuala Lumpur', 'Putrajaya',
         'Johor', 'Kedah', 'Kelantan', 'Melaka', 
@@ -3124,6 +2867,7 @@ export default {
         'Penang', 'Sabah', 'Sarawak', 'Terengganu', 'Labuan'
       ],
       stateFilter: 'All States',
+      
       bulkUpdateModal: false,
       bulkUpdateMaterials: [],
       bulkUpdateMode: 'selected',
@@ -3131,6 +2875,7 @@ export default {
       bulkUpdating: false,
       bulkUpdateType: 'set',
       bulkUpdateValue: 10,
+      
       quickActions: [
         { label: 'Set to Alert Level', value: 'alert' },
         { label: 'Set to 100', value: '100' },
@@ -3139,6 +2884,7 @@ export default {
         { label: 'Add +20', value: 'add20' },
         { label: 'Reset to 0', value: '0' }
       ],
+    
       chartFullscreen: false,
       chartOffset: 0,
       chartWindow: 7,
@@ -3146,6 +2892,7 @@ export default {
       isChartInitialized: false,
       stallSubTab: 'management',
       menuSubTab: 'assignment',
+      
       dropdownOpen: false,
       periodDropdownOpen: false,
       stalls: [],
@@ -3173,33 +2920,42 @@ export default {
         { value: 'year', label: 'Year' },
         { value: 'custom', label: 'Custom Range' }
       ],
+      
       customDateStart: null,
       customDateEnd: null,
       customDays: 30,
+      
       stallDetailModal: false,
       selectedStall: null,
       menuDetailModal: false,
       selectedMenuItem: null,
       stallDetailChartInstance: null,
+      
       showAllStalls: false,
       showAllMenuItems: false,
+      
       expandedInventoryStall: null,
       stallInventory: {},
       inventory: [],
       inventorySearch: '',
       inventoryFilter: 'all',
+      
       stallSearch: '',
       stallStatusFilter: 'all',
+      
       userSearch: '',
       userRoleFilter: 'all',
+      
       userModal: false,
       editingUser: false,
       userForm: { username: '', password: '', full_name: '', role: 'stall_admin', stall_ids: [] },
       stallModal: false,
       editingStall: false,
       stallForm: { id: null, name: '', code: '', location: '' },
+      
       exporting: false,
       resizeObserver: null,
+
       selectedAssignmentStall: null,
       menuAssignments: {},
       originalMenuAssignments: {},
@@ -3211,273 +2967,265 @@ export default {
   },
 
   computed: {
-    filteredShiftHistory() {
-      let data = this.shiftHistory;
-      
-      if (this.shiftHistoryStallFilter !== 'all') {
-        data = data.filter(s => s.stall_id === this.shiftHistoryStallFilter);
-      }
-      
-      if (this.shiftHistoryStatusFilter !== 'all') {
-        data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
-      }
-      
-      if (this.shiftHistoryDateFrom) {
-        const from = new Date(this.shiftHistoryDateFrom);
-        from.setHours(0, 0, 0, 0);
-        data = data.filter(s => {
-          const date = new Date(s.opened_at);
-          return date >= from;
-        });
-      }
-      
-      if (this.shiftHistoryDateTo) {
-        const to = new Date(this.shiftHistoryDateTo);
-        to.setHours(23, 59, 59, 999);
-        data = data.filter(s => {
-          const date = new Date(s.opened_at);
-          return date <= to;
-        });
-      }
-      
-      return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
-    },
+
+    // ===== TRANSACTIONS COMPUTED =====
+filteredTransactions() {
+  let data = this.transactions
+  
+  if (this.transactionSearch) {
+    const search = this.transactionSearch.toLowerCase()
+    data = data.filter(tx => 
+      (tx.order_number && tx.order_number.toLowerCase().includes(search)) ||
+      (tx.stall_name && tx.stall_name.toLowerCase().includes(search))
+    )
+  }
+  
+  if (this.transactionStallFilter !== 'all') {
+    data = data.filter(tx => tx.stall_id === this.transactionStallFilter)
+  }
+  
+  if (this.transactionStatusFilter !== 'all') {
+    data = data.filter(tx => (tx.status || 'completed') === this.transactionStatusFilter)
+  }
+  
+  if (this.transactionDateFrom) {
+    const from = new Date(this.transactionDateFrom)
+    from.setHours(0, 0, 0, 0)
+    data = data.filter(tx => {
+      const date = new Date(tx.created_at)
+      return date >= from
+    })
+  }
+  
+  if (this.transactionDateTo) {
+    const to = new Date(this.transactionDateTo)
+    to.setHours(23, 59, 59, 999)
+    data = data.filter(tx => {
+      const date = new Date(tx.created_at)
+      return date <= to
+    })
+  }
+  
+  // Sort
+  const sortBy = this.transactionSortBy
+  const order = this.transactionSortOrder
+  data.sort((a, b) => {
+    let valA = a[sortBy] || ''
+    let valB = b[sortBy] || ''
     
-    paginatedShiftHistory() {
-      const start = (this.shiftCurrentPage - 1) * this.shiftItemsPerPage;
-      const end = start + this.shiftItemsPerPage;
-      return this.filteredShiftHistory.slice(start, end);
-    },
+    if (sortBy === 'total_amount' || sortBy === 'item_count') {
+      valA = parseFloat(valA) || 0
+      valB = parseFloat(valB) || 0
+    }
     
-    shiftTotalPages() {
-      return Math.ceil(this.filteredShiftHistory.length / this.shiftItemsPerPage) || 1;
-    },
+    if (typeof valA === 'string') {
+      valA = valA.toLowerCase()
+      valB = valB.toLowerCase()
+    }
     
-    shiftStartIndex() {
-      if (this.filteredShiftHistory.length === 0) return 0;
-      return (this.shiftCurrentPage - 1) * this.shiftItemsPerPage + 1;
-    },
+    if (order === 'asc') {
+      return valA > valB ? 1 : valA < valB ? -1 : 0
+    } else {
+      return valA < valB ? 1 : valA > valB ? -1 : 0
+    }
+  })
+  
+  return data
+},
+
+paginatedTransactions() {
+  const start = (this.transactionPage - 1) * this.transactionItemsPerPage
+  const end = start + this.transactionItemsPerPage
+  return this.filteredTransactions.slice(start, end)
+},
+
+transactionTotalPages() {
+  return Math.ceil(this.filteredTransactions.length / this.transactionItemsPerPage) || 1
+},
+
+transactionStartIndex() {
+  if (this.filteredTransactions.length === 0) return 0
+  return (this.transactionPage - 1) * this.transactionItemsPerPage + 1
+},
+
+transactionEndIndex() {
+  if (this.filteredTransactions.length === 0) return 0
+  return Math.min(this.transactionPage * this.transactionItemsPerPage, this.filteredTransactions.length)
+},
+
+transactionStats() {
+  const total = this.transactions.length
+  
+  // ✅ Check if transactions have the right structure
+  const totalRevenue = this.transactions.reduce((sum, tx) => {
+    // Try different possible property names for amount
+    const amount = tx.total_amount || tx.amount || tx.total || 0
+    return sum + parseFloat(amount)
+  }, 0)
+  
+  const average = total > 0 ? totalRevenue / total : 0
+  
+  const completed = this.transactions.filter(tx => {
+    const status = (tx.status || '').toLowerCase()
+    return status === 'completed'
+  }).length
+  
+  const pending = this.transactions.filter(tx => {
+    const status = (tx.status || '').toLowerCase()
+    return status === 'pending'
+  }).length
+  
+  return {
+    total,
+    totalRevenue,
+    average,
+    completed,
+    pending
+  }
+},
+
+      // Add this to compute trend for each stall
+  getRevenueTrend() {
+    return (item) => {
+      // Simple trend based on growth percentage
+      const growth = item.revenueGrowth || 0
+      if (growth > 10) return '📈 Strong Growth'
+      if (growth > 0) return '📈 Stable Growth'
+      if (growth === 0) return '➡️ Stable'
+      return '📉 Declining'
+    }
+  },
+  
+  getRevenueTrendClass() {
+    return (item) => {
+      const growth = item.revenueGrowth || 0
+      if (growth > 10) return 'trend-up'
+      if (growth > 0) return 'trend-slight-up'
+      if (growth === 0) return 'trend-stable'
+      return 'trend-down'
+    }
+  },
+
+      // ===== REVENUE COMPUTED =====
+ getRevenuePeriodLabel() {
+  // Use periods instead of revenuePeriods
+  const p = this.periods.find(p => p.value === this.selectedPeriod)
+  if (this.selectedPeriod === 'custom') {
+    return `Custom (${this.customDays} days)`
+  }
+  return p ? p.label : 'Week'
+},
+
+  filteredRevenueData() {
+    let data = this.revenueData
     
-    shiftEndIndex() {
-      if (this.filteredShiftHistory.length === 0) return 0;
-      return Math.min(this.shiftCurrentPage * this.shiftItemsPerPage, this.filteredShiftHistory.length);
-    },
+    if (this.revenueStateFilter !== 'All States') {
+      data = data.filter(item => item.state === this.revenueStateFilter)
+    }
+    
+    if (this.revenueStallFilter !== 'all') {
+      data = data.filter(item => item.id === this.revenueStallFilter)
+    }
+    
+    if (this.revenueSearch) {
+      const search = this.revenueSearch.toLowerCase()
+      data = data.filter(item => 
+        item.name.toLowerCase().includes(search) ||
+        item.code?.toLowerCase().includes(search)
+      )
+    }
+    
+    if (this.revenueMinAmount > 0) {
+      data = data.filter(item => (item.revenue || 0) >= this.revenueMinAmount)
+    }
+    
+    return this.sortRevenueData(data)
+  },
 
-    filteredTransactions() {
-      let data = this.transactions
-      
-      if (this.transactionSearch) {
-        const search = this.transactionSearch.toLowerCase()
-        data = data.filter(tx => 
-          (tx.order_number && tx.order_number.toLowerCase().includes(search)) ||
-          (tx.stall_name && tx.stall_name.toLowerCase().includes(search))
-        )
+  paginatedRevenueData() {
+    const start = (this.revenuePage - 1) * this.revenueItemsPerPage
+    const end = start + this.revenueItemsPerPage
+    return this.filteredRevenueData.slice(start, end)
+  },
+
+  revenueTotalPages() {
+    return Math.ceil(this.filteredRevenueData.length / this.revenueItemsPerPage) || 1
+  },
+
+  revenueStartIndex() {
+    if (this.filteredRevenueData.length === 0) return 0
+    return (this.revenuePage - 1) * this.revenueItemsPerPage + 1
+  },
+
+  revenueEndIndex() {
+    if (this.filteredRevenueData.length === 0) return 0
+    return Math.min(this.revenuePage * this.revenueItemsPerPage, this.filteredRevenueData.length)
+  },
+
+  revenueStats() {
+    const totalRevenue = this.revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
+    const totalTransactions = this.revenueData.reduce((sum, item) => sum + (item.transactions || 0), 0)
+    const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
+    
+    let topStall = null
+    let maxRevenue = 0
+    this.revenueData.forEach(item => {
+      if ((item.revenue || 0) > maxRevenue) {
+        maxRevenue = item.revenue || 0
+        topStall = item
       }
-      
-      if (this.transactionStallFilter !== 'all') {
-        data = data.filter(tx => tx.stall_id === this.transactionStallFilter)
+    })
+    
+    return {
+      totalRevenue,
+      totalTransactions,
+      avgTransaction,
+      topStallName: topStall?.name || '-',
+      topStallRevenue: maxRevenue || 0
+    }
+  },
+
+  revenueStateStats() {
+    const stateMap = {}
+    this.revenueData.forEach(item => {
+      const state = item.state || 'Unknown'
+      if (!stateMap[state]) {
+        stateMap[state] = { state, revenue: 0, transactions: 0, stalls: 0 }
       }
-      
-      if (this.transactionStatusFilter !== 'all') {
-        data = data.filter(tx => (tx.status || 'completed') === this.transactionStatusFilter)
-      }
-      
-      if (this.transactionDateFrom) {
-        const from = new Date(this.transactionDateFrom)
-        from.setHours(0, 0, 0, 0)
-        data = data.filter(tx => {
-          const date = new Date(tx.created_at)
-          return date >= from
-        })
-      }
-      
-      if (this.transactionDateTo) {
-        const to = new Date(this.transactionDateTo)
-        to.setHours(23, 59, 59, 999)
-        data = data.filter(tx => {
-          const date = new Date(tx.created_at)
-          return date <= to
-        })
-      }
-      
-      const sortBy = this.transactionSortBy
-      const order = this.transactionSortOrder
-      data.sort((a, b) => {
-        let valA = a[sortBy] || ''
-        let valB = b[sortBy] || ''
-        
-        if (sortBy === 'total_amount' || sortBy === 'item_count') {
-          valA = parseFloat(valA) || 0
-          valB = parseFloat(valB) || 0
-        }
-        
-        if (typeof valA === 'string') {
-          valA = valA.toLowerCase()
-          valB = valB.toLowerCase()
-        }
-        
-        if (order === 'asc') {
-          return valA > valB ? 1 : valA < valB ? -1 : 0
-        } else {
-          return valA < valB ? 1 : valA > valB ? -1 : 0
-        }
-      })
-      
-      return data
-    },
+      stateMap[state].revenue += item.revenue || 0
+      stateMap[state].transactions += item.transactions || 0
+      stateMap[state].stalls += 1
+    })
+    return Object.values(stateMap).sort((a, b) => b.revenue - a.revenue)
+  },
 
-    paginatedTransactions() {
-      const start = (this.transactionPage - 1) * this.transactionItemsPerPage
-      const end = start + this.transactionItemsPerPage
-      return this.filteredTransactions.slice(start, end)
-    },
+  revenueGrowth() {
+    if (this.revenueData.length < 2) return 0
+    const sorted = [...this.revenueData].sort((a, b) => a.revenue - b.revenue)
+    const first = sorted[0]?.revenue || 0
+    const last = sorted[sorted.length - 1]?.revenue || 0
+    if (first === 0) return 0
+    return ((last - first) / first * 100)
+  },
 
-    transactionTotalPages() {
-      return Math.ceil(this.filteredTransactions.length / this.transactionItemsPerPage) || 1
-    },
-
-    transactionStartIndex() {
-      if (this.filteredTransactions.length === 0) return 0
-      return (this.transactionPage - 1) * this.transactionItemsPerPage + 1
-    },
-
-    transactionEndIndex() {
-      if (this.filteredTransactions.length === 0) return 0
-      return Math.min(this.transactionPage * this.transactionItemsPerPage, this.filteredTransactions.length)
-    },
-
-    transactionStats() {
-      const total = this.transactions.length
-      const totalRevenue = this.transactions.reduce((sum, tx) => {
-        const amount = tx.total_amount || tx.amount || tx.total || 0
-        return sum + parseFloat(amount)
-      }, 0)
-      const average = total > 0 ? totalRevenue / total : 0
-      const completed = this.transactions.filter(tx => {
-        const status = (tx.status || '').toLowerCase()
-        return status === 'completed'
-      }).length
-      const pending = this.transactions.filter(tx => {
-        const status = (tx.status || '').toLowerCase()
-        return status === 'pending'
-      }).length
-      
-      return { total, totalRevenue, average, completed, pending }
-    },
-
-    getRevenuePeriodLabel() {
-      const p = this.periods.find(p => p.value === this.selectedPeriod)
-      if (this.selectedPeriod === 'custom') {
-        return `Custom (${this.customDays} days)`
-      }
-      return p ? p.label : 'Week'
-    },
-
-    filteredRevenueData() {
-      let data = this.revenueData
-      
-      if (this.revenueStateFilter !== 'All States') {
-        data = data.filter(item => item.state === this.revenueStateFilter)
-      }
-      
-      if (this.revenueStallFilter !== 'all') {
-        data = data.filter(item => item.id === this.revenueStallFilter)
-      }
-      
-      if (this.revenueSearch) {
-        const search = this.revenueSearch.toLowerCase()
-        data = data.filter(item => 
-          item.name.toLowerCase().includes(search) ||
-          item.code?.toLowerCase().includes(search)
-        )
-      }
-      
-      if (this.revenueMinAmount > 0) {
-        data = data.filter(item => (item.revenue || 0) >= this.revenueMinAmount)
-      }
-      
-      return this.sortRevenueData(data)
-    },
-
-    paginatedRevenueData() {
-      const start = (this.revenuePage - 1) * this.revenueItemsPerPage
-      const end = start + this.revenueItemsPerPage
-      return this.filteredRevenueData.slice(start, end)
-    },
-
-    revenueTotalPages() {
-      return Math.ceil(this.filteredRevenueData.length / this.revenueItemsPerPage) || 1
-    },
-
-    revenueStartIndex() {
-      if (this.filteredRevenueData.length === 0) return 0
-      return (this.revenuePage - 1) * this.revenueItemsPerPage + 1
-    },
-
-    revenueEndIndex() {
-      if (this.filteredRevenueData.length === 0) return 0
-      return Math.min(this.revenuePage * this.revenueItemsPerPage, this.filteredRevenueData.length)
-    },
-
-    revenueStats() {
-      const totalRevenue = this.revenueData.reduce((sum, item) => sum + (item.revenue || 0), 0)
-      const totalTransactions = this.revenueData.reduce((sum, item) => sum + (item.transactions || 0), 0)
-      const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
-      
-      let topStall = null
-      let maxRevenue = 0
-      this.revenueData.forEach(item => {
-        if ((item.revenue || 0) > maxRevenue) {
-          maxRevenue = item.revenue || 0
-          topStall = item
-        }
-      })
-      
-      return {
-        totalRevenue,
-        totalTransactions,
-        avgTransaction,
-        topStallName: topStall?.name || '-',
-        topStallRevenue: maxRevenue || 0
-      }
-    },
-
-    revenueStateStats() {
-      const stateMap = {}
-      this.revenueData.forEach(item => {
-        const state = item.state || 'Unknown'
-        if (!stateMap[state]) {
-          stateMap[state] = { state, revenue: 0, transactions: 0, stalls: 0 }
-        }
-        stateMap[state].revenue += item.revenue || 0
-        stateMap[state].transactions += item.transactions || 0
-        stateMap[state].stalls += 1
-      })
-      return Object.values(stateMap).sort((a, b) => b.revenue - a.revenue)
-    },
-
-    revenueGrowth() {
-      if (this.revenueData.length < 2) return 0
-      const sorted = [...this.revenueData].sort((a, b) => a.revenue - b.revenue)
-      const first = sorted[0]?.revenue || 0
-      const last = sorted[sorted.length - 1]?.revenue || 0
-      if (first === 0) return 0
-      return ((last - first) / first * 100)
-    },
-
+    // ===== BULK ASSIGN COMPUTED =====
     filteredBulkMenuItems() {
       let items = this.menuItems
+      
       if (this.bulkMenuSearch) {
         const search = this.bulkMenuSearch.toLowerCase()
         items = items.filter(item => 
           item.item_name.toLowerCase().includes(search)
         )
       }
+      
       return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
     },
 
+    // ===== MENU PERFORMANCE BREAKDOWN =====
     menuPerformanceBreakdown() {
       let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+      
       this.menuPerformance.forEach(item => {
         const qty = parseInt(item.quantity) || 0
         if (qty === 0) noSales++
@@ -3486,29 +3234,39 @@ export default {
         else if (qty > 5) average++
         else poor++
       })
+      
       return { excellent, good, average, poor, noSales }
     },
 
+    // ===== MENU ASSIGNMENT COMPUTED =====
     menuStats() {
       const total = this.menuItems.length
       const active = this.menuItems.filter(item => item.price > 0).length
       const inactive = total - active
-      return { total, active, inactive }
+      
+      return {
+        total,
+        active,
+        inactive
+      }
     },
 
     filteredMenuItemsForAssignment() {
       let items = this.menuItems
+      
       if (this.menuSearch) {
         const search = this.menuSearch.toLowerCase()
         items = items.filter(item => 
           item.item_name.toLowerCase().includes(search)
         )
       }
+      
       if (this.menuCategoryFilter !== 'all') {
         items = items.filter(item => 
           (item.category || 'Main') === this.menuCategoryFilter
         )
       }
+      
       return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
     },
 
@@ -3536,9 +3294,11 @@ export default {
       return this.selectedMenuItems.length
     },
 
+    // ===== MENU PERFORMANCE COMPUTED =====
     menuPerformanceStats() {
       const totalItems = this.menuPerformance.length
       const totalRevenue = this.menuPerformance.reduce((sum, item) => sum + (item.revenue || 0), 0)
+      
       let topItem = null
       let maxRevenue = 0
       this.menuPerformance.forEach(item => {
@@ -3548,6 +3308,7 @@ export default {
           topItem = item
         }
       })
+      
       return {
         totalItems,
         totalRevenue,
@@ -3558,11 +3319,13 @@ export default {
 
     filteredMenuPerformance() {
       let items = this.menuPerformance
+      
       if (this.menuPerformanceCategoryFilter !== 'all') {
         items = items.filter(item => 
           (item.category || 'Main') === this.menuPerformanceCategoryFilter
         )
       }
+      
       if (this.menuPerformanceStateFilter !== 'All States') {
         items = items.filter(item => {
           if (item.stallBreakdown) {
@@ -3573,6 +3336,7 @@ export default {
           return true
         })
       }
+      
       return this.sortMenuPerformanceList(items)
     },
 
@@ -3606,16 +3370,25 @@ export default {
       return ['all', ...Array.from(categories)]
     },
 
+    // ===== USERS COMPUTED =====
     userStats() {
       const users = this.users.filter(u => 
         u.role !== 'super_admin' && u.role !== 'super_super_admin'
       )
+      
       let total = users.length
       let admins = users.filter(u => u.role === 'stall_admin').length
       let cashiers = users.filter(u => u.role === 'cashier').length
       let active = users.filter(u => u.is_active !== false).length
       let inactive = users.filter(u => u.is_active === false).length
-      return { total, admins, cashiers, active, inactive }
+      
+      return {
+        total,
+        admins,
+        cashiers,
+        active,
+        inactive
+      }
     },
 
     userTotalPages() {
@@ -3653,26 +3426,31 @@ export default {
     },
 
     performanceStats() {
-      let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
-      this.stallPerformance.forEach(stall => {
-        const revenue = stall.revenue || 0
-        if (revenue === 0) noSales++
-        else if (revenue > 1000) excellent++
-        else if (revenue > 500) good++
-        else if (revenue > 100) average++
-        else poor++
-      })
-      return { excellent, good, average, poor, noSales }
-    },
+  let excellent = 0, good = 0, average = 0, poor = 0, noSales = 0
+  
+  // ✅ Use stallPerformance (period data) instead of stallPerformanceAllTime
+  this.stallPerformance.forEach(stall => {
+    const revenue = stall.revenue || 0
+    if (revenue === 0) noSales++
+    else if (revenue > 1000) excellent++
+    else if (revenue > 500) good++
+    else if (revenue > 100) average++
+    else poor++
+  })
+  
+  return { excellent, good, average, poor, noSales }
+},
 
     filteredPerformanceList() {
       let list = this.stallPerformance.filter(stall => {
         const search = this.performanceSearch.toLowerCase()
         const matchesSearch = stall.name.toLowerCase().includes(search) ||
                               (stall.code && stall.code.toLowerCase().includes(search))
+        
         const stallData = this.stalls.find(s => s.id === stall.id)
         const matchesState = this.performanceStateFilter === 'All States' || 
                              (stallData && stallData.state === this.performanceStateFilter)
+        
         const revenue = stall.revenue || 0
         let status = 'no-sales'
         if (revenue === 0) status = 'no-sales'
@@ -3680,10 +3458,13 @@ export default {
         else if (revenue > 500) status = 'good'
         else if (revenue > 100) status = 'average'
         else status = 'poor'
+        
         const matchesStatus = this.performanceStatusFilter === 'all' || 
                               status === this.performanceStatusFilter
+        
         return matchesSearch && matchesState && matchesStatus
       })
+
       return this.sortPerformanceList(list)
     },
 
@@ -3727,6 +3508,7 @@ export default {
 
     inventoryStats() {
       let lowStock = 0
+      
       if (!this.inventory || !Array.isArray(this.inventory) || this.inventory.length === 0) {
         return {
           total: this.stalls.length || 0,
@@ -3735,6 +3517,7 @@ export default {
           lowStock: 0
         }
       }
+      
       this.stalls.forEach(stall => {
         const items = this.getStallInventorySummary(stall.id)
         items.forEach(item => {
@@ -3764,24 +3547,35 @@ export default {
 
     dashboardStallPerformanceSubtitle() {
       const hasPeriodSales = this.stallPerformancePeriod.some(s => (s.revenue || 0) > 0)
+      
       if (!hasPeriodSales) {
         return `No sales for ${this.getPeriodLabel()}`
       }
+      
       const count = this.dashboardDisplayStalls.length
       if (count === 0) return `No stalls with sales for ${this.getPeriodLabel()}`
       if (count === 1) return `Top stall with sales for ${this.getPeriodLabel()}`
       return `Top ${count} stalls with sales for ${this.getPeriodLabel()}`
     },
 
-    displayStalls() {
-      const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
-        (stall.revenue || 0) > 0 || (stall.items || 0) > 0
-      )
-      if (this.showAllStalls) {
-        return stallsWithSales
-      }
-      return stallsWithSales.slice(0, 5)
-    },
+stallPerformanceSubtitle() {
+  const count = this.displayStalls.length
+  const periodLabel = this.getPeriodLabel()
+  if (count === 0) return `No stalls with sales for ${periodLabel}`
+  if (count === 1) return `Top stall by revenue for ${periodLabel}`
+  return `Top ${count} stalls by revenue for ${periodLabel}`
+},
+
+displayStalls() {
+  // ✅ Use stallPerformancePeriod (period data) instead of stallPerformance
+  const stallsWithSales = this.stallPerformancePeriod.filter(stall => 
+    (stall.revenue || 0) > 0 || (stall.items || 0) > 0
+  )
+  if (this.showAllStalls) {
+    return stallsWithSales
+  }
+  return stallsWithSales.slice(0, 5)
+},
     
     displayMenuItems() {
       if (this.showAllMenuItems) {
@@ -3814,6 +3608,17 @@ export default {
       })
     },
     
+    filteredLowStock() {
+      if (this.inventorySearch) {
+        return this.lowStock.filter(item => 
+          item.stall_name.toLowerCase().includes(this.inventorySearch.toLowerCase()) ||
+          item.material_name.toLowerCase().includes(this.inventorySearch.toLowerCase())
+        )
+      }
+      return this.lowStock
+    },
+    
+    // ===== STALL MANAGEMENT COMPUTED PROPERTIES =====
     stallStats() {
       let lowStockCount = 0
       this.stalls.forEach(stall => {
@@ -3899,10 +3704,12 @@ export default {
         const matchesSearch = user.username.toLowerCase().includes(search) ||
                               (user.full_name && user.full_name.toLowerCase().includes(search))
         const matchesRole = this.userRoleFilter === 'all' || user.role === this.userRoleFilter
+        
         const matchesState = this.userStateFilter === 'All States' || 
                              (user.assigned_stalls && user.assigned_stalls.some(stall => 
                                stall.state === this.userStateFilter
                              ))
+        
         return matchesSearch && matchesRole && matchesState
       })
     },
@@ -3924,18 +3731,19 @@ export default {
   },
 
   watch: {
-    revenuePeriod(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        if (newVal === 'custom') {
-          const end = new Date()
-          const start = new Date()
-          start.setDate(start.getDate() - 30)
-          this.revenueCustomStart = start.toISOString().split('T')[0]
-          this.revenueCustomEnd = end.toISOString().split('T')[0]
-        }
-        this.loadRevenueData()
+      revenuePeriod(newVal, oldVal) {
+    if (newVal !== oldVal) {
+      if (newVal === 'custom') {
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - 30)
+        this.revenueCustomStart = start.toISOString().split('T')[0]
+        this.revenueCustomEnd = end.toISOString().split('T')[0]
       }
-    },
+      this.loadRevenueData()
+    }
+  },
+
     selectedPeriod(newVal, oldVal) {
       if (newVal !== oldVal) {
         this.stallPerformance = []
@@ -4000,1104 +3808,1019 @@ export default {
   },
 
   beforeUnmount() {
-    if (this.chartInstance) {
-      this.chartInstance.dispose()
-      this.chartInstance = null
+  if (this.chartInstance) {
+    this.chartInstance.dispose()
+    this.chartInstance = null
+  }
+  if (this.stallDetailChartInstance) {
+    this.stallDetailChartInstance.dispose()
+    this.stallDetailChartInstance = null
+  }
+  if (this.revenueChartInstance) {
+    this.revenueChartInstance.dispose()
+    this.revenueChartInstance = null
+  }
+  if (this.revenueStateChartInstance) {
+    this.revenueStateChartInstance.dispose()
+    this.revenueStateChartInstance = null
+  }
+  if (this.resizeObserver) {
+    this.resizeObserver.disconnect()
+  }
+  document.removeEventListener('click', this.handleClickOutside)
+  window.removeEventListener('resize', this.handleChartResize)
+},
+
+  methods: {
+
+async refreshAllDataForPeriod() {
+  try {
+    console.log('🔄 Refreshing all data for period:', this.selectedPeriod)
+    
+    this.stallPerformance = []
+    this.menuPerformance = []
+    this.salesTrend = []
+    this.consolidatedSales.topStall = '-'
+    this.consolidatedSales.topRevenue = 0
+    this.consolidatedSales.totalRevenue = 0
+    this.consolidatedSales.totalItems = 0
+    this.revenueData = []
+    this.transactions = []
+    
+    await this.loadSalesAnalytics()
+    await this.loadStallPerformance()
+    await this.loadMenuPerformance()
+    await this.loadRevenueData()
+    await this.loadTransactions()  // ← This should now use the selected period
+    
+    this.resetChartNavigation()
+    
+    this.$nextTick(() => {
+      this.initChart()
+      this.initRevenueChart()
+      this.initRevenueStateChart()
+    })
+    
+    this.$emit('show-notification', `Data updated for ${this.getPeriodLabel()}`, 'success')
+    
+  } catch (err) {
+    console.error('Error refreshing data for period:', err)
+    this.$emit('show-notification', 'Failed to update data for period', 'error')
+  }
+},
+
+    // =============================================
+// NEW METHOD - For transactions table only
+// =============================================
+formatTableDate(dateStr) {
+  if (!dateStr) return ''
+  
+  const date = new Date(dateStr)
+  
+  // Always show date only (no time) for the table
+  return date.toLocaleDateString('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+},
+
+    async fetchFullTransaction(transactionId) {
+  if (!transactionId) return
+  
+  try {
+    console.log('🔄 Fetching full transaction details for:', transactionId)
+    const res = await axios.get(`${API_BASE}/transactions/${transactionId}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+    
+    console.log('✅ Full transaction data:', res.data)
+    
+    // Update the selected transaction with full data
+    this.selectedTransaction = {
+      ...this.selectedTransaction,
+      ...res.data
     }
-    if (this.stallDetailChartInstance) {
-      this.stallDetailChartInstance.dispose()
-      this.stallDetailChartInstance = null
+    
+    // Also update in the transactions list
+    const index = this.transactions.findIndex(t => t.id === transactionId)
+    if (index !== -1) {
+      this.transactions[index] = {
+        ...this.transactions[index],
+        ...res.data
+      }
     }
+    
+  } catch (err) {
+    console.error('Failed to fetch full transaction:', err)
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Could not load full transaction details', 'error')
+    }
+  }
+},
+
+    // =============================================
+// TRANSACTION ITEM HELPERS
+// =============================================
+
+// ✅ REPLACE with this:
+getTransactionItems(transaction) {
+  if (!transaction) return []
+  
+  // EXISTING BEHAVIOR - stays first
+  if (transaction.items && Array.isArray(transaction.items)) {
+    if (transaction.items.length > 0) {
+      console.log('📦 First item structure:', transaction.items[0])
+    }
+    return transaction.items
+  }
+  
+  // NEW: Check alternative locations (SAFE ADDITIONS)
+  const alternatives = ['order_items', 'details', 'products', 'menu_items', 'orderItems', 'orderDetails']
+  for (const key of alternatives) {
+    if (transaction[key] && Array.isArray(transaction[key]) && transaction[key].length > 0) {
+      console.log('🔍 Found items in:', key, transaction[key].length, 'items')
+      return transaction[key]
+    }
+  }
+  
+  // NEW: Check if items is a string that needs parsing
+  if (transaction.items && typeof transaction.items === 'string') {
+    try {
+      const parsed = JSON.parse(transaction.items)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log('🔍 Parsed items from string:', parsed.length, 'items')
+        return parsed
+      }
+    } catch (e) {
+      // Silent fail - keep empty array
+      console.warn('Could not parse items string')
+    }
+  }
+  
+  // NEW: Check if there's a nested data object with items
+  if (transaction.data) {
+    if (transaction.data.items && Array.isArray(transaction.data.items)) {
+      console.log('🔍 Found items in data.items')
+      return transaction.data.items
+    }
+    if (transaction.data.order_items && Array.isArray(transaction.data.order_items)) {
+      console.log('🔍 Found items in data.order_items')
+      return transaction.data.order_items
+    }
+  }
+  
+  return []  // ← Same fallback as before
+},
+
+
+
+// ✅ ADD THIS NEW METHOD:
+getItemName(item) {
+  if (!item) return 'Unknown Item'
+  
+  // Try all possible name fields
+  return item.item_name || 
+         item.name || 
+         item.product_name || 
+         item.menu_name || 
+         item.title || 
+         item.description ||
+         'Unknown Item'
+},
+
+getItemQuantity(item) {
+  if (!item) return 0
+  return parseInt(item.quantity || item.qty || item.count || 1)
+},
+
+getItemPrice(item) {
+  if (!item) return 0
+  return parseFloat(item.price || item.unit_price || item.cost || 0)
+},
+
+getItemTotal(item) {
+  return this.getItemQuantity(item) * this.getItemPrice(item)
+},
+
+// =============================================
+// IMPROVED TRANSACTION DETAIL VIEW
+// =============================================
+
+// ✅ REPLACE with this:
+async viewTransactionDetails(tx) {
+  console.log('📋 Transaction keys:', Object.keys(tx))
+  console.log('📋 Items:', tx.items)
+  console.log('📋 User fields:', {
+    user_name: tx.user_name,
+    cashier_name: tx.cashier_name,
+    processed_by: tx.processed_by,
+    created_by: tx.created_by,
+    user_id: tx.user_id,
+    cashier_id: tx.cashier_id
+  })
+  
+  // Just use the data we already have - no fetch attempt
+  this.selectedTransaction = tx
+  this.transactionDetailModal = true
+},
+
+async loadTransactions() {
+  this.transactionsLoading = true
+  try {
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
+    
+    const stallIds = this.stalls.map(s => s.id)
+    
+    if (!stallIds || stallIds.length === 0) {
+      this.transactions = []
+      this.transactionsLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=200`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    this.transactions = res.data || []
+
+    if (this.transactions.length > 0) {
+      console.log('📋 First transaction structure:', this.transactions[0])
+      console.log('📋 Amount field:', this.transactions[0].total_amount || this.transactions[0].amount || this.transactions[0].total)
+    }
+    
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.transactions = []
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load transactions', 'error')
+    }
+  } finally {
+    this.transactionsLoading = false
+  }
+},
+
+// ✅ THIS IS THE PERMANENT FIX - Use after backend changes
+getProcessedByName(transaction) {
+  if (!transaction) return 'System'
+  
+  // These fields will now have real data from the backend
+  return transaction.cashier_name || 
+         transaction.user_full_name || 
+         transaction.username || 
+         'System'
+},
+
+
+// Open transaction detail modal
+viewTransactionDetails(tx) {
+  this.selectedTransaction = tx
+  this.transactionDetailModal = true
+},
+
+// Format full date and time
+formatFullDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-MY', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+},
+    // =============================================
+// TRANSACTIONS METHODS
+// =============================================
+
+refreshTransactions() {
+  this.loadTransactions()
+  this.$emit('show-notification', 'Transactions refreshed', 'success')
+},
+
+getTransactionStatusEmoji(status) {
+  const s = (status || '').toLowerCase()
+  if (s === 'completed') return '✅'
+  if (s === 'pending') return '⏳'
+  if (s === 'failed') return '❌'
+  return '✅'
+},
+
+toggleTransactionExpand(txId) {
+  const index = this.expandedTransactionRows.indexOf(txId)
+  if (index > -1) {
+    this.expandedTransactionRows.splice(index, 1)
+  } else {
+    this.expandedTransactionRows.push(txId)
+  }
+},
+
+// Pagination
+resetTransactionPagination() {
+  this.transactionPage = 1
+},
+
+prevTransactionPage() {
+  if (this.transactionPage > 1) {
+    this.transactionPage--
+  }
+},
+
+nextTransactionPage() {
+  if (this.transactionPage < this.transactionTotalPages) {
+    this.transactionPage++
+  }
+},
+
+clearTransactionFilters() {
+  this.transactionSearch = ''
+  this.transactionStallFilter = 'all'
+  this.transactionStatusFilter = 'all'
+  this.transactionDateFrom = null
+  this.transactionDateTo = null
+  this.transactionPage = 1
+  this.transactionSortBy = 'created_at'
+  this.transactionSortOrder = 'desc'
+  this.transactions = []
+  this.loadTransactions()
+},
+
+sortTransactions(column) {
+  if (this.transactionSortBy === column) {
+    this.transactionSortOrder = this.transactionSortOrder === 'asc' ? 'desc' : 'asc'
+  } else {
+    this.transactionSortBy = column
+    this.transactionSortOrder = column === 'created_at' ? 'desc' : 'asc'
+  }
+  this.transactionPage = 1
+},
+
+getTransactionSortArrow(column) {
+  if (this.transactionSortBy !== column) return '⇅'
+  return this.transactionSortOrder === 'asc' ? '↑' : '↓'
+},
+
+async exportTransactions() {
+  try {
+    this.$emit('show-notification', 'Exporting transactions...', 'info')
+    const ExcelJS = await import('exceljs')
+    const { saveAs } = await import('file-saver')
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('Transactions')
+    
+    sheet.addRow(['Transactions Report', ''])
+    sheet.addRow(['Generated', new Date().toLocaleString()])
+    sheet.addRow(['Total Transactions', this.transactions.length])
+    sheet.addRow(['Total Revenue', this.formatCurrency(this.transactionStats.totalRevenue)])
+    sheet.addRow([])
+    
+    sheet.addRow(['Order ID', 'Stall', 'Items', 'Amount', 'Status', 'Date'])
+    this.filteredTransactions.forEach(tx => {
+      sheet.addRow([
+        tx.order_number || 'N/A',
+        tx.stall_name || '-',
+        tx.item_count || tx.items?.length || 0,
+        tx.total_amount || 0,
+        tx.status || 'Completed',
+        this.formatFullDate(tx.created_at)
+      ])
+    })
+    
+    sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
+    const buffer = await workbook.xlsx.writeBuffer()
+    saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+      `Transactions_${new Date().toISOString().split('T')[0]}.xlsx`)
+    
+    this.$emit('show-notification', 'Transactions exported!', 'success')
+  } catch (err) {
+    console.error('Export error:', err)
+    this.$emit('show-notification', 'Export failed', 'error')
+  }
+},
+
+// ✅ KEEP THIS VERSION
+async viewAllTransactions(item) {
+  // If this is called from the revenue tab, navigate to transactions tab
+  if (this.activeTab === 'revenue') {
+    this.activeTab = 'transactions'
+    this.transactionStallFilter = item.id
+    this.transactionSearch = item.name
+    this.loadTransactions()
+    this.$emit('show-notification', `📊 Viewing transactions for ${item.name}`, 'info')
+    return
+  }
+  
+  // Otherwise open the modal
+  this.selectedStallForModal = item
+  this.transactionModal = true
+  this.modalTransactionsLoading = true
+  
+  try {
+    const days = 30
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallId=${item.id}&days=${days}&limit=50`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    this.modalTransactions = res.data || []
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    this.modalTransactions = []
+  } finally {
+    this.modalTransactionsLoading = false
+  }
+},
+
+      // =============================================
+  // REVENUE EXPANDABLE ROWS
+  // =============================================
+  
+  
+async loadStallTransactions(stallId) {
+  this.expandedTransactionLoading = stallId
+  try {
+    const days = this.revenuePeriod === 'today' ? 1 :
+                 this.revenuePeriod === 'week' ? 7 :
+                 this.revenuePeriod === 'month' ? 30 :
+                 this.revenuePeriod === 'quarter' ? 90 :
+                 this.revenuePeriod === 'halfyear' ? 180 :
+                 this.revenuePeriod === 'year' ? 365 :
+                 this.revenueCustomDays || 30
+    
+    const res = await axios.get(
+      `${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // ✅ FIX: Use direct assignment instead of $set
+    this.expandedTransactions[stallId] = res.data || []
+    
+  } catch (err) {
+    console.error('Failed to load transactions:', err)
+    // ✅ FIX: Use direct assignment
+    this.expandedTransactions[stallId] = []
+    if (err.response?.status !== 404) {
+      this.$emit('show-notification', 'Failed to load transactions', 'error')
+    }
+  } finally {
+    this.expandedTransactionLoading = null
+  }
+},
+  
+  
+  formatDate(dateStr) {
+    if (!dateStr) return '-'
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-MY', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  },
+  
+  getRevenueTrend(item) {
+    const growth = item.revenueGrowth || 0
+    if (growth > 10) return '📈 Strong Growth'
+    if (growth > 0) return '📈 Stable Growth'
+    if (growth === 0) return '➡️ Stable'
+    return '📉 Declining'
+  },
+  
+  getRevenueTrendClass(item) {
+    const growth = item.revenueGrowth || 0
+    if (growth > 10) return 'trend-up'
+    if (growth > 0) return 'trend-slight-up'
+    if (growth === 0) return 'trend-stable'
+    return 'trend-down'
+  },
+
+    initRevenueCharts() {
+  this.$nextTick(() => {
+    setTimeout(() => {
+      this.initRevenueChart()
+      this.initRevenueStateChart()
+    }, 100)
+  })
+},
+
+      // =============================================
+  // REVENUE TAB METHODS
+  // =============================================
+
+  getRevenueStatusText(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return 'No Sales'
+    if (revenue > 1000) return 'Excellent'
+    if (revenue > 500) return 'Good'
+    if (revenue > 100) return 'Average'
+    return 'Poor'
+  },
+
+  getRevenueStatusEmoji(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return '⚪'
+    if (revenue > 1000) return '🟢'
+    if (revenue > 500) return '🔵'
+    if (revenue > 100) return '🟡'
+    return '🔴'
+  },
+
+  getRevenueStatusClass(item) {
+    const revenue = item.revenue || 0
+    if (revenue === 0) return 'no-sales'
+    if (revenue > 1000) return 'excellent'
+    if (revenue > 500) return 'good'
+    if (revenue > 100) return 'average'
+    return 'poor'
+  },
+
+  sortRevenueData(list) {
+    const sorted = [...list]
+    const sortBy = this.revenueSortBy
+    const order = this.revenueSortOrder
+
+    sorted.sort((a, b) => {
+      let valA, valB
+
+      if (sortBy === 'rank' || sortBy === 'revenue') {
+        valA = a.revenue || 0
+        valB = b.revenue || 0
+      } else if (sortBy === 'name') {
+        valA = a.name.toLowerCase()
+        valB = b.name.toLowerCase()
+        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      } else if (sortBy === 'state') {
+        valA = (a.state || '').toLowerCase()
+        valB = (b.state || '').toLowerCase()
+        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
+      } else if (sortBy === 'transactions') {
+        valA = a.transactions || 0
+        valB = b.transactions || 0
+      } else if (sortBy === 'avg') {
+        valA = a.avgTransaction || 0
+        valB = b.avgTransaction || 0
+      } else if (sortBy === 'status') {
+        const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
+        valA = statusOrder[this.getRevenueStatusClass(a)] || 0
+        valB = statusOrder[this.getRevenueStatusClass(b)] || 0
+      }
+
+      if (order === 'asc') {
+        return valA > valB ? 1 : valA < valB ? -1 : 0
+      } else {
+        return valA < valB ? 1 : valA > valB ? -1 : 0
+      }
+    })
+
+    return sorted
+  },
+
+  sortRevenue(column) {
+    if (this.revenueSortBy === column) {
+      this.revenueSortOrder = this.revenueSortOrder === 'asc' ? 'desc' : 'asc'
+    } else {
+      this.revenueSortBy = column
+      this.revenueSortOrder = column === 'rank' || column === 'revenue' || column === 'transactions' || column === 'avg' ? 'desc' : 'asc'
+    }
+    this.revenuePage = 1
+  },
+
+  getRevenueSortArrow(column) {
+    if (this.revenueSortBy !== column) return '⇅'
+    return this.revenueSortOrder === 'asc' ? '↑' : '↓'
+  },
+
+  resetRevenuePagination() {
+    this.revenuePage = 1
+  },
+
+  prevRevenuePage() {
+    if (this.revenuePage > 1) {
+      this.revenuePage--
+    }
+  },
+
+  nextRevenuePage() {
+    if (this.revenuePage < this.revenueTotalPages) {
+      this.revenuePage++
+    }
+  },
+
+  clearRevenueFilters() {
+    this.revenueStateFilter = 'All States'
+    this.revenueStallFilter = 'all'
+    this.revenueSearch = ''
+    this.revenueMinAmount = 0
+    this.revenuePage = 1
+    this.revenueSortBy = 'revenue'
+    this.revenueSortOrder = 'desc'
+  },
+
+  viewRevenueStallDetails(item) {
+    this.viewStallDetails(item)
+  },
+
+  async refreshRevenueData() {
+    await this.loadRevenueData()
+  },
+
+async loadRevenueData() {
+  this.revenueLoading = true
+  try {
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
+
+    const stallIds = this.stalls.map(s => s.id)
+    if (!stallIds || stallIds.length === 0) {
+      this.revenueData = []
+      this.revenueLoading = false
+      return
+    }
+
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+
+    const performanceData = res.data || []
+    
+    const prevDays = days * 2
+    let prevPerformanceData = []
+    try {
+      const prevRes = await axios.get(
+        `${API_BASE}/stall-performance?days=${prevDays}&stallIds=${stallIds.join(',')}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      )
+      prevPerformanceData = prevRes.data || []
+    } catch (prevErr) {
+      console.warn('Could not load previous period data:', prevErr)
+    }
+
+    let transactionsData = []
+    try {
+      const txRes = await axios.get(
+        `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=100`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      )
+      transactionsData = txRes.data || []
+    } catch (txErr) {
+      console.warn('Could not load transactions for top items:', txErr)
+    }
+
+    this.revenueData = this.stalls.map(stall => {
+      const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      const currentRevenue = parseFloat(perf?.revenue) || 0
+      
+      let revenueGrowth = 0
+      const prevPerf = prevPerformanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
+      const prevRevenue = parseFloat(prevPerf?.revenue) || 0
+      if (prevRevenue > 0) {
+        revenueGrowth = ((currentRevenue - prevRevenue) / prevRevenue) * 100
+      } else if (currentRevenue > 0) {
+        revenueGrowth = 100
+      }
+      
+      let topItem = '-'
+      const stallTransactions = transactionsData.filter(tx => tx.stall_id === stall.id)
+      
+      if (stallTransactions.length > 0) {
+        const itemCount = {}
+        stallTransactions.forEach(tx => {
+          if (tx.items && Array.isArray(tx.items)) {
+            tx.items.forEach(item => {
+              const name = item.item_name || item.name
+              if (name) {
+                itemCount[name] = (itemCount[name] || 0) + (item.quantity || 1)
+              }
+            })
+          }
+        })
+        
+        let maxCount = 0
+        for (const [name, count] of Object.entries(itemCount)) {
+          if (count > maxCount) {
+            maxCount = count
+            topItem = name
+          }
+        }
+      }
+
+      return {
+        ...stall,
+        revenue: currentRevenue,
+        transactions: parseInt(perf?.items_sold) || 0,
+        avgTransaction: parseFloat(perf?.avg_transaction) || 0,
+        state: stall.state || 'Unknown',
+        revenueGrowth: Math.round(revenueGrowth),
+        topItem: topItem
+      }
+    }).sort((a, b) => b.revenue - a.revenue)
+
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.initRevenueChart()
+        this.initRevenueStateChart()
+      }, 100)
+    })
+
+  } catch (err) {
+    console.error('Failed to load revenue data:', err)
+    this.$emit('show-notification', 'Failed to load revenue data', 'error')
+  } finally {
+    this.revenueLoading = false
+  }
+},
+
+  initRevenueChart() {
+    if (!this.$refs.revenueChartRef) return
+
     if (this.revenueChartInstance) {
       this.revenueChartInstance.dispose()
       this.revenueChartInstance = null
     }
+
+    this.revenueChartInstance = echarts.init(this.$refs.revenueChartRef)
+
+    const sortedData = [...this.revenueData].sort((a, b) => b.revenue - a.revenue)
+    const topStalls = sortedData.slice(0, 10)
+    
+    const names = topStalls.map(item => item.name)
+    const revenues = topStalls.map(item => item.revenue || 0)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#1e293b', fontSize: 12 },
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const item = topStalls[index]
+          return `
+            <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+            <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue || 0)}</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.transactions || 0} transactions</div>
+            <div style="color:#94a3b8;font-size:11px;">Avg: ${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.avgTransaction || 0)}</div>
+          `
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: names,
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          fontWeight: 500,
+          rotate: names.length > 5 ? 30 : 0,
+          interval: 0
+        },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          formatter: function(value) {
+            if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
+            return 'RM' + value
+          }
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: revenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#d63d07' } }
+      }]
+    }
+
+    this.revenueChartInstance.setOption(option)
+    this.revenueChartInstance.resize()
+  },
+
+  initRevenueStateChart() {
+    if (!this.$refs.revenueStateChartRef) return
+
     if (this.revenueStateChartInstance) {
       this.revenueStateChartInstance.dispose()
       this.revenueStateChartInstance = null
     }
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
+
+    this.revenueStateChartInstance = echarts.init(this.$refs.revenueStateChartRef)
+
+    const stateData = this.revenueStateStats
+    const states = stateData.map(item => item.state)
+    const revenues = stateData.map(item => item.revenue)
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [8, 12],
+        textStyle: { color: '#1e293b', fontSize: 12 },
+        formatter: function(params) {
+          const index = params[0]?.dataIndex || 0
+          const item = stateData[index]
+          return `
+            <div style="font-weight:600;margin-bottom:4px;">📍 ${item.state}</div>
+            <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue)}</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.transactions} transactions</div>
+            <div style="color:#94a3b8;font-size:11px;">${item.stalls} stalls</div>
+          `
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: states,
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          fontWeight: 500,
+          rotate: states.length > 5 ? 30 : 0,
+          interval: 0
+        },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          formatter: function(value) {
+            if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
+            return 'RM' + value
+          }
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: revenues,
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#7c3aed' },
+              { offset: 1, color: '#a78bfa' }
+            ]
+          }
+        },
+        emphasis: { itemStyle: { color: '#5b21b6' } }
+      }]
     }
-    document.removeEventListener('click', this.handleClickOutside)
-    window.removeEventListener('resize', this.handleChartResize)
+
+    this.revenueStateChartInstance.setOption(option)
+    this.revenueStateChartInstance.resize()
   },
 
-  methods: {
-
-    
-    // =============================================
-    // SHIFT HISTORY METHODS - MOVED INSIDE METHODS
-    // =============================================
-    async loadShiftHistory() {
-      this.shiftHistoryLoading = true;
-      try {
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-        const stallId = this.shiftHistoryStallFilter !== 'all' ? this.shiftHistoryStallFilter : null;
-        
-        let url;
-        if (stallId) {
-          url = `${API_BASE_URL}/shifts/history?stallId=${stallId}&limit=1000`;
-        } else {
-          url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
-        }
-        
-        const res = await axios.get(
-          url,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        );
-        
-        this.shiftHistory = res.data.shifts || [];
-        this.shiftHistoryTotal = res.data.total || 0;
-      } catch (err) {
-        console.error('Failed to load shift history:', err);
-        this.shiftHistory = [];
-        this.shiftHistoryTotal = 0;
-        if (err.response?.status !== 404) {
-          this.$emit('show-notification', 'Failed to load shift history', 'error');
-        }
-      } finally {
-        this.shiftHistoryLoading = false;
-      }
-    },
-    
-    async viewShiftDetails(shift) {
-      try {
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-        const res = await axios.get(
-          `${API_BASE_URL}/shifts/${shift.id}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        );
-        this.selectedShift = res.data;
-        this.shiftDetailModal = true;
-      } catch (err) {
-        console.error('Failed to load shift details:', err);
-        this.$emit('show-notification', 'Failed to load shift details', 'error');
-      }
-    },
-    
-    getStallName(stallId) {
-      const stall = this.stalls.find(s => s.id === stallId);
-      return stall ? stall.name : 'Unknown';
-    },
-    
-    getVarianceClass(shift) {
-      const variance = parseFloat(shift.variance) || 0;
-      if (variance > 0) return 'over';
-      if (variance < 0) return 'short';
-      return 'balanced';
-    },
-    
-    resetShiftPagination() {
-      this.shiftCurrentPage = 1;
-    },
-    
-    prevShiftPage() {
-      if (this.shiftCurrentPage > 1) {
-        this.shiftCurrentPage--;
-      }
-    },
-    
-    nextShiftPage() {
-      if (this.shiftCurrentPage < this.shiftTotalPages) {
-        this.shiftCurrentPage++;
-      }
-    },
-    
-    clearShiftFilters() {
-      this.shiftHistoryStallFilter = 'all';
-      this.shiftHistoryStatusFilter = 'all';
-      this.shiftHistoryDateFrom = null;
-      this.shiftHistoryDateTo = null;
-      this.shiftCurrentPage = 1;
-      this.loadShiftHistory();
-    },
-    
-    async exportShiftHistory() {
-      this.shiftExportLoading = true;
-      try {
-        this.$emit('show-notification', 'Exporting shift history...', 'info');
-        const ExcelJS = await import('exceljs');
-        const { saveAs } = await import('file-saver');
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Shift History');
-        
-        sheet.addRow(['Shift History Report', '']);
-        sheet.addRow(['Generated', new Date().toLocaleString()]);
-        sheet.addRow(['Total Shifts', this.filteredShiftHistory.length]);
-        sheet.addRow([]);
-        
-        sheet.addRow(['Date', 'Stall', 'Revenue', 'Orders', 'Float', 'Variance', 'Status']);
-        this.filteredShiftHistory.forEach(shift => {
-          sheet.addRow([
-            this.formatDate(shift.opened_at),
-            this.getStallName(shift.stall_id),
-            shift.revenue || 0,
-            shift.transaction_count || 0,
-            shift.starting_float || 0,
-            shift.variance || 0,
-            shift.status || 'closed'
-          ]);
-        });
-        
-        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
-        const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
-          `Shift_History_${new Date().toISOString().split('T')[0]}.xlsx`);
-        
-        this.$emit('show-notification', 'Shift history exported!', 'success');
-      } catch (err) {
-        console.error('Export error:', err);
-        this.$emit('show-notification', 'Export failed', 'error');
-      } finally {
-        this.shiftExportLoading = false;
-      }
-    },
-    
-    async exportShiftReport() {
-      if (!this.selectedShift) return;
+  async exportRevenueData() {
+    try {
+      this.$emit('show-notification', 'Exporting revenue data...', 'info')
+      const ExcelJS = await import('exceljs')
+      const { saveAs } = await import('file-saver')
+      const workbook = new ExcelJS.Workbook()
+      const sheet = workbook.addWorksheet('Revenue Data')
       
-      try {
-        this.$emit('show-notification', 'Exporting shift report...', 'info');
-        const ExcelJS = await import('exceljs');
-        const { saveAs } = await import('file-saver');
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Shift Report');
-        
-        sheet.addRow(['Shift Report', '']);
-        sheet.addRow(['Stall', this.getStallName(this.selectedShift.stall_id)]);
-        sheet.addRow(['Opened', this.formatDateTime(this.selectedShift.opened_at)]);
-        sheet.addRow(['Closed', this.formatDateTime(this.selectedShift.closed_at) || 'Open']);
-        sheet.addRow(['Status', this.selectedShift.status]);
-        sheet.addRow(['Revenue', this.selectedShift.revenue]);
-        sheet.addRow(['Orders', this.selectedShift.transaction_count]);
-        sheet.addRow(['Starting Float', this.selectedShift.starting_float]);
-        sheet.addRow(['Ending Cash', this.selectedShift.ending_cash]);
-        sheet.addRow(['Expected Cash', this.selectedShift.expected_cash]);
-        sheet.addRow(['Variance', this.selectedShift.variance]);
-        sheet.addRow([]);
-        
-        sheet.addRow(['Orders', '']);
-        sheet.addRow(['Order ID', 'Amount', 'Items', 'Status', 'Time']);
-        (this.selectedShift.transactions || []).forEach(tx => {
-          sheet.addRow([
-            tx.order_number || 'N/A',
-            tx.total_amount || 0,
-            tx.item_count || 0,
-            tx.status || 'completed',
-            this.formatTime(tx.created_at)
-          ]);
-        });
-        
-        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15); });
-        const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
-          `Shift_Report_${this.selectedShift.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
-        
-        this.$emit('show-notification', 'Shift report exported!', 'success');
-      } catch (err) {
-        console.error('Export error:', err);
-        this.$emit('show-notification', 'Export failed', 'error');
-      }
-    },
-
-    // =============================================
-    // REST OF YOUR METHODS (EXISTING CODE)
-    // =============================================
-    async refreshAllDataForPeriod() {
-      try {
-        console.log('🔄 Refreshing all data for period:', this.selectedPeriod)
-        this.stallPerformance = []
-        this.menuPerformance = []
-        this.salesTrend = []
-        this.consolidatedSales.topStall = '-'
-        this.consolidatedSales.topRevenue = 0
-        this.consolidatedSales.totalRevenue = 0
-        this.consolidatedSales.totalItems = 0
-        this.revenueData = []
-        this.transactions = []
-        await this.loadSalesAnalytics()
-        await this.loadStallPerformance()
-        await this.loadMenuPerformance()
-        await this.loadRevenueData()
-        await this.loadTransactions()
-        this.resetChartNavigation()
-        this.$nextTick(() => {
-          this.initChart()
-          this.initRevenueChart()
-          this.initRevenueStateChart()
-        })
-        this.$emit('show-notification', `Data updated for ${this.getPeriodLabel()}`, 'success')
-      } catch (err) {
-        console.error('Error refreshing data for period:', err)
-        this.$emit('show-notification', 'Failed to update data for period', 'error')
-      }
-    },
-
-    formatTableDate(dateStr) {
-      if (!dateStr) return ''
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('en-MY', {
-        timeZone: 'Asia/Kuala_Lumpur',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      })
-    },
-
-    async fetchFullTransaction(transactionId) {
-      if (!transactionId) return
-      try {
-        console.log('🔄 Fetching full transaction details for:', transactionId)
-        const res = await axios.get(`${API_BASE}/transactions/${transactionId}`, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        console.log('✅ Full transaction data:', res.data)
-        this.selectedTransaction = {
-          ...this.selectedTransaction,
-          ...res.data
-        }
-        const index = this.transactions.findIndex(t => t.id === transactionId)
-        if (index !== -1) {
-          this.transactions[index] = {
-            ...this.transactions[index],
-            ...res.data
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch full transaction:', err)
-        if (err.response?.status !== 404) {
-          this.$emit('show-notification', 'Could not load full transaction details', 'error')
-        }
-      }
-    },
-
-    getTransactionItems(transaction) {
-      if (!transaction) return []
-      if (transaction.items && Array.isArray(transaction.items)) {
-        if (transaction.items.length > 0) {
-          console.log('📦 First item structure:', transaction.items[0])
-        }
-        return transaction.items
-      }
-      const alternatives = ['order_items', 'details', 'products', 'menu_items', 'orderItems', 'orderDetails']
-      for (const key of alternatives) {
-        if (transaction[key] && Array.isArray(transaction[key]) && transaction[key].length > 0) {
-          console.log('🔍 Found items in:', key, transaction[key].length, 'items')
-          return transaction[key]
-        }
-      }
-      if (transaction.items && typeof transaction.items === 'string') {
-        try {
-          const parsed = JSON.parse(transaction.items)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            console.log('🔍 Parsed items from string:', parsed.length, 'items')
-            return parsed
-          }
-        } catch (e) {
-          console.warn('Could not parse items string')
-        }
-      }
-      if (transaction.data) {
-        if (transaction.data.items && Array.isArray(transaction.data.items)) {
-          console.log('🔍 Found items in data.items')
-          return transaction.data.items
-        }
-        if (transaction.data.order_items && Array.isArray(transaction.data.order_items)) {
-          console.log('🔍 Found items in data.order_items')
-          return transaction.data.order_items
-        }
-      }
-      return []
-    },
-
-    getItemName(item) {
-      if (!item) return 'Unknown Item'
-      return item.item_name || 
-             item.name || 
-             item.product_name || 
-             item.menu_name || 
-             item.title || 
-             item.description ||
-             'Unknown Item'
-    },
-
-    getItemQuantity(item) {
-      if (!item) return 0
-      return parseInt(item.quantity || item.qty || item.count || 1)
-    },
-
-    getItemPrice(item) {
-      if (!item) return 0
-      return parseFloat(item.price || item.unit_price || item.cost || 0)
-    },
-
-    getItemTotal(item) {
-      return this.getItemQuantity(item) * this.getItemPrice(item)
-    },
-
-    async viewTransactionDetails(tx) {
-      console.log('📋 Transaction keys:', Object.keys(tx))
-      console.log('📋 Items:', tx.items)
-      console.log('📋 User fields:', {
-        user_name: tx.user_name,
-        cashier_name: tx.cashier_name,
-        processed_by: tx.processed_by,
-        created_by: tx.created_by,
-        user_id: tx.user_id,
-        cashier_id: tx.cashier_id
-      })
-      this.selectedTransaction = tx
-      this.transactionDetailModal = true
-    },
-
-    async loadTransactions() {
-      this.transactionsLoading = true
-      try {
-        const days = this.selectedPeriod === 'today' ? 1 :
-                     this.selectedPeriod === 'week' ? 7 :
-                     this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 :
-                     this.selectedPeriod === 'halfyear' ? 180 :
-                     this.selectedPeriod === 'year' ? 365 :
-                     this.selectedPeriod === 'custom' ? this.customDays || 30 :
-                     30
-        
-        const stallIds = this.stalls.map(s => s.id)
-        if (!stallIds || stallIds.length === 0) {
-          this.transactions = []
-          this.transactionsLoading = false
-          return
-        }
-
-        const res = await axios.get(
-          `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=200`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.transactions = res.data || []
-        if (this.transactions.length > 0) {
-          console.log('📋 First transaction structure:', this.transactions[0])
-          console.log('📋 Amount field:', this.transactions[0].total_amount || this.transactions[0].amount || this.transactions[0].total)
-        }
-      } catch (err) {
-        console.error('Failed to load transactions:', err)
-        this.transactions = []
-        if (err.response?.status !== 404) {
-          this.$emit('show-notification', 'Failed to load transactions', 'error')
-        }
-      } finally {
-        this.transactionsLoading = false
-      }
-    },
-
-    getProcessedByName(transaction) {
-      if (!transaction) return 'System'
-      return transaction.cashier_name || 
-             transaction.user_full_name || 
-             transaction.username || 
-             'System'
-    },
-
-    formatFullDateTime(dateStr) {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('en-MY', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      })
-    },
-
-    refreshTransactions() {
-      this.loadTransactions()
-      this.$emit('show-notification', 'Transactions refreshed', 'success')
-    },
-
-    getTransactionStatusEmoji(status) {
-      const s = (status || '').toLowerCase()
-      if (s === 'completed') return '✅'
-      if (s === 'pending') return '⏳'
-      if (s === 'failed') return '❌'
-      return '✅'
-    },
-
-    toggleTransactionExpand(txId) {
-      const index = this.expandedTransactionRows.indexOf(txId)
-      if (index > -1) {
-        this.expandedTransactionRows.splice(index, 1)
-      } else {
-        this.expandedTransactionRows.push(txId)
-      }
-    },
-
-    resetTransactionPagination() {
-      this.transactionPage = 1
-    },
-
-    prevTransactionPage() {
-      if (this.transactionPage > 1) {
-        this.transactionPage--
-      }
-    },
-
-    nextTransactionPage() {
-      if (this.transactionPage < this.transactionTotalPages) {
-        this.transactionPage++
-      }
-    },
-
-    clearTransactionFilters() {
-      this.transactionSearch = ''
-      this.transactionStallFilter = 'all'
-      this.transactionStatusFilter = 'all'
-      this.transactionDateFrom = null
-      this.transactionDateTo = null
-      this.transactionPage = 1
-      this.transactionSortBy = 'created_at'
-      this.transactionSortOrder = 'desc'
-      this.transactions = []
-      this.loadTransactions()
-    },
-
-    sortTransactions(column) {
-      if (this.transactionSortBy === column) {
-        this.transactionSortOrder = this.transactionSortOrder === 'asc' ? 'desc' : 'asc'
-      } else {
-        this.transactionSortBy = column
-        this.transactionSortOrder = column === 'created_at' ? 'desc' : 'asc'
-      }
-      this.transactionPage = 1
-    },
-
-    getTransactionSortArrow(column) {
-      if (this.transactionSortBy !== column) return '⇅'
-      return this.transactionSortOrder === 'asc' ? '↑' : '↓'
-    },
-
-    async exportTransactions() {
-      try {
-        this.$emit('show-notification', 'Exporting transactions...', 'info')
-        const ExcelJS = await import('exceljs')
-        const { saveAs } = await import('file-saver')
-        const workbook = new ExcelJS.Workbook()
-        const sheet = workbook.addWorksheet('Transactions')
-        
-        sheet.addRow(['Transactions Report', ''])
-        sheet.addRow(['Generated', new Date().toLocaleString()])
-        sheet.addRow(['Total Transactions', this.transactions.length])
-        sheet.addRow(['Total Revenue', this.formatCurrency(this.transactionStats.totalRevenue)])
-        sheet.addRow([])
-        
-        sheet.addRow(['Order ID', 'Stall', 'Items', 'Amount', 'Status', 'Date'])
-        this.filteredTransactions.forEach(tx => {
-          sheet.addRow([
-            tx.order_number || 'N/A',
-            tx.stall_name || '-',
-            tx.item_count || tx.items?.length || 0,
-            tx.total_amount || 0,
-            tx.status || 'Completed',
-            this.formatFullDate(tx.created_at)
-          ])
-        })
-        
-        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
-        const buffer = await workbook.xlsx.writeBuffer()
-        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
-          `Transactions_${new Date().toISOString().split('T')[0]}.xlsx`)
-        
-        this.$emit('show-notification', 'Transactions exported!', 'success')
-      } catch (err) {
-        console.error('Export error:', err)
-        this.$emit('show-notification', 'Export failed', 'error')
-      }
-    },
-
-    async viewAllTransactions(item) {
-      if (this.activeTab === 'revenue') {
-        this.activeTab = 'transactions'
-        this.transactionStallFilter = item.id
-        this.transactionSearch = item.name
-        this.loadTransactions()
-        this.$emit('show-notification', `📊 Viewing transactions for ${item.name}`, 'info')
-        return
-      }
-      this.selectedStallForModal = item
-      this.transactionModal = true
-      this.modalTransactionsLoading = true
-      try {
-        const days = 30
-        const res = await axios.get(
-          `${API_BASE}/transactions?stallId=${item.id}&days=${days}&limit=50`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.modalTransactions = res.data || []
-      } catch (err) {
-        console.error('Failed to load transactions:', err)
-        this.modalTransactions = []
-      } finally {
-        this.modalTransactionsLoading = false
-      }
-    },
-
-    async loadStallTransactions(stallId) {
-      this.expandedTransactionLoading = stallId
-      try {
-        const days = this.revenuePeriod === 'today' ? 1 :
-                     this.revenuePeriod === 'week' ? 7 :
-                     this.revenuePeriod === 'month' ? 30 :
-                     this.revenuePeriod === 'quarter' ? 90 :
-                     this.revenuePeriod === 'halfyear' ? 180 :
-                     this.revenuePeriod === 'year' ? 365 :
-                     this.revenueCustomDays || 30
-        
-        const res = await axios.get(
-          `${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.expandedTransactions[stallId] = res.data || []
-      } catch (err) {
-        console.error('Failed to load transactions:', err)
-        this.expandedTransactions[stallId] = []
-        if (err.response?.status !== 404) {
-          this.$emit('show-notification', 'Failed to load transactions', 'error')
-        }
-      } finally {
-        this.expandedTransactionLoading = null
-      }
-    },
-
-    formatDate(dateStr) {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('en-MY', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    },
-
-    getRevenueTrend(item) {
-      const growth = item.revenueGrowth || 0
-      if (growth > 10) return '📈 Strong Growth'
-      if (growth > 0) return '📈 Stable Growth'
-      if (growth === 0) return '➡️ Stable'
-      return '📉 Declining'
-    },
-
-    getRevenueTrendClass(item) {
-      const growth = item.revenueGrowth || 0
-      if (growth > 10) return 'trend-up'
-      if (growth > 0) return 'trend-slight-up'
-      if (growth === 0) return 'trend-stable'
-      return 'trend-down'
-    },
-
-    initRevenueCharts() {
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.initRevenueChart()
-          this.initRevenueStateChart()
-        }, 100)
-      })
-    },
-
-    getRevenueStatusText(item) {
-      const revenue = item.revenue || 0
-      if (revenue === 0) return 'No Sales'
-      if (revenue > 1000) return 'Excellent'
-      if (revenue > 500) return 'Good'
-      if (revenue > 100) return 'Average'
-      return 'Poor'
-    },
-
-    getRevenueStatusEmoji(item) {
-      const revenue = item.revenue || 0
-      if (revenue === 0) return '⚪'
-      if (revenue > 1000) return '🟢'
-      if (revenue > 500) return '🔵'
-      if (revenue > 100) return '🟡'
-      return '🔴'
-    },
-
-    getRevenueStatusClass(item) {
-      const revenue = item.revenue || 0
-      if (revenue === 0) return 'no-sales'
-      if (revenue > 1000) return 'excellent'
-      if (revenue > 500) return 'good'
-      if (revenue > 100) return 'average'
-      return 'poor'
-    },
-
-    sortRevenueData(list) {
-      const sorted = [...list]
-      const sortBy = this.revenueSortBy
-      const order = this.revenueSortOrder
-
-      sorted.sort((a, b) => {
-        let valA, valB
-
-        if (sortBy === 'rank' || sortBy === 'revenue') {
-          valA = a.revenue || 0
-          valB = b.revenue || 0
-        } else if (sortBy === 'name') {
-          valA = a.name.toLowerCase()
-          valB = b.name.toLowerCase()
-          return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
-        } else if (sortBy === 'state') {
-          valA = (a.state || '').toLowerCase()
-          valB = (b.state || '').toLowerCase()
-          return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA)
-        } else if (sortBy === 'transactions') {
-          valA = a.transactions || 0
-          valB = b.transactions || 0
-        } else if (sortBy === 'avg') {
-          valA = a.avgTransaction || 0
-          valB = b.avgTransaction || 0
-        } else if (sortBy === 'status') {
-          const statusOrder = { 'excellent': 5, 'good': 4, 'average': 3, 'poor': 2, 'no-sales': 1 }
-          valA = statusOrder[this.getRevenueStatusClass(a)] || 0
-          valB = statusOrder[this.getRevenueStatusClass(b)] || 0
-        }
-
-        if (order === 'asc') {
-          return valA > valB ? 1 : valA < valB ? -1 : 0
-        } else {
-          return valA < valB ? 1 : valA > valB ? -1 : 0
-        }
-      })
-
-      return sorted
-    },
-
-    sortRevenue(column) {
-      if (this.revenueSortBy === column) {
-        this.revenueSortOrder = this.revenueSortOrder === 'asc' ? 'desc' : 'asc'
-      } else {
-        this.revenueSortBy = column
-        this.revenueSortOrder = column === 'rank' || column === 'revenue' || column === 'transactions' || column === 'avg' ? 'desc' : 'asc'
-      }
-      this.revenuePage = 1
-    },
-
-    getRevenueSortArrow(column) {
-      if (this.revenueSortBy !== column) return '⇅'
-      return this.revenueSortOrder === 'asc' ? '↑' : '↓'
-    },
-
-    resetRevenuePagination() {
-      this.revenuePage = 1
-    },
-
-    prevRevenuePage() {
-      if (this.revenuePage > 1) {
-        this.revenuePage--
-      }
-    },
-
-    nextRevenuePage() {
-      if (this.revenuePage < this.revenueTotalPages) {
-        this.revenuePage++
-      }
-    },
-
-    clearRevenueFilters() {
-      this.revenueStateFilter = 'All States'
-      this.revenueStallFilter = 'all'
-      this.revenueSearch = ''
-      this.revenueMinAmount = 0
-      this.revenuePage = 1
-      this.revenueSortBy = 'revenue'
-      this.revenueSortOrder = 'desc'
-    },
-
-    viewRevenueStallDetails(item) {
-      this.viewStallDetails(item)
-    },
-
-    async refreshRevenueData() {
-      await this.loadRevenueData()
-    },
-
-    async loadRevenueData() {
-      this.revenueLoading = true
-      try {
-        const days = this.selectedPeriod === 'today' ? 1 :
-                     this.selectedPeriod === 'week' ? 7 :
-                     this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 :
-                     this.selectedPeriod === 'halfyear' ? 180 :
-                     this.selectedPeriod === 'year' ? 365 :
-                     this.selectedPeriod === 'custom' ? this.customDays || 30 :
-                     30
-
-        const stallIds = this.stalls.map(s => s.id)
-        if (!stallIds || stallIds.length === 0) {
-          this.revenueData = []
-          this.revenueLoading = false
-          return
-        }
-
-        const res = await axios.get(
-          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-
-        const performanceData = res.data || []
-        
-        const prevDays = days * 2
-        let prevPerformanceData = []
-        try {
-          const prevRes = await axios.get(
-            `${API_BASE}/stall-performance?days=${prevDays}&stallIds=${stallIds.join(',')}`,
-            { headers: { Authorization: `Bearer ${this.token}` } }
-          )
-          prevPerformanceData = prevRes.data || []
-        } catch (prevErr) {
-          console.warn('Could not load previous period data:', prevErr)
-        }
-
-        let transactionsData = []
-        try {
-          const txRes = await axios.get(
-            `${API_BASE}/transactions?stallIds=${stallIds.join(',')}&days=${days}&limit=100`,
-            { headers: { Authorization: `Bearer ${this.token}` } }
-          )
-          transactionsData = txRes.data || []
-        } catch (txErr) {
-          console.warn('Could not load transactions for top items:', txErr)
-        }
-
-        this.revenueData = this.stalls.map(stall => {
-          const perf = performanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
-          const currentRevenue = parseFloat(perf?.revenue) || 0
-          
-          let revenueGrowth = 0
-          const prevPerf = prevPerformanceData.find(p => p.id === stall.id || p.stall_id === stall.id)
-          const prevRevenue = parseFloat(prevPerf?.revenue) || 0
-          if (prevRevenue > 0) {
-            revenueGrowth = ((currentRevenue - prevRevenue) / prevRevenue) * 100
-          } else if (currentRevenue > 0) {
-            revenueGrowth = 100
-          }
-          
-          let topItem = '-'
-          const stallTransactions = transactionsData.filter(tx => tx.stall_id === stall.id)
-          
-          if (stallTransactions.length > 0) {
-            const itemCount = {}
-            stallTransactions.forEach(tx => {
-              if (tx.items && Array.isArray(tx.items)) {
-                tx.items.forEach(item => {
-                  const name = item.item_name || item.name
-                  if (name) {
-                    itemCount[name] = (itemCount[name] || 0) + (item.quantity || 1)
-                  }
-                })
-              }
-            })
-            
-            let maxCount = 0
-            for (const [name, count] of Object.entries(itemCount)) {
-              if (count > maxCount) {
-                maxCount = count
-                topItem = name
-              }
-            }
-          }
-
-          return {
-            ...stall,
-            revenue: currentRevenue,
-            transactions: parseInt(perf?.items_sold) || 0,
-            avgTransaction: parseFloat(perf?.avg_transaction) || 0,
-            state: stall.state || 'Unknown',
-            revenueGrowth: Math.round(revenueGrowth),
-            topItem: topItem
-          }
-        }).sort((a, b) => b.revenue - a.revenue)
-
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.initRevenueChart()
-            this.initRevenueStateChart()
-          }, 100)
-        })
-
-      } catch (err) {
-        console.error('Failed to load revenue data:', err)
-        this.$emit('show-notification', 'Failed to load revenue data', 'error')
-      } finally {
-        this.revenueLoading = false
-      }
-    },
-
-    initRevenueChart() {
-      if (!this.$refs.revenueChartRef) return
-
-      if (this.revenueChartInstance) {
-        this.revenueChartInstance.dispose()
-        this.revenueChartInstance = null
-      }
-
-      this.revenueChartInstance = echarts.init(this.$refs.revenueChartRef)
-
-      const sortedData = [...this.revenueData].sort((a, b) => b.revenue - a.revenue)
-      const topStalls = sortedData.slice(0, 10)
+      sheet.addRow(['Revenue Report', ''])
+      sheet.addRow(['Period', this.getRevenuePeriodLabel()])
+      sheet.addRow(['Total Revenue', this.formatCurrency(this.revenueStats.totalRevenue)])
+      sheet.addRow(['Total Transactions', this.formatNumber(this.revenueStats.totalTransactions)])
+      sheet.addRow(['Average Transaction', this.formatCurrency(this.revenueStats.avgTransaction)])
+      sheet.addRow([])
       
-      const names = topStalls.map(item => item.name)
-      const revenues = topStalls.map(item => item.revenue || 0)
+      sheet.addRow(['Rank', 'Stall', 'State', 'Revenue', 'Transactions', 'Avg Transaction', 'Status'])
+      this.revenueData.forEach((item, index) => {
+        sheet.addRow([
+          index + 1,
+          item.name,
+          item.state || '-',
+          item.revenue || 0,
+          item.transactions || 0,
+          item.avgTransaction || 0,
+          this.getRevenueStatusText(item)
+        ])
+      })
+      
+      sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
+      const buffer = await workbook.xlsx.writeBuffer()
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
+        `Revenue_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
+      
+      this.$emit('show-notification', 'Revenue data exported!', 'success')
+    } catch (err) {
+      console.error('Export error:', err)
+      this.$emit('show-notification', 'Export failed', 'error')
+    }
+  },
 
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderColor: '#e2e8f0',
-          borderWidth: 1,
-          padding: [8, 12],
-          textStyle: { color: '#1e293b', fontSize: 12 },
-          formatter: function(params) {
-            const index = params[0]?.dataIndex || 0
-            const item = topStalls[index]
-            return `
-              <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
-              <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue || 0)}</div>
-              <div style="color:#94a3b8;font-size:11px;">${item.transactions || 0} transactions</div>
-              <div style="color:#94a3b8;font-size:11px;">Avg: ${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.avgTransaction || 0)}</div>
-            `
-          }
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '10%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: names,
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: 10,
-            fontWeight: 500,
-            rotate: names.length > 5 ? 30 : 0,
-            interval: 0
-          },
-          axisLine: { lineStyle: { color: '#e2e8f0' } }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: 10,
-            formatter: function(value) {
-              if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
-              return 'RM' + value
-            }
-          }
-        },
-        series: [{
-          type: 'bar',
-          data: revenues,
-          barWidth: '40%',
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#F94908' },
-                { offset: 1, color: '#fa6a2e' }
-              ]
-            }
-          },
-          emphasis: { itemStyle: { color: '#d63d07' } }
-        }]
-      }
+      toggleStallMenuExpand(stallId) {
+    if (this.expandedStallMenus.includes(stallId)) {
+      this.expandedStallMenus = this.expandedStallMenus.filter(id => id !== stallId)
+    } else {
+      this.expandedStallMenus.push(stallId)
+    }
+  },
 
-      this.revenueChartInstance.setOption(option)
-      this.revenueChartInstance.resize()
-    },
-
-    initRevenueStateChart() {
-      if (!this.$refs.revenueStateChartRef) return
-
-      if (this.revenueStateChartInstance) {
-        this.revenueStateChartInstance.dispose()
-        this.revenueStateChartInstance = null
-      }
-
-      this.revenueStateChartInstance = echarts.init(this.$refs.revenueStateChartRef)
-
-      const stateData = this.revenueStateStats
-      const states = stateData.map(item => item.state)
-      const revenues = stateData.map(item => item.revenue)
-
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderColor: '#e2e8f0',
-          borderWidth: 1,
-          padding: [8, 12],
-          textStyle: { color: '#1e293b', fontSize: 12 },
-          formatter: function(params) {
-            const index = params[0]?.dataIndex || 0
-            const item = stateData[index]
-            return `
-              <div style="font-weight:600;margin-bottom:4px;">📍 ${item.state}</div>
-              <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(item.revenue)}</div>
-              <div style="color:#94a3b8;font-size:11px;">${item.transactions} transactions</div>
-              <div style="color:#94a3b8;font-size:11px;">${item.stalls} stalls</div>
-            `
-          }
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '10%',
-          top: '8%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: states,
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: 10,
-            fontWeight: 500,
-            rotate: states.length > 5 ? 30 : 0,
-            interval: 0
-          },
-          axisLine: { lineStyle: { color: '#e2e8f0' } }
-        },
-        yAxis: {
-          type: 'value',
-          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-          axisLabel: {
-            color: '#94a3b8',
-            fontSize: 10,
-            formatter: function(value) {
-              if (value >= 1000) return 'RM' + (value / 1000).toFixed(0) + 'k'
-              return 'RM' + value
-            }
-          }
-        },
-        series: [{
-          type: 'bar',
-          data: revenues,
-          barWidth: '40%',
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#7c3aed' },
-                { offset: 1, color: '#a78bfa' }
-              ]
-            }
-          },
-          emphasis: { itemStyle: { color: '#5b21b6' } }
-        }]
-      }
-
-      this.revenueStateChartInstance.setOption(option)
-      this.revenueStateChartInstance.resize()
-    },
-
-    async exportRevenueData() {
-      try {
-        this.$emit('show-notification', 'Exporting revenue data...', 'info')
-        const ExcelJS = await import('exceljs')
-        const { saveAs } = await import('file-saver')
-        const workbook = new ExcelJS.Workbook()
-        const sheet = workbook.addWorksheet('Revenue Data')
-        
-        sheet.addRow(['Revenue Report', ''])
-        sheet.addRow(['Period', this.getRevenuePeriodLabel()])
-        sheet.addRow(['Total Revenue', this.formatCurrency(this.revenueStats.totalRevenue)])
-        sheet.addRow(['Total Transactions', this.formatNumber(this.revenueStats.totalTransactions)])
-        sheet.addRow(['Average Transaction', this.formatCurrency(this.revenueStats.avgTransaction)])
-        sheet.addRow([])
-        
-        sheet.addRow(['Rank', 'Stall', 'State', 'Revenue', 'Transactions', 'Avg Transaction', 'Status'])
-        this.revenueData.forEach((item, index) => {
-          sheet.addRow([
-            index + 1,
-            item.name,
-            item.state || '-',
-            item.revenue || 0,
-            item.transactions || 0,
-            item.avgTransaction || 0,
-            this.getRevenueStatusText(item)
-          ])
-        })
-        
-        sheet.columns.forEach(col => { col.width = Math.max(col.width || 0, 15) })
-        const buffer = await workbook.xlsx.writeBuffer()
-        saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 
-          `Revenue_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
-        
-        this.$emit('show-notification', 'Revenue data exported!', 'success')
-      } catch (err) {
-        console.error('Export error:', err)
-        this.$emit('show-notification', 'Export failed', 'error')
-      }
-    },
-
-    toggleStallMenuExpand(stallId) {
-      if (this.expandedStallMenus.includes(stallId)) {
-        this.expandedStallMenus = this.expandedStallMenus.filter(id => id !== stallId)
-      } else {
-        this.expandedStallMenus.push(stallId)
-      }
-    },
-
-    async loadAllStallMenuAssignments() {
-      this.loadingStallMenus = true
-      try {
-        const stallMenus = []
-        for (const stall of this.stalls) {
-          try {
-            const res = await axios.get(`${API_BASE}/menu/assignments/${stall.id}`, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            })
-            stallMenus.push({
-              id: stall.id,
-              name: stall.name,
-              code: stall.code,
-              is_active: stall.is_active,
-              menus: res.data || []
-            })
-          } catch (err) {
-            console.error(`Failed to load menus for stall ${stall.id}:`, err)
-            stallMenus.push({
-              id: stall.id,
-              name: stall.name,
-              code: stall.code,
-              is_active: stall.is_active,
-              menus: []
-            })
-          }
+  async loadAllStallMenuAssignments() {
+    this.loadingStallMenus = true
+    try {
+      const stallMenus = []
+      
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/menu/assignments/${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          
+          stallMenus.push({
+            id: stall.id,
+            name: stall.name,
+            code: stall.code,
+            is_active: stall.is_active,
+            menus: res.data || []
+          })
+        } catch (err) {
+          console.error(`Failed to load menus for stall ${stall.id}:`, err)
+          stallMenus.push({
+            id: stall.id,
+            name: stall.name,
+            code: stall.code,
+            is_active: stall.is_active,
+            menus: []
+          })
         }
-        this.stallMenuAssignments = stallMenus
-        if (stallMenus.length > 0 && this.expandedStallMenus.length === 0) {
-          this.expandedStallMenus.push(stallMenus[0].id)
-        }
-      } catch (err) {
-        console.error('Failed to load stall menu assignments:', err)
-        this.$emit('show-notification', 'Failed to load stall menu assignments', 'error')
-      } finally {
-        this.loadingStallMenus = false
       }
-    },
+      
+      this.stallMenuAssignments = stallMenus
+      
+      // Auto-expand first stall if any
+      if (stallMenus.length > 0 && this.expandedStallMenus.length === 0) {
+        this.expandedStallMenus.push(stallMenus[0].id)
+      }
+      
+    } catch (err) {
+      console.error('Failed to load stall menu assignments:', err)
+      this.$emit('show-notification', 'Failed to load stall menu assignments', 'error')
+    } finally {
+      this.loadingStallMenus = false
+    }
+  },
+
+    // =============================================
+    // BULK ASSIGN MODE METHODS
+    // =============================================
 
     toggleAllStallsForAssign() {
       this.selectAllStallsForAssign = !this.selectAllStallsForAssign
@@ -5148,15 +4871,19 @@ export default {
             const res = await axios.get(`${API_BASE}/menu/assignments/${stallId}`, {
               headers: { Authorization: `Bearer ${this.token}` }
             })
+            
             const currentAssignments = res.data || []
             const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItemsForBulk])]
+            
             await axios.post(`${API_BASE}/menu/assignments`, {
               stallId: stallId,
               items: allAssignments
             }, {
               headers: { Authorization: `Bearer ${this.token}` }
             })
+            
             successCount++
+            
           } catch (err) {
             console.error(`Failed to assign to stall ${stallId}:`, err)
             errorCount++
@@ -5179,14 +4906,17 @@ export default {
           this.bulkAssignMessageType = 'warning'
           this.$emit('show-notification', `⚠️ ${successCount} succeeded, ${errorCount} failed`, 'warning')
         }
+        
         this.selectedStallsForAssign = []
         this.selectedMenuItemsForBulk = []
         this.selectAllStallsForAssign = false
         this.selectAllMenusForBulk = false
         this.bulkMenuSearch = ''
+        
         if (this.selectedAssignmentStall) {
           await this.loadMenuAssignments()
         }
+        
       } catch (err) {
         console.error('Bulk assign error:', err)
         this.bulkAssignMessage = '❌ Failed to complete bulk assignment'
@@ -5196,6 +4926,10 @@ export default {
         this.bulkAssignToStallsLoading = false
       }
     },
+
+    // =============================================
+    // MENU ASSIGNMENT - PAGINATION & FILTERS
+    // =============================================
 
     resetMenuPagination() {
       this.menuCurrentPage = 1
@@ -5230,6 +4964,10 @@ export default {
       this.selectAllMenuItems = false
     },
 
+    // =============================================
+    // BULK ASSIGN MENUS TO SINGLE STALL
+    // =============================================
+
     async bulkAssignMenusToStalls() {
       if (this.selectedMenuItems.length === 0) {
         this.$emit('show-notification', 'No menu items selected', 'warning')
@@ -5250,20 +4988,25 @@ export default {
         const res = await axios.get(`${API_BASE}/menu/assignments/${this.selectedAssignmentStall}`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
+        
         const currentAssignments = res.data || []
         const allAssignments = [...new Set([...currentAssignments, ...this.selectedMenuItems])]
+        
         await axios.post(`${API_BASE}/menu/assignments`, {
           stallId: this.selectedAssignmentStall,
           items: allAssignments
         }, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
+        
         this.selectedMenuItems.forEach(itemName => {
           this.menuAssignments[itemName] = true
         })
         this.originalMenuAssignments = { ...this.menuAssignments }
+        
         this.selectedMenuItems = []
         this.selectAllMenuItems = false
+        
         this.$emit('show-notification', `✅ ${allAssignments.length} menu items assigned to stall`, 'success')
       } catch (err) {
         console.error('Bulk assign error:', err)
@@ -5272,6 +5015,10 @@ export default {
         this.savingAssignment = false
       }
     },
+
+    // =============================================
+    // MENU PERFORMANCE - PAGINATION & FILTERS
+    // =============================================
 
     resetMenuPerformancePagination() {
       this.menuPerformancePage = 1
@@ -5296,6 +5043,10 @@ export default {
       this.menuPerformanceSortBy = 'rank'
       this.menuPerformanceSortOrder = 'desc'
     },
+
+    // =============================================
+    // MENU PERFORMANCE - SORTING
+    // =============================================
 
     sortMenuPerformanceList(list) {
       const sorted = [...list]
@@ -5345,6 +5096,10 @@ export default {
       if (this.menuPerformanceSortBy !== column) return '⇅'
       return this.menuPerformanceSortOrder === 'asc' ? '↑' : '↓'
     },
+
+    // =============================================
+    // USERS TAB - PAGINATION & FILTERS
+    // =============================================
 
     toggleSelectAllUsers() {
       this.selectAllUsers = !this.selectAllUsers
@@ -5452,6 +5207,10 @@ export default {
       }
     },
 
+    // =============================================
+    // NAVIGATE TO STALL
+    // =============================================
+
     navigateToStall(stallId) {
       this.activeTab = 'stalls'
       this.stallSubTab = 'management'
@@ -5471,6 +5230,10 @@ export default {
         default: return 7
       }
     },
+
+    // =============================================
+    // PERFORMANCE TAB METHODS
+    // =============================================
 
     getPerformanceStatusText(stall) {
       const revenue = stall.revenue || 0
@@ -5573,6 +5336,10 @@ export default {
       this.performanceSortOrder = 'asc'
     },
 
+    // =============================================
+    // INVENTORY METHODS
+    // =============================================
+
     async updateStock(materialName, newLevel, stallId) {
       try {
         const roundedLevel = Math.round(Number(newLevel) || 0)
@@ -5615,6 +5382,11 @@ export default {
 
     toggleAllStalls() {
       this.selectAllStalls = !this.selectAllStalls
+      if (this.selectAllStalls) {
+        // Select all stall IDs logic here
+      } else {
+        // Deselect all logic here
+      }
     },
 
     toggleSelectAll() {
@@ -5671,9 +5443,12 @@ export default {
         this.$emit('show-notification', 'No stalls selected', 'warning')
         return
       }
+      
       if (!confirm(`Activate ${this.selectedStalls.length} selected stall(s)?`)) return
+      
       this.loading = true
       let activated = 0
+      
       try {
         for (const stallId of this.selectedStalls) {
           const stall = this.stalls.find(s => s.id === stallId)
@@ -5702,9 +5477,12 @@ export default {
         this.$emit('show-notification', 'No stalls selected', 'warning')
         return
       }
+      
       if (!confirm(`Deactivate ${this.selectedStalls.length} selected stall(s)?`)) return
+      
       this.loading = true
       let deactivated = 0
+      
       try {
         for (const stallId of this.selectedStalls) {
           const stall = this.stalls.find(s => s.id === stallId)
@@ -5731,18 +5509,21 @@ export default {
     openBulkUpdateModal() {
       const materialSet = new Set()
       const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+      
       stalls.forEach(stall => {
         const inventory = this.getStallInventory(stall.id)
         inventory.forEach(item => {
           materialSet.add(item.material_name)
         })
       })
+
       this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
         name: name,
         selected: true,
         operation: 'set',
         value: 10
       }))
+
       this.bulkUpdateModal = true
     },
 
@@ -5800,8 +5581,10 @@ export default {
         for (const stall of stalls) {
           for (const material of selectedMaterials) {
             let newLevel = material.value
+            
             const inventory = this.getStallInventory(stall.id)
             const item = inventory.find(i => i.material_name === material.name)
+            
             if (item) {
               if (material.operation === 'add') {
                 newLevel = item.current_level + material.value
@@ -5809,11 +5592,13 @@ export default {
                 newLevel = Math.max(0, item.current_level - material.value)
               }
             }
+            
             await this.updateInventoryStock(stall.id, material.name, newLevel)
             completed++
             this.bulkUpdateProgress = Math.round((completed / total) * 100)
           }
         }
+        
         this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
         this.bulkUpdateModal = false
       } catch (err) {
@@ -5848,6 +5633,7 @@ export default {
     openStallInventoryModal(stallId) {
       const stall = this.stalls.find(s => s.id === stallId)
       if (!stall) return
+      
       this.quickUpdateStallId = stallId
       this.quickUpdateStallName = stall.name
       this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
@@ -5903,12 +5689,16 @@ export default {
         this.$emit('show-notification', 'No low stock items to reset', 'info')
         return
       }
+      
       if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
+      
       this.loading = true
       let updated = 0
+      
       try {
         for (const stall of this.stalls) {
           const inventory = this.getStallInventorySummary(stall.id)
+          
           for (const item of inventory) {
             if (item.current_level <= item.alert_level) {
               const newLevel = item.alert_level + 20
@@ -5917,8 +5707,10 @@ export default {
             }
           }
         }
+        
         this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
         await this.loadAllStallsInventory()
+        
       } catch (error) {
         console.error('Error resetting low stock:', error)
         this.$emit('show-notification', 'Error resetting low stock items', 'error')
@@ -5926,6 +5718,10 @@ export default {
         this.loading = false
       }
     },
+
+    // =============================================
+    // PAGINATION
+    // =============================================
 
     prevPage() {
       if (this.currentPage > 1) {
@@ -5947,8 +5743,13 @@ export default {
       this.currentPage = 1
     },
 
+    // =============================================
+    // STALL DETAIL CHART - GROUPING HELPERS
+    // =============================================
+
     groupSalesData(salesData, grouping, period) {
       if (!salesData || salesData.length === 0) return []
+      
       if (grouping === 'hour') {
         return this.groupByHour(salesData)
       } else if (grouping === 'day') {
@@ -6084,6 +5885,10 @@ export default {
       return weekStart
     },
 
+    // =============================================
+    // TAB NAVIGATION WITH SUB-TAB
+    // =============================================
+
     switchTabWithSubTab(tabId, subTabId) {
       this.activeTab = tabId
       if (tabId === 'stalls') {
@@ -6093,6 +5898,10 @@ export default {
       }
       this.dropdownOpen = false
     },
+
+    // =============================================
+    // TOP STALL HELPERS
+    // =============================================
 
     getTopStallName() {
       if (this.consolidatedSales.topStall && this.consolidatedSales.topStall !== '-') {
@@ -6222,6 +6031,10 @@ export default {
       return 'poor'
     },
 
+    // =============================================
+    // MENU ITEM DETAILS
+    // =============================================
+
     async viewMenuItemDetails(item) {
       this.selectedMenuItem = {
         ...item,
@@ -6276,23 +6089,19 @@ export default {
       this.selectedMenuItem = null
     },
 
+    // =============================================
+    // DROPDOWN METHODS
+    // =============================================
+
     toggleDropdown() {
-  console.log('🔄 toggleDropdown called!');
-  this.dropdownOpen = !this.dropdownOpen;
-  console.log('📊 dropdownOpen is now:', this.dropdownOpen);
-  if (this.dropdownOpen) {
-    this.periodDropdownOpen = false;
-  }
-},
+      this.dropdownOpen = !this.dropdownOpen
+      if (this.dropdownOpen) this.periodDropdownOpen = false
+    },
 
     togglePeriodDropdown() {
-  console.log('🔄 togglePeriodDropdown called!');
-  this.periodDropdownOpen = !this.periodDropdownOpen;
-  console.log('📊 periodDropdownOpen is now:', this.periodDropdownOpen);
-  if (this.periodDropdownOpen) {
-    this.dropdownOpen = false;
-  }
-},
+      this.periodDropdownOpen = !this.periodDropdownOpen
+      if (this.periodDropdownOpen) this.dropdownOpen = false
+    },
 
     selectTab(tabId) {
       this.activeTab = tabId
@@ -6301,52 +6110,57 @@ export default {
     },
 
     selectPeriod(value) {
-      this.selectedPeriod = value
-      this.periodDropdownOpen = false
-      if (value === 'custom') {
-        const end = new Date()
-        const start = new Date()
-        start.setDate(start.getDate() - 30)
-        this.customDateStart = start.toISOString().split('T')[0]
-        this.customDateEnd = end.toISOString().split('T')[0]
-        return
-      }
-      this.refreshAllDataForPeriod()
-    },
-
-   handleClickOutside(event) {
-  const container = this.$el;
-  if (container && !container.contains(event.target)) {
-    // Don't close if clicking inside dropdown
-    if (!event.target.closest('.dropdown-menu') && !event.target.closest('.dropdown-toggle')) {
-      this.dropdownOpen = false;
-      this.periodDropdownOpen = false;
-    }
+  this.selectedPeriod = value
+  this.periodDropdownOpen = false
+  
+  if (value === 'custom') {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(start.getDate() - 30)
+    this.customDateStart = start.toISOString().split('T')[0]
+    this.customDateEnd = end.toISOString().split('T')[0]
+    return
   }
+  
+  this.refreshAllDataForPeriod()
 },
 
-    applyCustomRange() {
-      if (!this.customDateStart || !this.customDateEnd) {
-        this.$emit('show-notification', 'Please select both start and end dates', 'warning')
-        return
+    handleClickOutside(event) {
+      const container = this.$el
+      if (container && !container.contains(event.target)) {
+        this.dropdownOpen = false
+        this.periodDropdownOpen = false
       }
-      
-      const start = new Date(this.customDateStart)
-      const end = new Date(this.customDateEnd)
-      
-      if (start > end) {
-        this.$emit('show-notification', 'Start date must be before end date', 'error')
-        return
-      }
-      
-      const diffTime = Math.abs(end - start)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      this.customDays = diffDays + 1
-      this.selectedPeriod = 'custom'
-      this.periodDropdownOpen = false
-      this.refreshAllDataForPeriod()
-      this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
     },
+
+applyCustomRange() {
+  if (!this.customDateStart || !this.customDateEnd) {
+    this.$emit('show-notification', 'Please select both start and end dates', 'warning')
+    return
+  }
+  
+  const start = new Date(this.customDateStart)
+  const end = new Date(this.customDateEnd)
+  
+  if (start > end) {
+    this.$emit('show-notification', 'Start date must be before end date', 'error')
+    return
+  }
+  
+  const diffTime = Math.abs(end - start)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  this.customDays = diffDays + 1
+  this.selectedPeriod = 'custom'
+  this.periodDropdownOpen = false
+  
+  this.refreshAllDataForPeriod()
+  
+  this.$emit('show-notification', `Showing ${diffDays + 1} days of data`, 'success')
+},
+
+    // =============================================
+    // FORMATTING
+    // =============================================
 
     formatCurrency(amount) {
       const num = Number(amount) || 0
@@ -6366,14 +6180,18 @@ export default {
 
     formatShortDate(dateStr) {
       if (!dateStr) return ''
+      
       if (this.selectedPeriod === 'today') {
         const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
         if (!dateParts) return dateStr
+        
         const hour = parseInt(dateParts[4])
         const ampm = hour >= 12 ? 'PM' : 'AM'
         const hours12 = hour % 12 || 12
+        
         return `${hours12}:00 ${ampm}`
       }
+      
       if (this.selectedPeriod === 'custom') {
         const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
         if (!dateParts) return dateStr
@@ -6384,6 +6202,7 @@ export default {
         ))
         return date.toLocaleDateString('en-MY', { month: 'short', day: 'numeric', timeZone: 'UTC' })
       }
+      
       if (this.selectedPeriod === 'quarter' || 
           this.selectedPeriod === 'halfyear' || 
           this.selectedPeriod === 'year') {
@@ -6396,6 +6215,7 @@ export default {
         ))
         return date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
       }
+      
       if (this.selectedPeriod === 'month') {
         if (dateStr.includes('W')) return dateStr
         const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
@@ -6408,6 +6228,7 @@ export default {
         const weekStart = this.getWeekStart(date)
         return weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })
       }
+      
       if (this.selectedPeriod === 'week') {
         const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
         if (!dateParts) return dateStr
@@ -6423,6 +6244,7 @@ export default {
         const month = date.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
         return `${dayName} ${dayNum} ${month}`
       }
+      
       const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
       if (!dateParts) return dateStr
       const date = new Date(Date.UTC(
@@ -6454,20 +6276,28 @@ export default {
       return 'pieces'
     },
 
+    // =============================================
+    // CHART STATS
+    // =============================================
+
     getBestDayName() {
       if (this.salesTrend.length === 0) return '-'
       const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
       const day = this.salesTrend.find(d => d.revenue === max)
       if (!day) return '-'
+      
       if (this.selectedPeriod === 'today') {
         if (day.label) return day.label
         const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
         if (!dateParts) return '-'
+        
         const hour = parseInt(dateParts[4])
         const ampm = hour >= 12 ? 'PM' : 'AM'
         const hours12 = hour % 12 || 12
+        
         return `${hours12}:00 ${ampm}`
       }
+      
       return this.formatShortDate(day.date) || '-'
     },
 
@@ -6485,11 +6315,17 @@ export default {
       return this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0)
     },
 
+    // =============================================
+    // STALL DETAILS - WITH PERIOD SUPPORT
+    // =============================================
+
     viewStallDetails(stall) {
       this.selectedStall = stall
       this.stallDetailModal = true
       this.selectedStallId = stall.id
+      
       this.fetchStallDetails(stall.id, this.selectedPeriod)
+      
       this.$nextTick(() => {
         this.initStallDetailChart(stall.id, this.selectedPeriod)
       })
@@ -6521,6 +6357,7 @@ export default {
         if (stallIndex !== -1) {
           this.stallPerformance[stallIndex] = { ...this.stallPerformance[stallIndex], ...this.selectedStall }
         }
+        
       } catch (err) {
         console.error('Failed to fetch stall details:', err)
       }
@@ -6764,24 +6601,30 @@ export default {
 
     groupSalesByWeek(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
+      
       const grouped = {}
+      
       dailySales.forEach(day => {
         const date = new Date(day.date)
         const weekStart = this.getWeekStart(date)
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekEnd.getDate() + 6)
+        
         const key = weekStart.toISOString().split('T')[0]
+        
         if (!grouped[key]) {
           const startDay = weekStart.getUTCDate()
           const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
           const endDay = weekEnd.getUTCDate()
           const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          
           let label
           if (startMonth === endMonth) {
             label = `${startDay}-${endDay} ${startMonth}`
           } else {
             label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
           }
+          
           grouped[key] = {
             date: weekStart.toISOString(),
             label: label,
@@ -6790,9 +6633,11 @@ export default {
             items: 0
           }
         }
+        
         grouped[key].revenue += day.revenue || 0
         grouped[key].items += day.items || 0
       })
+      
       return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
     },
 
@@ -6828,6 +6673,7 @@ export default {
     groupSalesCustom(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
       const days = dailySales.length
+      
       if (days <= 14) {
         return dailySales.map(day => ({
           ...day,
@@ -6838,9 +6684,11 @@ export default {
           })
         }))
       }
+      
       if (days <= 60) {
         return this.groupSalesByWeek(dailySales)
       }
+      
       return this.groupSalesByMonth(dailySales)
     },
 
@@ -6854,18 +6702,27 @@ export default {
 
     splitTodayIntoHours(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
+      
       if (dailySales.length > 1) {
         return dailySales
       }
+      
       const dayData = dailySales[0]
       if (!dayData) return []
+      
       const totalRevenue = dayData.revenue || 0
       const totalItems = dayData.items || 0
+      
       if (totalRevenue > 0 || totalItems > 0) {
         return dailySales
       }
+      
       return []
     },
+
+    // =============================================
+    // ECHARTS - Professional Chart
+    // =============================================
 
     initChart() {
       if (!this.$refs.chartRef) return
@@ -7159,14 +7016,18 @@ export default {
       const max = Math.max(...this.salesTrend.map(d => d.revenue || 0))
       const day = this.salesTrend.find(d => d.revenue === max)
       if (!day) return ''
+      
       if (this.selectedPeriod === 'today') {
         const dateParts = day.date.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
         if (!dateParts) return ''
+        
         const hour = parseInt(dateParts[4])
         const ampm = hour >= 12 ? 'PM' : 'AM'
         const hours12 = hour % 12 || 12
+        
         return `${hours12}:00 ${ampm}`
       }
+      
       return this.formatShortDate(day.date)
     },
 
@@ -7256,6 +7117,10 @@ export default {
       }
     },
 
+    // =============================================
+    // MENU ASSIGNMENT METHODS
+    // =============================================
+
     async loadMenuAssignments() {
       if (!this.selectedAssignmentStall) return
       this.loadingMenuAssignments = true
@@ -7328,6 +7193,10 @@ export default {
       })
     },
 
+    // =============================================
+    // STALL CRUD
+    // =============================================
+
     openStallModal() {
       this.editingStall = false
       this.stallForm = { id: null, name: '', code: '', location: '' }
@@ -7398,6 +7267,10 @@ export default {
       }
     },
 
+    // =============================================
+    // STALL RANKING
+    // =============================================
+
     getRankClass(index) {
       if (index === 0) return 'gold'
       if (index === 1) return 'silver'
@@ -7415,51 +7288,60 @@ export default {
       return Math.min((quantity / max) * 100, 100)
     },
 
-    switchTab(tabId) {
-      this.activeTab = tabId
-      
-      if (tabId === 'inventory' && this.lowStock.length > 0) {
-        this.inventoryFilter = 'low'
-      }
-      
-      if (tabId === 'inventory') {
-        this.$nextTick(() => {
-          document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
-        })
-      }
-      
-      if (tabId === 'revenue') {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.loadRevenueData()
-          }, 200)
-        })
-      }
-      
-      if (tabId === 'transactions') {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.loadTransactions()
-          }, 200)
-        })
-      }
-      
-      if (tabId === 'dashboard') {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.initChart()
-          }, 100)
-        })
-      }
-      
-      if (['stalls', 'menu', 'revenue', 'transactions'].includes(tabId)) {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.refreshAllDataForPeriod()
-          }, 300)
-        })
-      }
-    },
+    // =============================================
+    // TAB MANAGEMENT
+    // =============================================
+
+switchTab(tabId) {
+  this.activeTab = tabId
+  
+  if (tabId === 'inventory' && this.lowStock.length > 0) {
+    this.inventoryFilter = 'low'
+  }
+  
+  if (tabId === 'inventory') {
+    this.$nextTick(() => {
+      document.getElementById('inventory-section')?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }
+  
+  if (tabId === 'revenue') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.loadRevenueData()
+      }, 200)
+    })
+  }
+  
+  if (tabId === 'transactions') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.loadTransactions()
+      }, 200)
+    })
+  }
+  
+  if (tabId === 'dashboard') {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.initChart()
+      }, 100)
+    })
+  }
+  
+  // Refresh data when switching to any tab that needs it
+  if (['stalls', 'menu', 'revenue', 'transactions'].includes(tabId)) {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.refreshAllDataForPeriod()
+      }, 300)
+    })
+  }
+},
+
+    // =============================================
+    // DATA LOADING
+    // =============================================
 
     async refreshAllData() {
       await this.loadData()
@@ -7468,9 +7350,12 @@ export default {
     async loadData() {
       try {
         console.log('🔄 Loading stall admin data...')
+        
         await this.loadStalls()
         console.log('✅ Stalls loaded:', this.stalls.length)
+        
         this._stallCurrentPage = 1
+        
         if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
           this.stallPerformance = []
           this.menuPerformance = []
@@ -7480,15 +7365,19 @@ export default {
           this.consolidatedSales.totalRevenue = 0
           this.consolidatedSales.totalItems = 0
         }
+        
         await this.loadSalesAnalytics()
+        
         await Promise.all([
           this.loadUsers(),
           this.loadLowStock(),
           this.loadStallPerformance(),
           this.loadMenuItems()
         ])
+        
         await this.loadAllStallsInventory()
         this.resetChartNavigation()
+        
         this.$emit('show-notification', 'Data refreshed', 'success')
       } catch (err) {
         console.error('Load data error:', err)
@@ -7559,40 +7448,53 @@ export default {
                      this.customDays || 30
         
         console.log(`📊 Loading sales analytics for days: ${days} period: ${this.selectedPeriod}`)
+        
         const res = await axios.get(
           `${API_BASE}/sales-analytics?days=${days}`,
           { headers: { Authorization: `Bearer ${this.token}` } }
         )
+        
         console.log('📊 Sales analytics response:', res.data)
+        
         const data = res.data || {}
+        
         let dailySales = (data.dailySales || []).map(day => ({
           ...day,
           items: parseInt(day.items) || 0,
           revenue: parseFloat(day.revenue) || 0
         }))
+        
         console.log('📊 Daily sales before filtering:', dailySales.length, 'records')
+        
         if (this.selectedPeriod === 'today') {
           dailySales = this.splitTodayIntoHours(dailySales)
           console.log('📊 After hourly split:', dailySales.length, 'records')
         }
+        
         if (this.selectedPeriod === 'week') {
           const now = new Date()
           const dayOfWeek = now.getUTCDay()
           const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
+          
           const monday = new Date(now)
           monday.setUTCDate(now.getUTCDate() - daysToMonday)
           monday.setUTCHours(0, 0, 0, 0)
+          
           const sunday = new Date(monday)
           sunday.setUTCDate(monday.getUTCDate() + 6)
           sunday.setUTCHours(23, 59, 59, 999)
+          
           console.log('📊 Week range (UTC):', monday.toISOString(), 'to', sunday.toISOString())
+          
           dailySales = dailySales.filter(day => {
             const date = new Date(day.date)
             const timestamp = date.getTime()
             return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
           })
+          
           console.log('📊 Filtered to current week:', dailySales.length, 'records')
         }
+        
         if (this.selectedPeriod === 'month') {
           dailySales = this.groupSalesByWeek(dailySales)
         } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
@@ -7602,28 +7504,38 @@ export default {
         } else if (this.selectedPeriod === 'custom') {
           dailySales = this.groupSalesCustom(dailySales)
         }
+        
         this.salesTrend = dailySales
+        
         console.log('📊 Final salesTrend:', this.salesTrend.length, 'records')
+        
         const totalRevenue = dailySales.reduce((sum, d) => sum + (d.revenue || 0), 0)
         const totalItems = dailySales.reduce((sum, d) => sum + (d.items || 0), 0)
+        
         console.log('📊 Total revenue:', totalRevenue, 'Total items:', totalItems)
+        
         this.consolidatedSales.totalItems = totalItems
         this.consolidatedSales.totalRevenue = totalRevenue
         this.consolidatedSales.averagePerStall = this.stalls.length > 0 ? 
           totalRevenue / this.stalls.length : 0
+        
         if (data.topStall && data.topStall !== '-') {
           this.consolidatedSales.topStall = data.topStall
           this.consolidatedSales.topRevenue = parseFloat(data.topRevenue) || 0
         }
+        
         this.productSales = data.productSales || {}
         await this.loadMenuPerformance()
+        
         if (this.salesTrend.length > 0) {
           this.$nextTick(() => {
             this.initChart()
             this.updateChart()
           })
         }
+        
         console.log('✅ Sales analytics loaded successfully')
+        
       } catch (err) {
         console.error('❌ Failed to load sales analytics:', err)
         this.salesTrend = []
@@ -7635,46 +7547,57 @@ export default {
       }
     },
 
-    async loadStallPerformance() {
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
-        this.stallPerformance = []
-        this.stallPerformancePeriod = []
-        return
-      }
-      
-      try {
-        const allTimeRes = await axios.get(
-          `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        const days = this.selectedPeriod === 'today' ? 1 :
-                     this.selectedPeriod === 'week' ? 7 :
-                     this.selectedPeriod === 'month' ? 30 :
-                     this.selectedPeriod === 'quarter' ? 90 :
-                     this.selectedPeriod === 'halfyear' ? 180 :
-                     this.selectedPeriod === 'year' ? 365 :
-                     this.selectedPeriod === 'custom' ? this.customDays || 30 :
-                     30
-        const periodRes = await axios.get(
-          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.stallPerformanceAllTime = this.mergeStallData(allTimeRes.data || [])
-        this.stallPerformance = this.mergeStallData(periodRes.data || [])
-        this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
-        if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
-          this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
-          this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
-        }
-        console.log('✅ All-time stalls:', this.stallPerformanceAllTime?.length || 0)
-        console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
-      } catch (err) {
-        console.error('Failed to load stall performance:', err)
-        this.stallPerformance = []
-        this.stallPerformancePeriod = []
-      }
-    },
+async loadStallPerformance() {
+  const stallIds = this.stalls.map(s => s.id)
+  if (!stallIds || stallIds.length === 0) {
+    this.stallPerformance = []
+    this.stallPerformancePeriod = []
+    return
+  }
+  
+  try {
+    // All-time data (for reference)
+    const allTimeRes = await axios.get(
+      `${API_BASE}/stall-performance?stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Period data - use selected period
+    const days = this.selectedPeriod === 'today' ? 1 :
+                 this.selectedPeriod === 'week' ? 7 :
+                 this.selectedPeriod === 'month' ? 30 :
+                 this.selectedPeriod === 'quarter' ? 90 :
+                 this.selectedPeriod === 'halfyear' ? 180 :
+                 this.selectedPeriod === 'year' ? 365 :
+                 this.selectedPeriod === 'custom' ? this.customDays || 30 :
+                 30
+    
+    const periodRes = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Store all-time data separately if needed
+    this.stallPerformanceAllTime = this.mergeStallData(allTimeRes.data || [])
+    
+    // Use period data for the main display
+    this.stallPerformance = this.mergeStallData(periodRes.data || [])
+    this.stallPerformancePeriod = this.mergeStallData(periodRes.data || [])
+    
+    if (this.stallPerformancePeriod.length > 0 && this.stallPerformancePeriod[0].revenue > 0) {
+      this.consolidatedSales.topStall = this.stallPerformancePeriod[0].name
+      this.consolidatedSales.topRevenue = this.stallPerformancePeriod[0].revenue
+    }
+    
+    console.log('✅ All-time stalls:', this.stallPerformanceAllTime?.length || 0)
+    console.log('✅ Period stalls:', this.stallPerformancePeriod.length)
+    
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+    this.stallPerformancePeriod = []
+  }
+},
 
     mergeStallData(performanceData) {
       return this.stalls.map(stall => {
@@ -7700,14 +7623,17 @@ export default {
     async loadMenuPerformance() {
       try {
         const productSales = this.productSales || {}
+        
         const hasPeriodSales = this.salesTrend && this.salesTrend.length > 0
         const periodRevenue = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.revenue || 0), 0) : 0
         const periodItems = hasPeriodSales ? this.salesTrend.reduce((sum, d) => sum + (d.items || 0), 0) : 0
+        
         if (!hasPeriodSales || (periodRevenue === 0 && periodItems === 0)) {
           this.menuPerformance = []
           console.log('📊 Menu performance: 0 items (no sales for this period)')
           return
         }
+        
         let filteredItems = Object.keys(productSales)
           .filter(name => {
             const item = productSales[name]
@@ -7721,16 +7647,19 @@ export default {
             revenue: parseFloat(productSales[name].revenue) || 0
           }))
           .sort((a, b) => b.quantity - a.quantity)
+        
         if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
           const periodItemsList = filteredItems.filter(item => item.revenue > 0 && item.quantity > 0)
           this.menuPerformance = periodItemsList
           console.log(`📊 Menu performance for ${this.selectedPeriod}:`, this.menuPerformance.length, 'items')
           return
         }
+        
         if (filteredItems.length > 0) {
           this.menuPerformance = filteredItems
           return
         }
+        
         const days = this.selectedPeriod === 'today' ? 1 :
                      this.selectedPeriod === 'week' ? 7 :
                      this.selectedPeriod === 'month' ? 30 :
@@ -7738,10 +7667,12 @@ export default {
                      this.selectedPeriod === 'halfyear' ? 180 :
                      this.selectedPeriod === 'year' ? 365 :
                      this.customDays || 30
+        
         const res = await axios.get(
           `${API_BASE}/menu-performance?days=${days}`,
           { headers: { Authorization: `Bearer ${this.token}` } }
         )
+        
         let menuData = (res.data || [])
           .filter(item => {
             const quantity = parseInt(item.quantity) || 0
@@ -7754,6 +7685,7 @@ export default {
             revenue: parseFloat(item.revenue) || 0
           }))
           .sort((a, b) => b.quantity - a.quantity)
+        
         this.menuPerformance = menuData
         console.log('📊 Menu performance from API (filtered):', this.menuPerformance.length, 'items')
       } catch (err) {
@@ -7774,6 +7706,10 @@ export default {
         this.menuItems = []
       }
     },
+
+    // =============================================
+    // INVENTORY METHODS
+    // =============================================
 
     async initializeStallInventory(stallId) {
       try {
@@ -7798,11 +7734,13 @@ export default {
 
     async loadAllStallsInventory() {
       this.inventory = []
+      
       for (const stall of this.stalls) {
         try {
           const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
+          
           if (res.data && res.data.length > 0) {
             const items = res.data.map(item => ({
               ...item,
@@ -7812,15 +7750,18 @@ export default {
             }))
             this.inventory = [...this.inventory, ...items]
           }
+          
           this.stallInventory[stall.id] = res.data.map(item => ({
             ...item,
             newLevel: Math.round(Number(item.current_level) || 0)
           }))
+          
         } catch (err) {
           console.error(`Load inventory for stall ${stall.id} error:`, err)
           this.stallInventory[stall.id] = []
         }
       }
+      
       console.log('✅ Inventory loaded:', this.inventory.length, 'items')
     },
 
@@ -7856,6 +7797,7 @@ export default {
           }))
         }
       }
+      
       if (this.stallInventory && this.stallInventory[stallId]) {
         return this.stallInventory[stallId].map(item => ({
           ...item,
@@ -7863,12 +7805,14 @@ export default {
           alert_level: Math.round(Number(item.alert_level) || 0)
         }))
       }
+      
       return []
     },
 
     getStallInventorySummary(stallId) {
       if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
         const items = this.inventory.filter(item => item.stall_id === stallId)
+        
         if (items.length > 0) {
           const grouped = {}
           items.forEach(item => {
@@ -7882,6 +7826,7 @@ export default {
             }
             grouped[item.material_name].current_level += Number(item.current_level) || 0
           })
+          
           return Object.values(grouped).map(item => ({
             ...item,
             current_level: Math.round(Number(item.current_level) || 0),
@@ -7889,6 +7834,7 @@ export default {
           }))
         }
       }
+      
       if (this.stallInventory && this.stallInventory[stallId]) {
         const items = this.stallInventory[stallId]
         const grouped = {}
@@ -7903,12 +7849,14 @@ export default {
           }
           grouped[item.material_name].current_level += Number(item.current_level) || 0
         })
+        
         return Object.values(grouped).map(item => ({
           ...item,
           current_level: Math.round(Number(item.current_level) || 0),
           alert_level: Math.round(Number(item.alert_level) || 0)
         }))
       }
+      
       return []
     },
 
@@ -7939,7 +7887,9 @@ export default {
         this.$emit('show-notification', 'Please enter a valid value', 'error')
         return
       }
+      
       const roundedLevel = Math.round(Number(newLevel) || 0)
+      
       try {
         await axios.post(`${API_BASE}/inventory/update`, {
           stallId, 
@@ -7948,8 +7898,10 @@ export default {
         }, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
+        
         await this.loadAllStallsInventory()
         await this.loadLowStock()
+        
         this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
       } catch (err) {
         console.error('Update inventory error:', err)
@@ -8004,6 +7956,10 @@ export default {
         this.$emit('show-notification', 'Reset failed', 'error')
       }
     },
+
+    // =============================================
+    // USER CRUD
+    // =============================================
 
     openUserModal() {
       this.editingUser = false
@@ -8076,6 +8032,10 @@ export default {
         }
       }
     },
+
+    // =============================================
+    // EXPORT
+    // =============================================
 
     async exportCurrentTab() {
       if (this.exporting) return
@@ -8193,9 +8153,6 @@ export default {
 /* ============================================ */
 .controls-section {
   margin-bottom: 1.25rem;
-  overflow: visible !important;  /* ← ADD THIS */
-  position: relative;
-  z-index: 100;
 }
 
 .controls-row {
@@ -8207,9 +8164,6 @@ export default {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  overflow: visible !important;  /* ← ADD THIS */
-  position: relative;
-  z-index: 100;
 }
 
 /* ============================================ */
@@ -8219,14 +8173,12 @@ export default {
   position: relative;
   min-width: 160px;
   flex-shrink: 0;
-  z-index: 1000;  /* ← ADD THIS */
 }
 
 .period-dropdown-wrapper {
   position: relative;
   min-width: 140px;
   flex-shrink: 0;
-  z-index: 1000;  /* ← ADD THIS */
 }
 
 .dropdown-toggle {
@@ -8260,18 +8212,6 @@ export default {
   transition: transform 0.2s ease;
 }
 
-/* ✅ ADD THIS - Permanent Fix */
-/* Show dropdown only when the parent has the open class */
-.tab-dropdown .dropdown-menu,
-.period-dropdown-wrapper .dropdown-menu {
-  display: none !important;
-}
-
-.tab-dropdown.open .dropdown-menu,
-.period-dropdown-wrapper.open .dropdown-menu {
-  display: block !important;
-}
-
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -8283,12 +8223,10 @@ export default {
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  z-index: 9999;  /* ← CHANGE THIS from 50 to 9999 */
+  z-index: 50;
   animation: dropdownSlide 0.2s ease;
   padding: 0.25rem 0 !important;
   min-width: 180px;
-  max-height: 400px;
-  overflow-y: auto;  /* ← ADD THIS for scroll if many items */
 }
 
 .period-menu {
@@ -16539,438 +16477,6 @@ export default {
   .transactions-tab .revenue-table-row .revenue-table-state::before {
     content: "DATE: " !important;
   }
-}
-
-/* ============================================ */
-/* SHIFT HISTORY TABLE                         */
-/* ============================================ */
-.shift-history-table-wrapper {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.shift-history-table-header {
-  display: flex;
-  padding: 0.5rem 0.75rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-  min-width: 700px;
-}
-
-.shift-history-table-row {
-  display: flex;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-  align-items: center;
-  min-width: 700px;
-  cursor: pointer;
-}
-
-.shift-history-table-row:hover {
-  background: var(--background);
-}
-
-.shift-history-header-date { min-width: 100px; text-align: left; }
-.shift-history-header-stall { flex: 1; text-align: left; }
-.shift-history-header-revenue { min-width: 80px; text-align: right; }
-.shift-history-header-transactions { min-width: 80px; text-align: center; }
-.shift-history-header-float { min-width: 80px; text-align: right; }
-.shift-history-header-variance { min-width: 80px; text-align: right; }
-.shift-history-header-status { min-width: 90px; text-align: center; }
-.shift-history-header-details { min-width: 40px; text-align: center; }
-
-.shift-history-date { min-width: 100px; font-size: 0.8rem; color: var(--text); }
-.shift-history-stall { flex: 1; font-weight: 500; font-size: 0.8rem; }
-.shift-history-revenue { min-width: 80px; text-align: right; font-weight: 600; color: var(--primary); }
-.shift-history-transactions { min-width: 80px; text-align: center; font-size: 0.8rem; }
-.shift-history-float { min-width: 80px; text-align: right; font-size: 0.8rem; }
-.shift-history-variance { min-width: 80px; text-align: right; font-weight: 600; font-size: 0.8rem; }
-.shift-history-variance.over { color: #10b981; }
-.shift-history-variance.short { color: #ef4444; }
-.shift-history-variance.balanced { color: #2563eb; }
-.shift-history-status { min-width: 90px; text-align: center; }
-.shift-history-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
-
-.shift-history-table-row:hover .shift-history-details {
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* SHIFT DETAIL MODAL                          */
-/* ============================================ */
-.shift-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.shift-detail-item {
-  background: var(--background);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.shift-detail-item .label {
-  display: block;
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 0.1rem;
-}
-
-.shift-detail-item .value {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.shift-detail-item .value.revenue {
-  color: var(--primary);
-}
-
-.shift-detail-item .value.over {
-  color: #10b981;
-}
-
-.shift-detail-item .value.short {
-  color: #ef4444;
-}
-
-.shift-detail-notes {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-}
-
-.shift-detail-notes p {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.shift-detail-transactions {
-  margin-top: 1rem;
-}
-
-.shift-detail-transactions h4 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-}
-
-.shift-transaction-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.shift-transaction-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: var(--radius-sm);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.shift-transaction-item .tx-time {
-  min-width: 55px;
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-}
-
-.shift-transaction-item .tx-id {
-  min-width: 80px;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--text);
-  font-family: monospace;
-}
-
-.shift-transaction-item .tx-items {
-  min-width: 50px;
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.shift-transaction-item .tx-amount {
-  min-width: 60px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text);
-}
-
-.shift-transaction-item .tx-status {
-  font-size: 0.55rem;
-  font-weight: 600;
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  text-transform: uppercase;
-}
-
-.shift-transaction-item .tx-status.completed {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.shift-transaction-item .tx-status.pending {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.shift-transaction-item .tx-status.failed {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* ============================================ */
-/* RESPONSIVE                                   */
-/* ============================================ */
-@media (max-width: 768px) {
-  .shift-history-table-header {
-    font-size: 0.55rem;
-    min-width: 600px;
-  }
-  
-  .shift-history-table-row {
-    min-width: 600px;
-  }
-  
-  .shift-detail-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .shift-detail-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .shift-history-header-date { min-width: 70px; }
-  .shift-history-header-revenue { min-width: 60px; }
-  .shift-history-header-transactions { min-width: 60px; }
-  .shift-history-header-float { min-width: 60px; }
-  .shift-history-header-variance { min-width: 60px; }
-  .shift-history-header-status { min-width: 70px; }
-  
-  .shift-history-date { min-width: 70px; font-size: 0.7rem; }
-  .shift-history-revenue { min-width: 60px; font-size: 0.7rem; }
-  .shift-history-transactions { min-width: 60px; font-size: 0.7rem; }
-  .shift-history-float { min-width: 60px; font-size: 0.7rem; }
-  .shift-history-variance { min-width: 60px; font-size: 0.7rem; }
-  .shift-history-status { min-width: 70px; }
-}
-
-/* ============================================ */
-/* EMERGENCY DROPDOWN FIX - FORCE VISIBILITY   */
-/* ============================================ */
-
-/* Force dropdown containers to be above everything */
-.tab-dropdown,
-.period-dropdown-wrapper {
-  position: relative !important;
-  z-index: 99999 !important;
-  overflow: visible !important;
-}
-
-/* Force dropdown toggle buttons to be clickable */
-.dropdown-toggle {
-  position: relative !important;
-  z-index: 99999 !important;
-  cursor: pointer !important;
-}
-
-/* Force dropdown menu to be visible when open */
-.dropdown-menu {
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  right: auto !important;
-  margin-top: 4px !important;
-  background: white !important;
-  border: 2px solid #f94908 !important; /* RED BORDER FOR TESTING */
-  border-radius: 8px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
-  z-index: 999999 !important;
-  min-width: 200px !important;
-  padding: 8px 0 !important;
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-/* Force dropdown items to be visible */
-.dropdown-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 10px 16px !important;
-  background: white !important;
-  border: none !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  color: #1e293b !important;
-  width: 100% !important;
-  text-align: left !important;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9 !important;
-}
-
-.dropdown-item.active {
-  background: #f94908 !important;
-  color: white !important;
-}
-
-/* Make sure parent containers don't clip */
-.controls-section,
-.controls-row,
-.controls-section *,
-.controls-row * {
-  overflow: visible !important;
-  clip-path: none !important;
-}
-
-/* Force body to allow overflow */
-body {
-  overflow-x: visible !important;
-}
-
-/* ============================================ */
-/* FORCE DROPDOWN VISIBILITY - EMERGENCY FIX    */
-/* ============================================ */
-
-
-
-/* But only show when the parent has the open class or when toggled */
-/* This ensures the dropdown is visible when v-show is true */
-.dropdown-menu {
-  display: block !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  right: auto !important;
-  margin-top: 4px !important;
-  background: white !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
-  z-index: 999999 !important;
-  min-width: 200px !important;
-  padding: 8px 0 !important;
-  max-height: 400px !important;
-  overflow-y: auto !important;
-}
-
-/* Dropdown items */
-.dropdown-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 10px 16px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  color: #1e293b !important;
-  width: 100% !important;
-  text-align: left !important;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9 !important;
-}
-
-.dropdown-item.active {
-  background: #f94908 !important;
-  color: white !important;
-}
-
-/* Override any inline display:none */
-.dropdown-menu[style*="display: none"] {
-  display: block !important;
-}
-
-/* ============================================ */
-/* EMERGENCY DROPDOWN FIX - FORCE VISIBILITY   */
-/* ============================================ */
-
-/* Force ALL dropdowns to be visible by overriding inline styles */
-.dropdown-menu[style*="display: none"] {
-  display: block !important;
-}
-
-/* Alternative: force by attribute */
-.dropdown-menu[style*="display: none"] {
-  display: block !important;
-}
-
-/* Force period dropdown to be visible when open */
-.period-dropdown-wrapper .dropdown-menu[style*="display: none"] {
-  display: block !important;
-}
-
-/* Force tab dropdown to be visible when open */
-.tab-dropdown .dropdown-menu[style*="display: none"] {
-  display: block !important;
-}
-
-/* Also ensure normal display when not hidden */
-.dropdown-menu {
-  display: block !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  right: auto !important;
-  margin-top: 4px !important;
-  background: white !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
-  z-index: 999999 !important;
-  min-width: 200px !important;
-  padding: 8px 0 !important;
-  max-height: 400px !important;
-  overflow-y: auto !important;
-}
-
-/* Dropdown items */
-.dropdown-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 10px 16px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  color: #1e293b !important;
-  width: 100% !important;
-  text-align: left !important;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9 !important;
-}
-
-.dropdown-item.active {
-  background: #f94908 !important;
-  color: white !important;
 }
 
 </style>
