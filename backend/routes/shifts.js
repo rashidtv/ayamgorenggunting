@@ -1,12 +1,40 @@
 // routes/shifts.js
 const express = require('express')
 const router = express.Router()
-const db = require('../db') // Adjust based on your DB connection
+const { Pool } = require('pg')  // ← Create pool directly in this file
 const { authenticate } = require('../middleware/auth')
 
 // ============================================
-// GET /api/shifts/current - Get current open shift
+// CREATE DATABASE CONNECTION (SAME AS SERVER.JS)
 // ============================================
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  keepAlive: true,
+});
+
+// Force UTC on all connections
+pool.on('connect', (client) => {
+  client.query("SET TIMEZONE TO 'UTC'");
+});
+
+pool.on('acquire', (client) => {
+  client.query("SET TIMEZONE TO 'UTC'");
+});
+
+// Handle pool errors without crashing
+pool.on('error', (err) => {
+  console.error('Shift routes - Database error:', err.message);
+});
+
+// ============================================
+// SHIFT ROUTES
+// ============================================
+
+// GET /api/shifts/current - Get current open shift
 router.get('/current', authenticate, async (req, res) => {
   const { stallId } = req.query
   
@@ -16,7 +44,7 @@ router.get('/current', authenticate, async (req, res) => {
   
   try {
     // Get current open shift
-    const result = await db.query(
+    const result = await pool.query(
       `SELECT 
          s.*,
          u1.username as opened_by_name
@@ -34,11 +62,11 @@ router.get('/current', authenticate, async (req, res) => {
     const shift = result.rows[0]
     
     // Get shift stats (revenue, transaction count)
-    const stats = await db.query(
+    const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
-       FROM transactions 
+       FROM orders 
        WHERE shift_id = $1`,
       [shift.id]
     )
@@ -53,9 +81,7 @@ router.get('/current', authenticate, async (req, res) => {
   }
 })
 
-// ============================================
 // POST /api/shifts/open - Open a new shift
-// ============================================
 router.post('/open', authenticate, async (req, res) => {
   const { stallId, startingFloat, notes } = req.body
   const userId = req.user.id
@@ -66,7 +92,7 @@ router.post('/open', authenticate, async (req, res) => {
   
   try {
     // Check if there's already an open shift
-    const existing = await db.query(
+    const existing = await pool.query(
       'SELECT id FROM shifts WHERE stall_id = $1 AND status = $2',
       [stallId, 'open']
     )
@@ -75,7 +101,7 @@ router.post('/open', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'A shift is already open for this stall' })
     }
     
-    const result = await db.query(
+    const result = await pool.query(
       `INSERT INTO shifts (stall_id, opened_by, starting_float, notes, status)
        VALUES ($1, $2, $3, $4, 'open')
        RETURNING *`,
@@ -89,9 +115,7 @@ router.post('/open', authenticate, async (req, res) => {
   }
 })
 
-// ============================================
 // POST /api/shifts/close - Close a shift
-// ============================================
 router.post('/close', authenticate, async (req, res) => {
   const { shiftId, endingCash, notes } = req.body
   const userId = req.user.id
@@ -102,7 +126,7 @@ router.post('/close', authenticate, async (req, res) => {
   
   try {
     // Get the shift
-    const shiftResult = await db.query(
+    const shiftResult = await pool.query(
       `SELECT * FROM shifts WHERE id = $1 AND status = 'open'`,
       [shiftId]
     )
@@ -114,11 +138,11 @@ router.post('/close', authenticate, async (req, res) => {
     const shift = shiftResult.rows[0]
     
     // Get shift revenue
-    const stats = await db.query(
+    const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
-       FROM transactions 
+       FROM orders 
        WHERE shift_id = $1`,
       [shiftId]
     )
@@ -130,7 +154,7 @@ router.post('/close', authenticate, async (req, res) => {
     const actualEndingCash = endingCash || 0
     const variance = actualEndingCash - expectedCash
     
-    const result = await db.query(
+    const result = await pool.query(
       `UPDATE shifts 
        SET closed_at = NOW(),
            closed_by = $1,
@@ -153,9 +177,7 @@ router.post('/close', authenticate, async (req, res) => {
   }
 })
 
-// ============================================
 // GET /api/shifts/history - Get shift history for a stall
-// ============================================
 router.get('/history', authenticate, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query
   
@@ -198,10 +220,10 @@ router.get('/history', authenticate, async (req, res) => {
     queryText += ` ORDER BY s.opened_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limit, offset)
     
-    const result = await db.query(queryText, params)
+    const result = await pool.query(queryText, params)
     
     // Get total count
-    const countResult = await db.query(
+    const countResult = await pool.query(
       `SELECT COUNT(*) FROM shifts WHERE stall_id = $1`,
       [stallId]
     )
@@ -216,9 +238,7 @@ router.get('/history', authenticate, async (req, res) => {
   }
 })
 
-// ============================================
 // GET /api/shifts/history/all - Get all shifts (admin)
-// ============================================
 router.get('/history/all', authenticate, async (req, res) => {
   const { limit = 100, offset = 0, from, to, status } = req.query
   
@@ -259,10 +279,10 @@ router.get('/history/all', authenticate, async (req, res) => {
     queryText += ` ORDER BY s.opened_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limit, offset)
     
-    const result = await db.query(queryText, params)
+    const result = await pool.query(queryText, params)
     
     // Get total count
-    const countResult = await db.query(
+    const countResult = await pool.query(
       `SELECT COUNT(*) FROM shifts`,
       []
     )
@@ -277,14 +297,12 @@ router.get('/history/all', authenticate, async (req, res) => {
   }
 })
 
-// ============================================
 // GET /api/shifts/:shiftId - Get shift details
-// ============================================
 router.get('/:shiftId', authenticate, async (req, res) => {
   const { shiftId } = req.params
   
   try {
-    const shiftResult = await db.query(
+    const shiftResult = await pool.query(
       `SELECT 
          s.*,
          u1.username as opened_by_name,
@@ -305,8 +323,8 @@ router.get('/:shiftId', authenticate, async (req, res) => {
     const shift = shiftResult.rows[0]
     
     // Get transactions for this shift
-    const txResult = await db.query(
-      `SELECT * FROM transactions WHERE shift_id = $1 ORDER BY created_at DESC`,
+    const txResult = await pool.query(
+      `SELECT * FROM orders WHERE shift_id = $1 ORDER BY created_at DESC`,
       [shiftId]
     )
     
