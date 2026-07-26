@@ -974,41 +974,45 @@
       </div>
       
       <div v-else>
-        <div class="shift-history-table-wrapper">
-          <div class="shift-history-table-header">
-            <span class="shift-history-header-date">Date</span>
-            <span class="shift-history-header-stall">Stall</span>
-            <span class="shift-history-header-revenue">Revenue</span>
-            <span class="shift-history-header-transactions">Orders</span>
-            <span class="shift-history-header-float">Float</span>
-            <span class="shift-history-header-variance">Variance</span>
-            <span class="shift-history-header-status">Status</span>
-            <span class="shift-history-header-details">Details</span>
-          </div>
-          <div class="shift-history-table-body">
-            <div 
-              v-for="shift in paginatedShiftHistory" 
-              :key="shift.id" 
-              class="shift-history-table-row clickable-item"
-              @click="viewShiftDetails(shift)"
-            >
-              <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
-              <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
-              <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
-              <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
-              <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
-              <span class="shift-history-variance" :class="getVarianceClass(shift)">
-                {{ formatCurrency(shift.variance) }}
-              </span>
-              <span class="shift-history-status">
-                <span class="status-badge" :class="shift.status">
-                  {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-                </span>
-              </span>
-              <span class="shift-history-details">👆</span>
-            </div>
-          </div>
-        </div>
+        <!-- Shift History Table -->
+<div class="shift-history-table-wrapper">
+  <!-- Table Header -->
+  <div class="shift-history-table-header">
+    <span class="shift-history-header-date">Date</span>
+    <span class="shift-history-header-stall">Stall</span>
+    <span class="shift-history-header-revenue">Revenue</span>
+    <span class="shift-history-header-transactions">Orders</span>
+    <span class="shift-history-header-float">Float</span>
+    <span class="shift-history-header-variance">Variance</span>
+    <span class="shift-history-header-status">Status</span>
+    <span class="shift-history-header-details">Details</span>
+  </div>
+  
+  <!-- Table Body -->
+  <div class="shift-history-table-body">
+    <div 
+      v-for="shift in paginatedShiftHistory" 
+      :key="shift.id" 
+      class="shift-history-table-row clickable-item"
+      @click="viewShiftDetails(shift)"
+    >
+      <span class="shift-history-date">{{ formatDate(shift.opened_at) }}</span>
+      <span class="shift-history-stall">{{ getStallName(shift.stall_id) }}</span>
+      <span class="shift-history-revenue">{{ formatCurrency(shift.revenue) }}</span>
+      <span class="shift-history-transactions">{{ shift.transaction_count || 0 }}</span>
+      <span class="shift-history-float">{{ formatCurrency(shift.starting_float) }}</span>
+      <span class="shift-history-variance" :class="getVarianceClass(shift)">
+        {{ formatCurrency(shift.variance) }}
+      </span>
+      <span class="shift-history-status">
+        <span class="status-badge" :class="shift.status">
+          {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+        </span>
+      </span>
+      <span class="shift-history-details">👆</span>
+    </div>
+  </div>
+</div>
         
         <!-- Pagination -->
         <div class="pagination-container">
@@ -4053,73 +4057,62 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    const userRole = this.user?.role || this.authStore?.user?.role;
-    const isSuperAdmin = userRole === 'super_admin' || userRole === 'super_super_admin';
+    // Get the user's assigned stalls
+    const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
     
-    let url;
+    // If no stalls assigned, show empty
+    if (assignedStalls.length === 0) {
+      this.shiftHistory = [];
+      this.shiftHistoryTotal = 0;
+      this.shiftHistoryLoading = false;
+      return;
+    }
+    
     let allShifts = [];
     let totalCount = 0;
     
-    // CASE 1: "All Stalls" selected
+    // CASE 1: "All My Stalls" selected - fetch shifts for EVERY assigned stall
     if (this.shiftHistoryStallFilter === 'all') {
-      if (isSuperAdmin) {
-        // Super Admin: Get ALL stalls in the system
-        url = `${API_BASE_URL}/shifts/history/all?limit=1000`;
-        const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
-        this.shiftHistory = res.data.shifts || [];
-        this.shiftHistoryTotal = res.data.total || 0;
-      } else {
-        // Stall Admin: Get ALL their assigned stalls (combined)
-        const assignedStalls = this.user?.assigned_stalls || this.authStore?.user?.assigned_stalls || [];
-        
-        if (assignedStalls.length === 0) {
-          this.shiftHistory = [];
-          this.shiftHistoryTotal = 0;
-          this.shiftHistoryLoading = false;
-          return;
+      for (const stall of assignedStalls) {
+        try {
+          const res = await axios.get(
+            `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`,
+            { headers: { Authorization: `Bearer ${this.token}` } }
+          );
+          const shifts = res.data.shifts || [];
+          console.log(`📊 Found ${shifts.length} shifts for stall ${stall.name} (ID: ${stall.id})`);
+          allShifts = [...allShifts, ...shifts];
+          totalCount += res.data.total || 0;
+        } catch (err) {
+          console.warn(`Failed to load shifts for stall ${stall.id}:`, err);
         }
-        
-        // Fetch shifts for each assigned stall and combine
-        for (const stall of assignedStalls) {
-          try {
-            const res = await axios.get(
-              `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`,
-              { headers: { Authorization: `Bearer ${this.token}` } }
-            );
-            const shifts = res.data.shifts || [];
-            allShifts = [...allShifts, ...shifts];
-            totalCount += res.data.total || 0;
-          } catch (err) {
-            console.warn(`Failed to load shifts for stall ${stall.id}:`, err);
-          }
-        }
-        
-        // Sort all shifts by date (newest first)
-        allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
-        
-        this.shiftHistory = allShifts;
-        this.shiftHistoryTotal = totalCount;
       }
+      
+      // Sort all shifts by date (newest first)
+      allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+      
+      console.log(`📊 Total shifts found across all stalls: ${allShifts.length}`);
+      
+      this.shiftHistory = allShifts;
+      this.shiftHistoryTotal = totalCount;
     } 
     // CASE 2: Specific stall selected
     else if (this.shiftHistoryStallFilter) {
-      url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
-      const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
+      const res = await axios.get(
+        `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
       this.shiftHistory = res.data.shifts || [];
       this.shiftHistoryTotal = res.data.total || 0;
     }
-    // CASE 3: No selection (fallback)
-    else {
-      this.shiftHistory = [];
-      this.shiftHistoryTotal = 0;
-    }
+    
+    console.log('📊 Final shiftHistory:', this.shiftHistory);
+    console.log('📊 Final total:', this.shiftHistoryTotal);
+    
   } catch (err) {
     console.error('Failed to load shift history:', err);
     this.shiftHistory = [];
     this.shiftHistoryTotal = 0;
-    if (err.response?.status !== 404) {
-      this.$emit('show-notification', 'Failed to load shift history', 'error');
-    }
   } finally {
     this.shiftHistoryLoading = false;
   }
@@ -16938,6 +16931,60 @@ async loadStallPerformance() {
   .transactions-tab .revenue-table-row .revenue-table-state::before {
     content: "DATE: " !important;
   }
+}
+
+/* ============================================ */
+/* SHIFT HISTORY TABLE                         */
+/* ============================================ */
+.shift-history-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shift-history-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 700px;
+}
+
+.shift-history-table-row {
+  display: flex;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+  align-items: center;
+  min-width: 700px;
+  cursor: pointer;
+}
+
+.shift-history-table-row:hover {
+  background: var(--background);
+}
+
+.shift-history-date { min-width: 100px; font-size: 0.8rem; color: var(--text); }
+.shift-history-stall { flex: 1; font-weight: 500; font-size: 0.8rem; }
+.shift-history-revenue { min-width: 80px; text-align: right; font-weight: 600; color: var(--primary); }
+.shift-history-transactions { min-width: 80px; text-align: center; font-size: 0.8rem; }
+.shift-history-float { min-width: 80px; text-align: right; font-size: 0.8rem; }
+.shift-history-variance { min-width: 80px; text-align: right; font-weight: 600; font-size: 0.8rem; }
+.shift-history-status { min-width: 90px; text-align: center; }
+.shift-history-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
+
+.shift-history-variance.over { color: #10b981; }
+.shift-history-variance.short { color: #ef4444; }
+.shift-history-variance.balanced { color: #2563eb; }
+
+.shift-history-table-row:hover .shift-history-details {
+  color: var(--primary);
 }
 
 </style>
