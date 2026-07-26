@@ -949,26 +949,6 @@
             </select>
           </div>
           
-          <div class="filter-group">
-            <input 
-              type="date" 
-              v-model="shiftHistoryDateFrom" 
-              class="filter-input"
-              @change="resetShiftPagination"
-              title="Date From"
-            />
-          </div>
-          
-          <div class="filter-group">
-            <input 
-              type="date" 
-              v-model="shiftHistoryDateTo" 
-              class="filter-input"
-              @change="resetShiftPagination"
-              title="Date To"
-            />
-          </div>
-          
           <div class="filter-actions">
             <button @click="clearShiftFilters" class="btn-modern secondary small">
               Clear Filters
@@ -2908,8 +2888,6 @@ export default {
     shiftHistoryTotal: 0,
     shiftHistoryStallFilter: 'all',
     shiftHistoryStatusFilter: 'all',
-    shiftHistoryDateFrom: null,
-    shiftHistoryDateTo: null,
     shiftCurrentPage: 1,
     shiftItemsPerPage: 10,
     shiftDetailModal: false,
@@ -3137,24 +3115,6 @@ expandedTransactionRows: [],
     
     if (this.shiftHistoryStatusFilter !== 'all') {
       data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
-    }
-    
-    if (this.shiftHistoryDateFrom) {
-      const from = new Date(this.shiftHistoryDateFrom);
-      from.setHours(0, 0, 0, 0);
-      data = data.filter(s => {
-        const date = new Date(s.opened_at);
-        return date >= from;
-      });
-    }
-    
-    if (this.shiftHistoryDateTo) {
-      const to = new Date(this.shiftHistoryDateTo);
-      to.setHours(23, 59, 59, 999);
-      data = data.filter(s => {
-        const date = new Date(s.opened_at);
-        return date <= to;
-      });
     }
     
     return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
@@ -4096,8 +4056,6 @@ async viewShiftDetails(shift) {
 clearShiftFilters() {
   this.shiftHistoryStallFilter = 'all';
   this.shiftHistoryStatusFilter = 'all';
-  this.shiftHistoryDateFrom = null;
-  this.shiftHistoryDateTo = null;
   this.shiftCurrentPage = 1;
   this.loadShiftHistory();
 },
