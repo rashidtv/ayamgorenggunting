@@ -13607,15 +13607,29 @@ async loadRevenueData() {
     flex-shrink: 0;
   }
   
-  .revenue-table-row .revenue-table-state::before {
-    content: "STATE: ";
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    min-width: 60px;
-    flex-shrink: 0;
+ /* Revenue tab - show "State:" */
+@media (max-width: 768px) {
+  .tab-panel:not(.transactions-tab) .revenue-table-row .revenue-table-state::before {
+    content: "State: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
   }
-  
+}
+
+/* Transactions tab - show "Date:" */
+@media (max-width: 768px) {
+  .transactions-tab .revenue-table-row .revenue-table-state::before {
+    content: "Date: " !important;
+    font-weight: 600 !important;
+    font-size: 0.6rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+  }
+}
   .revenue-table-row .revenue-table-revenue::before {
     content: "REVENUE: ";
     font-weight: 600;
