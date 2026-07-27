@@ -3117,38 +3117,38 @@ expandedTransactionRows: [],
 
   computed: {
 
+    effectiveUser() {
+    // Use prop first, then fallback to authStore
+    return this.user || this.authStore?.user || null;
+  },
+
       // ===== USER ROLE =====
    isSuperAdmin() {
-    const userData = this.user || this.authStore?.user;
-    const userRole = userData?.role;
-    return userRole === 'super_admin' || userRole === 'super_super_admin';
-  },
+  const userData = this.effectiveUser;
+  const userRole = userData?.role;
+  return userRole === 'super_admin' || userRole === 'super_super_admin';
+},
   
   accessibleStalls() {
-    // Try props.user first, then fallback to authStore
-    const userData = this.user || this.authStore?.user;
-    
-    console.log('🔍 userData:', userData);
-    
-    // Get assigned stalls from user data
-    const assignedStalls = userData?.assigned_stalls || [];
-    
-    console.log('🔍 assignedStalls:', assignedStalls);
-    console.log('🔍 all stalls:', this.stalls);
-    console.log('🔍 isSuperAdmin:', this.isSuperAdmin);
-    
-    if (this.isSuperAdmin) {
-      return this.stalls;
-    }
-    
-    // If assignedStalls is empty, fallback to all stalls (temporary)
-    if (assignedStalls.length === 0) {
-      console.warn('⚠️ No assigned stalls found, using all stalls as fallback');
-      return this.stalls;
-    }
-    
-    return assignedStalls;
-  },
+  const userData = this.effectiveUser;
+  const assignedStalls = userData?.assigned_stalls || [];
+  
+  console.log('🔍 effectiveUser:', userData);
+  console.log('🔍 assignedStalls:', assignedStalls);
+  console.log('🔍 all stalls:', this.stalls);
+  console.log('🔍 isSuperAdmin:', this.isSuperAdmin);
+  
+  if (this.isSuperAdmin) {
+    return this.stalls;
+  }
+  
+  if (assignedStalls.length === 0) {
+    console.warn('⚠️ No assigned stalls found, using all stalls as fallback');
+    return this.stalls;
+  }
+  
+  return assignedStalls;
+},
 
   allStallsLabel() {
     if (this.isSuperAdmin) {
@@ -3949,11 +3949,13 @@ displayStalls() {
   },
 
   mounted() {
-    this.loadData()
-    document.addEventListener('click', this.handleClickOutside)
-  },
+  this.loadData()
+  document.addEventListener('click', this.handleClickOutside)
+},
+
 
   watch: {
+
       revenuePeriod(newVal, oldVal) {
     if (newVal !== oldVal) {
       if (newVal === 'custom') {
@@ -4062,11 +4064,11 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    // Get user data from props or authStore
-    const userData = this.user || this.authStore?.user;
+    // Use effectiveUser instead of user
+    const userData = this.effectiveUser;
     const assignedStalls = userData?.assigned_stalls || [];
     
-    console.log('📊 loadShiftHistory - userData:', userData);
+    console.log('📊 loadShiftHistory - effectiveUser:', userData);
     console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
     
     // If no stalls assigned, try using all stalls
@@ -16943,61 +16945,7 @@ async loadStallPerformance() {
 }
 
 /* ============================================ */
-/* SHIFT HISTORY TABLE                         */
-/* ============================================ */
-.shift-history-table-wrapper {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.shift-history-table-header {
-  display: flex;
-  padding: 0.5rem 0.75rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--text-secondary);
-  min-width: 700px;
-}
-
-.shift-history-table-row {
-  display: flex;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-  align-items: center;
-  min-width: 700px;
-  cursor: pointer;
-}
-
-.shift-history-table-row:hover {
-  background: var(--background);
-}
-
-.shift-history-date { min-width: 100px; font-size: 0.8rem; color: var(--text); }
-.shift-history-stall { flex: 1; font-weight: 500; font-size: 0.8rem; }
-.shift-history-revenue { min-width: 80px; text-align: right; font-weight: 600; color: var(--primary); }
-.shift-history-transactions { min-width: 80px; text-align: center; font-size: 0.8rem; }
-.shift-history-float { min-width: 80px; text-align: right; font-size: 0.8rem; }
-.shift-history-variance { min-width: 80px; text-align: right; font-weight: 600; font-size: 0.8rem; }
-.shift-history-status { min-width: 90px; text-align: center; }
-.shift-history-details { min-width: 40px; text-align: center; font-size: 0.8rem; color: var(--text-tertiary); }
-
-.shift-history-variance.over { color: #10b981; }
-.shift-history-variance.short { color: #ef4444; }
-.shift-history-variance.balanced { color: #2563eb; }
-
-.shift-history-table-row:hover .shift-history-details {
-  color: var(--primary);
-}
-
-/* ============================================ */
-/* SHIFT HISTORY TABLE - FIX COLUMN ALIGNMENT   */
+/* SHIFT HISTORY TABLE - COMPLETE FIX          */
 /* ============================================ */
 
 .shift-history-table-wrapper {
@@ -17011,7 +16959,7 @@ async loadStallPerformance() {
 /* Table Header - Fixed Columns */
 .shift-history-table-header {
   display: grid;
-  grid-template-columns: 120px 1fr 100px 80px 100px 100px 90px 50px;
+  grid-template-columns: 140px 1.5fr 100px 80px 100px 100px 90px 50px;
   background: var(--background);
   border-bottom: 2px solid var(--border);
   padding: 0.6rem 0.75rem;
@@ -17020,36 +16968,43 @@ async loadStallPerformance() {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
-  min-width: 700px;
+  min-width: 750px;
+  gap: 0.5rem;
 }
 
 /* Table Row - Fixed Columns */
 .shift-history-table-row {
   display: grid;
-  grid-template-columns: 120px 1fr 100px 80px 100px 100px 90px 50px;
+  grid-template-columns: 140px 1.5fr 100px 80px 100px 100px 90px 50px;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border-light);
   align-items: center;
   cursor: pointer;
   transition: var(--transition);
-  min-width: 700px;
+  min-width: 750px;
+  gap: 0.5rem;
 }
 
 .shift-history-table-row:hover {
   background: var(--background);
 }
 
-/* Individual Column Styles */
+/* Column specific styles */
 .shift-history-date {
   font-size: 0.8rem;
   color: var(--text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shift-history-stall {
   font-weight: 500;
   font-size: 0.8rem;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shift-history-revenue {
@@ -17121,7 +17076,9 @@ async loadStallPerformance() {
   color: var(--primary);
 }
 
-/* Responsive - Stack on Mobile */
+/* ============================================ */
+/* RESPONSIVE - STACK ON MOBILE                */
+/* ============================================ */
 @media (max-width: 768px) {
   .shift-history-table-header {
     display: none;
@@ -17130,8 +17087,8 @@ async loadStallPerformance() {
   .shift-history-table-row {
     display: flex;
     flex-direction: column;
-    padding: 0.75rem;
-    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    gap: 0.3rem;
     min-width: auto;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -17141,41 +17098,32 @@ async loadStallPerformance() {
   .shift-history-table-row > span {
     display: flex;
     justify-content: space-between;
-    padding: 0.15rem 0;
+    width: 100%;
+    text-align: right;
   }
   
+  /* Labels - Left aligned */
   .shift-history-table-row > span::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.7rem;
     color: var(--text-secondary);
     text-transform: uppercase;
+    min-width: 80px;
+    text-align: left;
+    padding-right: 0.5rem;
+    flex-shrink: 0;
   }
   
-  .shift-history-date::before {
-    content: "Date:";
-  }
-  .shift-history-stall::before {
-    content: "Stall:";
-  }
-  .shift-history-revenue::before {
-    content: "Revenue:";
-  }
-  .shift-history-transactions::before {
-    content: "Orders:";
-  }
-  .shift-history-float::before {
-    content: "Float:";
-  }
-  .shift-history-variance::before {
-    content: "Variance:";
-  }
-  .shift-history-status::before {
-    content: "Status:";
-  }
-  .shift-history-details::before {
-    content: "Details:";
-  }
+  /* Values - Right aligned */
+  .shift-history-date { text-align: right; }
+  .shift-history-stall { text-align: right; }
+  .shift-history-revenue { text-align: right; }
+  .shift-history-transactions { text-align: right; }
+  .shift-history-float { text-align: right; }
+  .shift-history-variance { text-align: right; }
+  .shift-history-status { text-align: right; }
+  .shift-history-details { text-align: right; }
 }
 
 </style>

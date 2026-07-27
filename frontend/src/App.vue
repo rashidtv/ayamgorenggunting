@@ -481,6 +481,7 @@ export default {
         setTimeout(() => {
           this.user = safeUserData;
           this.token = authToken;
+          console.log('✅ App.vue - user set to:', this.user);
           this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
           localStorage.setItem('user', JSON.stringify(safeUserData));
           localStorage.setItem('token', authToken);
