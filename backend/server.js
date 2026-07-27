@@ -3376,6 +3376,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
 });
 
 
+// GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3389,7 +3390,6 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         s.*,
         u1.username as opened_by_name,
         u2.username as closed_by_name,
-        -- ✅ Revenue from orders linked to this shift
         COALESCE(
           (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
@@ -3398,7 +3398,6 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
           (SELECT COUNT(*) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
         ) as linked_count,
-        -- ✅ Revenue from unlinked orders in the same time range (for backward compatibility)
         COALESCE(
           (SELECT SUM(total_amount) FROM orders 
            WHERE stall_id = s.stall_id 
@@ -3425,12 +3424,7 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     const params = [stallId];
     let paramIndex = 2;
     
-    if (status && status !== 'all') {
-      queryText += ` AND s.status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
-    
+    // ✅ Add date range filters if provided
     if (from) {
       queryText += ` AND s.opened_at >= $${paramIndex}`;
       params.push(from);
@@ -3443,12 +3437,17 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
       paramIndex++;
     }
     
+    if (status && status !== 'all') {
+      queryText += ` AND s.status = $${paramIndex}`;
+      params.push(status);
+      paramIndex++;
+    }
+    
     queryText += ` ORDER BY s.opened_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(parseInt(limit), parseInt(offset));
     
     const result = await pool.query(queryText, params);
     
-    // ✅ Combine linked + unlinked for display
     const shifts = result.rows.map(shift => ({
       ...shift,
       revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
@@ -3457,7 +3456,6 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
       variance: parseFloat(shift.variance) || 0,
       expected_cash: parseFloat(shift.expected_cash) || 0,
       ending_cash: parseFloat(shift.ending_cash) || 0,
-      // Keep original fields for backward compatibility
       total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0)
     }));
     

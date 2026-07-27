@@ -4196,22 +4196,11 @@ async loadShiftHistory() {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
     
-    // Use effectiveUser instead of user
     const userData = this.effectiveUser;
     const assignedStalls = userData?.assigned_stalls || [];
     
     console.log('📊 loadShiftHistory - effectiveUser:', userData);
     console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
-    console.log('📊 First shift object:', this.shiftHistory[0]);
-    console.log('📊 Revenue field:', this.shiftHistory[0]?.revenue);
-    console.log('📊 All keys in shift:', Object.keys(this.shiftHistory[0] || {}));
-    // ✅ AFTER fetching data, log the full response
-    console.log('📊 Full shift data from API:', JSON.stringify(this.shiftHistory, null, 2));
-    // ✅ Check the first shift's keys
-    if (this.shiftHistory.length > 0) {
-      console.log('📊 First shift keys:', Object.keys(this.shiftHistory[0]));
-      console.log('📊 First shift full object:', this.shiftHistory[0]);
-    }
     
     // If no stalls assigned, try using all stalls
     let stallsToFetch = assignedStalls.length > 0 ? assignedStalls : this.stalls;
@@ -4228,14 +4217,50 @@ async loadShiftHistory() {
     let allShifts = [];
     let totalCount = 0;
     
+    // ✅ Calculate date range based on selected period
+    const now = new Date();
+    let startDate = null;
+    let endDate = null;
+    
+    if (this.selectedPeriod === 'today') {
+      // Today: start of today UTC
+      startDate = new Date(now);
+      startDate.setUTCHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setUTCHours(23, 59, 59, 999);
+    } else if (this.selectedPeriod === 'week') {
+      // Week: Monday to Sunday
+      const dayOfWeek = now.getUTCDay();
+      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+      startDate = new Date(now);
+      startDate.setUTCDate(now.getUTCDate() - daysToMonday);
+      startDate.setUTCHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setUTCDate(startDate.getUTCDate() + 6);
+      endDate.setUTCHours(23, 59, 59, 999);
+    } else if (this.selectedPeriod === 'month') {
+      // Month: first to last day of month
+      startDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
+      endDate = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0);
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
+    // For 'custom', 'quarter', 'halfyear', 'year' - we might want to handle differently
+    // or just show all shifts
+    
     // CASE 1: "All My Stalls" selected - fetch shifts for ALL assigned stalls
     if (this.shiftHistoryStallFilter === 'all') {
       for (const stall of stallsToFetch) {
         try {
-          const res = await axios.get(
-            `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`,
-            { headers: { Authorization: `Bearer ${this.token}` } }
-          );
+          let url = `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`;
+          
+          // ✅ Add date filters if we have a date range
+          if (startDate && endDate) {
+            url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`;
+          }
+          
+          const res = await axios.get(url, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
           const shifts = res.data.shifts || [];
           console.log(`📊 Found ${shifts.length} shifts for stall ${stall.name} (ID: ${stall.id})`);
           allShifts = [...allShifts, ...shifts];
@@ -4251,10 +4276,16 @@ async loadShiftHistory() {
     } 
     // CASE 2: Specific stall selected
     else if (this.shiftHistoryStallFilter) {
-      const res = await axios.get(
-        `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      );
+      let url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
+      
+      // ✅ Add date filters if we have a date range
+      if (startDate && endDate) {
+        url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`;
+      }
+      
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
       this.shiftHistory = res.data.shifts || [];
       this.shiftHistoryTotal = res.data.total || 0;
     }
@@ -4458,7 +4489,10 @@ async refreshAllDataForPeriod() {
     await this.loadStallPerformance()
     await this.loadMenuPerformance()
     await this.loadRevenueData()
-    await this.loadTransactions()  // ← This should now use the selected period
+    await this.loadTransactions()
+    
+    // ✅ RELOAD shift history with the new period filter
+    await this.loadShiftHistory()
     
     this.resetChartNavigation()
     
