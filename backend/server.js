@@ -1877,15 +1877,46 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // ✅ NEW: Get active shift for this stall (if exists)
+    // This is safe - if no shift, shiftId = null
+    const shiftResult = await client.query(
+      `SELECT id FROM shifts WHERE stall_id = $1 AND status = 'open' LIMIT 1`,
+      [targetStallId]
+    );
+    const shiftId = shiftResult.rows[0]?.id || null;
+
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    const orderResult = await client.query(
-      `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id)
-       VALUES ($1, $2, $3, $4, 'completed', $5)
-       RETURNING id, order_number, total_amount, item_count`,
-      [targetStallId, orderNumber, total, itemCount || items.length, req.user.id]
-    );
+    // ✅ MODIFIED: Added shift_id to INSERT (safe - column may not exist yet)
+    // Using a conditional INSERT that works whether column exists or not
+    let insertQuery, insertParams;
     
+    // Check if shift_id column exists
+    const columnCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'orders' AND column_name = 'shift_id'
+      )
+    `);
+    
+    if (columnCheck.rows[0].exists) {
+      insertQuery = `
+        INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id, shift_id)
+        VALUES ($1, $2, $3, $4, 'completed', $5, $6)
+        RETURNING id, order_number, total_amount, item_count
+      `;
+      insertParams = [targetStallId, orderNumber, total, itemCount || items.length, req.user.id, shiftId];
+    } else {
+      // Fallback for safety (shouldn't happen if migration ran)
+      insertQuery = `
+        INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id)
+        VALUES ($1, $2, $3, $4, 'completed', $5)
+        RETURNING id, order_number, total_amount, item_count
+      `;
+      insertParams = [targetStallId, orderNumber, total, itemCount || items.length, req.user.id];
+    }
+    
+    const orderResult = await client.query(insertQuery, insertParams);
     const order = orderResult.rows[0];
 
     for (const item of items) {
@@ -1909,6 +1940,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       orderNumber: order.order_number,
       total: parseFloat(order.total_amount),
       itemCount: parseInt(order.item_count),
+      shiftId: shiftId, // ← NEW: include shiftId in response (optional)
       message: 'Order created successfully'
     });
 
@@ -3260,7 +3292,6 @@ app.post('/api/shifts/open', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/shifts/close - Close a shift
 app.post('/api/shifts/close', authenticateToken, async (req, res) => {
   const { shiftId, endingCash, notes } = req.body;
   const userId = req.user.id;
@@ -3281,19 +3312,43 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
+    // ✅ Calculate revenue from orders linked to this shift
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
        FROM orders 
-       WHERE shift_id = $1`,
+       WHERE shift_id = $1 AND status = 'completed'`,
       [shiftId]
     );
     
     const revenue = parseFloat(stats.rows[0].revenue) || 0;
     const transactionCount = parseInt(stats.rows[0].transaction_count) || 0;
+    
+    // ✅ OPTIONAL: Also include orders in the same time range that might not be linked
+    // This helps with existing orders that were created before shift_id was added
+    const unlinkedStats = await pool.query(
+      `SELECT 
+         COALESCE(SUM(total_amount), 0) as revenue,
+         COUNT(*) as transaction_count
+       FROM orders 
+       WHERE stall_id = $1 
+       AND (shift_id IS NULL OR shift_id != $2)
+       AND created_at >= $3
+       AND created_at <= COALESCE($4, NOW())
+       AND status = 'completed'`,
+      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
+    );
+    
+    const unlinkedRevenue = parseFloat(unlinkedStats.rows[0].revenue) || 0;
+    const unlinkedCount = parseInt(unlinkedStats.rows[0].transaction_count) || 0;
+    
+    // ✅ Combine both (for backward compatibility with existing orders)
+    const totalRevenue = revenue + unlinkedRevenue;
+    const totalCount = transactionCount + unlinkedCount;
+    
     const startingFloat = parseFloat(shift.starting_float) || 0;
-    const expectedCash = startingFloat + revenue;
+    const expectedCash = startingFloat + totalRevenue;
     const actualEndingCash = endingCash || 0;
     const variance = actualEndingCash - expectedCash;
     
@@ -3310,7 +3365,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
            status = 'closed'
        WHERE id = $8
        RETURNING *`,
-      [userId, actualEndingCash, expectedCash, variance, revenue, transactionCount, notes || '', shiftId]
+      [userId, actualEndingCash, expectedCash, variance, totalRevenue, totalCount, notes || '', shiftId]
     );
     
     res.json(result.rows[0]);
@@ -3320,8 +3375,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/shifts/history - Get shift history for a stall
-// GET /api/shifts/history - Get shift history for a stall
+
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3335,14 +3389,34 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         s.*,
         u1.username as opened_by_name,
         u2.username as closed_by_name,
+        -- ✅ Revenue from orders linked to this shift
         COALESCE(
           (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
-        ) as revenue,
+        ) as linked_revenue,
         COALESCE(
           (SELECT COUNT(*) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
-        ) as transaction_count
+        ) as linked_count,
+        -- ✅ Revenue from unlinked orders in the same time range (for backward compatibility)
+        COALESCE(
+          (SELECT SUM(total_amount) FROM orders 
+           WHERE stall_id = s.stall_id 
+           AND (shift_id IS NULL OR shift_id != s.id)
+           AND created_at >= s.opened_at 
+           AND created_at <= COALESCE(s.closed_at, NOW())
+           AND status = 'completed'),
+          0
+        ) as unlinked_revenue,
+        COALESCE(
+          (SELECT COUNT(*) FROM orders 
+           WHERE stall_id = s.stall_id 
+           AND (shift_id IS NULL OR shift_id != s.id)
+           AND created_at >= s.opened_at 
+           AND created_at <= COALESCE(s.closed_at, NOW())
+           AND status = 'completed'),
+          0
+        ) as unlinked_count
       FROM shifts s
       LEFT JOIN users u1 ON s.opened_by = u1.id
       LEFT JOIN users u2 ON s.closed_by = u2.id
@@ -3374,22 +3448,23 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     
     const result = await pool.query(queryText, params);
     
+    // ✅ Combine linked + unlinked for display
+    const shifts = result.rows.map(shift => ({
+      ...shift,
+      revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
+      transaction_count: parseInt(shift.linked_count || 0) + parseInt(shift.unlinked_count || 0),
+      starting_float: parseFloat(shift.starting_float) || 0,
+      variance: parseFloat(shift.variance) || 0,
+      expected_cash: parseFloat(shift.expected_cash) || 0,
+      ending_cash: parseFloat(shift.ending_cash) || 0,
+      // Keep original fields for backward compatibility
+      total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0)
+    }));
+    
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM shifts WHERE stall_id = $1`,
       [stallId]
     );
-    
-    // ✅ Ensure revenue is a number
-    const shifts = result.rows.map(shift => ({
-      ...shift,
-      revenue: parseFloat(shift.revenue) || 0,
-      total_revenue: parseFloat(shift.revenue) || 0,
-      transaction_count: parseInt(shift.transaction_count) || 0,
-      starting_float: parseFloat(shift.starting_float) || 0,
-      variance: parseFloat(shift.variance) || 0,
-      expected_cash: parseFloat(shift.expected_cash) || 0,
-      ending_cash: parseFloat(shift.ending_cash) || 0
-    }));
     
     res.json({
       shifts: shifts,
