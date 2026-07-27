@@ -604,7 +604,6 @@ export default {
         notes: '',
         closeNotes: '',
         loading: false,
-        // Inventory tracking
         inventoryCounts: {},
         endingInventory: {}
       },
@@ -621,7 +620,6 @@ export default {
       connectionError: false,
       hasDuplicates: false,
       lastUpdateTime: 'Just now',
-      // Today's orders pagination
       todayPage: 1,
       todayItemsPerPage: 5,
       showAllTodayTransactions: false,
@@ -634,18 +632,6 @@ export default {
     }
   },
   computed: {
-
-    inventoryUsage() {
-    const usage = {};
-    this.processedInventory.forEach(item => {
-      const opening = this.shift.inventoryCounts[item.material_name] || 0;
-      const ending = this.shift.endingInventory[item.material_name] || 0;
-      usage[item.material_name] = Math.max(0, opening - ending);
-    });
-    return usage;
-  }
-},
-    // ===== Shift computed =====
     shiftStatus() {
       if (!this.shift || !this.shift.enabled) return false;
       return this.shift.status || false;
@@ -674,7 +660,6 @@ export default {
       if (!this.shift || !this.shift.enabled) return false;
       return this.shift.showCloseModal || false;
     },
-    // Today's orders pagination
     paginatedTodayTransactions() {
       if (this.showAllTodayTransactions) {
         return this.todayTransactions;
@@ -694,7 +679,6 @@ export default {
       if (this.todayTransactions.length === 0) return 0;
       return Math.min(this.todayPage * this.todayItemsPerPage, this.todayTransactions.length);
     },
-    // Inventory validation
     shiftInventoryValid() {
       if (!this.shift || !this.shift.inventoryCounts) return false;
       return this.processedInventory.every(item => 
@@ -711,32 +695,38 @@ export default {
         this.shift.endingInventory[item.material_name] >= 0
       );
     },
-    authStore() { return useAuthStore() },
-    lowStockCount() { return this.processedInventory.filter(item => item.current_level <= item.alert_level).length },
-    activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId },
+    authStore() { 
+      return useAuthStore(); 
+    },
+    lowStockCount() { 
+      return this.processedInventory.filter(item => item.current_level <= item.alert_level).length; 
+    },
+    activeStallId() { 
+      return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId; 
+    },
     cartTotal() {
       return this.cartItems.reduce((total, item) => {
-        return total + (item.menuItem.price * item.quantity)
-      }, 0)
+        return total + (item.menuItem.price * item.quantity);
+      }, 0);
     },
     cartItemCount() {
-      return this.cartItems.reduce((count, item) => count + item.quantity, 0)
+      return this.cartItems.reduce((count, item) => count + item.quantity, 0);
     }
-  }
+  },
   mounted() {
-    this.loadData()
-    this.loadMenu()
-    this.interval = setInterval(this.loadData, 30000)
+    this.loadData();
+    this.loadMenu();
+    this.interval = setInterval(this.loadData, 30000);
     
     if (this.shift && this.shift.enabled) {
       this.loadCurrentShift();
     }
   },
   beforeUnmount() {
-    clearInterval(this.interval)
+    clearInterval(this.interval);
   },
   methods: {
-    formatCurrency, 
+    formatCurrency,
     formatNumber,
 
     // =============================================
@@ -760,7 +750,6 @@ export default {
           this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
           this.shift.revenue = parseFloat(res.data.revenue) || 0;
           
-          // Restore opening inventory if available
           if (res.data.opening_inventory) {
             this.shift.inventoryCounts = res.data.opening_inventory;
           }
@@ -797,7 +786,6 @@ export default {
           sum + parseFloat(tx.total_amount || 0), 0
         );
         
-        // Reset pagination when transactions update
         this.resetTodayPagination();
       } catch (err) {
         console.warn('Failed to load today transactions:', err);
@@ -806,58 +794,47 @@ export default {
     },
 
     // === OPEN SHIFT ===
-   // In StallView.vue - Update the openShiftModal method
-
-openShiftModal() {
-  if (!this.shift || !this.shift.enabled) return;
-  
-  // ✅ Get the previous shift's ending cash and inventory
-  this.getPreviousShiftData();
-  
-  this.shift.notes = '';
-  this.shift.showOpenModal = true;
-},
-
-async getPreviousShiftData() {
-  try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    // Get the most recent closed shift for this stall
-    const res = await axios.get(
-      `${API_BASE}/shifts/history?stallId=${this.stallId}&limit=1&status=closed`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    const shifts = res.data.shifts || [];
-    if (shifts.length > 0) {
-      const prevShift = shifts[0];
-      // Use the previous shift's ending cash as starting float
-      this.shift.floatInput = parseFloat(prevShift.ending_cash) || 0;
-      
-      // If the previous shift had closing inventory, use it as opening inventory
-      if (prevShift.closing_inventory) {
-        this.shift.inventoryCounts = { ...prevShift.closing_inventory };
-      } else {
-        // Fallback to current stock
+    async getPreviousShiftData() {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        const res = await axios.get(
+          `${API_BASE}/shifts/history?stallId=${this.stallId}&limit=1&status=closed`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        
+        const shifts = res.data.shifts || [];
+        if (shifts.length > 0) {
+          const prevShift = shifts[0];
+          this.shift.floatInput = parseFloat(prevShift.ending_cash) || 0;
+          
+          if (prevShift.closing_inventory) {
+            this.shift.inventoryCounts = { ...prevShift.closing_inventory };
+          } else {
+            this.processedInventory.forEach(item => {
+              this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
+            });
+          }
+        } else {
+          this.shift.floatInput = 0;
+          this.processedInventory.forEach(item => {
+            this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to get previous shift data:', err);
+        this.shift.floatInput = 0;
         this.processedInventory.forEach(item => {
           this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
         });
       }
-    } else {
-      // No previous shift, use current stock
-      this.shift.floatInput = 0;
-      this.processedInventory.forEach(item => {
-        this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
-      });
-    }
-  } catch (err) {
-    console.warn('Failed to get previous shift data:', err);
-    // Fallback to current stock
-    this.shift.floatInput = 0;
-    this.processedInventory.forEach(item => {
-      this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
-    });
-  }
-},
+    },
+
+    openShiftModal() {
+      if (!this.shift || !this.shift.enabled) return;
+      this.getPreviousShiftData();
+      this.shift.notes = '';
+      this.shift.showOpenModal = true;
+    },
 
     closeOpenShiftModal() {
       this.shift.showOpenModal = false;
@@ -867,7 +844,6 @@ async getPreviousShiftData() {
     },
 
     handleOpenShiftModalClose() {
-      // If there are values entered, ask for confirmation
       if (this.shift.floatInput > 0 || this.shift.notes) {
         if (confirm('Are you sure you want to close? Any entered data will be lost.')) {
           this.closeOpenShiftModal();
@@ -927,7 +903,6 @@ async getPreviousShiftData() {
       if (!this.shift || !this.shift.enabled || !this.shift.status) return;
       this.shift.endingCash = 0;
       this.shift.closeNotes = '';
-      // Initialize ending inventory from current stock
       this.shift.endingInventory = {};
       this.processedInventory.forEach(item => {
         this.shift.endingInventory[item.material_name] = item.current_level || 0;
@@ -943,7 +918,6 @@ async getPreviousShiftData() {
     },
 
     handleCloseShiftModalClose() {
-      // If there are values entered, ask for confirmation
       if (this.shift.endingCash > 0 || this.shift.closeNotes) {
         if (confirm('Are you sure you want to close? Any entered data will be lost.')) {
           this.closeCloseShiftModal();
@@ -1009,7 +983,6 @@ async getPreviousShiftData() {
       return 'balanced';
     },
 
-    // === TODAY'S ORDERS PAGINATION ===
     resetTodayPagination() {
       this.todayPage = 1;
       this.showAllTodayTransactions = false;
@@ -1046,10 +1019,6 @@ async getPreviousShiftData() {
       this.$emit('switch-tab', 'transactions');
     },
 
-    // =============================================
-    // UTILITY FORMATTING
-    // =============================================
-
     formatTime(dateStr) {
       if (!dateStr) return '';
       try {
@@ -1079,11 +1048,11 @@ async getPreviousShiftData() {
     },
 
     getIcon(itemName) {
-      return this.iconMap[itemName] || '🍗'
+      return this.iconMap[itemName] || '🍗';
     },
 
     getUnit(materialName) {
-      return 'pieces'
+      return 'pieces';
     },
 
     // =============================================
@@ -1091,51 +1060,53 @@ async getPreviousShiftData() {
     // =============================================
 
     async loadData() {
-      if (!this.activeStallId) return
-      this.loadingData = true
-      this.connectionError = false
+      if (!this.activeStallId) return;
+      this.loadingData = true;
+      this.connectionError = false;
       try {
-        await Promise.all([this.loadInventory(), this.loadTodaySales(), this.loadAnalytics()])
+        await Promise.all([this.loadInventory(), this.loadTodaySales(), this.loadAnalytics()]);
       } catch (error) {
-        console.error(error)
-        this.connectionError = true
-        this.$emit('show-notification', 'Failed to load data from server', 'error')
-      } finally { this.loadingData = false }
+        console.error(error);
+        this.connectionError = true;
+        this.$emit('show-notification', 'Failed to load data from server', 'error');
+      } finally { 
+        this.loadingData = false;
+      }
     },
 
     async loadMenu() {
-      this.loadingMenu = true
+      this.loadingMenu = true;
       try {
         const res = await axios.get(`${API_BASE}/menu`, {
           headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
+        });
         
         const assignmentsRes = await axios.get(`${API_BASE}/menu/assignments/${this.activeStallId}`, {
           headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
+        });
         
-        const assignedItems = assignmentsRes.data || []
-        console.log('📝 Assigned items for stall:', assignedItems)
+        const assignedItems = assignmentsRes.data || [];
+        console.log('📝 Assigned items for stall:', assignedItems);
         
-        let filteredItems = res.data
+        let filteredItems = res.data;
         if (assignedItems.length > 0) {
-          filteredItems = res.data.filter(item => assignedItems.includes(item.item_name))
+          filteredItems = res.data.filter(item => assignedItems.includes(item.item_name));
         }
         
         this.menuItems = filteredItems.map(item => ({
           ...item,
           quantity: 0
-        }))
-        this.menuQuantities = {}
+        }));
+        this.menuQuantities = {};
         
-        console.log('📝 Filtered menu items:', this.menuItems.length)
+        console.log('📝 Filtered menu items:', this.menuItems.length);
         
       } catch (error) {
-        console.error('Failed to load menu:', error)
-        this.menuItems = []
-        this.$emit('show-notification', 'Failed to load menu items', 'error')
+        console.error('Failed to load menu:', error);
+        this.menuItems = [];
+        this.$emit('show-notification', 'Failed to load menu items', 'error');
       } finally {
-        this.loadingMenu = false
+        this.loadingMenu = false;
       }
     },
 
@@ -1143,38 +1114,38 @@ async getPreviousShiftData() {
       const response = await axios.get(`${API_BASE}/inventory`, {
         params: { stallId: this.activeStallId },
         headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-      })
-      this.processInventoryData(response.data)
+      });
+      this.processInventoryData(response.data);
     },
 
     processInventoryData(data) {
-      const map = new Map()
+      const map = new Map();
       data.forEach(item => {
         if (!map.has(item.material_name)) {
-          map.set(item.material_name, { ...item, current_level: Number(item.current_level), alert_level: Number(item.alert_level) })
+          map.set(item.material_name, { ...item, current_level: Number(item.current_level), alert_level: Number(item.alert_level) });
         } else {
-          const existing = map.get(item.material_name)
-          existing.current_level += Number(item.current_level)
+          const existing = map.get(item.material_name);
+          existing.current_level += Number(item.current_level);
         }
-      })
-      this.inventory = data
-      this.processedInventory = Array.from(map.values())
+      });
+      this.inventory = data;
+      this.processedInventory = Array.from(map.values());
     },
 
     async loadTodaySales() {
       const response = await axios.get(`${API_BASE}/stall-today-sales`, {
         params: { stallId: this.activeStallId },
         headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-      })
-      this.todaySales = response.data
+      });
+      this.todaySales = response.data;
     },
 
     async loadAnalytics() {
       const response = await axios.get(`${API_BASE}/sales-analytics`, {
         params: { stallId: this.activeStallId, days: 7 },
         headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-      })
-      this.analytics = response.data
+      });
+      this.analytics = response.data;
     },
 
     // =============================================
@@ -1182,60 +1153,59 @@ async getPreviousShiftData() {
     // =============================================
 
     adjustQuantity(item, delta) {
-      if (!this.activeStallId) return
-      const key = item.item_name
+      if (!this.activeStallId) return;
+      const key = item.item_name;
       if (!this.menuQuantities[key]) {
-        this.menuQuantities[key] = 0
+        this.menuQuantities[key] = 0;
       }
-      const newQty = this.menuQuantities[key] + delta
-      if (newQty < 0) return
-      this.menuQuantities[key] = newQty
-      const menuItem = this.menuItems.find(i => i.item_name === key)
+      const newQty = this.menuQuantities[key] + delta;
+      if (newQty < 0) return;
+      this.menuQuantities[key] = newQty;
+      const menuItem = this.menuItems.find(i => i.item_name === key);
       if (menuItem) {
-        menuItem.quantity = newQty
+        menuItem.quantity = newQty;
       }
-      this.syncCartItem(item)
+      this.syncCartItem(item);
     },
 
     syncCartItem(item) {
-      const qty = this.menuQuantities[item.item_name] || 0
-      const existing = this.cartItems.find(i => i.menuItem.item_name === item.item_name)
+      const qty = this.menuQuantities[item.item_name] || 0;
+      const existing = this.cartItems.find(i => i.menuItem.item_name === item.item_name);
       
       if (qty > 0) {
         if (existing) {
-          existing.quantity = qty
+          existing.quantity = qty;
         } else {
-          this.cartItems.push({ menuItem: item, quantity: qty })
+          this.cartItems.push({ menuItem: item, quantity: qty });
         }
       } else {
         if (existing) {
-          this.cartItems = this.cartItems.filter(i => i.menuItem.item_name !== item.item_name)
+          this.cartItems = this.cartItems.filter(i => i.menuItem.item_name !== item.item_name);
         }
       }
     },
 
     clearCart() {
-      this.cartItems = []
-      this.menuQuantities = {}
+      this.cartItems = [];
+      this.menuQuantities = {};
       this.menuItems.forEach(item => {
-        item.quantity = 0
-      })
-      this.$emit('show-notification', 'Cart cleared', 'info')
+        item.quantity = 0;
+      });
+      this.$emit('show-notification', 'Cart cleared', 'info');
     },
 
     async sellAll() {
       if (this.cartItems.length === 0) {
-        this.$emit('show-notification', 'No items to sell', 'warning')
-        return
+        this.$emit('show-notification', 'No items to sell', 'warning');
+        return;
       }
       
-      // Check if shift is open (only if shift is enabled)
       if (this.shift.enabled && !this.shiftStatus) {
-        this.$emit('show-notification', '⚠️ Please open a shift before making sales', 'warning')
-        return
+        this.$emit('show-notification', '⚠️ Please open a shift before making sales', 'warning');
+        return;
       }
       
-      this.loading = true
+      this.loading = true;
       try {
         const orderData = {
           stallId: this.activeStallId,
@@ -1246,26 +1216,26 @@ async getPreviousShiftData() {
           })),
           total: this.cartTotal,
           itemCount: this.cartItemCount
-        }
+        };
         
         const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
           headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
+        });
         
         this.$emit('show-notification', 
           `✅ Order #${orderResponse.data.orderNumber} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
           'success'
-        )
+        );
         
-        this.clearCart()
-        await this.loadData()
-        await this.loadTodayTransactions()
+        this.clearCart();
+        await this.loadData();
+        await this.loadTodayTransactions();
         
       } catch (err) {
-        console.error('Order error:', err)
-        this.$emit('show-notification', 'Error processing order', 'error')
+        console.error('Order error:', err);
+        this.$emit('show-notification', 'Error processing order', 'error');
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
@@ -1281,19 +1251,19 @@ async getPreviousShiftData() {
           stallId: this.activeStallId 
         }, {
           headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
-        await this.loadInventory()
-        this.$emit('show-notification', `Updated ${materialName} to ${newLevel}${this.getUnit(materialName)}`, 'success')
+        });
+        await this.loadInventory();
+        this.$emit('show-notification', `Updated ${materialName} to ${newLevel}${this.getUnit(materialName)}`, 'success');
       } catch (err) {
-        console.error(err)
-        this.$emit('show-notification', 'Error updating stock', 'error')
+        console.error(err);
+        this.$emit('show-notification', 'Error updating stock', 'error');
       }
     },
 
     getStockPercentage(item) {
-      const max = Math.max(item.current_level, item.alert_level * 2)
-      const percentage = Math.min((item.current_level / max) * 100, 100)
-      return percentage.toFixed(0)
+      const max = Math.max(item.current_level, item.alert_level * 2);
+      const percentage = Math.min((item.current_level / max) * 100, 100);
+      return percentage.toFixed(0);
     },
 
     // =============================================
@@ -1302,30 +1272,30 @@ async getPreviousShiftData() {
 
     getWeeklyTotal() {
       const total = this.analytics.dailySales.reduce((sum, day) => {
-        const revenue = typeof day.revenue === 'number' ? day.revenue : parseFloat(day.revenue) || 0
-        return sum + revenue
-      }, 0)
-      return this.formatCurrency(total)
+        const revenue = typeof day.revenue === 'number' ? day.revenue : parseFloat(day.revenue) || 0;
+        return sum + revenue;
+      }, 0);
+      return this.formatCurrency(total);
     },
 
     getWeeklyItems() {
       const total = this.analytics.dailySales.reduce((sum, day) => {
-        const items = typeof day.items === 'number' ? day.items : parseInt(day.items) || 0
-        return sum + items
-      }, 0)
-      return total
+        const items = typeof day.items === 'number' ? day.items : parseInt(day.items) || 0;
+        return sum + items;
+      }, 0);
+      return total;
     },
 
     getProductSalesArray() {
-      const productSales = this.analytics.productSales || {}
+      const productSales = this.analytics.productSales || {};
       return Object.keys(productSales).map(name => {
-        const data = productSales[name]
+        const data = productSales[name];
         return {
           name: name,
           quantity: typeof data.quantity === 'number' ? data.quantity : parseInt(data.quantity) || 0,
           revenue: typeof data.revenue === 'number' ? data.revenue : parseFloat(data.revenue) || 0
-        }
-      })
+        };
+      });
     },
 
     // =============================================
@@ -1333,51 +1303,53 @@ async getPreviousShiftData() {
     // =============================================
 
     getBarHeight(revenue) {
-      const dailySales = this.analytics.dailySales || []
-      if (dailySales.length === 0) return 5
-      const max = Math.max(...dailySales.map(d => d.revenue || 0), 1)
-      return Math.max((revenue / max) * 80, 5)
+      const dailySales = this.analytics.dailySales || [];
+      if (dailySales.length === 0) return 5;
+      const max = Math.max(...dailySales.map(d => d.revenue || 0), 1);
+      return Math.max((revenue / max) * 80, 5);
     },
 
     getTrendPoints() {
-      const dailySales = this.analytics.dailySales || []
-      if (dailySales.length === 0) return ''
+      const dailySales = this.analytics.dailySales || [];
+      if (dailySales.length === 0) return '';
       if (dailySales.length === 1) {
-        return '50,5'
+        return '50,5';
       }
-      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1)
+      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1);
       const points = dailySales.map((day, index) => {
-        const x = (index / (dailySales.length - 1)) * 100
-        const y = 40 - ((day.revenue / maxRevenue) * 35)
-        return `${x},${y}`
-      })
-      return points.join(' ')
+        const x = (index / (dailySales.length - 1)) * 100;
+        const y = 40 - ((day.revenue / maxRevenue) * 35);
+        return `${x},${y}`;
+      });
+      return points.join(' ');
     },
 
     getTrendPointsArray() {
-      const dailySales = this.analytics.dailySales || []
-      if (dailySales.length === 0) return []
+      const dailySales = this.analytics.dailySales || [];
+      if (dailySales.length === 0) return [];
       if (dailySales.length === 1) {
-        return [{ x: 50, y: 5 }]
+        return [{ x: 50, y: 5 }];
       }
-      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1)
+      const maxRevenue = Math.max(...dailySales.map(d => d.revenue || 0), 1);
       return dailySales.map((day, index) => ({
         x: (index / (dailySales.length - 1)) * 100,
         y: 40 - ((day.revenue / maxRevenue) * 35)
-      }))
+      }));
     },
 
     getProductPercentage(quantity) {
-      const productArray = this.getProductSalesArray()
-      const max = Math.max(...productArray.map(p => p.quantity), 1)
-      return Math.round((quantity / max) * 100)
+      const productArray = this.getProductSalesArray();
+      const max = Math.max(...productArray.map(p => p.quantity), 1);
+      return Math.round((quantity / max) * 100);
     },
 
     formatDate(dateStr) {
-      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' })
+      return new Date(dateStr).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric' });
     },
 
-    onStallChanged(stallId) { this.loadData() }
+    onStallChanged(stallId) { 
+      this.loadData(); 
+    }
   }
 }
 </script>
