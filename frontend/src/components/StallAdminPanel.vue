@@ -29,7 +29,6 @@
 
         <!-- Period Dropdown -->
         <div v-if="['dashboard', 'revenue', 'transactions', 'stalls', 'menu'].includes(activeTab)" class="period-dropdown-wrapper">
-
           <button class="dropdown-toggle" :class="{ open: periodDropdownOpen }" @click="togglePeriodDropdown">
             <span class="dropdown-icon">📅</span>
             <span class="dropdown-label">{{ getPeriodLabel() }}</span>
@@ -148,7 +147,6 @@
         </div>
 
         <!-- ===== KPI CARDS WITH SPARKLINE ===== -->
-        <!-- ✅ FIX: Added missing kpi-grid wrapper div -->
         <div class="kpi-grid">
           <!-- Revenue KPI Card -->
           <div class="kpi-card clickable" 
@@ -332,7 +330,6 @@
             </div>
           </div>
         </div>
-
 
         <!-- ===== STALL PERFORMANCE ===== -->
         <div class="card-modern">
@@ -829,372 +826,365 @@
       </div>
 
       <!-- ============================================ -->
-<!-- TRANSACTION DETAILS MODAL - INSERT HERE      -->
-<!-- ============================================ -->
-<div v-if="transactionModal" class="modal-overlay" @click.self="transactionModal = false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>📊 {{ selectedStallForModal?.name || 'Transaction Details' }}</h3>
-      <button @click="transactionModal = false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <!-- Stats -->
-      <div class="modal-stats-grid">
-        <div class="modal-stat">
-          <span class="modal-stat-label">Total Transactions</span>
-          <span class="modal-stat-value">{{ formatNumber(selectedStallForModal?.transactions || 0) }}</span>
-        </div>
-        <div class="modal-stat">
-          <span class="modal-stat-label">Total Revenue</span>
-          <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.revenue || 0) }}</span>
-        </div>
-        <div class="modal-stat">
-          <span class="modal-stat-label">Avg Transaction</span>
-          <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.avgTransaction || 0) }}</span>
-        </div>
-        <div class="modal-stat">
-          <span class="modal-stat-label">Top Item</span>
-          <span class="modal-stat-value">{{ selectedStallForModal?.topItem || '-' }}</span>
-        </div>
-      </div>
-      
-      <!-- Transactions List -->
-      <div class="modal-transactions">
-        <h4>📜 Recent Transactions</h4>
-        <div v-if="modalTransactionsLoading" class="loading-state small">
-          <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-          <p>Loading transactions...</p>
-        </div>
-        <div v-else-if="modalTransactions.length === 0" class="empty-state-modern small">
-          <span>📭</span>
-          <p>No transactions found</p>
-        </div>
-        <div v-else class="modal-transactions-list">
-          <div v-for="tx in modalTransactions" :key="tx.id" class="modal-transaction-item">
-            <span class="modal-tx-date">{{ formatDate(tx.created_at) }}</span>
-            <span class="modal-tx-id">#{{ tx.order_id || 'N/A' }}</span>
-            <span class="modal-tx-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
-            <span class="modal-tx-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
-            <span :class="['transaction-status', tx.status || 'completed']">
-              {{ tx.status || '✅ Completed' }}
-            </span>
+      <!-- TRANSACTION DETAILS MODAL                    -->
+      <!-- ============================================ -->
+      <div v-if="transactionModal" class="modal-overlay" @click.self="transactionModal = false">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>📊 {{ selectedStallForModal?.name || 'Transaction Details' }}</h3>
+            <button @click="transactionModal = false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <!-- Stats -->
+            <div class="modal-stats-grid">
+              <div class="modal-stat">
+                <span class="modal-stat-label">Total Transactions</span>
+                <span class="modal-stat-value">{{ formatNumber(selectedStallForModal?.transactions || 0) }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="modal-stat-label">Total Revenue</span>
+                <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.revenue || 0) }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="modal-stat-label">Avg Transaction</span>
+                <span class="modal-stat-value">{{ formatCurrency(selectedStallForModal?.avgTransaction || 0) }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="modal-stat-label">Top Item</span>
+                <span class="modal-stat-value">{{ selectedStallForModal?.topItem || '-' }}</span>
+              </div>
+            </div>
+            
+            <!-- Transactions List -->
+            <div class="modal-transactions">
+              <h4>📜 Recent Transactions</h4>
+              <div v-if="modalTransactionsLoading" class="loading-state small">
+                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                <p>Loading transactions...</p>
+              </div>
+              <div v-else-if="modalTransactions.length === 0" class="empty-state-modern small">
+                <span>📭</span>
+                <p>No transactions found</p>
+              </div>
+              <div v-else class="modal-transactions-list">
+                <div v-for="tx in modalTransactions" :key="tx.id" class="modal-transaction-item">
+                  <span class="modal-tx-date">{{ formatDate(tx.created_at) }}</span>
+                  <span class="modal-tx-id">#{{ tx.order_id || 'N/A' }}</span>
+                  <span class="modal-tx-items">{{ tx.items_count || tx.items?.length || 0 }} items</span>
+                  <span class="modal-tx-amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
+                  <span :class="['transaction-status', tx.status || 'completed']">
+                    {{ tx.status || '✅ Completed' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="transactionModal = false" class="btn-modern secondary">Close</button>
           </div>
         </div>
       </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="transactionModal = false" class="btn-modern secondary">Close</button>
-    </div>
-  </div>
-</div>
 
-    <!-- ===== STALLS TAB ===== -->
-<div v-if="activeTab === 'stalls'" class="tab-panel">
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'management' }"
-      @click="stallSubTab = 'management'"
-    >
-      🏪 Stall Management
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'performance' }"
-      @click="stallSubTab = 'performance'"
-    >
-      📊 Stall Performance
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: stallSubTab === 'shifts' }"
-      @click="stallSubTab = 'shifts'"
-    >
-      🕐 Shift History
-    </button>
-  </div>
-  
-  <!-- ✅ REPLACE THIS ENTIRE SECTION -->
- <!-- Shift History Sub-Tab -->
-<div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>🕐 Shift History</h3>
-        <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
-      </div>
-      <div class="header-actions">
-        <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
-      </div>
-    </div>
-    <div class="card-modern-body">
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-group">
-  <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-    <!-- "All My Stalls" option -->
-    <option value="all">
-      {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
-    </option>
-    
-    <!-- Individual stalls -->
-    <option 
-      v-for="stall in accessibleStalls" 
-      :key="stall.id" 
-      :value="stall.id"
-    >
-      {{ stall.name }}
-    </option>
-  </select>
-</div>
-        <div class="filter-group">
-          <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
-            <option value="all">All Status</option>
-            <option value="open">🟢 Open</option>
-            <option value="closed">⚪ Closed</option>
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button @click="clearShiftFilters" class="btn-modern secondary small">
-            Clear Filters
+      <!-- ===== STALLS TAB ===== -->
+      <div v-if="activeTab === 'stalls'" class="tab-panel">
+        <div class="sub-tabs">
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'management' }"
+            @click="stallSubTab = 'management'"
+          >
+            🏪 Stall Management
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'performance' }"
+            @click="stallSubTab = 'performance'"
+          >
+            📊 Stall Performance
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: stallSubTab === 'shifts' }"
+            @click="stallSubTab = 'shifts'"
+          >
+            🕐 Shift History
           </button>
         </div>
-      </div>
-      
-      <!-- Table -->
-      <div v-if="shiftHistoryLoading" class="loading-state">
-        <div class="loading-spinner"><div class="spinner-ring"></div></div>
-        <p>Loading shift history...</p>
-      </div>
-      
-      <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
-        <span>🕐</span>
-        <p>No shifts found matching your criteria</p>
-      </div>
-      
-      <div v-else>
-        <!-- Shift History Table -->
-<div class="shift-history-table-wrapper">
-  <!-- Table Header -->
-  <!-- Shift History Table Header -->
-<div class="shift-history-table-header">
-  <span class="shift-history-header-date">Date</span>
-  <span class="shift-history-header-stall">Stall</span>
-  <span class="shift-history-header-revenue">Revenue</span>
-  <span class="shift-history-header-transactions">Orders</span>
-  <span class="shift-history-header-float">Float</span>
-  <span class="shift-history-header-variance">Variance</span>
-  <span class="shift-history-header-inventory">Inventory Used</span>
-  <span class="shift-history-header-status">Status</span>
-  <span class="shift-history-header-details">Details</span>
-</div>
-
-<!-- Shift History Table Row -->
-<div 
-  v-for="shift in paginatedShiftHistory" 
-  :key="shift.id" 
-  class="shift-history-table-row clickable-item"
-  @click="viewShiftDetails(shift)"
->
-  <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
-  <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
-  <span class="shift-history-revenue" data-label="Revenue">
-    {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
-  </span>
-  <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
-  <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
-  <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
-    {{ formatCurrency(shift.variance) }}
-  </span>
-  <!-- ✅ NEW: Inventory Used Column -->
-  <span class="shift-history-inventory" data-label="Inventory Used">
-    <span v-if="Object.keys(shift.inventory_usage || {}).length > 0">
-      <span 
-        v-for="(usage, material) in shift.inventory_usage" 
-        :key="material"
-        class="inventory-usage-tag"
-      >
-        {{ material }}: {{ usage }}
-      </span>
-    </span>
-    <span v-else class="no-inventory-data">-</span>
-  </span>
-  <span class="shift-history-status" data-label="Status">
-    <span class="status-badge" :class="shift.status">
-      {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-    </span>
-  </span>
-  <span class="shift-history-details" data-label="Details">👆</span>
-</div>
-</div>
-</div>
-
-<!-- ===== SHIFT DETAIL MODAL ===== -->
-<div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>🕐 Shift Details</h3>
-      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <div v-if="selectedShift">
-        <!-- Shift Info -->
-        <div class="shift-detail-grid">
-          <div class="shift-detail-item">
-            <span class="label">Stall</span>
-            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Opened</span>
-            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Opened By</span>
-            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Closed</span>
-            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Closed By</span>
-            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Status</span>
-            <span class="value">
-              <span class="status-badge" :class="selectedShift.status">
-                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-              </span>
-            </span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Starting Float</span>
-            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Revenue</span>
-            <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || 0) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Orders</span>
-            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Expected Cash</span>
-            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Ending Cash</span>
-            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
-          </div>
-          <div class="shift-detail-item">
-            <span class="label">Variance</span>
-            <span class="value" :class="getVarianceClass(selectedShift)">
-              {{ formatCurrency(selectedShift.variance) }}
-            </span>
-          </div>
-        </div>
         
-        <!-- ✅ NEW: Inventory Section -->
-        <div v-if="selectedShift.opening_inventory || selectedShift.closing_inventory" class="shift-detail-inventory">
-          <h4>📦 Inventory</h4>
-          <div class="inventory-detail-grid">
-            <div class="inventory-detail-header">
-              <span class="inventory-detail-material">Material</span>
-              <span class="inventory-detail-opening">Opening</span>
-              <span class="inventory-detail-closing">Closing</span>
-              <span class="inventory-detail-usage">Used</span>
+        <!-- Shift History Sub-Tab -->
+        <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>🕐 Shift History</h3>
+                <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
+              </div>
+              <div class="header-actions">
+                <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
+              </div>
             </div>
-            <div 
-              v-for="(opening, material) in selectedShift.opening_inventory" 
-              :key="material"
-              class="inventory-detail-row"
-            >
-              <span class="inventory-detail-material">{{ material }}</span>
-              <span class="inventory-detail-opening">{{ opening }}</span>
-              <span class="inventory-detail-closing">{{ selectedShift.closing_inventory?.[material] || 0 }}</span>
-              <span class="inventory-detail-usage" :class="getUsageClass(selectedShift, material)">
-                {{ getInventoryUsage(selectedShift, material) }}
-              </span>
+            <div class="card-modern-body">
+              <!-- Filter Bar -->
+              <div class="filter-bar-modern">
+                <div class="filter-group">
+                  <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+                    <option value="all">
+                      {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
+                    </option>
+                    <option 
+                      v-for="stall in accessibleStalls" 
+                      :key="stall.id" 
+                      :value="stall.id"
+                    >
+                      {{ stall.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
+                    <option value="all">All Status</option>
+                    <option value="open">🟢 Open</option>
+                    <option value="closed">⚪ Closed</option>
+                  </select>
+                </div>
+                <div class="filter-actions">
+                  <button @click="clearShiftFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Table -->
+              <div v-if="shiftHistoryLoading" class="loading-state">
+                <div class="loading-spinner"><div class="spinner-ring"></div></div>
+                <p>Loading shift history...</p>
+              </div>
+              
+              <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
+                <span>🕐</span>
+                <p>No shifts found matching your criteria</p>
+              </div>
+              
+              <div v-else>
+                <!-- Shift History Table -->
+                <div class="shift-history-table-wrapper">
+                  <!-- Table Header -->
+                  <div class="shift-history-table-header">
+                    <span class="shift-history-header-date">Date</span>
+                    <span class="shift-history-header-stall">Stall</span>
+                    <span class="shift-history-header-revenue">Revenue</span>
+                    <span class="shift-history-header-transactions">Orders</span>
+                    <span class="shift-history-header-float">Float</span>
+                    <span class="shift-history-header-variance">Variance</span>
+                    <span class="shift-history-header-inventory">Inventory Used</span>
+                    <span class="shift-history-header-status">Status</span>
+                    <span class="shift-history-header-details">Details</span>
+                  </div>
+                  
+                  <!-- Table Body -->
+                  <div 
+                    v-for="shift in paginatedShiftHistory" 
+                    :key="shift.id" 
+                    class="shift-history-table-row clickable-item"
+                    @click="viewShiftDetails(shift)"
+                  >
+                    <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
+                    <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
+                    <span class="shift-history-revenue" data-label="Revenue">
+                      {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
+                    </span>
+                    <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
+                    <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
+                    <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
+                      {{ formatCurrency(shift.variance) }}
+                    </span>
+                    <span class="shift-history-inventory" data-label="Inventory Used">
+                      <span v-if="Object.keys(shift.inventory_usage || {}).length > 0">
+                        <span 
+                          v-for="(usage, material) in shift.inventory_usage" 
+                          :key="material"
+                          class="inventory-usage-tag"
+                        >
+                          {{ material }}: {{ usage }}
+                        </span>
+                      </span>
+                      <span v-else class="no-inventory-data">-</span>
+                    </span>
+                    <span class="shift-history-status" data-label="Status">
+                      <span class="status-badge" :class="shift.status">
+                        {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+                      </span>
+                    </span>
+                    <span class="shift-history-details" data-label="Details">👆</span>
+                  </div>
+                </div>
+                
+                <!-- ===== SHIFT DETAIL MODAL ===== -->
+                <div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
+                  <div class="modal-modern modal-lg">
+                    <div class="modal-modern-header">
+                      <h3>🕐 Shift Details</h3>
+                      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
+                    </div>
+                    <div class="modal-modern-body">
+                      <div v-if="selectedShift">
+                        <!-- Shift Info -->
+                        <div class="shift-detail-grid">
+                          <div class="shift-detail-item">
+                            <span class="label">Stall</span>
+                            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Opened</span>
+                            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Opened By</span>
+                            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Closed</span>
+                            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Closed By</span>
+                            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Status</span>
+                            <span class="value">
+                              <span class="status-badge" :class="selectedShift.status">
+                                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+                              </span>
+                            </span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Starting Float</span>
+                            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Revenue</span>
+                            <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || 0) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Orders</span>
+                            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Expected Cash</span>
+                            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Ending Cash</span>
+                            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
+                          </div>
+                          <div class="shift-detail-item">
+                            <span class="label">Variance</span>
+                            <span class="value" :class="getVarianceClass(selectedShift)">
+                              {{ formatCurrency(selectedShift.variance) }}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <!-- Inventory Section -->
+                        <div v-if="selectedShift.opening_inventory || selectedShift.closing_inventory" class="shift-detail-inventory">
+                          <h4>📦 Inventory</h4>
+                          <div class="inventory-detail-grid">
+                            <div class="inventory-detail-header">
+                              <span class="inventory-detail-material">Material</span>
+                              <span class="inventory-detail-opening">Opening</span>
+                              <span class="inventory-detail-closing">Closing</span>
+                              <span class="inventory-detail-usage">Used</span>
+                            </div>
+                            <div 
+                              v-for="(opening, material) in selectedShift.opening_inventory" 
+                              :key="material"
+                              class="inventory-detail-row"
+                            >
+                              <span class="inventory-detail-material">{{ material }}</span>
+                              <span class="inventory-detail-opening">{{ opening }}</span>
+                              <span class="inventory-detail-closing">{{ selectedShift.closing_inventory?.[material] || 0 }}</span>
+                              <span class="inventory-detail-usage" :class="getUsageClass(selectedShift, material)">
+                                {{ getInventoryUsage(selectedShift, material) }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Notes -->
+                        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
+                          <div v-if="selectedShift.notes">
+                            <strong>Opening Notes:</strong>
+                            <p>{{ selectedShift.notes }}</p>
+                          </div>
+                          <div v-if="selectedShift.closing_notes">
+                            <strong>Closing Notes:</strong>
+                            <p>{{ selectedShift.closing_notes }}</p>
+                          </div>
+                        </div>
+                        
+                        <!-- Transactions -->
+                        <div class="shift-detail-transactions">
+                          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
+                          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
+                            <span>📭</span>
+                            <p>No orders for this shift</p>
+                          </div>
+                          <div v-else class="shift-transaction-list">
+                            <div 
+                              v-for="tx in selectedShift.transactions" 
+                              :key="tx.id" 
+                              class="shift-transaction-item"
+                            >
+                              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
+                              <span class="tx-id">#{{ tx.order_number }}</span>
+                              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
+                              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
+                              <span class="tx-status" :class="tx.status || 'completed'">
+                                {{ tx.status || 'completed' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal-modern-footer">
+                      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
+                      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevShiftPage" 
+                      class="pagination-btn"
+                      :disabled="shiftCurrentPage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextShiftPage" 
+                      class="pagination-btn"
+                      :disabled="shiftCurrentPage >= shiftTotalPages"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        
-        <!-- Notes -->
-        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
-          <div v-if="selectedShift.notes">
-            <strong>Opening Notes:</strong>
-            <p>{{ selectedShift.notes }}</p>
-          </div>
-          <div v-if="selectedShift.closing_notes">
-            <strong>Closing Notes:</strong>
-            <p>{{ selectedShift.closing_notes }}</p>
-          </div>
-        </div>
-        
-        <!-- Transactions -->
-        <div class="shift-detail-transactions">
-          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
-          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
-            <span>📭</span>
-            <p>No orders for this shift</p>
-          </div>
-          <div v-else class="shift-transaction-list">
-            <div 
-              v-for="tx in selectedShift.transactions" 
-              :key="tx.id" 
-              class="shift-transaction-item"
-            >
-              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
-              <span class="tx-id">#{{ tx.order_number }}</span>
-              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
-              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
-              <span class="tx-status" :class="tx.status || 'completed'">
-                {{ tx.status || 'completed' }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
-      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
-    </div>
-  </div>
-</div>
-        
-        <!-- Pagination -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevShiftPage" 
-              class="pagination-btn"
-              :disabled="shiftCurrentPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
-            </span>
-            <button 
-              @click="nextShiftPage" 
-              class="pagination-btn"
-              :disabled="shiftCurrentPage >= shiftTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
         
         <!-- Stall Management -->
         <div v-if="stallSubTab === 'management'" class="sub-tab-content">
@@ -1231,7 +1221,7 @@
                 </div>
               </div>
 
-              <!-- Filter Bar - Like Inventory -->
+              <!-- Filter Bar -->
               <div class="filter-bar-modern">
                 <div class="filter-search">
                   <input 
@@ -1396,7 +1386,6 @@
             </div>
             
             <div class="card-modern-body">
-              
               <!-- Stats Cards -->
               <div class="performance-stats-grid">
                 <div class="stat-chip excellent">
@@ -1771,1061 +1760,1047 @@
         </div>
       </div>
 
-<!-- ===== MENU TAB ===== -->
-<div v-if="activeTab === 'menu'" class="tab-panel">
-  <div class="sub-tabs">
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'assignment' }"
-      @click="menuSubTab = 'assignment'"
-    >
-      📋 Menu Assignment
-    </button>
-    <button 
-      class="sub-tab" 
-      :class="{ active: menuSubTab === 'performance' }"
-      @click="menuSubTab = 'performance'"
-    >
-      📊 Menu Performance
-    </button>
-  </div>
-  
-  <!-- ========================================== -->
-  <!-- MENU ASSIGNMENT SUB-TAB                    -->
-  <!-- ========================================== -->
-  <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📋 Menu Assignment</h3>
-          <span class="card-subtitle">{{ filteredMenuItemsForAssignment.length }} menu items</span>
-        </div>
-        <div class="header-actions">
-          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-          <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
-        </div>
-      </div>
-      <div class="card-modern-body">
-        
-        <!-- Stats Cards -->
-        <div class="inventory-stats-grid">
-          <div class="stat-chip">
-            <span class="stat-chip-label">Total Items</span>
-            <span class="stat-chip-value">{{ menuStats.total }}</span>
-          </div>
-          <div class="stat-chip active">
-            <span class="stat-chip-label">Active</span>
-            <span class="stat-chip-value">{{ menuStats.active }}</span>
-          </div>
-          <div class="stat-chip inactive">
-            <span class="stat-chip-label">Inactive</span>
-            <span class="stat-chip-value">{{ menuStats.inactive }}</span>
-          </div>
-        </div>
-
-        <!-- ===== STALL VIEW TOGGLE ===== -->
-        <div class="stall-view-toggle" style="margin-bottom: 1rem;">
+      <!-- ===== MENU TAB ===== -->
+      <div v-if="activeTab === 'menu'" class="tab-panel">
+        <div class="sub-tabs">
           <button 
-            class="btn-modern secondary small" 
-            :class="{ active: showStallMenuView }"
-            @click="showStallMenuView = !showStallMenuView"
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'assignment' }"
+            @click="menuSubTab = 'assignment'"
           >
-            {{ showStallMenuView ? '📋 Hide Stall View' : '🏪 Show Stall Menu View' }}
+            📋 Menu Assignment
+          </button>
+          <button 
+            class="sub-tab" 
+            :class="{ active: menuSubTab === 'performance' }"
+            @click="menuSubTab = 'performance'"
+          >
+            📊 Menu Performance
           </button>
         </div>
-
-        <!-- ===== STALL MENU VIEW ===== -->
-        <div v-if="showStallMenuView" class="stall-menu-view">
-          <div class="card-modern" style="border: 1px solid var(--primary);">
-            <div class="card-modern-header" style="background: var(--background);">
+        
+        <!-- MENU ASSIGNMENT SUB-TAB -->
+        <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
               <div>
-                <h4>🏪 Stall Menu Assignments</h4>
-                <span class="card-subtitle">{{ stalls.length }} stalls with menu assignments</span>
+                <h3>📋 Menu Assignment</h3>
+                <span class="card-subtitle">{{ filteredMenuItemsForAssignment.length }} menu items</span>
               </div>
-              <button @click="loadAllStallMenuAssignments" class="btn-modern secondary small">
-                ⟳ Refresh
-              </button>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+                <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
+              </div>
             </div>
-            <div class="card-modern-body" style="max-height: 400px; overflow-y: auto;">
-              <div v-if="loadingStallMenus" class="loading-state">
-                <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-                <p>Loading stall menu assignments...</p>
-              </div>
+            <div class="card-modern-body">
               
-              <div v-else-if="stallMenuAssignments.length === 0" class="empty-state-modern">
-                <span>🏪</span>
-                <p>No stalls found</p>
+              <!-- Stats Cards -->
+              <div class="inventory-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Items</span>
+                  <span class="stat-chip-value">{{ menuStats.total }}</span>
+                </div>
+                <div class="stat-chip active">
+                  <span class="stat-chip-label">Active</span>
+                  <span class="stat-chip-value">{{ menuStats.active }}</span>
+                </div>
+                <div class="stat-chip inactive">
+                  <span class="stat-chip-label">Inactive</span>
+                  <span class="stat-chip-value">{{ menuStats.inactive }}</span>
+                </div>
               </div>
-              
-              <div v-else>
-                <div v-for="stall in stallMenuAssignments" :key="stall.id" class="stall-menu-item">
-                  <div class="stall-menu-header" @click="toggleStallMenuExpand(stall.id)">
-                    <div class="stall-menu-info">
-                      <span class="stall-menu-name">{{ stall.name }}</span>
-                      <span class="stall-menu-code">{{ stall.code }}</span>
-                      <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
-                        {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
-                      </span>
-                      <span class="stall-menu-count">{{ stall.menus.length }} menus assigned</span>
+
+              <!-- STALL VIEW TOGGLE -->
+              <div class="stall-view-toggle" style="margin-bottom: 1rem;">
+                <button 
+                  class="btn-modern secondary small" 
+                  :class="{ active: showStallMenuView }"
+                  @click="showStallMenuView = !showStallMenuView"
+                >
+                  {{ showStallMenuView ? '📋 Hide Stall View' : '🏪 Show Stall Menu View' }}
+                </button>
+              </div>
+
+              <!-- STALL MENU VIEW -->
+              <div v-if="showStallMenuView" class="stall-menu-view">
+                <div class="card-modern" style="border: 1px solid var(--primary);">
+                  <div class="card-modern-header" style="background: var(--background);">
+                    <div>
+                      <h4>🏪 Stall Menu Assignments</h4>
+                      <span class="card-subtitle">{{ stalls.length }} stalls with menu assignments</span>
                     </div>
-                    <span class="stall-menu-toggle">{{ expandedStallMenus.includes(stall.id) ? '▲' : '▼' }}</span>
+                    <button @click="loadAllStallMenuAssignments" class="btn-modern secondary small">
+                      ⟳ Refresh
+                    </button>
                   </div>
-                  
-                  <div v-if="expandedStallMenus.includes(stall.id)" class="stall-menu-list">
-                    <div v-if="stall.menus.length === 0" class="empty-state-modern small">
-                      <span>📋</span>
-                      <p>No menus assigned to this stall</p>
+                  <div class="card-modern-body" style="max-height: 400px; overflow-y: auto;">
+                    <div v-if="loadingStallMenus" class="loading-state">
+                      <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                      <p>Loading stall menu assignments...</p>
                     </div>
+                    
+                    <div v-else-if="stallMenuAssignments.length === 0" class="empty-state-modern">
+                      <span>🏪</span>
+                      <p>No stalls found</p>
+                    </div>
+                    
                     <div v-else>
-                      <div v-for="menu in stall.menus" :key="menu" class="stall-menu-tag">
-                        <span class="menu-name">{{ menu }}</span>
+                      <div v-for="stall in stallMenuAssignments" :key="stall.id" class="stall-menu-item">
+                        <div class="stall-menu-header" @click="toggleStallMenuExpand(stall.id)">
+                          <div class="stall-menu-info">
+                            <span class="stall-menu-name">{{ stall.name }}</span>
+                            <span class="stall-menu-code">{{ stall.code }}</span>
+                            <span :class="['status-badge', stall.is_active ? 'active' : 'inactive']">
+                              {{ stall.is_active ? '🟢 Active' : '⚪ Inactive' }}
+                            </span>
+                            <span class="stall-menu-count">{{ stall.menus.length }} menus assigned</span>
+                          </div>
+                          <span class="stall-menu-toggle">{{ expandedStallMenus.includes(stall.id) ? '▲' : '▼' }}</span>
+                        </div>
+                        
+                        <div v-if="expandedStallMenus.includes(stall.id)" class="stall-menu-list">
+                          <div v-if="stall.menus.length === 0" class="empty-state-modern small">
+                            <span>📋</span>
+                            <p>No menus assigned to this stall</p>
+                          </div>
+                          <div v-else>
+                            <div v-for="menu in stall.menus" :key="menu" class="stall-menu-tag">
+                              <span class="menu-name">{{ menu }}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MODE TOGGLE -->
+              <div class="mode-toggle">
+                <button 
+                  class="mode-btn" 
+                  :class="{ active: assignMode === 'single' }"
+                  @click="assignMode = 'single'"
+                >
+                  🎯 Single Stall
+                </button>
+                <button 
+                  class="mode-btn" 
+                  :class="{ active: assignMode === 'bulk' }"
+                  @click="assignMode = 'bulk'"
+                >
+                  📦 Bulk Assign
+                </button>
+              </div>
+
+              <!-- SINGLE STALL MODE -->
+              <div v-if="assignMode === 'single'" class="assign-mode-content">
+                <!-- Filter Bar -->
+                <div class="filter-bar-modern">
+                  <div class="filter-search">
+                    <input 
+                      type="text" 
+                      v-model="menuSearch" 
+                      placeholder="Search menu items..." 
+                      class="filter-input"
+                      @input="resetMenuPagination"
+                    />
+                  </div>
+                  
+                  <div class="filter-group">
+                    <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
+                      <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                        {{ cat === 'all' ? 'All Categories' : cat }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="filter-actions">
+                    <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
+                      {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
+                    </button>
+                    <button @click="clearMenuFilters" class="btn-modern secondary small">
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Stall Selection -->
+                <div class="filter-bar" style="margin-bottom: 1rem;">
+                  <div class="filter-search">
+                    <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
+                    <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
+                      <option value="">-- Select a stall --</option>
+                      <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                        {{ stall.name }} ({{ stall.code }})
+                      </option>
+                    </select>
+                  </div>
+                  
+                  <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
+                    <button 
+                      @click="bulkAssignMenusToStalls" 
+                      class="btn-modern primary"
+                      :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
+                    >
+                      📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="!selectedAssignmentStall" class="empty-state-modern">
+                  <span>🏪</span>
+                  <p>Please select a stall to manage its menu</p>
+                </div>
+
+                <div v-else-if="loadingMenuAssignments" class="loading-state small">
+                  <div class="loading-spinner small"><div class="spinner-ring"></div></div>
+                  <p>Loading menu assignments...</p>
+                </div>
+
+                <div v-else>
+                  <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
+                    <span>📋</span>
+                    <p>No menu items found matching your criteria</p>
+                    <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                      Clear Filters
+                    </button>
+                  </div>
+
+                  <div v-else>
+                    <div class="menu-assignment-list">
+                      <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
+                        <div class="assignment-item-content">
+                          <div class="assignment-item-info">
+                            <div class="assignment-item-checkbox">
+                              <input 
+                                type="checkbox" 
+                                :id="`menu-${item.item_name}`" 
+                                v-model="menuAssignments[item.item_name]"
+                                :disabled="savingAssignment"
+                              />
+                              <label :for="`menu-${item.item_name}`" class="assignment-item-label">
+                                <span class="assignment-item-name">{{ item.item_name }}</span>
+                                <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
+                                <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="pagination-container">
+                      <div class="pagination-info">
+                        Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+                      </div>
+                      <div class="pagination-controls">
+                        <button 
+                          @click="prevMenuPage" 
+                          class="pagination-btn"
+                          :disabled="menuCurrentPage <= 1"
+                        >
+                          ◀ Previous
+                        </button>
+                        <span class="pagination-page">
+                          Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                        </span>
+                        <button 
+                          @click="nextMenuPage" 
+                          class="pagination-btn"
+                          :disabled="menuCurrentPage >= menuTotalPages"
+                        >
+                          Next ▶
+                        </button>
+                      </div>
+                    </div>
+
+                    <div v-if="selectedAssignmentStall" class="assignment-actions">
+                      <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
+                        {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
+                      </button>
+                      <button @click="resetMenuAssignments" class="btn-modern secondary">
+                        ↩ Reset
+                      </button>
+                    </div>
+
+                    <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
+                      {{ savedAssignmentMessage }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BULK ASSIGN MODE -->
+              <div v-if="assignMode === 'bulk'" class="assign-mode-content bulk-mode">
+                <!-- Step 1: Select Stalls -->
+                <div class="bulk-step">
+                  <div class="step-header">
+                    <span class="step-number">1</span>
+                    <h4>Select Stalls</h4>
+                    <span class="step-count">{{ selectedStallsForAssign.length }} / {{ stalls.length }} selected</span>
+                    <button @click="toggleAllStallsForAssign" class="btn-modern secondary small">
+                      {{ selectAllStallsForAssign ? 'Deselect All' : 'Select All' }}
+                    </button>
+                  </div>
+                  
+                  <div class="stall-checkbox-grid">
+                    <label v-for="stall in stalls" :key="stall.id" class="stall-checkbox-item">
+                      <input 
+                        type="checkbox" 
+                        :value="stall.id" 
+                        v-model="selectedStallsForAssign" 
+                      />
+                      <span class="stall-name">{{ stall.name }}</span>
+                      <span class="stall-code">{{ stall.code }}</span>
+                      <span class="stall-status" :class="stall.is_active ? 'active' : 'inactive'">
+                        {{ stall.is_active ? '🟢' : '⚪' }}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Step 2: Select Menus -->
+                <div class="bulk-step">
+                  <div class="step-header">
+                    <span class="step-number">2</span>
+                    <h4>Select Menus</h4>
+                    <span class="step-count">{{ selectedMenuItemsForBulk.length }} selected</span>
+                    <button @click="toggleAllMenusForBulk" class="btn-modern secondary small">
+                      {{ selectAllMenusForBulk ? 'Deselect All' : 'Select All' }}
+                    </button>
+                    <div class="filter-search" style="flex:1; min-width:150px;">
+                      <input 
+                        type="text" 
+                        v-model="bulkMenuSearch" 
+                        placeholder="Search menus..." 
+                        class="filter-input" 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div class="menu-checkbox-grid">
+                    <label 
+                      v-for="item in filteredBulkMenuItems" 
+                      :key="item.item_name" 
+                      class="menu-checkbox-item"
+                    >
+                      <input 
+                        type="checkbox" 
+                        :value="item.item_name" 
+                        v-model="selectedMenuItemsForBulk" 
+                      />
+                      <span class="menu-name">{{ item.item_name }}</span>
+                      <span class="menu-price">{{ formatCurrency(item.price) }}</span>
+                      <span class="menu-category">{{ item.category || 'Main' }}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Step 3: Execute -->
+                <div class="bulk-actions">
+                  <div class="bulk-summary">
+                    <strong>Summary:</strong> 
+                    {{ selectedMenuItemsForBulk.length }} menu(s) × {{ selectedStallsForAssign.length }} stall(s) = 
+                    <strong class="total-assignments">{{ selectedMenuItemsForBulk.length * selectedStallsForAssign.length }}</strong> assignments
+                  </div>
+                  
+                  <button 
+                    @click="executeBulkAssignToStalls" 
+                    class="btn-modern primary"
+                    :disabled="selectedStallsForAssign.length === 0 || selectedMenuItemsForBulk.length === 0 || bulkAssignToStallsLoading"
+                  >
+                    {{ bulkAssignToStallsLoading ? 'Assigning...' : `📦 Assign to ${selectedStallsForAssign.length} Stall(s)` }}
+                  </button>
+                </div>
+
+                <div v-if="bulkAssignMessage" class="assignment-message" :class="bulkAssignMessageType">
+                  {{ bulkAssignMessage }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- MENU PERFORMANCE SUB-TAB -->
+        <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📊 Menu Performance</h3>
+                <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              </div>
+            </div>
+            <div class="card-modern-body">
+              <!-- Stats Cards -->
+              <div class="menu-performance-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">📊 Total Items</span>
+                  <span class="stat-chip-value">{{ menuPerformance.length }}</span>
+                </div>
+                <div class="stat-chip revenue">
+                  <span class="stat-chip-label">💰 Total Revenue</span>
+                  <span class="stat-chip-value">{{ formatCurrency(menuPerformanceStats.totalRevenue) }}</span>
+                </div>
+                <div class="stat-chip top-item">
+                  <span class="stat-chip-label">🏆 Top Item</span>
+                  <span class="stat-chip-value">{{ menuPerformanceStats.topItemName }}</span>
+                  <span class="stat-chip-sub">{{ formatCurrency(menuPerformanceStats.topItemRevenue) }}</span>
+                </div>
+              </div>
+
+              <!-- Status Breakdown Cards -->
+              <div class="menu-performance-breakdown-grid">
+                <div class="stat-chip excellent">
+                  <span class="stat-chip-label">🟢 Excellent</span>
+                  <span class="stat-chip-value">{{ menuPerformanceBreakdown.excellent }}</span>
+                </div>
+                <div class="stat-chip good">
+                  <span class="stat-chip-label">🔵 Good</span>
+                  <span class="stat-chip-value">{{ menuPerformanceBreakdown.good }}</span>
+                </div>
+                <div class="stat-chip average">
+                  <span class="stat-chip-label">🟡 Average</span>
+                  <span class="stat-chip-value">{{ menuPerformanceBreakdown.average }}</span>
+                </div>
+                <div class="stat-chip poor">
+                  <span class="stat-chip-label">🔴 Poor</span>
+                  <span class="stat-chip-value">{{ menuPerformanceBreakdown.poor }}</span>
+                </div>
+                <div class="stat-chip no-sales">
+                  <span class="stat-chip-label">⚪ No Sales</span>
+                  <span class="stat-chip-value">{{ menuPerformanceBreakdown.noSales }}</span>
+                </div>
+              </div>
+
+              <!-- Filter Bar -->
+              <div class="filter-bar-modern">
+                <div class="filter-group">
+                  <select v-model="menuPerformanceCategoryFilter" class="filter-select" @change="resetMenuPerformancePagination">
+                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                      {{ cat === 'all' ? 'All Categories' : cat }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="menuPerformanceStateFilter" class="filter-select" @change="resetMenuPerformancePagination">
+                    <option v-for="state in malaysiaStates" :key="state" :value="state">
+                      {{ state }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="filter-actions">
+                  <button @click="clearMenuPerformanceFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Performance Table -->
+              <div v-if="filteredMenuPerformance.length === 0" class="empty-state-modern">
+                <span>📊</span>
+                <p>No sales data available for {{ getPeriodLabel() }}</p>
+                <button @click="clearMenuPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                  Clear Filters
+                </button>
+              </div>
+
+              <div v-else>
+                <div class="performance-table-wrapper">
+                  <!-- Table Header with Sort -->
+                  <div class="performance-table-header">
+                    <span class="performance-table-header-rank sortable" @click="sortMenuPerformance('rank')">
+                      Rank <span class="sort-arrow">{{ getMenuSortArrow('rank') }}</span>
+                    </span>
+                    <span class="performance-table-header-name sortable" @click="sortMenuPerformance('name')">
+                      Menu <span class="sort-arrow">{{ getMenuSortArrow('name') }}</span>
+                    </span>
+                    <span class="performance-table-header-revenue sortable" @click="sortMenuPerformance('revenue')">
+                      Revenue <span class="sort-arrow">{{ getMenuSortArrow('revenue') }}</span>
+                    </span>
+                    <span class="performance-table-header-status sortable" @click="sortMenuPerformance('status')">
+                      Status <span class="sort-arrow">{{ getMenuSortArrow('status') }}</span>
+                    </span>
+                    <span class="performance-table-header-details">Details</span>
+                  </div>
+                  
+                  <div class="performance-table-body">
+                    <div 
+                      v-for="(item, index) in paginatedMenuPerformance" 
+                      :key="item.name" 
+                      class="performance-table-row clickable-item"
+                      @click="viewMenuItemDetails(item)"
+                    >
+                      <!-- Rank -->
+                      <span class="performance-table-rank">
+                        <span class="rank-number" :class="getRankClass(index)">
+                          {{ index + 1 }}
+                        </span>
+                      </span>
+                      
+                      <!-- Menu Name + Bar -->
+                      <span class="performance-table-name">
+                        <span class="menu-name-text">{{ item.name }}</span>
+                        <span class="menu-name-bar">
+                          <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
+                        </span>
+                      </span>
+                      
+                      <!-- Revenue -->
+                      <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                      
+                      <!-- Status -->
+                      <span class="performance-table-status">
+                        <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
+                          {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
+                        </span>
+                      </span>
+                      
+                      <!-- Details -->
+                      <span class="performance-table-details">👆</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ menuPerformanceStartIndex }} - {{ menuPerformanceEndIndex }} of {{ filteredMenuPerformance.length }} items
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevMenuPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="menuPerformancePage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ menuPerformancePage }} of {{ menuPerformanceTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextMenuPerformancePage" 
+                      class="pagination-btn"
+                      :disabled="menuPerformancePage >= menuPerformanceTotalPages"
+                    >
+                      Next ▶
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- ===== MODE TOGGLE ===== -->
-        <div class="mode-toggle">
-          <button 
-            class="mode-btn" 
-            :class="{ active: assignMode === 'single' }"
-            @click="assignMode = 'single'"
-          >
-            🎯 Single Stall
-          </button>
-          <button 
-            class="mode-btn" 
-            :class="{ active: assignMode === 'bulk' }"
-            @click="assignMode = 'bulk'"
-          >
-            📦 Bulk Assign
-          </button>
+      <!-- ===== BULK ASSIGN TO STALLS MODAL ===== -->
+      <div v-if="bulkAssignModal" class="modal-overlay" @click.self="bulkAssignModal=false">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>📦 Bulk Assign Menus to Stalls</h3>
+            <button @click="bulkAssignModal=false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <!-- Summary -->
+            <div class="bulk-assign-summary">
+              <p>📋 <strong>{{ selectedMenuItems.length }}</strong> menu item(s) selected</p>
+              <p>🏪 <strong>{{ bulkAssignStalls.length }}</strong> stall(s) selected</p>
+              <p class="bulk-assign-total">
+                Total: <strong>{{ selectedMenuItems.length * bulkAssignStalls.length }}</strong> assignments
+              </p>
+            </div>
+
+            <!-- Stall Selection -->
+            <div class="bulk-assign-stalls">
+              <div class="bulk-assign-header">
+                <label class="bulk-assign-select-all">
+                  <input type="checkbox" v-model="selectAllBulkStalls" @change="toggleAllBulkStalls" />
+                  <strong>Select All Stalls</strong>
+                </label>
+                <span class="bulk-assign-count">{{ bulkAssignStalls.length }} / {{ stalls.length }} selected</span>
+              </div>
+              
+              <div class="bulk-assign-stall-list">
+                <label v-for="stall in stalls" :key="stall.id" class="bulk-assign-stall-item">
+                  <input 
+                    type="checkbox" 
+                    :value="stall.id"
+                    v-model="bulkAssignStalls"
+                  />
+                  <span class="stall-name">{{ stall.name }}</span>
+                  <span class="stall-code">{{ stall.code }}</span>
+                  <span :class="['stall-status', stall.is_active ? 'active' : 'inactive']">
+                    {{ stall.is_active ? '🟢' : '⚪' }}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="bulkAssignModal=false" class="btn-modern secondary">Cancel</button>
+            <button 
+              @click="executeBulkAssign" 
+              class="btn-modern primary"
+              :disabled="bulkAssignStalls.length === 0 || bulkAssignLoading"
+            >
+              {{ bulkAssignLoading ? 'Assigning...' : `📦 Assign to ${bulkAssignStalls.length} Stall(s)` }}
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- ========================================== -->
-        <!-- SINGLE STALL MODE (EXISTING)              -->
-        <!-- ========================================== -->
-        <div v-if="assignMode === 'single'" class="assign-mode-content">
-          <!-- Filter Bar -->
-          <div class="filter-bar-modern">
-            <div class="filter-search">
-              <input 
-                type="text" 
-                v-model="menuSearch" 
-                placeholder="Search menu items..." 
-                class="filter-input"
-                @input="resetMenuPagination"
-              />
+      <!-- ===== REVENUE TAB ===== -->
+      <div v-if="activeTab === 'revenue'" class="tab-panel">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>💰 Revenue Overview</h3>
+              <span class="card-subtitle">{{ getRevenuePeriodLabel }}</span>
             </div>
+            <div class="header-actions">
+              <button @click="refreshRevenueData" class="btn-modern secondary small">⟳ Refresh</button>
+              <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              <button @click="exportRevenueData" class="btn-modern primary small">📊 Export</button>
+            </div>
+          </div>
+          <div class="card-modern-body">
             
-            <div class="filter-group">
-              <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
-                <option v-for="cat in menuCategories" :key="cat" :value="cat">
-                  {{ cat === 'all' ? 'All Categories' : cat }}
-                </option>
-              </select>
+            <!-- Stats Cards -->
+            <div class="revenue-stats-grid">
+              <div class="stat-chip revenue">
+                <span class="stat-chip-label">💰 Total Revenue</span>
+                <span class="stat-chip-value">{{ formatCurrency(revenueStats.totalRevenue) }}</span>
+              </div>
+              <div class="stat-chip transactions">
+                <span class="stat-chip-label">📋 Total Transactions</span>
+                <span class="stat-chip-value">{{ formatNumber(revenueStats.totalTransactions) }}</span>
+              </div>
+              <div class="stat-chip average">
+                <span class="stat-chip-label">📊 Avg Transaction</span>
+                <span class="stat-chip-value">{{ formatCurrency(revenueStats.avgTransaction) }}</span>
+              </div>
+              <div class="stat-chip growth">
+                <span class="stat-chip-label">📈 Revenue Growth</span>
+                <span class="stat-chip-value" :class="revenueGrowth >= 0 ? 'positive' : 'negative'">
+                  {{ revenueGrowth >= 0 ? '↑' : '↓' }} {{ Math.abs(revenueGrowth).toFixed(1) }}%
+                </span>
+              </div>
+              <div class="stat-chip top-stall">
+                <span class="stat-chip-label">🏆 Top Stall</span>
+                <span class="stat-chip-value">{{ revenueStats.topStallName }}</span>
+                <span class="stat-chip-sub">{{ formatCurrency(revenueStats.topStallRevenue) }}</span>
+              </div>
             </div>
 
-            <div class="filter-actions">
-              <button @click="toggleSelectAllMenuItems" class="btn-modern secondary small">
-                {{ selectAllMenuItems ? 'Deselect All' : 'Select All' }}
-              </button>
-              <button @click="clearMenuFilters" class="btn-modern secondary small">
-                Clear Filters
-              </button>
+            <!-- Filter Bar -->
+            <div class="filter-bar-modern">
+              <div class="filter-group">
+                <select v-model="revenueStateFilter" class="filter-select" @change="resetRevenuePagination">
+                  <option v-for="state in malaysiaStates" :key="state" :value="state">
+                    {{ state }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <select v-model="revenueStallFilter" class="filter-select" @change="resetRevenuePagination">
+                  <option value="all">All Stalls</option>
+                  <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                    {{ stall.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-search" style="min-width: 150px;">
+                <input 
+                  type="text" 
+                  v-model="revenueSearch" 
+                  placeholder="Search stalls..." 
+                  class="filter-input"
+                  @input="resetRevenuePagination"
+                />
+              </div>
+
+              <div class="filter-actions">
+                <button @click="clearRevenueFilters" class="btn-modern secondary small">
+                  Clear Filters
+                </button>
+              </div>
             </div>
-          </div>
 
-          <!-- Stall Selection (Single Stall) -->
-          <div class="filter-bar" style="margin-bottom: 1rem;">
-            <div class="filter-search">
-              <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Select Stall</label>
-              <select v-model="selectedAssignmentStall" class="filter-select" style="width: 100%;">
-                <option value="">-- Select a stall --</option>
-                <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-                  {{ stall.name }} ({{ stall.code }})
-                </option>
-              </select>
+            <!-- Revenue Charts -->
+            <div class="revenue-charts-grid">
+              <div class="revenue-chart-card">
+                <h4>📈 Revenue by Stall</h4>
+                <div ref="revenueChartRef" class="revenue-chart-container"></div>
+              </div>
+              
+              <div class="revenue-chart-card">
+                <h4>📍 Revenue by State</h4>
+                <div ref="revenueStateChartRef" class="revenue-chart-container"></div>
+              </div>
             </div>
-            
-            <!-- Single Stall Assign Button -->
-            <div style="display: flex; align-items: flex-end; padding-bottom: 0.25rem;">
-              <button 
-                @click="bulkAssignMenusToStalls" 
-                class="btn-modern primary"
-                :disabled="selectedMenuItems.length === 0 || !selectedAssignmentStall || savingAssignment"
-              >
-                📦 Assign Selected ({{ selectedMenuItemsCount }}) to Stall
-              </button>
+
+            <!-- Revenue Table -->
+            <div v-if="revenueLoading" class="loading-state">
+              <div class="loading-spinner"><div class="spinner-ring"></div></div>
+              <p>Loading revenue data...</p>
             </div>
-          </div>
 
-          <div v-if="!selectedAssignmentStall" class="empty-state-modern">
-            <span>🏪</span>
-            <p>Please select a stall to manage its menu</p>
-          </div>
-
-          <div v-else-if="loadingMenuAssignments" class="loading-state small">
-            <div class="loading-spinner small"><div class="spinner-ring"></div></div>
-            <p>Loading menu assignments...</p>
-          </div>
-
-          <div v-else>
-            <div v-if="filteredMenuItemsForAssignment.length === 0" class="empty-state-modern">
-              <span>📋</span>
-              <p>No menu items found matching your criteria</p>
-              <button @click="clearMenuFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+            <div v-else-if="filteredRevenueData.length === 0" class="empty-state-modern">
+              <span>💰</span>
+              <p>No revenue data available for the selected filters</p>
+              <button @click="clearRevenueFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
                 Clear Filters
               </button>
             </div>
 
             <div v-else>
-              <div class="menu-assignment-list">
-                <div v-for="item in paginatedMenuItems" :key="item.item_name" class="assignment-item">
-                  <div class="assignment-item-content">
-                    <div class="assignment-item-info">
-                      <div class="assignment-item-checkbox">
-                        <input 
-                          type="checkbox" 
-                          :id="`menu-${item.item_name}`" 
-                          v-model="menuAssignments[item.item_name]"
-                          :disabled="savingAssignment"
-                        />
-                        <label :for="`menu-${item.item_name}`" class="assignment-item-label">
-                          <span class="assignment-item-name">{{ item.item_name }}</span>
-                          <span class="assignment-item-price">{{ formatCurrency(item.price) }}</span>
-                          <span class="assignment-item-category">{{ item.category || 'Main' }}</span>
-                        </label>
-                      </div>
-                    </div>
+              <div class="revenue-table-wrapper">
+                <!-- Table Header -->
+                <div class="revenue-table-header">
+                  <span class="revenue-table-header-rank">Rank</span>
+                  <span class="revenue-table-header-name">Stall</span>
+                  <span class="revenue-table-header-state">State</span>
+                  <span class="revenue-table-header-revenue">Revenue</span>
+                  <span class="revenue-table-header-status">Status</span>
+                  <span class="revenue-table-header-details">Details</span>
+                </div>
+                
+                <!-- Table Body -->
+                <div class="revenue-table-body">
+                  <div 
+                    v-for="(item, index) in paginatedRevenueData" 
+                    :key="item.id" 
+                    class="revenue-table-row clickable-item"
+                    @click="viewAllTransactions(item)"
+                  >
+                    <span class="revenue-table-rank">
+                      <span class="rank-number" :class="getRankClass(index)">
+                        {{ index + 1 }}
+                      </span>
+                    </span>
+                    
+                    <span class="revenue-table-name">
+                      <span class="stall-name-text">{{ item.name }}</span>
+                      <span class="stall-code-text">{{ item.code }}</span>
+                    </span>
+                    
+                    <span class="revenue-table-state">
+                      <span class="state-tag">{{ item.state || '-' }}</span>
+                    </span>
+                    
+                    <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                    
+                    <span class="revenue-table-status">
+                      <span :class="['status-indicator', getRevenueStatusClass(item)]">
+                        {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
+                      </span>
+                    </span>
+                    
+                    <span class="revenue-table-details">
+                      <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
+                        📋
+                      </button>
+                    </span>
                   </div>
                 </div>
               </div>
-
+              
               <!-- Pagination Controls -->
               <div class="pagination-container">
                 <div class="pagination-info">
-                  Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForAssignment.length }} menu items
+                  Showing {{ revenueStartIndex }} - {{ revenueEndIndex }} of {{ filteredRevenueData.length }} stalls
                 </div>
                 <div class="pagination-controls">
                   <button 
-                    @click="prevMenuPage" 
+                    @click="prevRevenuePage" 
                     class="pagination-btn"
-                    :disabled="menuCurrentPage <= 1"
+                    :disabled="revenuePage <= 1"
                   >
                     ◀ Previous
                   </button>
                   <span class="pagination-page">
-                    Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                    Page {{ revenuePage }} of {{ revenueTotalPages }}
                   </span>
                   <button 
-                    @click="nextMenuPage" 
+                    @click="nextRevenuePage" 
                     class="pagination-btn"
-                    :disabled="menuCurrentPage >= menuTotalPages"
+                    :disabled="revenuePage >= revenueTotalPages"
                   >
                     Next ▶
                   </button>
                 </div>
               </div>
-
-              <div v-if="selectedAssignmentStall" class="assignment-actions">
-                <button @click="saveMenuAssignments" class="btn-modern primary" :disabled="savingAssignment">
-                  {{ savingAssignment ? 'Saving...' : '💾 Save Assignments' }}
-                </button>
-                <button @click="resetMenuAssignments" class="btn-modern secondary">
-                  ↩ Reset
-                </button>
-              </div>
-
-              <div v-if="savedAssignmentMessage" class="assignment-message" :class="savedAssignmentType">
-                {{ savedAssignmentMessage }}
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- ========================================== -->
-        <!-- BULK ASSIGN MODE (NEW)                     -->
-        <!-- ========================================== -->
-        <div v-if="assignMode === 'bulk'" class="assign-mode-content bulk-mode">
-          
-          <!-- Step 1: Select Stalls -->
-          <div class="bulk-step">
-            <div class="step-header">
-              <span class="step-number">1</span>
-              <h4>Select Stalls</h4>
-              <span class="step-count">{{ selectedStallsForAssign.length }} / {{ stalls.length }} selected</span>
-              <button @click="toggleAllStallsForAssign" class="btn-modern secondary small">
-                {{ selectAllStallsForAssign ? 'Deselect All' : 'Select All' }}
-              </button>
+      <!-- ===== TRANSACTIONS TAB ===== -->
+      <div v-if="activeTab === 'transactions'" class="tab-panel transactions-tab">
+        <div class="card-modern">
+          <div class="card-modern-header">
+            <div>
+              <h3>📋 Transactions</h3>
+              <span class="card-subtitle">{{ filteredTransactions.length }} transactions found</span>
             </div>
-            
-            <div class="stall-checkbox-grid">
-              <label v-for="stall in stalls" :key="stall.id" class="stall-checkbox-item">
-                <input 
-                  type="checkbox" 
-                  :value="stall.id" 
-                  v-model="selectedStallsForAssign" 
-                />
-                <span class="stall-name">{{ stall.name }}</span>
-                <span class="stall-code">{{ stall.code }}</span>
-                <span class="stall-status" :class="stall.is_active ? 'active' : 'inactive'">
-                  {{ stall.is_active ? '🟢' : '⚪' }}
-                </span>
-              </label>
+            <div class="header-actions">
+              <button @click="refreshTransactions" class="btn-modern secondary small">⟳ Refresh</button>
+              <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+              <button @click="exportTransactions" class="btn-modern primary small">📊 Export</button>
             </div>
           </div>
+          <div class="card-modern-body">
+            
+            <!-- Stats Cards -->
+            <div class="transactions-stats-grid">
+              <div class="stat-chip">
+                <span class="stat-chip-label">📊 Total Transactions</span>
+                <span class="stat-chip-value">{{ transactionStats.total }}</span>
+              </div>
+              <div class="stat-chip revenue">
+                <span class="stat-chip-label">💰 Total Revenue</span>
+                <span class="stat-chip-value">{{ formatCurrency(transactionStats.totalRevenue) }}</span>
+              </div>
+              <div class="stat-chip average">
+                <span class="stat-chip-label">📈 Avg Transaction</span>
+                <span class="stat-chip-value">{{ formatCurrency(transactionStats.average) }}</span>
+              </div>
+              <div class="stat-chip active">
+                <span class="stat-chip-label">✅ Completed</span>
+                <span class="stat-chip-value">{{ transactionStats.completed }}</span>
+              </div>
+              <div class="stat-chip warning">
+                <span class="stat-chip-label">⏳ Pending</span>
+                <span class="stat-chip-value">{{ transactionStats.pending }}</span>
+              </div>
+            </div>
 
-          <!-- Step 2: Select Menus -->
-          <div class="bulk-step">
-            <div class="step-header">
-              <span class="step-number">2</span>
-              <h4>Select Menus</h4>
-              <span class="step-count">{{ selectedMenuItemsForBulk.length }} selected</span>
-              <button @click="toggleAllMenusForBulk" class="btn-modern secondary small">
-                {{ selectAllMenusForBulk ? 'Deselect All' : 'Select All' }}
-              </button>
-              <div class="filter-search" style="flex:1; min-width:150px;">
+            <!-- Filter Bar -->
+            <div class="filter-bar-modern">
+              <div class="filter-search">
                 <input 
                   type="text" 
-                  v-model="bulkMenuSearch" 
-                  placeholder="Search menus..." 
-                  class="filter-input" 
+                  v-model="transactionSearch" 
+                  placeholder="Search by order ID or stall..." 
+                  class="filter-input"
+                  @input="resetTransactionPagination"
                 />
               </div>
+              
+              <div class="filter-group">
+                <select v-model="transactionStallFilter" class="filter-select" @change="resetTransactionPagination">
+                  <option value="all">All Stalls</option>
+                  <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
+                    {{ stall.name }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <select v-model="transactionStatusFilter" class="filter-select" @change="resetTransactionPagination">
+                  <option value="all">All Status</option>
+                  <option value="completed">✅ Completed</option>
+                  <option value="pending">⏳ Pending</option>
+                  <option value="failed">❌ Failed</option>
+                </select>
+              </div>
+
+              <div class="filter-actions">
+                <button @click="clearTransactionFilters" class="btn-modern secondary small">
+                  Clear Filters
+                </button>
+              </div>
             </div>
-            
-            <div class="menu-checkbox-grid">
-              <label 
-                v-for="item in filteredBulkMenuItems" 
-                :key="item.item_name" 
-                class="menu-checkbox-item"
-              >
-                <input 
-                  type="checkbox" 
-                  :value="item.item_name" 
-                  v-model="selectedMenuItemsForBulk" 
-                />
-                <span class="menu-name">{{ item.item_name }}</span>
-                <span class="menu-price">{{ formatCurrency(item.price) }}</span>
-                <span class="menu-category">{{ item.category || 'Main' }}</span>
-              </label>
+
+            <!-- Transactions Table -->
+            <div v-if="transactionsLoading" class="loading-state">
+              <div class="loading-spinner"><div class="spinner-ring"></div></div>
+              <p>Loading transactions...</p>
             </div>
-          </div>
 
-          <!-- Step 3: Execute -->
-          <div class="bulk-actions">
-            <div class="bulk-summary">
-              <strong>Summary:</strong> 
-              {{ selectedMenuItemsForBulk.length }} menu(s) × {{ selectedStallsForAssign.length }} stall(s) = 
-              <strong class="total-assignments">{{ selectedMenuItemsForBulk.length * selectedStallsForAssign.length }}</strong> assignments
+            <div v-else-if="filteredTransactions.length === 0" class="empty-state-modern">
+              <span>📭</span>
+              <p>No transactions found matching your criteria</p>
+              <button @click="clearTransactionFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
+                Clear Filters
+              </button>
             </div>
-            
-            <button 
-              @click="executeBulkAssignToStalls" 
-              class="btn-modern primary"
-              :disabled="selectedStallsForAssign.length === 0 || selectedMenuItemsForBulk.length === 0 || bulkAssignToStallsLoading"
-            >
-              {{ bulkAssignToStallsLoading ? 'Assigning...' : `📦 Assign to ${selectedStallsForAssign.length} Stall(s)` }}
-            </button>
-          </div>
 
-          <div v-if="bulkAssignMessage" class="assignment-message" :class="bulkAssignMessageType">
-            {{ bulkAssignMessage }}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- ========================================== -->
-  <!-- MENU PERFORMANCE SUB-TAB                   -->
-  <!-- ========================================== -->
-  <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
-    <div class="card-modern">
-      <div class="card-modern-header">
-        <div>
-          <h3>📊 Menu Performance</h3>
-          <span class="card-subtitle">All menu items ranked by sales for {{ getPeriodLabel() }}</span>
-        </div>
-        <div class="header-actions">
-          <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
-          <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        </div>
-      </div>
-      <div class="card-modern-body">
-        
-        <!-- Stats Cards - Overview -->
-        <div class="menu-performance-stats-grid">
-          <div class="stat-chip">
-            <span class="stat-chip-label">📊 Total Items</span>
-            <span class="stat-chip-value">{{ menuPerformance.length }}</span>
-          </div>
-          <div class="stat-chip revenue">
-            <span class="stat-chip-label">💰 Total Revenue</span>
-            <span class="stat-chip-value">{{ formatCurrency(menuPerformanceStats.totalRevenue) }}</span>
-          </div>
-          <div class="stat-chip top-item">
-            <span class="stat-chip-label">🏆 Top Item</span>
-            <span class="stat-chip-value">{{ menuPerformanceStats.topItemName }}</span>
-            <span class="stat-chip-sub">{{ formatCurrency(menuPerformanceStats.topItemRevenue) }}</span>
-          </div>
-        </div>
-
-        <!-- Status Breakdown Cards -->
-        <div class="menu-performance-breakdown-grid">
-          <div class="stat-chip excellent">
-            <span class="stat-chip-label">🟢 Excellent</span>
-            <span class="stat-chip-value">{{ menuPerformanceBreakdown.excellent }}</span>
-          </div>
-          <div class="stat-chip good">
-            <span class="stat-chip-label">🔵 Good</span>
-            <span class="stat-chip-value">{{ menuPerformanceBreakdown.good }}</span>
-          </div>
-          <div class="stat-chip average">
-            <span class="stat-chip-label">🟡 Average</span>
-            <span class="stat-chip-value">{{ menuPerformanceBreakdown.average }}</span>
-          </div>
-          <div class="stat-chip poor">
-            <span class="stat-chip-label">🔴 Poor</span>
-            <span class="stat-chip-value">{{ menuPerformanceBreakdown.poor }}</span>
-          </div>
-          <div class="stat-chip no-sales">
-            <span class="stat-chip-label">⚪ No Sales</span>
-            <span class="stat-chip-value">{{ menuPerformanceBreakdown.noSales }}</span>
-          </div>
-        </div>
-
-        <!-- Filter Bar -->
-        <div class="filter-bar-modern">
-          <div class="filter-group">
-            <select v-model="menuPerformanceCategoryFilter" class="filter-select" @change="resetMenuPerformancePagination">
-              <option v-for="cat in menuCategories" :key="cat" :value="cat">
-                {{ cat === 'all' ? 'All Categories' : cat }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="filter-group">
-            <select v-model="menuPerformanceStateFilter" class="filter-select" @change="resetMenuPerformancePagination">
-              <option v-for="state in malaysiaStates" :key="state" :value="state">
-                {{ state }}
-              </option>
-            </select>
-          </div>
-
-          <div class="filter-actions">
-            <button @click="clearMenuPerformanceFilters" class="btn-modern secondary small">
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        <!-- Performance Table with Pagination -->
-        <div v-if="filteredMenuPerformance.length === 0" class="empty-state-modern">
-          <span>📊</span>
-          <p>No sales data available for {{ getPeriodLabel() }}</p>
-          <button @click="clearMenuPerformanceFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-            Clear Filters
-          </button>
-        </div>
-
-        <div v-else>
-          <div class="performance-table-wrapper">
-            <!-- Table Header with Sort -->
-            <div class="performance-table-header">
-              <span class="performance-table-header-rank sortable" @click="sortMenuPerformance('rank')">
-                Rank <span class="sort-arrow">{{ getMenuSortArrow('rank') }}</span>
-              </span>
-              <span class="performance-table-header-name sortable" @click="sortMenuPerformance('name')">
-                Menu <span class="sort-arrow">{{ getMenuSortArrow('name') }}</span>
-              </span>
-              <span class="performance-table-header-revenue sortable" @click="sortMenuPerformance('revenue')">
-                Revenue <span class="sort-arrow">{{ getMenuSortArrow('revenue') }}</span>
-              </span>
-              <span class="performance-table-header-status sortable" @click="sortMenuPerformance('status')">
-                Status <span class="sort-arrow">{{ getMenuSortArrow('status') }}</span>
-              </span>
-              <span class="performance-table-header-details">Details</span>
-            </div>
-            
-            <div class="performance-table-body">
-              <div 
-                v-for="(item, index) in paginatedMenuPerformance" 
-                :key="item.name" 
-                class="performance-table-row clickable-item"
-                @click="viewMenuItemDetails(item)"
-              >
-                <span class="performance-table-rank">
-                  <span class="rank-number" :class="getRankClass(index)">
-                    {{ index + 1 }}
+            <div v-else>
+              <!-- Table - EXACTLY like Revenue Table -->
+              <div class="revenue-table-wrapper">
+                <!-- Table Header -->
+                <div class="revenue-table-header">
+                  <span class="revenue-table-header-rank">Order</span>
+                  <span class="revenue-table-header-name">Stall</span>
+                  <span class="revenue-table-header-revenue">Amount</span>
+                  <span class="revenue-table-header-status">Status</span>
+                  <span class="revenue-table-header-state">Date</span>
+                  <span class="revenue-table-header-details">Details</span>
+                </div>
+                
+                <!-- Table Body -->
+                <div class="revenue-table-body">
+                  <div 
+                    v-for="(tx, index) in paginatedTransactions" 
+                    :key="tx.id" 
+                    class="revenue-table-row clickable-item"
+                    @click="viewTransactionDetails(tx)"
+                  >
+                    <!-- Order ID -->
+                    <span class="revenue-table-rank">
+                      <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
+                    </span>
+                    
+                    <!-- Stall Name -->
+                    <span class="revenue-table-name">
+                      <span class="stall-name-text">{{ tx.stall_name || '-' }}</span>
+                    </span>
+                    
+                    <!-- Amount -->
+                    <span class="revenue-table-revenue">{{ formatCurrency(tx.total_amount || 0) }}</span>
+                    
+                    <!-- Status -->
+                    <span class="revenue-table-status">
+                      <span :class="['status-indicator', tx.status || 'completed']">
+                        {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
+                      </span>
+                    </span>
+                    
+                    <!-- Date -->
+                    <span class="revenue-table-state">
+                      <span class="state-tag">{{ formatTableDate(tx.created_at) }}</span>
+                    </span>
+                    
+                    <!-- Details -->
+                    <span class="revenue-table-details">
+                      <button @click.stop="viewTransactionDetails(tx)" class="btn-view-transactions" title="View Details">
+                        👁️
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Pagination Controls -->
+              <div class="pagination-container">
+                <div class="pagination-info">
+                  Showing {{ transactionStartIndex }} - {{ transactionEndIndex }} of {{ filteredTransactions.length }} transactions
+                </div>
+                <div class="pagination-controls">
+                  <button 
+                    @click="prevTransactionPage" 
+                    class="pagination-btn"
+                    :disabled="transactionPage <= 1"
+                  >
+                    ◀ Previous
+                  </button>
+                  <span class="pagination-page">
+                    Page {{ transactionPage }} of {{ transactionTotalPages }}
                   </span>
-                </span>
-                
-                <span class="performance-table-name">
-                  <span class="menu-name-text">{{ item.name }}</span>
-                  <span class="menu-name-bar">
-                    <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
-                  </span>
-                </span>
-                
-                <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-                
-                <span class="performance-table-status">
-                  <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
-                    {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
-                  </span>
-                </span>
-                
-                <span class="performance-table-details">👆</span>
+                  <button 
+                    @click="nextTransactionPage" 
+                    class="pagination-btn"
+                    :disabled="transactionPage >= transactionTotalPages"
+                  >
+                    Next ▶
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Pagination Controls -->
-          <div class="pagination-container">
-            <div class="pagination-info">
-              Showing {{ menuPerformanceStartIndex }} - {{ menuPerformanceEndIndex }} of {{ filteredMenuPerformance.length }} items
-            </div>
-            <div class="pagination-controls">
-              <button 
-                @click="prevMenuPerformancePage" 
-                class="pagination-btn"
-                :disabled="menuPerformancePage <= 1"
-              >
-                ◀ Previous
-              </button>
-              <span class="pagination-page">
-                Page {{ menuPerformancePage }} of {{ menuPerformanceTotalPages }}
-              </span>
-              <button 
-                @click="nextMenuPerformancePage" 
-                class="pagination-btn"
-                :disabled="menuPerformancePage >= menuPerformanceTotalPages"
-              >
-                Next ▶
-              </button>
-            </div>
-          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ========================================== -->
-<!-- BULK ASSIGN TO STALLS MODAL                -->
-<!-- ========================================== -->
-<div v-if="bulkAssignModal" class="modal-overlay" @click.self="bulkAssignModal=false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>📦 Bulk Assign Menus to Stalls</h3>
-      <button @click="bulkAssignModal=false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      <!-- Summary -->
-      <div class="bulk-assign-summary">
-        <p>📋 <strong>{{ selectedMenuItems.length }}</strong> menu item(s) selected</p>
-        <p>🏪 <strong>{{ bulkAssignStalls.length }}</strong> stall(s) selected</p>
-        <p class="bulk-assign-total">
-          Total: <strong>{{ selectedMenuItems.length * bulkAssignStalls.length }}</strong> assignments
-        </p>
-      </div>
-
-      <!-- Stall Selection -->
-      <div class="bulk-assign-stalls">
-        <div class="bulk-assign-header">
-          <label class="bulk-assign-select-all">
-            <input type="checkbox" v-model="selectAllBulkStalls" @change="toggleAllBulkStalls" />
-            <strong>Select All Stalls</strong>
-          </label>
-          <span class="bulk-assign-count">{{ bulkAssignStalls.length }} / {{ stalls.length }} selected</span>
-        </div>
-        
-        <div class="bulk-assign-stall-list">
-          <label v-for="stall in stalls" :key="stall.id" class="bulk-assign-stall-item">
-            <input 
-              type="checkbox" 
-              :value="stall.id"
-              v-model="bulkAssignStalls"
-            />
-            <span class="stall-name">{{ stall.name }}</span>
-            <span class="stall-code">{{ stall.code }}</span>
-            <span :class="['stall-status', stall.is_active ? 'active' : 'inactive']">
-              {{ stall.is_active ? '🟢' : '⚪' }}
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="bulkAssignModal=false" class="btn-modern secondary">Cancel</button>
-      <button 
-        @click="executeBulkAssign" 
-        class="btn-modern primary"
-        :disabled="bulkAssignStalls.length === 0 || bulkAssignLoading"
-      >
-        {{ bulkAssignLoading ? 'Assigning...' : `📦 Assign to ${bulkAssignStalls.length} Stall(s)` }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== REVENUE TAB ===== -->
-<div v-if="activeTab === 'revenue'" class="tab-panel">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>💰 Revenue Overview</h3>
-        <span class="card-subtitle">{{ getRevenuePeriodLabel }}</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshRevenueData" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="exportRevenueData" class="btn-modern primary small">📊 Export</button>
-      </div>
-    </div>
-    <div class="card-modern-body">
-      
-      <!-- Stats Cards -->
-      <div class="revenue-stats-grid">
-        <div class="stat-chip revenue">
-          <span class="stat-chip-label">💰 Total Revenue</span>
-          <span class="stat-chip-value">{{ formatCurrency(revenueStats.totalRevenue) }}</span>
-        </div>
-        <div class="stat-chip transactions">
-          <span class="stat-chip-label">📋 Total Transactions</span>
-          <span class="stat-chip-value">{{ formatNumber(revenueStats.totalTransactions) }}</span>
-        </div>
-        <div class="stat-chip average">
-          <span class="stat-chip-label">📊 Avg Transaction</span>
-          <span class="stat-chip-value">{{ formatCurrency(revenueStats.avgTransaction) }}</span>
-        </div>
-        <div class="stat-chip growth">
-          <span class="stat-chip-label">📈 Revenue Growth</span>
-          <span class="stat-chip-value" :class="revenueGrowth >= 0 ? 'positive' : 'negative'">
-            {{ revenueGrowth >= 0 ? '↑' : '↓' }} {{ Math.abs(revenueGrowth).toFixed(1) }}%
-          </span>
-        </div>
-        <div class="stat-chip top-stall">
-          <span class="stat-chip-label">🏆 Top Stall</span>
-          <span class="stat-chip-value">{{ revenueStats.topStallName }}</span>
-          <span class="stat-chip-sub">{{ formatCurrency(revenueStats.topStallRevenue) }}</span>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        
-        
-        <div class="filter-group">
-          <select v-model="revenueStateFilter" class="filter-select" @change="resetRevenuePagination">
-            <option v-for="state in malaysiaStates" :key="state" :value="state">
-              {{ state }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="revenueStallFilter" class="filter-select" @change="resetRevenuePagination">
-            <option value="all">All Stalls</option>
-            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-              {{ stall.name }}
-            </option>
-          </select>
-        </div>
-
-        <div class="filter-search" style="min-width: 150px;">
-          <input 
-            type="text" 
-            v-model="revenueSearch" 
-            placeholder="Search stalls..." 
-            class="filter-input"
-            @input="resetRevenuePagination"
-          />
-        </div>
-
-        <div class="filter-actions">
-          <button @click="clearRevenueFilters" class="btn-modern secondary small">
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      <!-- Revenue Charts -->
-      <div class="revenue-charts-grid">
-        <div class="revenue-chart-card">
-          <h4>📈 Revenue by Stall</h4>
-          <div ref="revenueChartRef" class="revenue-chart-container"></div>
-        </div>
-        
-        <div class="revenue-chart-card">
-          <h4>📍 Revenue by State</h4>
-          <div ref="revenueStateChartRef" class="revenue-chart-container"></div>
-        </div>
-      </div>
-
-      <!-- Revenue Table -->
-      <div v-if="revenueLoading" class="loading-state">
-        <div class="loading-spinner"><div class="spinner-ring"></div></div>
-        <p>Loading revenue data...</p>
-      </div>
-
-      <div v-else-if="filteredRevenueData.length === 0" class="empty-state-modern">
-        <span>💰</span>
-        <p>No revenue data available for the selected filters</p>
-        <button @click="clearRevenueFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-          Clear Filters
-        </button>
-      </div>
-
-      <div v-else>
-        <div class="revenue-table-wrapper">
-          <!-- Table Header -->
-          <div class="revenue-table-header">
-            <span class="revenue-table-header-rank">Rank</span>
-            <span class="revenue-table-header-name">Stall</span>
-            <span class="revenue-table-header-state">State</span>
-            <span class="revenue-table-header-revenue">Revenue</span>
-            <span class="revenue-table-header-status">Status</span>
-            <span class="revenue-table-header-details">Details</span>
-          </div>
-          
-          <!-- Table Body -->
-          <div class="revenue-table-body">
-            <div 
-              v-for="(item, index) in paginatedRevenueData" 
-              :key="item.id" 
-              class="revenue-table-row clickable-item"
-              @click="viewAllTransactions(item)"
-            >
-              <span class="revenue-table-rank">
-                <span class="rank-number" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
-              </span>
-              
-              <span class="revenue-table-name">
-                <span class="stall-name-text">{{ item.name }}</span>
-                <span class="stall-code-text">{{ item.code }}</span>
-              </span>
-              
-              <span class="revenue-table-state">
-                <span class="state-tag">{{ item.state || '-' }}</span>
-              </span>
-              
-              <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
-              
-              <span class="revenue-table-status">
-                <span :class="['status-indicator', getRevenueStatusClass(item)]">
-                  {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
-                </span>
-              </span>
-              
-              <span class="revenue-table-details">
-                <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
-                  📋
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ revenueStartIndex }} - {{ revenueEndIndex }} of {{ filteredRevenueData.length }} stalls
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevRevenuePage" 
-              class="pagination-btn"
-              :disabled="revenuePage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ revenuePage }} of {{ revenueTotalPages }}
-            </span>
-            <button 
-              @click="nextRevenuePage" 
-              class="pagination-btn"
-              :disabled="revenuePage >= revenueTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div> <!-- ✅ REVENUE TAB CLOSED -->
-
-<!-- ===== TRANSACTIONS TAB ===== -->
-<div v-if="activeTab === 'transactions'" class="tab-panel transactions-tab">
-  <div class="card-modern">
-    <div class="card-modern-header">
-      <div>
-        <h3>📋 Transactions</h3>
-        <span class="card-subtitle">{{ filteredTransactions.length }} transactions found</span>
-      </div>
-      <div class="header-actions">
-        <button @click="refreshTransactions" class="btn-modern secondary small">⟳ Refresh</button>
-        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-        <button @click="exportTransactions" class="btn-modern primary small">📊 Export</button>
-      </div>
-    </div>
-    <div class="card-modern-body">
-      
-      <!-- Stats Cards -->
-      <div class="transactions-stats-grid">
-        <div class="stat-chip">
-          <span class="stat-chip-label">📊 Total Transactions</span>
-          <span class="stat-chip-value">{{ transactionStats.total }}</span>
-        </div>
-        <div class="stat-chip revenue">
-          <span class="stat-chip-label">💰 Total Revenue</span>
-          <span class="stat-chip-value">{{ formatCurrency(transactionStats.totalRevenue) }}</span>
-        </div>
-        <div class="stat-chip average">
-          <span class="stat-chip-label">📈 Avg Transaction</span>
-          <span class="stat-chip-value">{{ formatCurrency(transactionStats.average) }}</span>
-        </div>
-        <div class="stat-chip active">
-          <span class="stat-chip-label">✅ Completed</span>
-          <span class="stat-chip-value">{{ transactionStats.completed }}</span>
-        </div>
-        <div class="stat-chip warning">
-          <span class="stat-chip-label">⏳ Pending</span>
-          <span class="stat-chip-value">{{ transactionStats.pending }}</span>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-bar-modern">
-        <div class="filter-search">
-          <input 
-            type="text" 
-            v-model="transactionSearch" 
-            placeholder="Search by order ID or stall..." 
-            class="filter-input"
-            @input="resetTransactionPagination"
-          />
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="transactionStallFilter" class="filter-select" @change="resetTransactionPagination">
-            <option value="all">All Stalls</option>
-            <option v-for="stall in stalls" :key="stall.id" :value="stall.id">
-              {{ stall.name }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <select v-model="transactionStatusFilter" class="filter-select" @change="resetTransactionPagination">
-            <option value="all">All Status</option>
-            <option value="completed">✅ Completed</option>
-            <option value="pending">⏳ Pending</option>
-            <option value="failed">❌ Failed</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button @click="clearTransactionFilters" class="btn-modern secondary small">
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      <!-- Transactions Table -->
-      <div v-if="transactionsLoading" class="loading-state">
-        <div class="loading-spinner"><div class="spinner-ring"></div></div>
-        <p>Loading transactions...</p>
-      </div>
-
-      <div v-else-if="filteredTransactions.length === 0" class="empty-state-modern">
-        <span>📭</span>
-        <p>No transactions found matching your criteria</p>
-        <button @click="clearTransactionFilters" class="btn-modern primary small" style="margin-top: 0.5rem;">
-          Clear Filters
-        </button>
-      </div>
-
-      <div v-else>
-        <!-- Table - EXACTLY like Revenue Table -->
-        <div class="revenue-table-wrapper">
-          <!-- Table Header -->
-          <div class="revenue-table-header">
-            <span class="revenue-table-header-rank">Order</span>
-            <span class="revenue-table-header-name">Stall</span>
-            <span class="revenue-table-header-revenue">Amount</span>
-            <span class="revenue-table-header-status">Status</span>
-            <span class="revenue-table-header-state">Date</span>
-            <span class="revenue-table-header-details">Details</span>
-          </div>
-          
-          <!-- Table Body -->
-          <div class="revenue-table-body">
-            <div 
-              v-for="(tx, index) in paginatedTransactions" 
-              :key="tx.id" 
-              class="revenue-table-row clickable-item"
-              @click="viewTransactionDetails(tx)"
-            >
-              <!-- Order ID -->
-              <span class="revenue-table-rank">
-                <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
-              </span>
-              
-              <!-- Stall Name -->
-              <span class="revenue-table-name">
-                <span class="stall-name-text">{{ tx.stall_name || '-' }}</span>
-              </span>
-              
-              <!-- Amount -->
-              <span class="revenue-table-revenue">{{ formatCurrency(tx.total_amount || 0) }}</span>
-              
-              <!-- Status -->
-              <span class="revenue-table-status">
-                <span :class="['status-indicator', tx.status || 'completed']">
-                  {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
-                </span>
-              </span>
-              
-              <!-- Date -->
-              <span class="revenue-table-state">
-                <span class="state-tag">{{ formatTableDate(tx.created_at) }}</span>
-              </span>
-              
-              <!-- Details -->
-              <span class="revenue-table-details">
-                <button @click.stop="viewTransactionDetails(tx)" class="btn-view-transactions" title="View Details">
-                  👁️
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Showing {{ transactionStartIndex }} - {{ transactionEndIndex }} of {{ filteredTransactions.length }} transactions
-          </div>
-          <div class="pagination-controls">
-            <button 
-              @click="prevTransactionPage" 
-              class="pagination-btn"
-              :disabled="transactionPage <= 1"
-            >
-              ◀ Previous
-            </button>
-            <span class="pagination-page">
-              Page {{ transactionPage }} of {{ transactionTotalPages }}
-            </span>
-            <button 
-              @click="nextTransactionPage" 
-              class="pagination-btn"
-              :disabled="transactionPage >= transactionTotalPages"
-            >
-              Next ▶
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div> <!-- ✅ TRANSACTIONS TAB CLOSED -->
 
       <!-- ============================================ -->
       <!-- MODALS                                       -->
       <!-- ============================================ -->
 
       <!-- ===== TRANSACTION DETAILS MODAL ===== -->
-<div v-if="transactionDetailModal" class="modal-overlay" @click.self="transactionDetailModal = false">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>📋 Transaction #{{ selectedTransaction?.order_number || 'N/A' }}</h3>
-      <button @click="transactionDetailModal = false" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-      
-      <!-- Transaction Info -->
-      <div class="transaction-detail-grid">
-        <div class="transaction-detail-card">
-          <span class="detail-label">Order ID</span>
-          <span class="detail-value">#{{ selectedTransaction?.order_number || 'N/A' }}</span>
-        </div>
-        <div class="transaction-detail-card">
-          <span class="detail-label">Stall</span>
-          <span class="detail-value">{{ selectedTransaction?.stall_name || '-' }}</span>
-        </div>
-        <div class="transaction-detail-card">
-          <span class="detail-label">Total Amount</span>
-          <span class="detail-value">{{ formatCurrency(selectedTransaction?.total_amount || 0) }}</span>
-        </div>
-        <div class="transaction-detail-card">
-          <span class="detail-label">Status</span>
-          <span :class="['status-badge', selectedTransaction?.status || 'completed']">
-            {{ getTransactionStatusEmoji(selectedTransaction?.status) }} {{ selectedTransaction?.status || 'Completed' }}
-          </span>
-        </div>
-        <div class="transaction-detail-card">
-          <span class="detail-label">📅 Date & Time</span>
-          <span class="detail-value">{{ formatFullDateTime(selectedTransaction?.created_at) }}</span>
-        </div>
-        <div class="transaction-detail-card">
-          <span class="detail-label">👤 Processed By</span>
-          <span class="detail-value"> {{ getProcessedByName(selectedTransaction) }}
-  </span>
+      <div v-if="transactionDetailModal" class="modal-overlay" @click.self="transactionDetailModal = false">
+        <div class="modal-modern modal-lg">
+          <div class="modal-modern-header">
+            <h3>📋 Transaction #{{ selectedTransaction?.order_number || 'N/A' }}</h3>
+            <button @click="transactionDetailModal = false" class="modal-close-btn">✕</button>
+          </div>
+          <div class="modal-modern-body">
+            <!-- Transaction Info -->
+            <div class="transaction-detail-grid">
+              <div class="transaction-detail-card">
+                <span class="detail-label">Order ID</span>
+                <span class="detail-value">#{{ selectedTransaction?.order_number || 'N/A' }}</span>
+              </div>
+              <div class="transaction-detail-card">
+                <span class="detail-label">Stall</span>
+                <span class="detail-value">{{ selectedTransaction?.stall_name || '-' }}</span>
+              </div>
+              <div class="transaction-detail-card">
+                <span class="detail-label">Total Amount</span>
+                <span class="detail-value">{{ formatCurrency(selectedTransaction?.total_amount || 0) }}</span>
+              </div>
+              <div class="transaction-detail-card">
+                <span class="detail-label">Status</span>
+                <span :class="['status-badge', selectedTransaction?.status || 'completed']">
+                  {{ getTransactionStatusEmoji(selectedTransaction?.status) }} {{ selectedTransaction?.status || 'Completed' }}
+                </span>
+              </div>
+              <div class="transaction-detail-card">
+                <span class="detail-label">📅 Date & Time</span>
+                <span class="detail-value">{{ formatFullDateTime(selectedTransaction?.created_at) }}</span>
+              </div>
+              <div class="transaction-detail-card">
+                <span class="detail-label">👤 Processed By</span>
+                <span class="detail-value"> {{ getProcessedByName(selectedTransaction) }}</span>
+              </div>
+            </div>
+            
+            <!-- Items List -->
+            <div class="transaction-items-section">
+              <h4>🛒 Items</h4>
+              
+              <div v-if="getTransactionItems(selectedTransaction).length > 0" class="transaction-items-list">
+                <div class="transaction-items-header">
+                  <span class="item-header-name">Item</span>
+                  <span class="item-header-qty">Qty</span>
+                  <span class="item-header-price">Price</span>
+                  <span class="item-header-total">Total</span>
+                </div>
+                <div 
+                  v-for="(item, idx) in getTransactionItems(selectedTransaction)" 
+                  :key="idx" 
+                  class="transaction-item-row"
+                >
+                  <span class="item-name">{{ getItemName(item) }}</span>
+                  <span class="item-qty">× {{ getItemQuantity(item) }}</span>
+                  <span class="item-price">{{ formatCurrency(getItemPrice(item)) }}</span>
+                  <span class="item-total">{{ formatCurrency(getItemTotal(item)) }}</span>
+                </div>
+              </div>
+              <div v-else class="empty-state-modern small">
+                <span>📭</span>
+                <p>No items found for this transaction</p>
+                <p style="font-size: 0.6rem; color: var(--text-tertiary);">
+                  Raw data: {{ selectedTransaction?.items ? JSON.stringify(selectedTransaction.items).substring(0, 100) : 'null' }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-modern-footer">
+            <button @click="transactionDetailModal = false" class="btn-modern secondary">Close</button>
+          </div>
         </div>
       </div>
-      
-     <!-- ✅ REPLACE the items section with this: -->
-<!-- Items List -->
-<div class="transaction-items-section">
-  <h4>🛒 Items</h4>
-  
-  <div v-if="getTransactionItems(selectedTransaction).length > 0" class="transaction-items-list">
-    <div class="transaction-items-header">
-      <span class="item-header-name">Item</span>
-      <span class="item-header-qty">Qty</span>
-      <span class="item-header-price">Price</span>
-      <span class="item-header-total">Total</span>
-    </div>
-    <div 
-      v-for="(item, idx) in getTransactionItems(selectedTransaction)" 
-      :key="idx" 
-      class="transaction-item-row"
-    >
-      <span class="item-name">{{ getItemName(item) }}</span>
-      <span class="item-qty">× {{ getItemQuantity(item) }}</span>
-      <span class="item-price">{{ formatCurrency(getItemPrice(item)) }}</span>
-      <span class="item-total">{{ formatCurrency(getItemTotal(item)) }}</span>
-    </div>
-  </div>
-  <div v-else class="empty-state-modern small">
-    <span>📭</span>
-    <p>No items found for this transaction</p>
-    <p style="font-size: 0.6rem; color: var(--text-tertiary);">
-      Raw data: {{ selectedTransaction?.items ? JSON.stringify(selectedTransaction.items).substring(0, 100) : 'null' }}
-    </p>
-  </div>
-</div>
-      
-    </div>
-    <div class="modal-modern-footer">
-      <button @click="transactionDetailModal = false" class="btn-modern secondary">Close</button>
-    </div>
-  </div>
-</div>
-      
+
       <!-- STALL MODAL -->
       <div v-if="stallModal" class="modal-overlay" @click.self="stallModal=false">
         <div class="modal-modern">
@@ -3003,9 +2978,9 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
+    </div> <!-- closes tab-content -->
+  </div> <!-- closes sa-dashboard -->
 </template>
 
 <script>
