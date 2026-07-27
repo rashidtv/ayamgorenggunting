@@ -127,12 +127,12 @@
               />
               
               <!-- Stall Admin -->
-<StallAdminPanel
-  v-else-if="user.role === 'stall_admin'"
-  :token="token || ''"
-  :user="user"                    <!-- ✅ ADD THIS -->
-  @show-notification="showNotification"
-/>
+              <StallAdminPanel
+                v-else-if="user.role === 'stall_admin'"
+                :token="token || ''"
+                :user="user"
+                @show-notification="showNotification"
+              />
               
               <!-- Cashier -->
               <StallView
@@ -169,9 +169,9 @@
             <div class="notification-progress" :style="{ width: notification.progress + '%' }"></div>
           </div>
         </transition-group>
-      </div>
+      </div> <!-- ← This was missing! -->
 
-            <!-- Global Footer -->
+      <!-- Global Footer -->
       <GlobalFooter />
     </div>
   </div>
