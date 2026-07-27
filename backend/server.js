@@ -201,6 +201,107 @@ async function userCanAccessStall(userId, stallId) {
   return assRes.rowCount > 0;
 }
 
+// ============================================
+// INVENTORY HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Deduct inventory for a list of items sold
+ * @param {Object} client - Database client (for transactions)
+ * @param {number} stallId - The stall ID
+ * @param {Array} items - Array of {itemName, quantity} objects
+ * @param {boolean} skipIfNoRecipe - If true, skip items without recipes (default: false)
+ * @returns {Object} { success: boolean, details: { deducted: [], skipped: [], errors: [] } }
+ */
+async function deductInventoryForItems(client, stallId, items, skipIfNoRecipe = false) {
+  const result = {
+    success: true,
+    details: {
+      deducted: [],
+      skipped: [],
+      errors: []
+    }
+  };
+
+  for (const item of items) {
+    const quantity = item.quantity || 1;
+    const itemName = item.itemName || item.item_name || item.name;
+    
+    if (!itemName) {
+      result.details.errors.push({ item: item, error: 'Missing item name' });
+      continue;
+    }
+
+    // Get recipe for this item
+    const recipeRes = await client.query(
+      'SELECT material_name, quantity_used FROM recipes WHERE item_name = $1',
+      [itemName]
+    );
+    
+    // If no recipe found
+    if (recipeRes.rows.length === 0) {
+      if (skipIfNoRecipe) {
+        result.details.skipped.push({ itemName, reason: 'No recipe found' });
+      } else {
+        result.details.errors.push({ itemName, error: 'No recipe found' });
+        result.success = false;
+      }
+      continue;
+    }
+    
+    // Deduct each ingredient
+    for (const ingredient of recipeRes.rows) {
+      const totalDeduction = ingredient.quantity_used * quantity;
+      
+      // Check if stock is available
+      const stockCheck = await client.query(
+        'SELECT current_level FROM inventory WHERE stall_id = $1 AND material_name = $2',
+        [stallId, ingredient.material_name]
+      );
+      
+      let currentLevel = 0;
+      if (stockCheck.rows.length === 0) {
+        // No inventory record - create one with default values
+        const alertLevel = ingredient.material_name === 'Chicken' ? 10 : 5;
+        await client.query(
+          `INSERT INTO inventory (stall_id, material_name, current_level, alert_level) 
+           VALUES ($1, $2, $3, $4)`,
+          [stallId, ingredient.material_name, 100, alertLevel]
+        );
+        currentLevel = 100;
+        console.log(`📦 Created inventory record for ${ingredient.material_name} at stall ${stallId}`);
+      } else {
+        currentLevel = parseFloat(stockCheck.rows[0].current_level) || 0;
+      }
+      
+      // Warn if low stock (but continue)
+      if (currentLevel < totalDeduction) {
+        console.warn(`⚠️ Low stock for ${ingredient.material_name}: ${currentLevel} available, ${totalDeduction} needed`);
+        // We continue anyway - don't block sales due to inventory
+      }
+      
+      // Deduct inventory
+      await client.query(
+        `UPDATE inventory 
+         SET current_level = current_level - $1, 
+             updated_at = CURRENT_TIMESTAMP 
+         WHERE stall_id = $2 AND material_name = $3`,
+        [totalDeduction, stallId, ingredient.material_name]
+      );
+      
+      result.details.deducted.push({
+        itemName,
+        material: ingredient.material_name,
+        quantityUsed: ingredient.quantity_used,
+        totalDeduction,
+        remaining: Math.max(0, currentLevel - totalDeduction)
+      });
+    }
+  }
+  
+  return result;
+}
+
 // ==================== AUTHENTICATION ====================
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -585,24 +686,23 @@ app.post('/api/sell', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
     const utcNow = new Date().toISOString();
     
+    // Record sale
     await client.query(
       'INSERT INTO sales (stall_id, item_name, price, created_at) VALUES ($1, $2, $3, $4)',
       [targetStallId, itemName, price, utcNow]
     );
     
-    const recipeRes = await client.query('SELECT material_name, quantity_used FROM recipes WHERE item_name = $1', [itemName]);
+    // ✅ Use the same helper for inventory deduction
+    const items = [{ itemName, quantity: 1 }];
+    const inventoryResult = await deductInventoryForItems(
+      client,
+      targetStallId,
+      items,
+      true // skipIfNoRecipe
+    );
     
-    if (recipeRes.rows.length > 0) {
-      for (const recipe of recipeRes.rows) {
-        await client.query(
-          `UPDATE inventory SET current_level = current_level - $1, updated_at = CURRENT_TIMESTAMP
-           WHERE stall_id = $2 AND material_name = $3`,
-          [recipe.quantity_used, targetStallId, recipe.material_name]
-        );
-      }
-      console.log(`✅ Sold ${itemName}, updated inventory for ${recipeRes.rows.length} ingredients`);
-    } else {
-      console.log(`ℹ️ ${itemName} sold (no recipe, inventory not updated)`);
+    if (inventoryResult.details.errors.length > 0) {
+      console.warn(`⚠️ Inventory errors for ${itemName}:`, inventoryResult.details.errors);
     }
     
     await client.query('COMMIT');
@@ -1877,8 +1977,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // ✅ NEW: Get active shift for this stall (if exists)
-    // This is safe - if no shift, shiftId = null
+    // Get active shift for this stall
     const shiftResult = await client.query(
       `SELECT id FROM shifts WHERE stall_id = $1 AND status = 'open' LIMIT 1`,
       [targetStallId]
@@ -1887,49 +1986,61 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    // ✅ MODIFIED: Added shift_id to INSERT (safe - column may not exist yet)
-    // Using a conditional INSERT that works whether column exists or not
-    let insertQuery, insertParams;
+    const orderResult = await client.query(
+      `INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id, shift_id)
+       VALUES ($1, $2, $3, $4, 'completed', $5, $6)
+       RETURNING id, order_number, total_amount, item_count`,
+      [targetStallId, orderNumber, total, itemCount || items.length, req.user.id, shiftId]
+    );
     
-    // Check if shift_id column exists
-    const columnCheck = await client.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'orders' AND column_name = 'shift_id'
-      )
-    `);
-    
-    if (columnCheck.rows[0].exists) {
-      insertQuery = `
-        INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id, shift_id)
-        VALUES ($1, $2, $3, $4, 'completed', $5, $6)
-        RETURNING id, order_number, total_amount, item_count
-      `;
-      insertParams = [targetStallId, orderNumber, total, itemCount || items.length, req.user.id, shiftId];
-    } else {
-      // Fallback for safety (shouldn't happen if migration ran)
-      insertQuery = `
-        INSERT INTO orders (stall_id, order_number, total_amount, item_count, status, user_id)
-        VALUES ($1, $2, $3, $4, 'completed', $5)
-        RETURNING id, order_number, total_amount, item_count
-      `;
-      insertParams = [targetStallId, orderNumber, total, itemCount || items.length, req.user.id];
-    }
-    
-    const orderResult = await client.query(insertQuery, insertParams);
     const order = orderResult.rows[0];
 
+    // ✅ Process sales entries first (always record sales regardless of inventory)
+    const salesItems = [];
     for (const item of items) {
       const quantity = item.quantity || 1;
       for (let i = 0; i < quantity; i++) {
-        const utcNow = new Date().toISOString();
-        
-        await client.query(
-          `INSERT INTO sales (stall_id, item_name, price, order_id, created_at)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [targetStallId, item.itemName, item.price, order.id, utcNow]
-        );
+        salesItems.push({
+          itemName: item.itemName,
+          price: item.price
+        });
       }
+    }
+
+    // Insert sales records
+    for (const sale of salesItems) {
+      const utcNow = new Date().toISOString();
+      await client.query(
+        `INSERT INTO sales (stall_id, item_name, price, order_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [targetStallId, sale.itemName, sale.price, order.id, utcNow]
+      );
+    }
+
+    // ✅ Deduct inventory using the helper function
+    // Format items for the helper
+    const inventoryItems = items.map(item => ({
+      itemName: item.itemName,
+      quantity: item.quantity || 1
+    }));
+    
+    // Deduct inventory (skip items without recipes, don't block the sale)
+    const inventoryResult = await deductInventoryForItems(
+      client, 
+      targetStallId, 
+      inventoryItems, 
+      true // skipIfNoRecipe = true (don't fail if no recipe)
+    );
+    
+    // Log inventory deduction results (for debugging)
+    if (inventoryResult.details.deducted.length > 0) {
+      console.log(`✅ Inventory deducted: ${inventoryResult.details.deducted.length} items`);
+    }
+    if (inventoryResult.details.skipped.length > 0) {
+      console.log(`ℹ️ Skipped inventory for: ${inventoryResult.details.skipped.map(s => s.itemName).join(', ')}`);
+    }
+    if (inventoryResult.details.errors.length > 0) {
+      console.warn(`⚠️ Inventory errors:`, inventoryResult.details.errors);
     }
 
     await client.query('COMMIT');
@@ -1940,7 +2051,13 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       orderNumber: order.order_number,
       total: parseFloat(order.total_amount),
       itemCount: parseInt(order.item_count),
-      shiftId: shiftId, // ← NEW: include shiftId in response (optional)
+      shiftId: shiftId,
+      // Include inventory info in response (useful for debugging)
+      inventory: {
+        deducted: inventoryResult.details.deducted.length,
+        skipped: inventoryResult.details.skipped.length,
+        errors: inventoryResult.details.errors.length
+      },
       message: 'Order created successfully'
     });
 

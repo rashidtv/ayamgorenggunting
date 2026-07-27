@@ -541,8 +541,8 @@
                 />
                 <span class="inventory-count-unit">pieces</span>
                 <span class="inventory-count-usage" v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
-                  Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
-                </span>
+  Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
+</span>
               </div>
             </div>
             <small>Enter the current stock count for each ingredient</small>
@@ -634,6 +634,17 @@ export default {
     }
   },
   computed: {
+
+    inventoryUsage() {
+    const usage = {};
+    this.processedInventory.forEach(item => {
+      const opening = this.shift.inventoryCounts[item.material_name] || 0;
+      const ending = this.shift.endingInventory[item.material_name] || 0;
+      usage[item.material_name] = Math.max(0, opening - ending);
+    });
+    return usage;
+  }
+},
     // ===== Shift computed =====
     shiftStatus() {
       if (!this.shift || !this.shift.enabled) return false;
@@ -795,17 +806,58 @@ export default {
     },
 
     // === OPEN SHIFT ===
-    openShiftModal() {
-      if (!this.shift || !this.shift.enabled) return;
+   // In StallView.vue - Update the openShiftModal method
+
+openShiftModal() {
+  if (!this.shift || !this.shift.enabled) return;
+  
+  // ✅ Get the previous shift's ending cash and inventory
+  this.getPreviousShiftData();
+  
+  this.shift.notes = '';
+  this.shift.showOpenModal = true;
+},
+
+async getPreviousShiftData() {
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    // Get the most recent closed shift for this stall
+    const res = await axios.get(
+      `${API_BASE}/shifts/history?stallId=${this.stallId}&limit=1&status=closed`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    const shifts = res.data.shifts || [];
+    if (shifts.length > 0) {
+      const prevShift = shifts[0];
+      // Use the previous shift's ending cash as starting float
+      this.shift.floatInput = parseFloat(prevShift.ending_cash) || 0;
+      
+      // If the previous shift had closing inventory, use it as opening inventory
+      if (prevShift.closing_inventory) {
+        this.shift.inventoryCounts = { ...prevShift.closing_inventory };
+      } else {
+        // Fallback to current stock
+        this.processedInventory.forEach(item => {
+          this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
+        });
+      }
+    } else {
+      // No previous shift, use current stock
       this.shift.floatInput = 0;
-      this.shift.notes = '';
-      // Initialize inventory counts from current stock
-      this.shift.inventoryCounts = {};
       this.processedInventory.forEach(item => {
         this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
       });
-      this.shift.showOpenModal = true;
-    },
+    }
+  } catch (err) {
+    console.warn('Failed to get previous shift data:', err);
+    // Fallback to current stock
+    this.shift.floatInput = 0;
+    this.processedInventory.forEach(item => {
+      this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
+    });
+  }
+},
 
     closeOpenShiftModal() {
       this.shift.showOpenModal = false;
