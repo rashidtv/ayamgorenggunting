@@ -3568,12 +3568,69 @@ app.get('/api/shifts/:shiftId', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
-    const txResult = await pool.query(
+    // ✅ Calculate revenue from orders linked to this shift
+    const stats = await pool.query(
+      `SELECT 
+         COALESCE(SUM(total_amount), 0) as revenue,
+         COUNT(*) as transaction_count
+       FROM orders 
+       WHERE shift_id = $1 AND status = 'completed'`,
+      [shiftId]
+    );
+    
+    const revenue = parseFloat(stats.rows[0].revenue) || 0;
+    const transactionCount = parseInt(stats.rows[0].transaction_count) || 0;
+    
+    // ✅ Also include unlinked orders in the same time range (for backward compatibility)
+    const unlinkedStats = await pool.query(
+      `SELECT 
+         COALESCE(SUM(total_amount), 0) as revenue,
+         COUNT(*) as transaction_count
+       FROM orders 
+       WHERE stall_id = $1 
+       AND (shift_id IS NULL OR shift_id != $2)
+       AND created_at >= $3
+       AND created_at <= COALESCE($4, NOW())
+       AND status = 'completed'`,
+      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
+    );
+    
+    const unlinkedRevenue = parseFloat(unlinkedStats.rows[0].revenue) || 0;
+    const unlinkedCount = parseInt(unlinkedStats.rows[0].transaction_count) || 0;
+    
+    // ✅ Combine both
+    const totalRevenue = revenue + unlinkedRevenue;
+    const totalCount = transactionCount + unlinkedCount;
+    
+    // ✅ Get transactions (orders) for this shift - COMBINED
+    // Get linked orders
+    const linkedOrders = await pool.query(
       `SELECT * FROM orders WHERE shift_id = $1 ORDER BY created_at DESC`,
       [shiftId]
     );
     
-    shift.transactions = txResult.rows;
+    // Get unlinked orders in the same time range
+    const unlinkedOrders = await pool.query(
+      `SELECT * FROM orders 
+       WHERE stall_id = $1 
+       AND (shift_id IS NULL OR shift_id != $2)
+       AND created_at >= $3
+       AND created_at <= COALESCE($4, NOW())
+       AND status = 'completed'
+       ORDER BY created_at DESC`,
+      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
+    );
+    
+    // ✅ Combine both sets of orders
+    const allTransactions = [...linkedOrders.rows, ...unlinkedOrders.rows];
+    // Sort by created_at descending
+    allTransactions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    // ✅ Update shift with combined values
+    shift.revenue = totalRevenue;
+    shift.transaction_count = totalCount;
+    shift.total_revenue = totalRevenue; // For backward compatibility
+    shift.transactions = allTransactions;
     
     res.json(shift);
   } catch (err) {
