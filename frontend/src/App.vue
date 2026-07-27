@@ -1358,4 +1358,118 @@ input:focus-visible {
   background: #fee2e2;
   color: #dc2626;
 }
+
+/* Shift history inventory tags */
+.shift-history-inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  padding: 0.2rem 0;
+}
+
+.inventory-usage-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.05rem 0.4rem;
+  background: var(--background);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.no-inventory-data {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Shift detail inventory grid */
+.shift-detail-inventory {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.shift-detail-inventory h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.inventory-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.inventory-detail-header {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr 0.8fr;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.inventory-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr 0.8fr;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.8rem;
+  align-items: center;
+}
+
+.inventory-detail-row:last-child {
+  border-bottom: none;
+}
+
+.inventory-detail-usage.used {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.inventory-detail-usage.zero {
+  color: var(--text-tertiary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .shift-history-inventory {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  
+  .inventory-usage-tag {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .inventory-detail-header,
+  .inventory-detail-row {
+    grid-template-columns: 1fr 0.6fr 0.6fr 0.6fr;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .shift-history-inventory {
+    width: 100%;
+  }
+  
+  .inventory-detail-header,
+  .inventory-detail-row {
+    grid-template-columns: 1fr 0.5fr 0.5fr 0.5fr;
+    font-size: 0.65rem;
+  }
+}
 </style>

@@ -486,40 +486,50 @@
           <button @click="handleCloseShiftModalClose" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
-          <div class="shift-summary-grid">
-            <div class="shift-summary-item">
-              <span class="label">Opened</span>
-              <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
-            </div>
-            <div class="shift-summary-item">
-              <span class="label">Revenue</span>
-              <span class="value revenue">{{ formatCurrency(shiftRevenue) }}</span>
-            </div>
-            <div class="shift-summary-item">
-              <span class="label">Transactions</span>
-              <span class="value">{{ todayTransactions.length }}</span>
-            </div>
-            <div class="shift-summary-item">
-              <span class="label">Starting Float</span>
-              <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
-            </div>
-            <div class="shift-summary-item">
-              <span class="label">Expected Cash</span>
-              <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenue) }}</span>
-            </div>
-            <div class="shift-summary-item">
-              <span class="label">Ending Cash <span class="required">*</span></span>
-              <input 
-                type="number" 
-                v-model.number="shift.endingCash" 
-                placeholder="Enter cash count"
-                min="0"
-                step="0.01"
-                class="filter-input"
-                required
-              />
-            </div>
-          </div>
+          <!-- In the close shift modal -->
+<div class="shift-summary-grid">
+  <div class="shift-summary-item">
+    <span class="label">Opened</span>
+    <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Shift Revenue</span>
+    <span class="value revenue">{{ formatCurrency(shiftRevenue) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Shift Orders</span>
+    <span class="value">{{ shift.shiftTransactions?.length || 0 }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Starting Float</span>
+    <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Expected Cash</span>
+    <span class="value">{{ formatCurrency(shiftExpectedCash) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Ending Cash <span class="required">*</span></span>
+    <input 
+      type="number" 
+      v-model.number="shift.endingCash" 
+      placeholder="Enter cash count"
+      min="0"
+      step="0.01"
+      class="filter-input"
+      required
+    />
+  </div>
+</div>
+
+<!-- Variance display -->
+<div v-if="shift.endingCash > 0" class="shift-variance" :class="getShiftVarianceClass()">
+  <strong>Variance:</strong> 
+  {{ formatCurrency(shiftVariance) }}
+  <span v-if="shiftVariance > 0">(Over)</span>
+  <span v-else-if="shiftVariance < 0">(Short)</span>
+  <span v-else>(Balanced ✅)</span>
+</div>
           
           <div class="modal-form-group" style="margin-top: 1rem;">
             <label>📦 Closing Inventory Count <span class="required">*</span></label>
@@ -596,6 +606,7 @@ export default {
         startTime: null,
         startingFloat: 0,
         revenue: 0,
+        dailyRevenue: 0, 
         todayTransactions: [],
         showOpenModal: false,
         showCloseModal: false,
@@ -605,7 +616,8 @@ export default {
         closeNotes: '',
         loading: false,
         inventoryCounts: {},
-        endingInventory: {}
+        endingInventory: {},
+        shiftTransactions: []
       },
       inventory: [],
       processedInventory: [],
@@ -641,9 +653,23 @@ export default {
       return this.shift.currentShift || null;
     },
     shiftRevenue() {
-      if (!this.shift || !this.shift.enabled) return 0;
-      return this.shift.revenue || 0;
-    },
+    // ✅ Return shift-specific revenue, not daily revenue
+    if (!this.shift || !this.shift.enabled) return 0;
+    return this.shift.revenue || 0;
+  },
+  dailyRevenue() {
+    // ✅ NEW: Daily revenue (for display only)
+    if (!this.shift || !this.shift.enabled) return 0;
+    return this.shift.dailyRevenue || 0;
+  },
+  shiftExpectedCash() {
+    // ✅ NEW: Expected cash for this shift only
+    return this.shiftStartingFloat + this.shiftRevenue;
+  },
+  shiftVariance() {
+    // ✅ NEW: Variance for this shift only
+    return this.shift.endingCash - this.shiftExpectedCash;
+  },
     todayTransactions() {
       if (!this.shift || !this.shift.enabled) return [];
       return this.shift.todayTransactions || [];
@@ -726,6 +752,13 @@ export default {
     clearInterval(this.interval);
   },
   methods: {
+
+    getShiftVarianceClass() {
+  const variance = this.shiftVariance;
+  if (variance > 0) return 'over';
+  if (variance < 0) return 'short';
+  return 'balanced';
+},
     formatCurrency,
     formatNumber,
 
@@ -771,27 +804,46 @@ export default {
     },
 
     async loadTodayTransactions() {
-      if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+  if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+  
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const today = new Date().toISOString().split('T')[0];
+    
+    // ✅ Get all today's transactions (for display)
+    const allTxRes = await axios.get(
+      `${API_BASE}/transactions?stallId=${this.stallId}&date=${today}&limit=100`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    this.shift.todayTransactions = allTxRes.data || [];
+    
+    // ✅ Calculate daily revenue (for display only)
+    this.shift.dailyRevenue = this.shift.todayTransactions.reduce((sum, tx) => 
+      sum + parseFloat(tx.total_amount || 0), 0
+    );
+    
+    // ✅ Get transactions for this specific shift
+    if (this.shift.currentShift) {
+      const shiftRes = await axios.get(
+        `${API_BASE}/shifts/${this.shift.currentShift.id}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
       
-      try {
-        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-        const today = new Date().toISOString().split('T')[0];
-        const res = await axios.get(
-          `${API_BASE}/transactions?stallId=${this.stallId}&date=${today}&limit=100`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        );
-        this.shift.todayTransactions = res.data || [];
-        
-        this.shift.revenue = this.shift.todayTransactions.reduce((sum, tx) => 
-          sum + parseFloat(tx.total_amount || 0), 0
-        );
-        
-        this.resetTodayPagination();
-      } catch (err) {
-        console.warn('Failed to load today transactions:', err);
-        this.shift.todayTransactions = [];
-      }
-    },
+      // Update shift revenue from the API response
+      this.shift.revenue = parseFloat(shiftRes.data.revenue) || 0;
+      this.shift.shiftTransactions = shiftRes.data.transactions || [];
+    }
+    
+    // Reset pagination
+    this.resetTodayPagination();
+    
+  } catch (err) {
+    console.warn('Failed to load transactions:', err);
+    this.shift.todayTransactions = [];
+    this.shift.revenue = 0;
+    this.shift.dailyRevenue = 0;
+  }
+},
 
     // === OPEN SHIFT ===
     async getPreviousShiftData() {

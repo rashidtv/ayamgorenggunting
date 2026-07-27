@@ -3541,7 +3541,6 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     const params = [stallId];
     let paramIndex = 2;
     
-    // ✅ Add date range filters if provided
     if (from) {
       queryText += ` AND s.opened_at >= $${paramIndex}`;
       params.push(from);
@@ -3573,7 +3572,19 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
       variance: parseFloat(shift.variance) || 0,
       expected_cash: parseFloat(shift.expected_cash) || 0,
       ending_cash: parseFloat(shift.ending_cash) || 0,
-      total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0)
+      total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
+      // ✅ Include inventory data
+      opening_inventory: shift.opening_inventory || {},
+      closing_inventory: shift.closing_inventory || {},
+      // ✅ Calculate usage
+      inventory_usage: shift.opening_inventory && shift.closing_inventory 
+        ? Object.keys(shift.opening_inventory).reduce((acc, key) => {
+            const opening = parseFloat(shift.opening_inventory[key]) || 0;
+            const closing = parseFloat(shift.closing_inventory[key]) || 0;
+            acc[key] = Math.max(0, opening - closing);
+            return acc;
+          }, {})
+        : {}
     }));
     
     const countResult = await pool.query(

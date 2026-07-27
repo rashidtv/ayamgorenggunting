@@ -977,42 +977,56 @@
         <!-- Shift History Table -->
 <div class="shift-history-table-wrapper">
   <!-- Table Header -->
-  <div class="shift-history-table-header">
-    <span class="shift-history-header-date">Date</span>
-    <span class="shift-history-header-stall">Stall</span>
-    <span class="shift-history-header-revenue">Revenue</span>
-    <span class="shift-history-header-transactions">Orders</span>
-    <span class="shift-history-header-float">Float</span>
-    <span class="shift-history-header-variance">Variance</span>
-    <span class="shift-history-header-status">Status</span>
-    <span class="shift-history-header-details">Details</span>
-  </div>
-  
-  <!-- Table Body -->
-  <div class="shift-history-table-body">
-  <div 
-    v-for="shift in paginatedShiftHistory" 
-    :key="shift.id" 
-    class="shift-history-table-row clickable-item"
-    @click="viewShiftDetails(shift)"
-  >
-    <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
-    <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
-    <span class="shift-history-revenue" data-label="Revenue">
-  {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
-</span>
-    <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
-    <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
-    <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
-      {{ formatCurrency(shift.variance) }}
-    </span>
-    <span class="shift-history-status" data-label="Status">
-      <span class="status-badge" :class="shift.status">
-        {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+  <!-- Shift History Table Header -->
+<div class="shift-history-table-header">
+  <span class="shift-history-header-date">Date</span>
+  <span class="shift-history-header-stall">Stall</span>
+  <span class="shift-history-header-revenue">Revenue</span>
+  <span class="shift-history-header-transactions">Orders</span>
+  <span class="shift-history-header-float">Float</span>
+  <span class="shift-history-header-variance">Variance</span>
+  <span class="shift-history-header-inventory">Inventory Used</span>
+  <span class="shift-history-header-status">Status</span>
+  <span class="shift-history-header-details">Details</span>
+</div>
+
+<!-- Shift History Table Row -->
+<div 
+  v-for="shift in paginatedShiftHistory" 
+  :key="shift.id" 
+  class="shift-history-table-row clickable-item"
+  @click="viewShiftDetails(shift)"
+>
+  <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
+  <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
+  <span class="shift-history-revenue" data-label="Revenue">
+    {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
+  </span>
+  <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
+  <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
+  <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
+    {{ formatCurrency(shift.variance) }}
+  </span>
+  <!-- ✅ NEW: Inventory Used Column -->
+  <span class="shift-history-inventory" data-label="Inventory Used">
+    <span v-if="Object.keys(shift.inventory_usage || {}).length > 0">
+      <span 
+        v-for="(usage, material) in shift.inventory_usage" 
+        :key="material"
+        class="inventory-usage-tag"
+      >
+        {{ material }}: {{ usage }}
       </span>
     </span>
-    <span class="shift-history-details" data-label="Details">👆</span>
-  </div>
+    <span v-else class="no-inventory-data">-</span>
+  </span>
+  <span class="shift-history-status" data-label="Status">
+    <span class="status-badge" :class="shift.status">
+      {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+    </span>
+  </span>
+  <span class="shift-history-details" data-label="Details">👆</span>
+</div>
 </div>
 </div>
 
@@ -1060,9 +1074,9 @@
             <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
           </div>
           <div class="shift-detail-item">
-  <span class="label">Revenue</span>
-  <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || selectedShift.revenue_amount || 0) }}</span>
-</div>
+            <span class="label">Revenue</span>
+            <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || 0) }}</span>
+          </div>
           <div class="shift-detail-item">
             <span class="label">Orders</span>
             <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
@@ -1080,6 +1094,31 @@
             <span class="value" :class="getVarianceClass(selectedShift)">
               {{ formatCurrency(selectedShift.variance) }}
             </span>
+          </div>
+        </div>
+        
+        <!-- ✅ NEW: Inventory Section -->
+        <div v-if="selectedShift.opening_inventory || selectedShift.closing_inventory" class="shift-detail-inventory">
+          <h4>📦 Inventory</h4>
+          <div class="inventory-detail-grid">
+            <div class="inventory-detail-header">
+              <span class="inventory-detail-material">Material</span>
+              <span class="inventory-detail-opening">Opening</span>
+              <span class="inventory-detail-closing">Closing</span>
+              <span class="inventory-detail-usage">Used</span>
+            </div>
+            <div 
+              v-for="(opening, material) in selectedShift.opening_inventory" 
+              :key="material"
+              class="inventory-detail-row"
+            >
+              <span class="inventory-detail-material">{{ material }}</span>
+              <span class="inventory-detail-opening">{{ opening }}</span>
+              <span class="inventory-detail-closing">{{ selectedShift.closing_inventory?.[material] || 0 }}</span>
+              <span class="inventory-detail-usage" :class="getUsageClass(selectedShift, material)">
+                {{ getInventoryUsage(selectedShift, material) }}
+              </span>
+            </div>
           </div>
         </div>
         
@@ -4189,6 +4228,29 @@ displayStalls() {
 },
 
   methods: {
+
+    // ✅ NEW: Get inventory usage for a shift
+  getInventoryUsage(shift, material) {
+    if (!shift || !shift.opening_inventory) return 0;
+    const opening = parseFloat(shift.opening_inventory[material]) || 0;
+    const closing = parseFloat(shift.closing_inventory?.[material]) || 0;
+    return Math.max(0, opening - closing);
+  },
+  
+  // ✅ NEW: Get CSS class for inventory usage
+  getUsageClass(shift, material) {
+    const usage = this.getInventoryUsage(shift, material);
+    if (usage > 0) return 'used';
+    return 'zero';
+  },
+  
+  // ✅ NEW: Check if inventory data exists
+  hasInventoryData(shift) {
+    return shift && (
+      (shift.opening_inventory && Object.keys(shift.opening_inventory).length > 0) ||
+      (shift.closing_inventory && Object.keys(shift.closing_inventory).length > 0)
+    );
+  },
 
     // ===== SHIFT HISTORY API METHODS =====
 async loadShiftHistory() {
