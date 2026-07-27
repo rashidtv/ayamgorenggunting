@@ -3321,6 +3321,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
 });
 
 // GET /api/shifts/history - Get shift history for a stall
+// GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3335,11 +3336,11 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         u1.username as opened_by_name,
         u2.username as closed_by_name,
         COALESCE(
-          (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id),
+          (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
         ) as revenue,
         COALESCE(
-          (SELECT COUNT(*) FROM orders WHERE shift_id = s.id),
+          (SELECT COUNT(*) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
         ) as transaction_count
       FROM shifts s
@@ -3378,8 +3379,20 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
       [stallId]
     );
     
+    // ✅ Ensure revenue is a number
+    const shifts = result.rows.map(shift => ({
+      ...shift,
+      revenue: parseFloat(shift.revenue) || 0,
+      total_revenue: parseFloat(shift.revenue) || 0,
+      transaction_count: parseInt(shift.transaction_count) || 0,
+      starting_float: parseFloat(shift.starting_float) || 0,
+      variance: parseFloat(shift.variance) || 0,
+      expected_cash: parseFloat(shift.expected_cash) || 0,
+      ending_cash: parseFloat(shift.ending_cash) || 0
+    }));
+    
     res.json({
-      shifts: result.rows,
+      shifts: shifts,
       total: parseInt(countResult.rows[0].count) || 0
     });
   } catch (err) {

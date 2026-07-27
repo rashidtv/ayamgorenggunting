@@ -999,7 +999,7 @@
     <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
     <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
     <span class="shift-history-revenue" data-label="Revenue">
-  {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || shift.amount || 0) }}
+  {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
 </span>
     <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
     <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
@@ -7954,43 +7954,47 @@ switchTab(tabId) {
       await this.loadData()
     },
 
-    async loadData() {
-      try {
-        console.log('🔄 Loading stall admin data...')
-        
-        await this.loadStalls()
-        console.log('✅ Stalls loaded:', this.stalls.length)
-        
-        this._stallCurrentPage = 1
-        
-        if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
-          this.stallPerformance = []
-          this.menuPerformance = []
-          this.salesTrend = []
-          this.consolidatedSales.topStall = '-'
-          this.consolidatedSales.topRevenue = 0
-          this.consolidatedSales.totalRevenue = 0
-          this.consolidatedSales.totalItems = 0
-        }
-        
-        await this.loadSalesAnalytics()
-        
-        await Promise.all([
-          this.loadUsers(),
-          this.loadLowStock(),
-          this.loadStallPerformance(),
-          this.loadMenuItems()
-        ])
-        
-        await this.loadAllStallsInventory()
-        this.resetChartNavigation()
-        
-        this.$emit('show-notification', 'Data refreshed', 'success')
-      } catch (err) {
-        console.error('Load data error:', err)
-        this.$emit('show-notification', err.message, 'error')
-      }
-    },
+async loadData() {
+  try {
+    console.log('🔄 Loading stall admin data...')
+    
+    // ✅ FIRST load stalls (needed for stall names in shift history)
+    await this.loadStalls()
+    console.log('✅ Stalls loaded:', this.stalls.length)
+    
+    this._stallCurrentPage = 1
+    
+    // ✅ THEN load shift history (now stalls are available)
+    await this.loadShiftHistory()
+    
+    if (this.selectedPeriod === 'today' || this.selectedPeriod === 'week') {
+      this.stallPerformance = []
+      this.menuPerformance = []
+      this.salesTrend = []
+      this.consolidatedSales.topStall = '-'
+      this.consolidatedSales.topRevenue = 0
+      this.consolidatedSales.totalRevenue = 0
+      this.consolidatedSales.totalItems = 0
+    }
+    
+    await this.loadSalesAnalytics()
+    
+    await Promise.all([
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadStallPerformance(),
+      this.loadMenuItems()
+    ])
+    
+    await this.loadAllStallsInventory()
+    this.resetChartNavigation()
+    
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
 
     async loadStalls() {
       try {
