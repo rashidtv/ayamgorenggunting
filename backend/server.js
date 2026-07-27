@@ -3333,7 +3333,15 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
       SELECT 
         s.*,
         u1.username as opened_by_name,
-        u2.username as closed_by_name
+        u2.username as closed_by_name,
+        COALESCE(
+          (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id),
+          0
+        ) as revenue,
+        COALESCE(
+          (SELECT COUNT(*) FROM orders WHERE shift_id = s.id),
+          0
+        ) as transaction_count
       FROM shifts s
       LEFT JOIN users u1 ON s.opened_by = u1.id
       LEFT JOIN users u2 ON s.closed_by = u2.id
@@ -3361,7 +3369,7 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     }
     
     queryText += ` ORDER BY s.opened_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
+    params.push(parseInt(limit), parseInt(offset));
     
     const result = await pool.query(queryText, params);
     
@@ -3394,7 +3402,15 @@ app.get('/api/shifts/history/all', authenticateToken, async (req, res) => {
         s.*,
         u1.username as opened_by_name,
         u2.username as closed_by_name,
-        st.name as stall_name
+        st.name as stall_name,
+        COALESCE(
+          (SELECT SUM(total_amount) FROM orders WHERE shift_id = s.id),
+          0
+        ) as revenue,
+        COALESCE(
+          (SELECT COUNT(*) FROM orders WHERE shift_id = s.id),
+          0
+        ) as transaction_count
       FROM shifts s
       LEFT JOIN users u1 ON s.opened_by = u1.id
       LEFT JOIN users u2 ON s.closed_by = u2.id
@@ -3423,7 +3439,7 @@ app.get('/api/shifts/history/all', authenticateToken, async (req, res) => {
     }
     
     queryText += ` ORDER BY s.opened_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
+    params.push(parseInt(limit), parseInt(offset));
     
     const result = await pool.query(queryText, params);
     

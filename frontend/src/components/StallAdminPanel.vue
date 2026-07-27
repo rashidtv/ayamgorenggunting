@@ -998,7 +998,9 @@
   >
     <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
     <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
-    <span class="shift-history-revenue" data-label="Revenue">{{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}</span>
+    <span class="shift-history-revenue" data-label="Revenue">
+  {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || shift.amount || 0) }}
+</span>
     <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
     <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
     <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
@@ -1058,9 +1060,9 @@
             <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
           </div>
           <div class="shift-detail-item">
-            <span class="label">Revenue</span>
-            <span class="value revenue">{{ formatCurrency(selectedShift.revenue) }}</span>
-          </div>
+  <span class="label">Revenue</span>
+  <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || selectedShift.revenue_amount || 0) }}</span>
+</div>
           <div class="shift-detail-item">
             <span class="label">Orders</span>
             <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
@@ -4201,8 +4203,15 @@ async loadShiftHistory() {
     console.log('📊 loadShiftHistory - effectiveUser:', userData);
     console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
     console.log('📊 First shift object:', this.shiftHistory[0]);
-console.log('📊 Revenue field:', this.shiftHistory[0]?.revenue);
-console.log('📊 All keys in shift:', Object.keys(this.shiftHistory[0] || {}));
+    console.log('📊 Revenue field:', this.shiftHistory[0]?.revenue);
+    console.log('📊 All keys in shift:', Object.keys(this.shiftHistory[0] || {}));
+    // ✅ AFTER fetching data, log the full response
+    console.log('📊 Full shift data from API:', JSON.stringify(this.shiftHistory, null, 2));
+    // ✅ Check the first shift's keys
+    if (this.shiftHistory.length > 0) {
+      console.log('📊 First shift keys:', Object.keys(this.shiftHistory[0]));
+      console.log('📊 First shift full object:', this.shiftHistory[0]);
+    }
     
     // If no stalls assigned, try using all stalls
     let stallsToFetch = assignedStalls.length > 0 ? assignedStalls : this.stalls;
