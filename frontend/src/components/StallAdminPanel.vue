@@ -2981,6 +2981,7 @@ import {
   MarkPointComponent
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { useAuthStore } from '../stores/auth';
 
 use([
   BarChart,
