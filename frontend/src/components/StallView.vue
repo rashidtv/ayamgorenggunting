@@ -722,7 +722,7 @@ export default {
     cartItemCount() {
       return this.cartItems.reduce((count, item) => count + item.quantity, 0)
     }
-  },
+  }
   mounted() {
     this.loadData()
     this.loadMenu()
