@@ -126,11 +126,11 @@
                 :company-logo="companyLogo"
               />
               
-<!-- Stall Admin -->
+              <!-- Stall Admin -->
 <StallAdminPanel
   v-else-if="user.role === 'stall_admin'"
   :token="token || ''"
-  :user="user"                    
+  :user="user"                    <!-- ✅ ADD THIS -->
   @show-notification="showNotification"
 />
               
@@ -480,8 +480,9 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.user = safeUserData;
-          this.token = authToken;
           console.log('✅ App.vue - user set to:', this.user);
+          console.log('✅ App.vue - user.assigned_stalls:', this.user?.assigned_stalls);
+          this.token = authToken;
           this.activeStallId = authStore.activeStallId || safeUserData.stall_id || null;
           localStorage.setItem('user', JSON.stringify(safeUserData));
           localStorage.setItem('token', authToken);
@@ -1223,5 +1224,138 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* ============================================ */
+/* SHIFT DETAIL MODAL                          */
+/* ============================================ */
+.shift-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.shift-detail-item {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.shift-detail-item .label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.shift-detail-item .value {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.shift-detail-item .value.revenue {
+  color: var(--primary);
+}
+
+.shift-detail-item .value.over {
+  color: #10b981;
+}
+
+.shift-detail-item .value.short {
+  color: #ef4444;
+}
+
+.shift-detail-notes {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+}
+
+.shift-detail-notes p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.shift-detail-transactions {
+  margin-top: 1rem;
+}
+
+.shift-detail-transactions h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.shift-transaction-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.shift-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.shift-transaction-item .tx-time {
+  min-width: 55px;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.shift-transaction-item .tx-id {
+  min-width: 80px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-family: monospace;
+}
+
+.shift-transaction-item .tx-items {
+  min-width: 50px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.shift-transaction-item .tx-amount {
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.shift-transaction-item .tx-status {
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.shift-transaction-item .tx-status.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-transaction-item .tx-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.shift-transaction-item .tx-status.failed {
+  background: #fee2e2;
+  color: #dc2626;
 }
 </style>

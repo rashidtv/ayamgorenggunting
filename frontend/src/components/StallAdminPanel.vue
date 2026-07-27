@@ -998,7 +998,7 @@
   >
     <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
     <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
-    <span class="shift-history-revenue" data-label="Revenue">{{ formatCurrency(shift.revenue) }}</span>
+    <span class="shift-history-revenue" data-label="Revenue">{{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}</span>
     <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
     <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
     <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
@@ -1012,6 +1012,117 @@
     <span class="shift-history-details" data-label="Details">👆</span>
   </div>
 </div>
+</div>
+
+<!-- ===== SHIFT DETAIL MODAL ===== -->
+<div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>🕐 Shift Details</h3>
+      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div v-if="selectedShift">
+        <!-- Shift Info -->
+        <div class="shift-detail-grid">
+          <div class="shift-detail-item">
+            <span class="label">Stall</span>
+            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Opened</span>
+            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Opened By</span>
+            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Closed</span>
+            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Closed By</span>
+            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Status</span>
+            <span class="value">
+              <span class="status-badge" :class="selectedShift.status">
+                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+              </span>
+            </span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Starting Float</span>
+            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Revenue</span>
+            <span class="value revenue">{{ formatCurrency(selectedShift.revenue) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Orders</span>
+            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Expected Cash</span>
+            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Ending Cash</span>
+            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
+          </div>
+          <div class="shift-detail-item">
+            <span class="label">Variance</span>
+            <span class="value" :class="getVarianceClass(selectedShift)">
+              {{ formatCurrency(selectedShift.variance) }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Notes -->
+        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
+          <div v-if="selectedShift.notes">
+            <strong>Opening Notes:</strong>
+            <p>{{ selectedShift.notes }}</p>
+          </div>
+          <div v-if="selectedShift.closing_notes">
+            <strong>Closing Notes:</strong>
+            <p>{{ selectedShift.closing_notes }}</p>
+          </div>
+        </div>
+        
+        <!-- Transactions -->
+        <div class="shift-detail-transactions">
+          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
+          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
+            <span>📭</span>
+            <p>No orders for this shift</p>
+          </div>
+          <div v-else class="shift-transaction-list">
+            <div 
+              v-for="tx in selectedShift.transactions" 
+              :key="tx.id" 
+              class="shift-transaction-item"
+            >
+              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
+              <span class="tx-id">#{{ tx.order_number }}</span>
+              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
+              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
+              <span class="tx-status" :class="tx.status || 'completed'">
+                {{ tx.status || 'completed' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
+      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
+    </div>
+  </div>
 </div>
         
         <!-- Pagination -->
@@ -2853,6 +2964,7 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script>
@@ -2893,7 +3005,6 @@ export default {
 
   data() {
     return {
-    user: null,
     shiftHistory: [],
     shiftHistoryLoading: false,
     shiftHistoryTotal: 0,
@@ -3117,8 +3228,13 @@ expandedTransactionRows: [],
 
   computed: {
 
+     authStore() {
+    return useAuthStore();  // ✅ This should be in computed
+  },
+
     effectiveUser() {
-    // Use prop first, then fallback to authStore
+    console.log('🔍 effectiveUser - this.user:', this.user);
+    console.log('🔍 effectiveUser - authStore.user:', this.authStore?.user);
     return this.user || this.authStore?.user || null;
   },
 
@@ -3956,6 +4072,19 @@ displayStalls() {
 
   watch: {
 
+    user: {
+    handler(newVal) {
+      console.log('🔄 StallAdminPanel - user prop changed:', newVal);
+      if (newVal) {
+        console.log('✅ User has assigned stalls:', newVal.assigned_stalls);
+        // Trigger reload if needed
+        this.loadShiftHistory();
+      }
+    },
+    immediate: true,
+    deep: true
+  },
+
       revenuePeriod(newVal, oldVal) {
     if (newVal !== oldVal) {
       if (newVal === 'custom') {
@@ -4070,6 +4199,9 @@ async loadShiftHistory() {
     
     console.log('📊 loadShiftHistory - effectiveUser:', userData);
     console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
+    console.log('📊 First shift object:', this.shiftHistory[0]);
+console.log('📊 Revenue field:', this.shiftHistory[0]?.revenue);
+console.log('📊 All keys in shift:', Object.keys(this.shiftHistory[0] || {}));
     
     // If no stalls assigned, try using all stalls
     let stallsToFetch = assignedStalls.length > 0 ? assignedStalls : this.stalls;
