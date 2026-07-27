@@ -1,7 +1,7 @@
 <template>
   <div class="stall-view" :class="{ 'with-cart': cartItems.length > 0 }">
 
-      <!-- ===== SHIFT STATUS BAR ===== -->
+    <!-- ===== SHIFT STATUS BAR ===== -->
     <div v-if="shift.enabled" class="shift-status-bar">
       <div class="shift-status-left">
         <span class="shift-indicator" :class="shiftStatus ? 'open' : 'closed'">
@@ -12,6 +12,9 @@
         </span>
         <span class="shift-time" v-else>
           No active shift
+        </span>
+        <span class="shift-float" v-if="shiftStatus">
+          Float: {{ formatCurrency(shiftStartingFloat) }}
         </span>
       </div>
       <div class="shift-status-right">
@@ -32,15 +35,20 @@
     <div v-if="shift.enabled && shiftStatus" class="today-transactions">
       <div class="today-transactions-header">
         <h4>📋 Today's Orders ({{ todayTransactions.length }})</h4>
-        <button @click="refreshTodayTransactions" class="btn-refresh">⟳</button>
+        <div class="today-transactions-controls">
+          <button @click="refreshTodayTransactions" class="btn-refresh" title="Refresh">⟳</button>
+          <button @click="toggleTodayTransactionsExpand" class="btn-expand" :title="showAllTodayTransactions ? 'Collapse' : 'Expand'">
+            {{ showAllTodayTransactions ? '▲' : '▼' }}
+          </button>
+        </div>
       </div>
-      <div class="today-transactions-list">
+      <div class="today-transactions-list" :class="{ expanded: showAllTodayTransactions }">
         <div v-if="todayTransactions.length === 0" class="empty-state">
           <span>📭</span>
           <p>No orders yet today</p>
         </div>
         <div 
-          v-for="tx in todayTransactions.slice(0, 10)" 
+          v-for="tx in paginatedTodayTransactions" 
           :key="tx.id" 
           class="today-transaction-item"
           @click="viewTransaction(tx)"
@@ -53,11 +61,42 @@
             {{ tx.status || 'completed' }}
           </span>
         </div>
-        <div v-if="todayTransactions.length > 10" class="view-more">
-          <button @click="viewAllTransactions">View All {{ todayTransactions.length }} →</button>
+        
+        <!-- Pagination for Today's Orders -->
+        <div v-if="todayTransactions.length > todayItemsPerPage && !showAllTodayTransactions" class="pagination-container compact">
+          <div class="pagination-info">
+            Showing {{ todayStartIndex }} - {{ todayEndIndex }} of {{ todayTransactions.length }}
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevTodayPage" 
+              class="pagination-btn"
+              :disabled="todayPage <= 1"
+            >
+              ◀
+            </button>
+            <span class="pagination-page">
+              {{ todayPage }} / {{ todayTotalPages }}
+            </span>
+            <button 
+              @click="nextTodayPage" 
+              class="pagination-btn"
+              :disabled="todayPage >= todayTotalPages"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="todayTransactions.length > 10 && !showAllTodayTransactions" class="view-more">
+          <button @click="toggleTodayTransactionsExpand">View All {{ todayTransactions.length }} →</button>
+        </div>
+        <div v-if="showAllTodayTransactions && todayTransactions.length > 10" class="view-more">
+          <button @click="toggleTodayTransactionsExpand">Show Less ↑</button>
         </div>
       </div>
     </div>
+
     <!-- Connection Status -->
     <div v-if="connectionError" class="connection-banner error">
       <div class="banner-content">
@@ -139,7 +178,6 @@
               <div class="item-info">
                 <div class="item-name">{{ item.item_name }}</div>
                 <div class="item-description">{{ item.description || 'Delicious fried chicken' }}</div>
-                <!-- RECIPE INDICATOR -->
                 <div class="item-recipe-info" v-if="item.recipe && item.recipe.length > 0">
                   <span class="recipe-badge">📋 {{ item.recipe.length }} ingredient{{ item.recipe.length > 1 ? 's' : '' }}</span>
                 </div>
@@ -213,9 +251,10 @@
         <button 
           @click="sellAll" 
           class="sell-all-btn" 
-          :disabled="loading || cartItems.length === 0"
+          :disabled="loading || cartItems.length === 0 || (shift.enabled && !shiftStatus)"
         >
           <span v-if="loading">⏳ Processing...</span>
+          <span v-else-if="shift.enabled && !shiftStatus">🔒 Open Shift First</span>
           <span v-else>💰 SELL ALL ({{ cartItemCount }} item{{ cartItemCount > 1 ? 's' : '' }})</span>
         </button>
       </div>
@@ -268,7 +307,6 @@
             </div>
             <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
           </div>
-          <!-- Inventory update buttons - HIDDEN for Cashier -->
           <div class="inventory-actions" v-if="role !== 'cashier'">
             <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
               <span class="btn-icon">+</span> Add 10 pieces
@@ -280,7 +318,6 @@
               <span class="btn-icon">+</span> Add 1 piece
             </button>
           </div>
-          <!-- Show message for Cashier -->
           <div v-else class="cashier-stock-message">
             <span class="message-icon">🔒</span>
             <span class="message-text">Stock management is restricted to Stall Admins only</span>
@@ -322,7 +359,6 @@
           </div>
           <div class="chart-container">
             <div class="chart-wrapper">
-              <!-- Trend Line -->
               <div class="trend-line-container">
                 <svg class="trend-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
                   <polyline
@@ -343,7 +379,6 @@
                   />
                 </svg>
               </div>
-              <!-- Bar Chart -->
               <div class="sales-chart">
                 <div v-for="day in analytics.dailySales" :key="day.date" class="chart-bar">
                   <div class="bar-container">
@@ -358,7 +393,6 @@
             </div>
           </div>
           
-          <!-- Product Performance Breakdown -->
           <div class="product-breakdown" v-if="getProductSalesArray().length > 0">
             <h4>Product Performance</h4>
             <div class="product-grid">
@@ -382,16 +416,18 @@
       <p>Loading stall data...</p>
     </div>
 
-    <!-- ===== OPEN SHIFT MODAL ===== -->
-    <div v-if="showOpenShiftModal" class="modal-overlay" @click.self="showOpenShiftModal=false">
-      <div class="modal-modern">
+    <!-- ============================================ -->
+    <!-- OPEN SHIFT MODAL                              -->
+    <!-- ============================================ -->
+    <div v-if="showOpenShiftModal" class="modal-overlay" @click.self="handleOpenShiftModalClose">
+      <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
           <h3>🟢 Open Shift</h3>
-          <button @click="showOpenShiftModal=false" class="modal-close-btn">✕</button>
+          <button @click="handleOpenShiftModalClose" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
           <div class="modal-form-group">
-            <label>Starting Cash Float (RM)</label>
+            <label>Starting Cash Float (RM) <span class="required">*</span></label>
             <input 
               type="number" 
               v-model.number="shift.floatInput" 
@@ -399,29 +435,55 @@
               min="0"
               step="0.01"
               class="filter-input"
+              required
             />
             <small>Enter the amount of cash in the register at the start of the shift</small>
           </div>
+          
+          <div class="modal-form-group">
+            <label>📦 Opening Inventory Count <span class="required">*</span></label>
+            <div class="inventory-count-grid">
+              <div 
+                v-for="item in processedInventory" 
+                :key="item.material_name"
+                class="inventory-count-item"
+              >
+                <span class="inventory-count-name">{{ item.material_name }}</span>
+                <input 
+                  type="number" 
+                  v-model.number="shift.inventoryCounts[item.material_name]" 
+                  :placeholder="item.current_level || 0"
+                  min="0"
+                  class="filter-input small"
+                />
+                <span class="inventory-count-unit">pieces</span>
+              </div>
+            </div>
+            <small>Enter the current stock count for each ingredient</small>
+          </div>
+          
           <div class="modal-form-group">
             <label>Notes (Optional)</label>
             <input v-model="shift.notes" placeholder="Any notes for this shift" class="filter-input" />
           </div>
         </div>
         <div class="modal-modern-footer">
-          <button @click="showOpenShiftModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="confirmOpenShift" class="btn-modern primary" :disabled="shift.floatInput < 0 || shift.loading">
+          <button @click="handleOpenShiftModalClose" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmOpenShift" class="btn-modern primary" :disabled="shift.floatInput <= 0 || shift.loading || !shiftInventoryValid">
             {{ shift.loading ? 'Opening...' : 'Open Shift' }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ===== CLOSE SHIFT MODAL ===== -->
-    <div v-if="showCloseShiftModal" class="modal-overlay" @click.self="showCloseShiftModal=false">
+    <!-- ============================================ -->
+    <!-- CLOSE SHIFT MODAL                             -->
+    <!-- ============================================ -->
+    <div v-if="showCloseShiftModal" class="modal-overlay" @click.self="handleCloseShiftModalClose">
       <div class="modal-modern modal-lg">
         <div class="modal-modern-header">
           <h3>🔴 Close Shift</h3>
-          <button @click="showCloseShiftModal=false" class="modal-close-btn">✕</button>
+          <button @click="handleCloseShiftModalClose" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-modern-body">
           <div class="shift-summary-grid">
@@ -446,7 +508,7 @@
               <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenue) }}</span>
             </div>
             <div class="shift-summary-item">
-              <span class="label">Ending Cash</span>
+              <span class="label">Ending Cash <span class="required">*</span></span>
               <input 
                 type="number" 
                 v-model.number="shift.endingCash" 
@@ -454,8 +516,36 @@
                 min="0"
                 step="0.01"
                 class="filter-input"
+                required
               />
             </div>
+          </div>
+          
+          <div class="modal-form-group" style="margin-top: 1rem;">
+            <label>📦 Closing Inventory Count <span class="required">*</span></label>
+            <div class="inventory-count-grid">
+              <div 
+                v-for="item in processedInventory" 
+                :key="item.material_name"
+                class="inventory-count-item"
+              >
+                <span class="inventory-count-name">{{ item.material_name }}</span>
+                <span class="inventory-count-opening">Opening: {{ shift.inventoryCounts[item.material_name] || 0 }}</span>
+                <input 
+                  type="number" 
+                  v-model.number="shift.endingInventory[item.material_name]" 
+                  :placeholder="item.current_level || 0"
+                  min="0"
+                  class="filter-input small"
+                  required
+                />
+                <span class="inventory-count-unit">pieces</span>
+                <span class="inventory-count-usage" v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
+                  Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
+                </span>
+              </div>
+            </div>
+            <small>Enter the current stock count for each ingredient</small>
           </div>
           
           <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
@@ -472,16 +562,15 @@
           </div>
         </div>
         <div class="modal-modern-footer">
-          <button @click="showCloseShiftModal=false" class="btn-modern secondary">Cancel</button>
-          <button @click="confirmCloseShift" class="btn-modern primary" :disabled="shift.endingCash < 0 || shift.loading">
+          <button @click="handleCloseShiftModalClose" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmCloseShift" class="btn-modern primary" :disabled="shift.endingCash <= 0 || shift.loading || !shiftEndingInventoryValid">
             {{ shift.loading ? 'Closing...' : 'Close Shift' }}
           </button>
         </div>
       </div>
     </div>
 
-  </div>  <!-- ← This ONE closing div closes .stall-view -->
-
+  </div>
 </template>
 
 <script>
@@ -500,29 +589,31 @@ export default {
   data() {
     return {
       // ===== Shift data =====
-shift: {
-  enabled: true, // Set to false to disable shift features
-  currentShift: null,
-  status: false,
-  startTime: null,
-  startingFloat: 0,
-  revenue: 0,
-  todayTransactions: [],
-  showOpenModal: false,
-  showCloseModal: false,
-  floatInput: 0,
-  endingCash: 0,
-  notes: '',
-  closeNotes: '',
-  loading: false
-},
+      shift: {
+        enabled: true,
+        currentShift: null,
+        status: false,
+        startTime: null,
+        startingFloat: 0,
+        revenue: 0,
+        todayTransactions: [],
+        showOpenModal: false,
+        showCloseModal: false,
+        floatInput: 0,
+        endingCash: 0,
+        notes: '',
+        closeNotes: '',
+        loading: false,
+        // Inventory tracking
+        inventoryCounts: {},
+        endingInventory: {}
+      },
       inventory: [],
       processedInventory: [],
       todaySales: { items_sold: 0, total_revenue: 0 },
       analytics: { dailySales: [], productSales: {} },
       menuItems: [],
       menuQuantities: {},
-      // NEW: Cart state
       cartItems: [],
       loading: false,
       loadingData: false,
@@ -530,6 +621,10 @@ shift: {
       connectionError: false,
       hasDuplicates: false,
       lastUpdateTime: 'Just now',
+      // Today's orders pagination
+      todayPage: 1,
+      todayItemsPerPage: 5,
+      showAllTodayTransactions: false,
       iconMap: {
         'Regular AGG': '🍗',
         'Spicy AGG': '🌶️',
@@ -539,46 +634,75 @@ shift: {
     }
   },
   computed: {
-
     // ===== Shift computed =====
-shiftStatus() {
-  if (!this.shift || !this.shift.enabled) return false;
-  return this.shift.status || false;
-},
-
-currentShift() {
-  if (!this.shift || !this.shift.enabled) return null;
-  return this.shift.currentShift || null;
-},
-
-shiftRevenue() {
-  if (!this.shift || !this.shift.enabled) return 0;
-  return this.shift.revenue || 0;
-},
-
-todayTransactions() {
-  if (!this.shift || !this.shift.enabled) return [];
-  return this.shift.todayTransactions || [];
-},
-
-shiftStartingFloat() {
-  if (!this.shift || !this.shift.enabled) return 0;
-  return this.shift.startingFloat || 0;
-},
-
-showOpenShiftModal() {
-  if (!this.shift || !this.shift.enabled) return false;
-  return this.shift.showOpenModal || false;
-},
-
-showCloseShiftModal() {
-  if (!this.shift || !this.shift.enabled) return false;
-  return this.shift.showCloseModal || false;
-},
+    shiftStatus() {
+      if (!this.shift || !this.shift.enabled) return false;
+      return this.shift.status || false;
+    },
+    currentShift() {
+      if (!this.shift || !this.shift.enabled) return null;
+      return this.shift.currentShift || null;
+    },
+    shiftRevenue() {
+      if (!this.shift || !this.shift.enabled) return 0;
+      return this.shift.revenue || 0;
+    },
+    todayTransactions() {
+      if (!this.shift || !this.shift.enabled) return [];
+      return this.shift.todayTransactions || [];
+    },
+    shiftStartingFloat() {
+      if (!this.shift || !this.shift.enabled) return 0;
+      return this.shift.startingFloat || 0;
+    },
+    showOpenShiftModal() {
+      if (!this.shift || !this.shift.enabled) return false;
+      return this.shift.showOpenModal || false;
+    },
+    showCloseShiftModal() {
+      if (!this.shift || !this.shift.enabled) return false;
+      return this.shift.showCloseModal || false;
+    },
+    // Today's orders pagination
+    paginatedTodayTransactions() {
+      if (this.showAllTodayTransactions) {
+        return this.todayTransactions;
+      }
+      const start = (this.todayPage - 1) * this.todayItemsPerPage;
+      const end = start + this.todayItemsPerPage;
+      return this.todayTransactions.slice(start, end);
+    },
+    todayTotalPages() {
+      return Math.ceil(this.todayTransactions.length / this.todayItemsPerPage) || 1;
+    },
+    todayStartIndex() {
+      if (this.todayTransactions.length === 0) return 0;
+      return (this.todayPage - 1) * this.todayItemsPerPage + 1;
+    },
+    todayEndIndex() {
+      if (this.todayTransactions.length === 0) return 0;
+      return Math.min(this.todayPage * this.todayItemsPerPage, this.todayTransactions.length);
+    },
+    // Inventory validation
+    shiftInventoryValid() {
+      if (!this.shift || !this.shift.inventoryCounts) return false;
+      return this.processedInventory.every(item => 
+        this.shift.inventoryCounts[item.material_name] !== undefined && 
+        this.shift.inventoryCounts[item.material_name] !== null &&
+        this.shift.inventoryCounts[item.material_name] >= 0
+      );
+    },
+    shiftEndingInventoryValid() {
+      if (!this.shift || !this.shift.endingInventory) return false;
+      return this.processedInventory.every(item => 
+        this.shift.endingInventory[item.material_name] !== undefined && 
+        this.shift.endingInventory[item.material_name] !== null &&
+        this.shift.endingInventory[item.material_name] >= 0
+      );
+    },
     authStore() { return useAuthStore() },
     lowStockCount() { return this.processedInventory.filter(item => item.current_level <= item.alert_level).length },
     activeStallId() { return this.stallId ? parseInt(this.stallId) : this.authStore.activeStallId },
-    // NEW: Cart computed properties
     cartTotal() {
       return this.cartItems.reduce((total, item) => {
         return total + (item.menuItem.price * item.quantity)
@@ -589,15 +713,14 @@ showCloseShiftModal() {
     }
   },
   mounted() {
-  this.loadData()
-  this.loadMenu()
-  this.interval = setInterval(this.loadData, 30000)
-  
-  if (this.shift && this.shift.enabled) {
-    this.loadCurrentShift();
-  }
-},
-
+    this.loadData()
+    this.loadMenu()
+    this.interval = setInterval(this.loadData, 30000)
+    
+    if (this.shift && this.shift.enabled) {
+      this.loadCurrentShift();
+    }
+  },
   beforeUnmount() {
     clearInterval(this.interval)
   },
@@ -606,222 +729,314 @@ showCloseShiftModal() {
     formatNumber,
 
     // =============================================
-// SHIFT METHODS
-// =============================================
+    // SHIFT METHODS
+    // =============================================
 
-async loadCurrentShift() {
-  if (!this.shift || !this.shift.enabled) return;
-  
-  try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    const res = await axios.get(
-      `${API_BASE}/shifts/current?stallId=${this.stallId}`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    if (res.data) {
-      this.shift.currentShift = res.data;
-      this.shift.status = true;
-      this.shift.startTime = res.data.opened_at;
-      this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
-      this.shift.revenue = parseFloat(res.data.revenue) || 0;
-      await this.loadTodayTransactions();
-    } else {
-      this.shift.currentShift = null;
-      this.shift.status = false;
-      this.shift.todayTransactions = [];
-      this.shift.revenue = 0;
-    }
-  } catch (err) {
-    console.warn('Failed to load current shift:', err);
-    this.shift.status = false;
-    this.shift.currentShift = null;
-  }
-},
+    async loadCurrentShift() {
+      if (!this.shift || !this.shift.enabled) return;
+      
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        const res = await axios.get(
+          `${API_BASE}/shifts/current?stallId=${this.stallId}`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        
+        if (res.data) {
+          this.shift.currentShift = res.data;
+          this.shift.status = true;
+          this.shift.startTime = res.data.opened_at;
+          this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
+          this.shift.revenue = parseFloat(res.data.revenue) || 0;
+          
+          // Restore opening inventory if available
+          if (res.data.opening_inventory) {
+            this.shift.inventoryCounts = res.data.opening_inventory;
+          }
+          
+          await this.loadTodayTransactions();
+        } else {
+          this.shift.currentShift = null;
+          this.shift.status = false;
+          this.shift.todayTransactions = [];
+          this.shift.revenue = 0;
+          this.shift.inventoryCounts = {};
+          this.shift.endingInventory = {};
+        }
+      } catch (err) {
+        console.warn('Failed to load current shift:', err);
+        this.shift.status = false;
+        this.shift.currentShift = null;
+      }
+    },
 
-async loadTodayTransactions() {
-  if (!this.shift || !this.shift.enabled || !this.shift.status) return;
-  
-  try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    const today = new Date().toISOString().split('T')[0];
-    const res = await axios.get(
-      `${API_BASE}/transactions?stallId=${this.stallId}&date=${today}&limit=100`,
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    this.shift.todayTransactions = res.data || [];
-    
-    this.shift.revenue = this.shift.todayTransactions.reduce((sum, tx) => 
-      sum + parseFloat(tx.total_amount || 0), 0
-    );
-  } catch (err) {
-    console.warn('Failed to load today transactions:', err);
-    this.shift.todayTransactions = [];
-  }
-},
+    async loadTodayTransactions() {
+      if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+      
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        const today = new Date().toISOString().split('T')[0];
+        const res = await axios.get(
+          `${API_BASE}/transactions?stallId=${this.stallId}&date=${today}&limit=100`,
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        this.shift.todayTransactions = res.data || [];
+        
+        this.shift.revenue = this.shift.todayTransactions.reduce((sum, tx) => 
+          sum + parseFloat(tx.total_amount || 0), 0
+        );
+        
+        // Reset pagination when transactions update
+        this.resetTodayPagination();
+      } catch (err) {
+        console.warn('Failed to load today transactions:', err);
+        this.shift.todayTransactions = [];
+      }
+    },
 
-openShiftModal() {
-  if (!this.shift || !this.shift.enabled) return;
-  this.shift.floatInput = 0;
-  this.shift.notes = '';
-  this.shift.showOpenModal = true;
-},
+    // === OPEN SHIFT ===
+    openShiftModal() {
+      if (!this.shift || !this.shift.enabled) return;
+      this.shift.floatInput = 0;
+      this.shift.notes = '';
+      // Initialize inventory counts from current stock
+      this.shift.inventoryCounts = {};
+      this.processedInventory.forEach(item => {
+        this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
+      });
+      this.shift.showOpenModal = true;
+    },
 
-async confirmOpenShift() {
-  if (!this.shift || !this.shift.enabled) return;
-  
-  if (this.shift.floatInput < 0) {
-    this.$emit('show-notification', 'Please enter a valid starting cash amount', 'warning');
-    return;
-  }
-  
-  this.shift.loading = true;
-  try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    await axios.post(
-      `${API_BASE}/shifts/open`,
-      {
-        stallId: this.stallId,
-        startingFloat: this.shift.floatInput,
-        notes: this.shift.notes
-      },
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    this.shift.showOpenModal = false;
-    this.$emit('show-notification', 'Shift opened successfully!', 'success');
-    await this.loadCurrentShift();
-    
-  } catch (err) {
-    console.error('Failed to open shift:', err);
-    this.$emit('show-notification', err.response?.data?.error || 'Failed to open shift', 'error');
-  } finally {
-    this.shift.loading = false;
-  }
-},
+    closeOpenShiftModal() {
+      this.shift.showOpenModal = false;
+      this.shift.floatInput = 0;
+      this.shift.notes = '';
+      this.shift.inventoryCounts = {};
+    },
 
-closeShiftModal() {
-  if (!this.shift || !this.shift.enabled || !this.shift.status) return;
-  this.shift.endingCash = 0;
-  this.shift.closeNotes = '';
-  this.shift.showCloseModal = true;
-},
+    handleOpenShiftModalClose() {
+      // If there are values entered, ask for confirmation
+      if (this.shift.floatInput > 0 || this.shift.notes) {
+        if (confirm('Are you sure you want to close? Any entered data will be lost.')) {
+          this.closeOpenShiftModal();
+        }
+      } else {
+        this.closeOpenShiftModal();
+      }
+    },
 
-async confirmCloseShift() {
-  if (!this.shift || !this.shift.enabled || !this.shift.status) {
-    this.$emit('show-notification', 'No active shift to close', 'warning');
-    return;
-  }
-  
-  if (this.shift.endingCash < 0) {
-    this.$emit('show-notification', 'Please enter the ending cash count', 'warning');
-    return;
-  }
-  
-  this.shift.loading = true;
-  try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-    await axios.post(
-      `${API_BASE}/shifts/close`,
-      {
-        shiftId: this.shift.currentShift.id,
-        endingCash: this.shift.endingCash,
-        notes: this.shift.closeNotes
-      },
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
-    
-    this.shift.showCloseModal = false;
-    this.$emit('show-notification', 'Shift closed successfully!', 'success');
-    await this.loadCurrentShift();
-    
-  } catch (err) {
-    console.error('Failed to close shift:', err);
-    this.$emit('show-notification', err.response?.data?.error || 'Failed to close shift', 'error');
-  } finally {
-    this.shift.loading = false;
-  }
-},
+    async confirmOpenShift() {
+      if (!this.shift || !this.shift.enabled) return;
+      
+      if (this.shift.floatInput <= 0) {
+        this.$emit('show-notification', 'Please enter a valid starting cash amount (minimum RM 0.01)', 'warning');
+        return;
+      }
+      
+      const missingInventory = this.processedInventory.some(item => 
+        this.shift.inventoryCounts[item.material_name] === undefined || 
+        this.shift.inventoryCounts[item.material_name] === null ||
+        this.shift.inventoryCounts[item.material_name] < 0
+      );
+      
+      if (missingInventory) {
+        this.$emit('show-notification', 'Please enter valid inventory counts for all items', 'warning');
+        return;
+      }
+      
+      this.shift.loading = true;
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        await axios.post(
+          `${API_BASE}/shifts/open`,
+          {
+            stallId: this.stallId,
+            startingFloat: this.shift.floatInput,
+            notes: this.shift.notes,
+            openingInventory: this.shift.inventoryCounts
+          },
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        
+        this.shift.showOpenModal = false;
+        this.$emit('show-notification', 'Shift opened successfully!', 'success');
+        await this.loadCurrentShift();
+        
+      } catch (err) {
+        console.error('Failed to open shift:', err);
+        this.$emit('show-notification', err.response?.data?.error || 'Failed to open shift', 'error');
+      } finally {
+        this.shift.loading = false;
+      }
+    },
 
-getVarianceClass() {
-  const expected = this.shiftStartingFloat + this.shiftRevenue;
-  const variance = this.shift.endingCash - expected;
-  if (variance > 0) return 'over';
-  if (variance < 0) return 'short';
-  return 'balanced';
-},
+    // === CLOSE SHIFT ===
+    closeShiftModal() {
+      if (!this.shift || !this.shift.enabled || !this.shift.status) return;
+      this.shift.endingCash = 0;
+      this.shift.closeNotes = '';
+      // Initialize ending inventory from current stock
+      this.shift.endingInventory = {};
+      this.processedInventory.forEach(item => {
+        this.shift.endingInventory[item.material_name] = item.current_level || 0;
+      });
+      this.shift.showCloseModal = true;
+    },
 
-refreshTodayTransactions() {
-  this.loadTodayTransactions();
-},
+    closeCloseShiftModal() {
+      this.shift.showCloseModal = false;
+      this.shift.endingCash = 0;
+      this.shift.closeNotes = '';
+      this.shift.endingInventory = {};
+    },
 
-viewTransaction(tx) {
-  // Open transaction detail - reuse existing method
-  this.$emit('view-transaction', tx);
-},
+    handleCloseShiftModalClose() {
+      // If there are values entered, ask for confirmation
+      if (this.shift.endingCash > 0 || this.shift.closeNotes) {
+        if (confirm('Are you sure you want to close? Any entered data will be lost.')) {
+          this.closeCloseShiftModal();
+        }
+      } else {
+        this.closeCloseShiftModal();
+      }
+    },
 
-viewAllTransactions() {
-  // Navigate to transactions view
-  this.$emit('switch-tab', 'transactions');
-},
+    async confirmCloseShift() {
+      if (!this.shift || !this.shift.enabled || !this.shift.status) {
+        this.$emit('show-notification', 'No active shift to close', 'warning');
+        return;
+      }
+      
+      if (this.shift.endingCash <= 0) {
+        this.$emit('show-notification', 'Please enter the ending cash count (minimum RM 0.01)', 'warning');
+        return;
+      }
+      
+      const missingInventory = this.processedInventory.some(item => 
+        this.shift.endingInventory[item.material_name] === undefined || 
+        this.shift.endingInventory[item.material_name] === null ||
+        this.shift.endingInventory[item.material_name] < 0
+      );
+      
+      if (missingInventory) {
+        this.$emit('show-notification', 'Please enter valid ending inventory counts for all items', 'warning');
+        return;
+      }
+      
+      this.shift.loading = true;
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+        await axios.post(
+          `${API_BASE}/shifts/close`,
+          {
+            shiftId: this.shift.currentShift.id,
+            endingCash: this.shift.endingCash,
+            notes: this.shift.closeNotes,
+            endingInventory: this.shift.endingInventory
+          },
+          { headers: { Authorization: `Bearer ${this.token}` } }
+        );
+        
+        this.shift.showCloseModal = false;
+        this.$emit('show-notification', 'Shift closed successfully!', 'success');
+        await this.loadCurrentShift();
+        
+      } catch (err) {
+        console.error('Failed to close shift:', err);
+        this.$emit('show-notification', err.response?.data?.error || 'Failed to close shift', 'error');
+      } finally {
+        this.shift.loading = false;
+      }
+    },
 
-formatTime(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-},
+    getVarianceClass() {
+      const expected = this.shiftStartingFloat + this.shiftRevenue;
+      const variance = this.shift.endingCash - expected;
+      if (variance > 0) return 'over';
+      if (variance < 0) return 'short';
+      return 'balanced';
+    },
 
-formatDateTime(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleString('en-MY', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  } catch {
-    return '';
-  }
-},
+    // === TODAY'S ORDERS PAGINATION ===
+    resetTodayPagination() {
+      this.todayPage = 1;
+      this.showAllTodayTransactions = false;
+    },
 
-formatCurrency(amount) {
-  const num = Number(amount) || 0;
-  return new Intl.NumberFormat('en-MY', { 
-    style: 'currency', 
-    currency: 'MYR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2
-  }).format(num);
-},
+    toggleTodayTransactionsExpand() {
+      this.showAllTodayTransactions = !this.showAllTodayTransactions;
+      if (this.showAllTodayTransactions) {
+        this.todayPage = 1;
+      }
+    },
+
+    prevTodayPage() {
+      if (this.todayPage > 1) {
+        this.todayPage--;
+      }
+    },
+
+    nextTodayPage() {
+      if (this.todayPage < this.todayTotalPages) {
+        this.todayPage++;
+      }
+    },
+
+    refreshTodayTransactions() {
+      this.loadTodayTransactions();
+    },
+
+    viewTransaction(tx) {
+      this.$emit('view-transaction', tx);
+    },
+
+    viewAllTransactions() {
+      this.$emit('switch-tab', 'transactions');
+    },
+
+    // =============================================
+    // UTILITY FORMATTING
+    // =============================================
+
+    formatTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        return '';
+      }
+    },
+
+    formatDateTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleString('en-MY', { 
+          day: '2-digit', 
+          month: 'short', 
+          year: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      } catch {
+        return '';
+      }
+    },
 
     getIcon(itemName) {
       return this.iconMap[itemName] || '🍗'
     },
 
-    getImageUrl(imagePath) {
-      if (!imagePath) return null
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:image')) {
-        return imagePath
-      }
-      if (imagePath.startsWith('/uploads/')) {
-        const backendUrl = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com'
-        return `${backendUrl}${imagePath}`
-      }
-      return imagePath
-    },
-
     getUnit(materialName) {
       return 'pieces'
     },
+
+    // =============================================
+    // DATA LOADING
+    // =============================================
 
     async loadData() {
       if (!this.activeStallId) return
@@ -837,44 +1052,40 @@ formatCurrency(amount) {
     },
 
     async loadMenu() {
-  this.loadingMenu = true
-  try {
-    // Get all menu items
-    const res = await axios.get(`${API_BASE}/menu`, {
-      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-    })
-    
-    // Get assignments for this stall
-    const assignmentsRes = await axios.get(`${API_BASE}/menu/assignments/${this.activeStallId}`, {
-      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-    })
-    
-    const assignedItems = assignmentsRes.data || []
-    console.log('📝 Assigned items for stall:', assignedItems)
-    
-    // ✅ Filter menu items by assignments
-    let filteredItems = res.data
-    if (assignedItems.length > 0) {
-      filteredItems = res.data.filter(item => assignedItems.includes(item.item_name))
-    }
-    // If no assignments (empty array), show all items (default behavior)
-    
-    this.menuItems = filteredItems.map(item => ({
-      ...item,
-      quantity: 0
-    }))
-    this.menuQuantities = {}
-    
-    console.log('📝 Filtered menu items:', this.menuItems.length)
-    
-  } catch (error) {
-    console.error('Failed to load menu:', error)
-    this.menuItems = []
-    this.$emit('show-notification', 'Failed to load menu items', 'error')
-  } finally {
-    this.loadingMenu = false
-  }
-},
+      this.loadingMenu = true
+      try {
+        const res = await axios.get(`${API_BASE}/menu`, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        
+        const assignmentsRes = await axios.get(`${API_BASE}/menu/assignments/${this.activeStallId}`, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        
+        const assignedItems = assignmentsRes.data || []
+        console.log('📝 Assigned items for stall:', assignedItems)
+        
+        let filteredItems = res.data
+        if (assignedItems.length > 0) {
+          filteredItems = res.data.filter(item => assignedItems.includes(item.item_name))
+        }
+        
+        this.menuItems = filteredItems.map(item => ({
+          ...item,
+          quantity: 0
+        }))
+        this.menuQuantities = {}
+        
+        console.log('📝 Filtered menu items:', this.menuItems.length)
+        
+      } catch (error) {
+        console.error('Failed to load menu:', error)
+        this.menuItems = []
+        this.$emit('show-notification', 'Failed to load menu items', 'error')
+      } finally {
+        this.loadingMenu = false
+      }
+    },
 
     async loadInventory() {
       const response = await axios.get(`${API_BASE}/inventory`, {
@@ -914,7 +1125,9 @@ formatCurrency(amount) {
       this.analytics = response.data
     },
 
-    // ==================== MENU QUANTITY METHODS ====================
+    // =============================================
+    // MENU QUANTITY & CART
+    // =============================================
 
     adjustQuantity(item, delta) {
       if (!this.activeStallId) return
@@ -929,11 +1142,9 @@ formatCurrency(amount) {
       if (menuItem) {
         menuItem.quantity = newQty
       }
-      // NEW: Sync cart
       this.syncCartItem(item)
     },
 
-    // NEW: Sync individual item to cart
     syncCartItem(item) {
       const qty = this.menuQuantities[item.item_name] || 0
       const existing = this.cartItems.find(i => i.menuItem.item_name === item.item_name)
@@ -951,7 +1162,6 @@ formatCurrency(amount) {
       }
     },
 
-    // NEW: Clear all cart items
     clearCart() {
       this.cartItems = []
       this.menuQuantities = {}
@@ -961,101 +1171,63 @@ formatCurrency(amount) {
       this.$emit('show-notification', 'Cart cleared', 'info')
     },
 
-    // NEW: Sell ALL items in cart as single transaction
-    // stallview.vue - sellAll() method (PERMANENT FIX)
-async sellAll() {
-  if (this.cartItems.length === 0) {
-    this.$emit('show-notification', 'No items to sell', 'warning')
-    return
-  }
-  
-  this.loading = true
-  try {
-    // ✅ ONLY call /api/orders - it handles everything
-    const orderData = {
-      stallId: this.activeStallId,
-      items: this.cartItems.map(item => ({
-        itemName: item.menuItem.item_name,
-        price: item.menuItem.price,
-        quantity: item.quantity
-      })),
-      total: this.cartTotal,
-      itemCount: this.cartItemCount
-    }
-    
-    const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
-      headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-    })
-    
-    // ✅ Success - order created with all items
-    this.$emit('show-notification', 
-      `✅ Order #${orderResponse.data.orderNumber} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
-      'success'
-    )
-    
-    this.clearCart()
-    await this.loadData()
-    
-  } catch (err) {
-    console.error('Order error:', err)
-    this.$emit('show-notification', 'Error processing order', 'error')
-  } finally {
-    this.loading = false
-  }
-},
-
-    // Keep for backward compatibility (if needed)
-    async sellItemWithQuantity(item) {
-      const qty = this.menuQuantities[item.item_name] || 0
-      if (qty <= 0) {
-        this.$emit('show-notification', 'Please select quantity first', 'warning')
+    async sellAll() {
+      if (this.cartItems.length === 0) {
+        this.$emit('show-notification', 'No items to sell', 'warning')
+        return
+      }
+      
+      // Check if shift is open (only if shift is enabled)
+      if (this.shift.enabled && !this.shiftStatus) {
+        this.$emit('show-notification', '⚠️ Please open a shift before making sales', 'warning')
         return
       }
       
       this.loading = true
       try {
-        for (let i = 0; i < qty; i++) {
-          await axios.post(`${API_BASE}/sell`, {
-            itemName: item.item_name,
-            price: item.price,
-            stallId: this.activeStallId
-          }, {
-            headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-          })
+        const orderData = {
+          stallId: this.activeStallId,
+          items: this.cartItems.map(item => ({
+            itemName: item.menuItem.item_name,
+            price: item.menuItem.price,
+            quantity: item.quantity
+          })),
+          total: this.cartTotal,
+          itemCount: this.cartItemCount
         }
-        this.menuQuantities[item.item_name] = 0
-        const menuItem = this.menuItems.find(i => i.item_name === item.item_name)
-        if (menuItem) {
-          menuItem.quantity = 0
-        }
+        
+        const orderResponse = await axios.post(`${API_BASE}/orders`, orderData, {
+          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
+        })
+        
+        this.$emit('show-notification', 
+          `✅ Order #${orderResponse.data.orderNumber} complete! ${this.cartItemCount} items for ${this.formatCurrency(this.cartTotal)}`, 
+          'success'
+        )
+        
+        this.clearCart()
         await this.loadData()
-        this.$emit('show-notification', `Sold ${qty} × ${item.item_name} for ${this.formatCurrency(item.price * qty)}!`, 'success')
+        await this.loadTodayTransactions()
+        
       } catch (err) {
-        console.error(err)
-        this.$emit('show-notification', 'Error selling item', 'error')
+        console.error('Order error:', err)
+        this.$emit('show-notification', 'Error processing order', 'error')
       } finally {
         this.loading = false
       }
     },
 
-    async sellItem(itemName, price) {
-      if (!this.activeStallId) return
-      this.loading = true
-      try {
-        await axios.post(`${API_BASE}/sell`, { itemName, price, stallId: this.activeStallId }, {
-          headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
-        })
-        await this.loadData()
-        this.$emit('show-notification', `Sold ${itemName} for ${this.formatCurrency(price)}!`, 'success')
-      } catch (err) {
-        console.error(err)
-        this.$emit('show-notification', 'Error selling item', 'error')
-      } finally { this.loading = false }
-    },
+    // =============================================
+    // INVENTORY MANAGEMENT
+    // =============================================
 
     async updateStock(materialName, newLevel) {
       try {
-        await axios.post(`${API_BASE}/inventory/update`, { materialName, newLevel, stallId: this.activeStallId }, {
+        await axios.post(`${API_BASE}/inventory/update`, { 
+          materialName, 
+          newLevel, 
+          stallId: this.activeStallId 
+        }, {
           headers: { Authorization: `Bearer ${this.authStore.token || this.token}` }
         })
         await this.loadInventory()
@@ -1072,8 +1244,10 @@ async sellAll() {
       return percentage.toFixed(0)
     },
 
-    // ==================== ANALYTICS METHODS ====================
-    
+    // =============================================
+    // ANALYTICS
+    // =============================================
+
     getWeeklyTotal() {
       const total = this.analytics.dailySales.reduce((sum, day) => {
         const revenue = typeof day.revenue === 'number' ? day.revenue : parseFloat(day.revenue) || 0
@@ -1102,8 +1276,10 @@ async sellAll() {
       })
     },
 
-    // ==================== CHART METHODS ====================
-    
+    // =============================================
+    // CHART HELPERS
+    // =============================================
+
     getBarHeight(revenue) {
       const dailySales = this.analytics.dailySales || []
       if (dailySales.length === 0) return 5
@@ -1161,7 +1337,7 @@ async sellAll() {
   gap: var(--space-lg);
 }
 
-/* NEW: Main content with cart panel */
+/* ===== MAIN CONTENT ===== */
 .main-content {
   display: grid;
   grid-template-columns: 1fr 380px;
@@ -1176,7 +1352,7 @@ async sellAll() {
   overflow: hidden;
 }
 
-/* Connection Banner */
+/* ===== CONNECTION BANNER ===== */
 .connection-banner {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
@@ -1230,7 +1406,7 @@ async sellAll() {
   flex-shrink: 0;
 }
 
-/* Stats Grid */
+/* ===== STATS GRID ===== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1330,7 +1506,7 @@ async sellAll() {
   background: rgba(245, 158, 11, 0.1);
 }
 
-/* Sections */
+/* ===== SECTIONS ===== */
 .section {
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -1361,19 +1537,7 @@ async sellAll() {
   font-size: var(--font-size-sm);
 }
 
-/* Cart Summary Badge */
-.cart-summary-badge {
-  background: var(--primary);
-  color: white;
-  padding: var(--space-xs) var(--space);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  white-space: nowrap;
-  align-self: center;
-}
-
-/* Menu Grid */
+/* ===== MENU ===== */
 .menu-grid {
   padding: var(--space-lg);
   display: grid;
@@ -1493,7 +1657,7 @@ async sellAll() {
   color: var(--primary);
 }
 
-/* Quantity Controls */
+/* ===== QUANTITY CONTROLS ===== */
 .quantity-controls {
   display: flex;
   align-items: center;
@@ -1536,9 +1700,7 @@ async sellAll() {
   color: var(--text);
 }
 
-/* ============================================ */
-/* ORDER PANEL - NEW */
-/* ============================================ */
+/* ===== ORDER PANEL ===== */
 .order-panel {
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -1676,7 +1838,12 @@ async sellAll() {
   transform: none;
 }
 
-/* Inventory Summary */
+.sell-all-btn:disabled:not([disabled]) {
+  opacity: 0.6;
+  background: #6b7280;
+}
+
+/* ===== INVENTORY ===== */
 .inventory-summary {
   display: flex;
   gap: var(--space);
@@ -1714,7 +1881,6 @@ async sellAll() {
   color: var(--text);
 }
 
-/* Inventory Grid */
 .inventory-grid {
   padding: var(--space-lg);
   display: grid;
@@ -1898,7 +2064,6 @@ async sellAll() {
   background: var(--error);
 }
 
-/* Inventory Actions - Only for non-cashier */
 .inventory-actions {
   display: flex;
   gap: var(--space-sm);
@@ -1910,7 +2075,6 @@ async sellAll() {
   font-size: var(--font-size-sm);
 }
 
-/* Cashier message - shown when role is cashier */
 .cashier-stock-message {
   display: flex;
   align-items: center;
@@ -1932,7 +2096,7 @@ async sellAll() {
   font-weight: 500;
 }
 
-/* Analytics */
+/* ===== ANALYTICS ===== */
 .analytics-summary {
   display: flex;
   gap: var(--space);
@@ -2033,7 +2197,6 @@ async sellAll() {
   background: var(--primary);
 }
 
-/* Chart Container */
 .chart-container {
   padding: 0.5rem 0;
   position: relative;
@@ -2123,7 +2286,6 @@ async sellAll() {
   font-size: 0.65rem;
 }
 
-/* Product Breakdown */
 .product-breakdown {
   margin-top: var(--space-lg);
 }
@@ -2182,7 +2344,7 @@ async sellAll() {
   transition: width 0.3s ease;
 }
 
-/* Loading Section */
+/* ===== LOADING ===== */
 .loading-section {
   display: flex;
   flex-direction: column;
@@ -2218,33 +2380,12 @@ async sellAll() {
   height: 32px;
 }
 
-/* Empty State for Menu */
-.menu-empty {
-  padding: 2rem 1rem;
-  text-align: center;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.menu-empty .empty-icon {
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.menu-empty h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 0.3rem;
-}
-
-.menu-empty p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-/* ============================================ */
-/* RECIPE INDICATORS                           */
-/* ============================================ */
+/* ===== RECIPE INDICATORS ===== */
 .item-recipe-info {
   display: flex;
   align-items: center;
@@ -2271,9 +2412,549 @@ async sellAll() {
   color: #059669;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* ===== SHIFT STATUS BAR ===== */
+.shift-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shift-status-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shift-indicator {
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+}
+
+.shift-indicator.open {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-indicator.closed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.shift-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.shift-float {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--surface);
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+}
+
+.shift-status-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shift-stats {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.btn-shift {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-shift.open {
+  background: #10b981;
+  color: white;
+}
+
+.btn-shift.open:hover {
+  background: #059669;
+}
+
+.btn-shift.close {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-shift.close:hover {
+  background: #dc2626;
+}
+
+/* ===== TODAY'S TRANSACTIONS ===== */
+.today-transactions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.today-transactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.today-transactions-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.today-transactions-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  padding: 0.1rem 0.3rem;
+  transition: var(--transition);
+}
+
+.btn-refresh:hover {
+  color: var(--primary);
+  transform: rotate(180deg);
+}
+
+.btn-expand {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  padding: 0.1rem 0.3rem;
+  transition: var(--transition);
+}
+
+.btn-expand:hover {
+  color: var(--primary);
+}
+
+.today-transactions-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.25rem;
+  transition: max-height 0.3s ease;
+}
+
+.today-transactions-list.expanded {
+  max-height: 800px;
+}
+
+.today-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.today-transaction-item:hover {
+  background: var(--background);
+}
+
+.tx-time {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  min-width: 55px;
+}
+
+.tx-id {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-family: monospace;
+  min-width: 80px;
+}
+
+.tx-items {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 50px;
+}
+
+.tx-amount {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+  min-width: 60px;
+  text-align: right;
+}
+
+.tx-status {
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.tx-status.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.tx-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.tx-status.failed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.view-more {
+  text-align: center;
+  padding: 0.35rem;
+}
+
+.view-more button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.view-more button:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  color: var(--text-secondary);
+}
+
+.empty-state span {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* ===== PAGINATION COMPACT ===== */
+.pagination-container.compact {
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.pagination-container.compact .pagination-info {
+  font-size: 0.65rem;
+}
+
+.pagination-container.compact .pagination-btn {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.65rem;
+}
+
+.pagination-container.compact .pagination-page {
+  font-size: 0.65rem;
+  min-width: 40px;
+}
+
+/* ===== SHIFT MODALS ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-modern {
+  background: #ffffff !important;
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 92%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-lg {
+  max-width: 700px;
+}
+
+.modal-modern-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-modern-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.modal-modern-body {
+  background: #ffffff !important;
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal-form-group input,
+.modal-form-group select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.06);
+}
+
+.modal-form-group small {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.required {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.modal-modern-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  background: #f8fafc;
+}
+
+.btn-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-modern.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+}
+
+.btn-modern.primary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(249, 73, 8, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-modern.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-modern.secondary {
+  background: var(--background);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-modern.secondary:hover {
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+/* ===== INVENTORY COUNT GRID ===== */
+.inventory-count-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.inventory-count-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.inventory-count-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-width: 70px;
+}
+
+.inventory-count-item input {
+  width: 60px;
+  padding: 0.15rem 0.3rem;
+}
+
+.inventory-count-unit {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+}
+
+.inventory-count-opening {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.inventory-count-usage {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ===== SHIFT SUMMARY GRID ===== */
+.shift-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.shift-summary-item {
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.shift-summary-item .label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.1rem;
+}
+
+.shift-summary-item .value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.shift-summary-item .value.revenue {
+  color: var(--primary);
+}
+
+.shift-summary-item input {
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+
+.shift-variance {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.shift-variance.over {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.shift-variance.short {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.shift-variance.balanced {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 /* ============================================ */
@@ -2399,9 +3080,69 @@ async sellAll() {
   .order-panel {
     padding: var(--space);
   }
+  
+  .shift-status-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+  
+  .shift-status-left,
+  .shift-status-right {
+    justify-content: center;
+  }
+  
+  .shift-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .today-transaction-item {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  
+  .tx-time {
+    min-width: 45px;
+    font-size: 0.6rem;
+  }
+  
+  .tx-id {
+    min-width: 60px;
+    font-size: 0.7rem;
+  }
+  
+  .tx-amount {
+    font-size: 0.7rem;
+  }
+  
+  .inventory-count-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 0.5rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.25rem;
+  }
+  
+  .stat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 0.95rem;
+  }
+  
   .inventory-header {
     flex-direction: column;
     align-items: flex-start;
@@ -2452,354 +3193,27 @@ async sellAll() {
     width: 36px;
     height: 36px;
   }
+  
+  .shift-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .inventory-count-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-modern {
+    width: 95%;
+  }
+  
+  .modal-lg {
+    max-width: 95%;
+  }
 }
 
 @media (min-width: 769px) {
   .item-recipe-info {
     gap: 0.5rem;
-  }
-}
-
-/* ============================================ */
-/* SHIFT STATUS BAR                            */
-/* ============================================ */
-.shift-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.shift-status-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.shift-indicator {
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: 20px;
-}
-
-.shift-indicator.open {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.shift-indicator.closed {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.shift-time {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.shift-status-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.shift-stats {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.btn-shift {
-  padding: 0.3rem 0.75rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-shift.open {
-  background: #10b981;
-  color: white;
-}
-
-.btn-shift.open:hover {
-  background: #059669;
-}
-
-.btn-shift.close {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-shift.close:hover {
-  background: #dc2626;
-}
-
-/* ============================================ */
-/* TODAY'S TRANSACTIONS                        */
-/* ============================================ */
-.today-transactions {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-top: 1rem;
-}
-
-.today-transactions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.today-transactions-header h4 {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.btn-refresh {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  color: var(--text-secondary);
-  padding: 0.1rem 0.3rem;
-  transition: var(--transition);
-}
-
-.btn-refresh:hover {
-  color: var(--primary);
-  transform: rotate(180deg);
-}
-
-.today-transactions-list {
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 0.25rem;
-}
-
-.today-transaction-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.today-transaction-item:hover {
-  background: var(--background);
-}
-
-.tx-time {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  min-width: 55px;
-}
-
-.tx-id {
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--text);
-  font-family: monospace;
-  min-width: 80px;
-}
-
-.tx-items {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  min-width: 50px;
-}
-
-.tx-amount {
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text);
-  min-width: 60px;
-  text-align: right;
-}
-
-.tx-status {
-  font-size: 0.55rem;
-  font-weight: 600;
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  text-transform: uppercase;
-}
-
-.tx-status.completed {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.tx-status.pending {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.tx-status.failed {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.view-more {
-  text-align: center;
-  padding: 0.35rem;
-}
-
-.view-more button {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
-.view-more button:hover {
-  text-decoration: underline;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 1.5rem 0.5rem;
-  color: var(--text-secondary);
-}
-
-.empty-state span {
-  font-size: 1.5rem;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.empty-state p {
-  font-size: 0.8rem;
-  margin: 0;
-}
-
-/* ============================================ */
-/* SHIFT MODALS                                */
-/* ============================================ */
-.shift-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.shift-summary-item {
-  background: var(--background);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.shift-summary-item .label {
-  display: block;
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 0.1rem;
-}
-
-.shift-summary-item .value {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.shift-summary-item .value.revenue {
-  color: var(--primary);
-}
-
-.shift-summary-item input {
-  width: 100%;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-}
-
-.shift-variance {
-  margin-top: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-sm);
-  text-align: center;
-  font-size: 0.9rem;
-}
-
-.shift-variance.over {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.shift-variance.short {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.shift-variance.balanced {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-/* ============================================ */
-/* RESPONSIVE                                   */
-/* ============================================ */
-@media (max-width: 768px) {
-  .shift-status-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.35rem;
-  }
-  
-  .shift-status-left,
-  .shift-status-right {
-    justify-content: center;
-  }
-  
-  .shift-summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .today-transaction-item {
-    flex-wrap: wrap;
-    gap: 0.3rem;
-  }
-  
-  .tx-time {
-    min-width: 45px;
-    font-size: 0.6rem;
-  }
-  
-  .tx-id {
-    min-width: 60px;
-    font-size: 0.7rem;
-  }
-  
-  .tx-amount {
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .shift-summary-grid {
-    grid-template-columns: 1fr 1fr;
   }
 }
 </style>
