@@ -912,48 +912,73 @@
         </div>
         
         <!-- Shift History Sub-Tab -->
-        <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
-          <div class="card-modern">
-            <div class="card-modern-header">
-              <div>
-                <h3>🕐 Shift History</h3>
-                <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
-              </div>
-              <div class="header-actions">
-                <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
-                <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
-              </div>
-            </div>
-            <div class="card-modern-body">
-              <!-- Filter Bar -->
-              <div class="filter-bar-modern">
-                <div class="filter-group">
-                  <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
-                    <option value="all">
-                      {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
-                    </option>
-                    <option 
-                      v-for="stall in accessibleStalls" 
-                      :key="stall.id" 
-                      :value="stall.id"
-                    >
-                      {{ stall.name }}
-                    </option>
-                  </select>
-                </div>
-                <div class="filter-group">
-                  <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
-                    <option value="all">All Status</option>
-                    <option value="open">🟢 Open</option>
-                    <option value="closed">⚪ Closed</option>
-                  </select>
-                </div>
-                <div class="filter-actions">
-                  <button @click="clearShiftFilters" class="btn-modern secondary small">
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
+       <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+  <div class="card-modern">
+    <div class="card-modern-header">
+      <div>
+        <h3>🕐 Shift History</h3>
+        <span class="card-subtitle">{{ shiftHistoryTotal }} shifts found</span>
+      </div>
+      <div class="header-actions">
+        <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
+        <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
+      </div>
+    </div>
+    <div class="card-modern-body">
+      <!-- Filter Bar -->
+      <div class="filter-bar-modern">
+        <!-- ✅ NEW: Search Bar -->
+        <div class="filter-search">
+          <input 
+            type="text" 
+            v-model="shiftHistorySearch" 
+            placeholder="Search shifts..." 
+            class="filter-input"
+            @input="resetShiftPagination"
+          />
+        </div>
+        
+        <!-- ✅ NEW: All States Dropdown -->
+        <div class="filter-group">
+          <select v-model="shiftHistoryStateFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+            <option v-for="state in malaysiaStates" :key="state" :value="state">
+              {{ state }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Stall Filter -->
+        <div class="filter-group">
+          <select v-model="shiftHistoryStallFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
+            <option value="all">
+              {{ isSuperAdmin ? '🌐 All Stalls (System)' : '📋 All My Stalls' }}
+            </option>
+            <option 
+              v-for="stall in accessibleStalls" 
+              :key="stall.id" 
+              :value="stall.id"
+            >
+              {{ stall.name }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <select v-model="shiftHistoryStatusFilter" class="filter-select" @change="resetShiftPagination">
+            <option value="all">All Status</option>
+            <option value="open">🟢 Open</option>
+            <option value="closed">⚪ Closed</option>
+          </select>
+        </div>
+        
+        <!-- Filter Actions -->
+        <div class="filter-actions">
+          <button @click="clearShiftFilters" class="btn-modern secondary small">
+            Clear Filters
+          </button>
+        </div>
+      </div>
               
               <!-- Table -->
               <div v-if="shiftHistoryLoading" class="loading-state">
@@ -3022,6 +3047,8 @@ export default {
 
   data() {
     return {
+    shiftHistorySearch: '',
+    shiftHistoryStateFilter: 'All States',
     shiftHistory: [],
     shiftHistoryLoading: false,
     shiftHistoryTotal: 0,
@@ -3290,19 +3317,45 @@ expandedTransactionRows: [],
     return '📋 All My Stalls';
   },
 
-     filteredShiftHistory() {
-    let data = this.shiftHistory;
-    
-    if (this.shiftHistoryStallFilter !== 'all') {
-      data = data.filter(s => s.stall_id === this.shiftHistoryStallFilter);
-    }
-    
-    if (this.shiftHistoryStatusFilter !== 'all') {
-      data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
-    }
-    
-    return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
-  },
+filteredShiftHistory() {
+  let data = this.shiftHistory;
+  
+  // ✅ Filter by search term
+  if (this.shiftHistorySearch) {
+    const search = this.shiftHistorySearch.toLowerCase();
+    data = data.filter(shift => {
+      const stallName = this.getStallName(shift.stall_id).toLowerCase();
+      const date = this.formatDate(shift.opened_at).toLowerCase();
+      const revenue = this.formatCurrency(shift.revenue || 0).toLowerCase();
+      const status = (shift.status || '').toLowerCase();
+      
+      return stallName.includes(search) ||
+             date.includes(search) ||
+             revenue.includes(search) ||
+             status.includes(search);
+    });
+  }
+  
+  // ✅ Filter by state
+  if (this.shiftHistoryStateFilter !== 'All States') {
+    data = data.filter(shift => {
+      const stall = this.stalls.find(s => s.id === shift.stall_id);
+      return stall && stall.state === this.shiftHistoryStateFilter;
+    });
+  }
+  
+  // Filter by stall
+  if (this.shiftHistoryStallFilter !== 'all') {
+    data = data.filter(s => s.stall_id === this.shiftHistoryStallFilter);
+  }
+  
+  // Filter by status
+  if (this.shiftHistoryStatusFilter !== 'all') {
+    data = data.filter(s => s.status === this.shiftHistoryStatusFilter);
+  }
+  
+  return data.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+},
   
   paginatedShiftHistory() {
     const start = (this.shiftCurrentPage - 1) * this.shiftItemsPerPage;
@@ -4355,10 +4408,10 @@ async viewShiftDetails(shift) {
 },
 
 clearShiftFilters() {
-  // Default to "All Stalls" for both Super Admin and Stall Admin
-  // The meaning of "All Stalls" is different based on role
   this.shiftHistoryStallFilter = 'all';
   this.shiftHistoryStatusFilter = 'all';
+  this.shiftHistorySearch = '';           // ✅ NEW
+  this.shiftHistoryStateFilter = 'All States';  // ✅ NEW
   this.shiftCurrentPage = 1;
   this.loadShiftHistory();
 },
@@ -4493,8 +4546,8 @@ formatTime(dateStr) {
   },
   
   resetShiftPagination() {
-    this.shiftCurrentPage = 1;
-  },
+  this.shiftCurrentPage = 1;
+},
   
   prevShiftPage() {
     if (this.shiftCurrentPage > 1) {

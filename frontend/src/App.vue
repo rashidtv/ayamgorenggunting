@@ -1472,4 +1472,116 @@ input:focus-visible {
     font-size: 0.65rem;
   }
 }
+
+/* ============================================ */
+/* FIX: PERIOD DROPDOWN - CUSTOM DATE RANGE     */
+/* ============================================ */
+
+/* ✅ Desktop - Make period dropdown wider */
+@media (min-width: 769px) {
+  .period-dropdown-wrapper {
+    min-width: 200px !important;
+  }
+  
+  .period-dropdown-wrapper .dropdown-menu.period-menu {
+    min-width: 260px !important;
+    max-width: 320px !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* ✅ Custom date range - full width on desktop */
+  .period-dropdown-wrapper .custom-date-range {
+    padding: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .date-range-inputs {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group input {
+    width: 100% !important;
+    font-size: 0.75rem !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group label {
+    font-size: 0.6rem !important;
+  }
+  
+  .period-dropdown-wrapper .custom-date-range .btn-modern {
+    width: 100% !important;
+    font-size: 0.7rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+}
+
+/* ✅ Tablet - Keep responsive */
+@media (max-width: 768px) {
+  .period-dropdown-wrapper {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .dropdown-menu.period-menu {
+    min-width: unset !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .date-range-inputs {
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group {
+    width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group input {
+    width: 100% !important;
+    font-size: 14px !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+}
+
+/* ✅ Small mobile - ensure everything fits */
+@media (max-width: 480px) {
+  .period-dropdown-wrapper .dropdown-menu.period-menu {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .period-dropdown-wrapper .date-input-group input {
+    font-size: 14px !important;
+    padding: 0.35rem 0.4rem !important;
+  }
+  
+  .period-dropdown-wrapper .custom-date-range .btn-modern {
+    font-size: 0.7rem !important;
+    padding: 0.3rem !important;
+  }
+}
+
+/* In the existing dropdown-menu styles */
+.dropdown-menu.period-menu {
+  min-width: 140px;
+  padding: 0.25rem 0 !important;
+  max-width: 320px !important;  /* ✅ Add this */
+}
+
+@media (max-width: 768px) {
+  .dropdown-menu.period-menu {
+    max-width: 100% !important;
+  }
+}
+
 </style>
