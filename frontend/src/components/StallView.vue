@@ -269,17 +269,18 @@
         </div>
         <div class="inventory-summary">
           <div class="summary-item">
-        <span class="summary-label">Total Items</span>
-        <span class="summary-value">{{ processedInventory.length }}</span>
-      </div>
-      <div class="summary-item" :class="{ warning: lowStockCount > 0 }">
-        <span class="summary-label">Low Stock</span>
-        <span class="summary-value">{{ lowStockCount }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Available Materials</span>
-        <span class="summary-value">{{ processedInventory.length - lowStockCount }}</span>
-      </div>
+            <span class="summary-label">Total Items</span>
+            <span class="summary-value">{{ processedInventory.length }}</span>
+          </div>
+          <div class="summary-item" :class="{ warning: lowStockCount > 0 }">
+            <span class="summary-label">Low Stock</span>
+            <span class="summary-value">{{ lowStockCount }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Available Materials</span>
+            <span class="summary-value">{{ processedInventory.length - lowStockCount }}</span>
+          </div>
+        </div>
       </div>
       <div class="inventory-grid">
         <div 
@@ -308,22 +309,22 @@
             </div>
             <div class="level-alert">Alert at: {{ item.alert_level }} pieces</div>
           </div>
-<div class="stock-progress">
-  <div class="progress-info">
-    <span class="progress-label">Stock Level</span>
-    <span class="progress-percentage">{{ getStockPercentage(item) }}%</span>
-  </div>
-  <div class="progress-bar">
-    <div 
-      class="progress-fill" 
-      :style="{ width: getStockPercentage(item) + '%' }" 
-      :class="{ 
-        low: item.current_level <= item.alert_level, 
-        critical: item.current_level <= item.alert_level * 0.5 
-      }"
-    ></div>
-  </div>
-</div>
+          <div class="stock-progress">
+            <div class="progress-info">
+              <span class="progress-label">Stock Level</span>
+              <span class="progress-percentage">{{ getStockPercentage(item) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                :style="{ width: getStockPercentage(item) + '%' }" 
+                :class="{ 
+                  low: item.current_level <= item.alert_level, 
+                  critical: item.current_level <= item.alert_level * 0.5 
+                }"
+              ></div>
+            </div>
+          </div>
           <div class="inventory-actions" v-if="role !== 'cashier'">
             <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
               <span class="btn-icon">+</span> Add 10 pieces
@@ -496,100 +497,100 @@
     <!-- ============================================ -->
     <!-- CLOSE SHIFT MODAL                             -->
     <!-- ============================================ -->
-<div v-if="showCloseShiftModal" class="modal-overlay" @click.self="handleCloseShiftModalClose">
-  <div class="modal-modern modal-lg">
-    <div class="modal-modern-header">
-      <h3>🔴 Close Shift</h3>
-      <button @click="handleCloseShiftModalClose" class="modal-close-btn">✕</button>
-    </div>
-    <div class="modal-modern-body">
-<div class="shift-summary-grid">
-  <div class="shift-summary-item">
-    <span class="label">Opened</span>
-    <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
-  </div>
-  <div class="shift-summary-item">
-    <span class="label">Shift Revenue</span>
-    <span class="value revenue">{{ formatCurrency(shiftRevenueOnly) }}</span>
-  </div>
-  <div class="shift-summary-item">
-    <span class="label">Shift Orders</span>
-    <span class="value">{{ shiftOrdersCount }}</span>
-  </div>
-  <div class="shift-summary-item">
-    <span class="label">Starting Float</span>
-    <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
-  </div>
-  <div class="shift-summary-item">
-    <span class="label">Expected Cash</span>
-    <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenueOnly) }}</span>
-  </div>
-  <div class="shift-summary-item">
-    <span class="label">Ending Cash <span class="required">*</span></span>
-    <input 
-      type="number" 
-      v-model.number="shift.endingCash" 
-      placeholder="Enter cash count"
-      min="0"
-      step="0.01"
-      class="filter-input"
-      required
-    />
-  </div>
-</div>
-      
-      <!-- ✅ Inventory Section - Shows Opening Values -->
-<div class="modal-form-group" style="margin-top: 1rem;">
-  <label>📦 Inventory Count <span class="required">*</span></label>
-  <div class="inventory-count-grid">
-    <div 
-      v-for="item in processedInventory" 
-      :key="item.material_name"
-      class="inventory-count-item"
-    >
-      <span class="inventory-count-name">{{ item.material_name }}</span>
-      <span class="inventory-count-opening">
-        Opening: {{ shift.inventoryCounts[item.material_name] !== undefined ? shift.inventoryCounts[item.material_name] : 0 }}
-      </span>
-      <input 
-        type="number" 
-        v-model.number="shift.endingInventory[item.material_name]" 
-        :placeholder="item.current_level || 0"
-        min="0"
-        class="filter-input small"
-        required
-      />
-      <span class="inventory-count-unit">pieces</span>
-      <span class="inventory-count-usage" 
-        v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
-        Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
-      </span>
-    </div>
-  </div>
-  <small>Enter the current stock count for each ingredient</small>
-</div>
-      
-      <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
-        <strong>Variance:</strong> 
-        {{ formatCurrency(shift.endingCash - (shiftStartingFloat + shiftRevenue)) }}
-        <span v-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) > 0">(Over)</span>
-        <span v-else-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) < 0">(Short)</span>
-        <span v-else>(Balanced ✅)</span>
+    <div v-if="showCloseShiftModal" class="modal-overlay" @click.self="handleCloseShiftModalClose">
+      <div class="modal-modern modal-lg">
+        <div class="modal-modern-header">
+          <h3>🔴 Close Shift</h3>
+          <button @click="handleCloseShiftModalClose" class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-modern-body">
+          <div class="shift-summary-grid">
+            <div class="shift-summary-item">
+              <span class="label">Opened</span>
+              <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Shift Revenue</span>
+              <span class="value revenue">{{ formatCurrency(shiftRevenueOnly) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Shift Orders</span>
+              <span class="value">{{ shiftOrdersCount }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Starting Float</span>
+              <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Expected Cash</span>
+              <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenueOnly) }}</span>
+            </div>
+            <div class="shift-summary-item">
+              <span class="label">Ending Cash <span class="required">*</span></span>
+              <input 
+                type="number" 
+                v-model.number="shift.endingCash" 
+                placeholder="Enter cash count"
+                min="0"
+                step="0.01"
+                class="filter-input"
+                required
+              />
+            </div>
+          </div>
+          
+          <!-- Inventory Section - Shows Opening Values -->
+          <div class="modal-form-group" style="margin-top: 1rem;">
+            <label>📦 Inventory Count <span class="required">*</span></label>
+            <div class="inventory-count-grid">
+              <div 
+                v-for="item in processedInventory" 
+                :key="item.material_name"
+                class="inventory-count-item"
+              >
+                <span class="inventory-count-name">{{ item.material_name }}</span>
+                <span class="inventory-count-opening">
+                  Opening: {{ shift.inventoryCounts[item.material_name] !== undefined ? shift.inventoryCounts[item.material_name] : 0 }}
+                </span>
+                <input 
+                  type="number" 
+                  v-model.number="shift.endingInventory[item.material_name]" 
+                  :placeholder="item.current_level || 0"
+                  min="0"
+                  class="filter-input small"
+                  required
+                />
+                <span class="inventory-count-unit">pieces</span>
+                <span class="inventory-count-usage" 
+                  v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
+                  Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
+                </span>
+              </div>
+            </div>
+            <small>Enter the current stock count for each ingredient</small>
+          </div>
+          
+          <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
+            <strong>Variance:</strong> 
+            {{ formatCurrency(shift.endingCash - (shiftStartingFloat + shiftRevenue)) }}
+            <span v-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) > 0">(Over)</span>
+            <span v-else-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) < 0">(Short)</span>
+            <span v-else>(Balanced ✅)</span>
+          </div>
+          
+          <div class="modal-form-group" style="margin-top: 1rem;">
+            <label>Closing Notes (Optional)</label>
+            <input v-model="shift.closeNotes" placeholder="Any notes for closing" class="filter-input" />
+          </div>
+        </div>
+        <div class="modal-modern-footer">
+          <button @click="handleCloseShiftModalClose" class="btn-modern secondary">Cancel</button>
+          <button @click="confirmCloseShift" class="btn-modern primary" :disabled="shift.endingCash <= 0 || shift.loading || !shiftEndingInventoryValid">
+            {{ shift.loading ? 'Closing...' : 'Close Shift' }}
+          </button>
+        </div>
       </div>
-      
-      <div class="modal-form-group" style="margin-top: 1rem;">
-        <label>Closing Notes (Optional)</label>
-        <input v-model="shift.closeNotes" placeholder="Any notes for closing" class="filter-input" />
-      </div>
     </div>
-    <div class="modal-modern-footer">
-      <button @click="handleCloseShiftModalClose" class="btn-modern secondary">Cancel</button>
-      <button @click="confirmCloseShift" class="btn-modern primary" :disabled="shift.endingCash <= 0 || shift.loading || !shiftEndingInventoryValid">
-        {{ shift.loading ? 'Closing...' : 'Close Shift' }}
-      </button>
-    </div>
-  </div>
-</div>
 
   </div>
 </template>
