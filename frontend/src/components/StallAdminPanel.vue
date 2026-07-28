@@ -999,19 +999,17 @@
                     <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
                       {{ formatCurrency(shift.variance) }}
                     </span>
-                    <!-- In the shift history table row -->
-<span class="shift-history-inventory" data-label="Inventory Used">
-  <span v-if="shift.has_inventory_data && Object.keys(shift.inventory_usage || {}).length > 0">
-    <span 
-      v-for="(usage, material) in shift.inventory_usage" 
-      :key="material"
-      class="inventory-usage-tag"
-    >
-      {{ material }}: {{ usage }}
-    </span>
-  </span>
-  <span v-else class="no-inventory-data">-</span>
-</span>
+                    <span class="shift-history-inventory" data-label="Inventory Used">
+                      <span v-if="shift.has_inventory_data && Object.keys(shift.inventory_usage || {}).length > 0">
+                        <span 
+                          v-for="(usage, material) in shift.inventory_usage" 
+                          :key="material"
+                          class="inventory-usage-tag"
+                        >
+                          {{ material }}: {{ usage }}
+                        </span>
+                      </span>
+                      <span v-else class="no-inventory-data">-</span>
                     </span>
                     <span class="shift-history-status" data-label="Status">
                       <span class="status-badge" :class="shift.status">
