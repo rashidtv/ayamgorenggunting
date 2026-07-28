@@ -268,10 +268,18 @@
           <p>Current stock levels and alerts</p>
         </div>
         <div class="inventory-summary">
-          <div class="summary-item"><span class="summary-label">Total Items</span><span class="summary-value">{{ processedInventory.length }}</span></div>
-          <div class="summary-item" :class="{ warning: lowStockCount > 0 }"><span class="summary-label">Low Stock</span><span class="summary-value">{{ lowStockCount }}</span></div>
-          <div class="summary-item"><span class="summary-label">In Stock</span><span class="summary-value">{{ processedInventory.length - lowStockCount }}</span></div>
-        </div>
+          <div class="summary-item">
+        <span class="summary-label">Total Items</span>
+        <span class="summary-value">{{ processedInventory.length }}</span>
+      </div>
+      <div class="summary-item" :class="{ warning: lowStockCount > 0 }">
+        <span class="summary-label">Low Stock</span>
+        <span class="summary-value">{{ lowStockCount }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Available Materials</span>
+        <span class="summary-value">{{ processedInventory.length - lowStockCount }}</span>
+      </div>
       </div>
       <div class="inventory-grid">
         <div 
@@ -300,13 +308,22 @@
             </div>
             <div class="level-alert">Alert at: {{ item.alert_level }} pieces</div>
           </div>
-          <div class="stock-progress">
-            <div class="progress-info">
-              <span class="progress-label">Stock Level</span>
-              <span class="progress-percentage">{{ getStockPercentage(item) }}%</span>
-            </div>
-            <div class="progress-bar"><div class="progress-fill" :style="{ width: getStockPercentage(item) + '%' }" :class="{ low: item.current_level <= item.alert_level, critical: item.current_level <= item.alert_level * 0.5 }"></div></div>
-          </div>
+<div class="stock-progress">
+  <div class="progress-info">
+    <span class="progress-label">Stock Level</span>
+    <span class="progress-percentage">{{ getStockPercentage(item) }}%</span>
+  </div>
+  <div class="progress-bar">
+    <div 
+      class="progress-fill" 
+      :style="{ width: getStockPercentage(item) + '%' }" 
+      :class="{ 
+        low: item.current_level <= item.alert_level, 
+        critical: item.current_level <= item.alert_level * 0.5 
+      }"
+    ></div>
+  </div>
+</div>
           <div class="inventory-actions" v-if="role !== 'cashier'">
             <button @click="updateStock(item.material_name, item.current_level + 10)" class="btn btn-outline stock-btn" :disabled="connectionError">
               <span class="btn-icon">+</span> Add 10 pieces
@@ -486,70 +503,71 @@
       <button @click="handleCloseShiftModalClose" class="modal-close-btn">✕</button>
     </div>
     <div class="modal-modern-body">
-      <div class="shift-summary-grid">
-        <div class="shift-summary-item">
-          <span class="label">Opened</span>
-          <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
-        </div>
-        <div class="shift-summary-item">
-          <span class="label">Revenue</span>
-          <span class="value revenue">{{ formatCurrency(shiftRevenue) }}</span>
-        </div>
-        <div class="shift-summary-item">
-          <span class="label">Orders</span>
-          <span class="value">{{ todayTransactions.length }}</span>
-        </div>
-        <div class="shift-summary-item">
-          <span class="label">Starting Float</span>
-          <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
-        </div>
-        <div class="shift-summary-item">
-          <span class="label">Expected Cash</span>
-          <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenue) }}</span>
-        </div>
-        <div class="shift-summary-item">
-          <span class="label">Ending Cash <span class="required">*</span></span>
-          <input 
-            type="number" 
-            v-model.number="shift.endingCash" 
-            placeholder="Enter cash count"
-            min="0"
-            step="0.01"
-            class="filter-input"
-            required
-          />
-        </div>
-      </div>
+<div class="shift-summary-grid">
+  <div class="shift-summary-item">
+    <span class="label">Opened</span>
+    <span class="value">{{ formatDateTime(currentShift?.opened_at) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Shift Revenue</span>
+    <span class="value revenue">{{ formatCurrency(shiftRevenueOnly) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Shift Orders</span>
+    <span class="value">{{ shiftOrdersCount }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Starting Float</span>
+    <span class="value">{{ formatCurrency(shiftStartingFloat) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Expected Cash</span>
+    <span class="value">{{ formatCurrency(shiftStartingFloat + shiftRevenueOnly) }}</span>
+  </div>
+  <div class="shift-summary-item">
+    <span class="label">Ending Cash <span class="required">*</span></span>
+    <input 
+      type="number" 
+      v-model.number="shift.endingCash" 
+      placeholder="Enter cash count"
+      min="0"
+      step="0.01"
+      class="filter-input"
+      required
+    />
+  </div>
+</div>
       
       <!-- ✅ Inventory Section - Shows Opening Values -->
-      <div class="modal-form-group" style="margin-top: 1rem;">
-        <label>📦 Inventory Count <span class="required">*</span></label>
-        <div class="inventory-count-grid">
-          <div 
-            v-for="item in processedInventory" 
-            :key="item.material_name"
-            class="inventory-count-item"
-          >
-            <span class="inventory-count-name">{{ item.material_name }}</span>
-            <span class="inventory-count-opening">
-              Opening: {{ shift.inventoryCounts[item.material_name] || 0 }}
-            </span>
-            <input 
-              type="number" 
-              v-model.number="shift.endingInventory[item.material_name]" 
-              :placeholder="item.current_level || 0"
-              min="0"
-              class="filter-input small"
-              required
-            />
-            <span class="inventory-count-unit">pieces</span>
-            <span class="inventory-count-usage" v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
-              Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
-            </span>
-          </div>
-        </div>
-        <small>Enter the current stock count for each ingredient</small>
-      </div>
+<div class="modal-form-group" style="margin-top: 1rem;">
+  <label>📦 Inventory Count <span class="required">*</span></label>
+  <div class="inventory-count-grid">
+    <div 
+      v-for="item in processedInventory" 
+      :key="item.material_name"
+      class="inventory-count-item"
+    >
+      <span class="inventory-count-name">{{ item.material_name }}</span>
+      <span class="inventory-count-opening">
+        Opening: {{ shift.inventoryCounts[item.material_name] !== undefined ? shift.inventoryCounts[item.material_name] : 0 }}
+      </span>
+      <input 
+        type="number" 
+        v-model.number="shift.endingInventory[item.material_name]" 
+        :placeholder="item.current_level || 0"
+        min="0"
+        class="filter-input small"
+        required
+      />
+      <span class="inventory-count-unit">pieces</span>
+      <span class="inventory-count-usage" 
+        v-if="shift.endingInventory[item.material_name] !== undefined && shift.inventoryCounts[item.material_name] !== undefined">
+        Used: {{ Math.max(0, (shift.inventoryCounts[item.material_name] || 0) - (shift.endingInventory[item.material_name] || 0)) }}
+      </span>
+    </div>
+  </div>
+  <small>Enter the current stock count for each ingredient</small>
+</div>
       
       <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
         <strong>Variance:</strong> 
@@ -611,7 +629,8 @@ export default {
         openingInventory: {},
         inventoryCounts: {},
         endingInventory: {},
-        shiftTransactions: []
+        shiftTransactions: [],
+        currentShiftId: null
       },
       inventory: [],
       processedInventory: [],
@@ -638,6 +657,17 @@ export default {
     }
   },
   computed: {
+
+      shiftOrdersCount() {
+    if (!this.shift || !this.shift.enabled) return 0;
+    return this.shift.shiftTransactions?.length || 0;
+  },
+  
+  // ✅ NEW: Shift-specific revenue
+  shiftRevenueOnly() {
+    if (!this.shift || !this.shift.enabled) return 0;
+    return this.shift.revenue || 0;
+  },
     shiftStatus() {
       if (!this.shift || !this.shift.enabled) return false;
       return this.shift.status || false;
@@ -747,6 +777,26 @@ export default {
   },
   methods: {
 
+    async loadShiftTransactions() {
+  if (!this.shift || !this.shift.enabled || !this.shift.status || !this.shift.currentShiftId) return;
+  
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    const res = await axios.get(
+      `${API_BASE}/shifts/${this.shift.currentShiftId}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    this.shift.shiftTransactions = res.data.transactions || [];
+    // ✅ Update shift revenue from the shift-specific data
+    this.shift.revenue = parseFloat(res.data.revenue) || 0;
+    
+  } catch (err) {
+    console.warn('Failed to load shift transactions:', err);
+    this.shift.shiftTransactions = [];
+  }
+},
+
     getShiftVarianceClass() {
   const variance = this.shiftVariance;
   if (variance > 0) return 'over';
@@ -760,7 +810,7 @@ export default {
     // SHIFT METHODS
     // =============================================
 
-    async loadCurrentShift() {
+async loadCurrentShift() {
   if (!this.shift || !this.shift.enabled) return;
   
   try {
@@ -772,17 +822,17 @@ export default {
     
     if (res.data) {
       this.shift.currentShift = res.data;
+      this.shift.currentShiftId = res.data.id;  // ✅ Store shift ID
       this.shift.status = true;
       this.shift.startTime = res.data.opened_at;
       this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
       this.shift.revenue = parseFloat(res.data.revenue) || 0;
       
-      // ✅ Store opening inventory from the shift
+      // Store opening inventory from the shift
       if (res.data.opening_inventory) {
         this.shift.openingInventory = res.data.opening_inventory;
         this.shift.inventoryCounts = { ...res.data.opening_inventory };
       } else {
-        // Fallback: use current stock
         this.shift.openingInventory = {};
         this.processedInventory.forEach(item => {
           this.shift.openingInventory[item.material_name] = item.current_level || 0;
@@ -791,10 +841,13 @@ export default {
       }
       
       await this.loadTodayTransactions();
+      await this.loadShiftTransactions();  // ✅ NEW: Load shift-specific transactions
     } else {
       this.shift.currentShift = null;
+      this.shift.currentShiftId = null;
       this.shift.status = false;
       this.shift.todayTransactions = [];
+      this.shift.shiftTransactions = [];
       this.shift.revenue = 0;
       this.shift.openingInventory = {};
       this.shift.inventoryCounts = {};
@@ -804,6 +857,7 @@ export default {
     console.warn('Failed to load current shift:', err);
     this.shift.status = false;
     this.shift.currentShift = null;
+    this.shift.currentShiftId = null;
   }
 },
 
@@ -955,27 +1009,24 @@ export default {
 },
 
     // === CLOSE SHIFT ===
-    closeShiftModal() {
+closeShiftModal() {
   if (!this.shift || !this.shift.enabled || !this.shift.status) return;
   this.shift.endingCash = 0;
   this.shift.closeNotes = '';
   
-  // ✅ Use opening inventory from the shift
-  // If opening inventory exists, use it; otherwise fallback to current stock
+  // Use opening inventory from the shift
   const hasOpeningInventory = this.shift.openingInventory && Object.keys(this.shift.openingInventory).length > 0;
   
   if (hasOpeningInventory) {
-    // Use the saved opening inventory
     this.shift.inventoryCounts = { ...this.shift.openingInventory };
   } else {
-    // Fallback: use current stock
     this.shift.inventoryCounts = {};
     this.processedInventory.forEach(item => {
       this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
     });
   }
   
-  // ✅ Initialize ending inventory from current stock
+  // Initialize ending inventory from current stock
   this.shift.endingInventory = {};
   this.processedInventory.forEach(item => {
     this.shift.endingInventory[item.material_name] = item.current_level || 0;
@@ -1002,52 +1053,62 @@ export default {
     },
 
     async confirmCloseShift() {
-      if (!this.shift || !this.shift.enabled || !this.shift.status) {
-        this.$emit('show-notification', 'No active shift to close', 'warning');
-        return;
-      }
-      
-      if (this.shift.endingCash <= 0) {
-        this.$emit('show-notification', 'Please enter the ending cash count (minimum RM 0.01)', 'warning');
-        return;
-      }
-      
-      const missingInventory = this.processedInventory.some(item => 
-        this.shift.endingInventory[item.material_name] === undefined || 
-        this.shift.endingInventory[item.material_name] === null ||
-        this.shift.endingInventory[item.material_name] < 0
-      );
-      
-      if (missingInventory) {
-        this.$emit('show-notification', 'Please enter valid ending inventory counts for all items', 'warning');
-        return;
-      }
-      
-      this.shift.loading = true;
-      try {
-        const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
-        await axios.post(
-          `${API_BASE}/shifts/close`,
-          {
-            shiftId: this.shift.currentShift.id,
-            endingCash: this.shift.endingCash,
-            notes: this.shift.closeNotes,
-            endingInventory: this.shift.endingInventory
-          },
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        );
-        
-        this.shift.showCloseModal = false;
-        this.$emit('show-notification', 'Shift closed successfully!', 'success');
-        await this.loadCurrentShift();
-        
-      } catch (err) {
-        console.error('Failed to close shift:', err);
-        this.$emit('show-notification', err.response?.data?.error || 'Failed to close shift', 'error');
-      } finally {
-        this.shift.loading = false;
-      }
-    },
+  if (!this.shift || !this.shift.enabled || !this.shift.status) {
+    this.$emit('show-notification', 'No active shift to close', 'warning');
+    return;
+  }
+  
+  if (this.shift.endingCash <= 0) {
+    this.$emit('show-notification', 'Please enter the ending cash count (minimum RM 0.01)', 'warning');
+    return;
+  }
+  
+  const missingInventory = this.processedInventory.some(item => 
+    this.shift.endingInventory[item.material_name] === undefined || 
+    this.shift.endingInventory[item.material_name] === null ||
+    this.shift.endingInventory[item.material_name] < 0
+  );
+  
+  if (missingInventory) {
+    this.$emit('show-notification', 'Please enter valid ending inventory counts for all items', 'warning');
+    return;
+  }
+  
+  this.shift.loading = true;
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    
+    // ✅ Calculate usage for logging/debugging
+    const usage = {};
+    Object.keys(this.shift.inventoryCounts).forEach(key => {
+      const opening = parseFloat(this.shift.inventoryCounts[key]) || 0;
+      const closing = parseFloat(this.shift.endingInventory[key]) || 0;
+      usage[key] = Math.max(0, opening - closing);
+    });
+    console.log('📦 Inventory usage:', usage);
+    
+    await axios.post(
+      `${API_BASE}/shifts/close`,
+      {
+        shiftId: this.shift.currentShift.id,
+        endingCash: this.shift.endingCash,
+        notes: this.shift.closeNotes,
+        endingInventory: this.shift.endingInventory
+      },
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    
+    this.shift.showCloseModal = false;
+    this.$emit('show-notification', 'Shift closed successfully!', 'success');
+    await this.loadCurrentShift();
+    
+  } catch (err) {
+    console.error('Failed to close shift:', err);
+    this.$emit('show-notification', err.response?.data?.error || 'Failed to close shift', 'error');
+  } finally {
+    this.shift.loading = false;
+  }
+},
 
     getVarianceClass() {
       const expected = this.shiftStartingFloat + this.shiftRevenue;
@@ -1335,10 +1396,23 @@ export default {
     },
 
     getStockPercentage(item) {
-      const max = Math.max(item.current_level, item.alert_level * 2);
-      const percentage = Math.min((item.current_level / max) * 100, 100);
-      return percentage.toFixed(0);
-    },
+  // ✅ Calculate percentage based on alert level (0% at alert level, 100% at 2x alert level)
+  const alertLevel = item.alert_level || 10;
+  const currentLevel = item.current_level || 0;
+  
+  // If stock is at or below alert level, show 0% (critical)
+  if (currentLevel <= alertLevel) {
+    // Show percentage of how close to zero: 0% at alert, approaches 0 as stock decreases
+    return Math.max(0, (currentLevel / alertLevel) * 50);
+  }
+  
+  // If stock is above alert level, show up to 100% at 2x alert level
+  const maxLevel = alertLevel * 2;
+  const percentage = Math.min(100, ((currentLevel - alertLevel) / (maxLevel - alertLevel)) * 100 + 50);
+  
+  // Floor at 5% for minimum visibility
+  return Math.max(5, Math.min(100, percentage));
+},
 
     // =============================================
     // ANALYTICS

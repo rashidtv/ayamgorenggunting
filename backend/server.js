@@ -3494,6 +3494,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
 
 
 // GET /api/shifts/history - Get shift history for a stall
+// GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3565,9 +3566,25 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     const result = await pool.query(queryText, params);
     
     const shifts = result.rows.map(shift => {
-      // Get opening inventory (use empty object if null)
-      const openingInventory = shift.opening_inventory || {};
-      const closingInventory = shift.closing_inventory || {};
+      // Parse inventory data (safe handling)
+      let openingInventory = {};
+      let closingInventory = {};
+      
+      try {
+        openingInventory = typeof shift.opening_inventory === 'string' 
+          ? JSON.parse(shift.opening_inventory) 
+          : (shift.opening_inventory || {});
+      } catch (e) {
+        openingInventory = {};
+      }
+      
+      try {
+        closingInventory = typeof shift.closing_inventory === 'string' 
+          ? JSON.parse(shift.closing_inventory) 
+          : (shift.closing_inventory || {});
+      } catch (e) {
+        closingInventory = {};
+      }
       
       // Calculate inventory usage
       const inventoryUsage = {};
@@ -3575,6 +3592,15 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         const opening = parseFloat(openingInventory[key]) || 0;
         const closing = parseFloat(closingInventory[key]) || 0;
         inventoryUsage[key] = Math.max(0, opening - closing);
+      });
+      
+      // ✅ Also add inventory usage for items that only exist in closing (shouldn't happen but safe)
+      Object.keys(closingInventory).forEach(key => {
+        if (!inventoryUsage[key]) {
+          const opening = parseFloat(openingInventory[key]) || 0;
+          const closing = parseFloat(closingInventory[key]) || 0;
+          inventoryUsage[key] = Math.max(0, opening - closing);
+        }
       });
       
       return {
