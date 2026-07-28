@@ -3564,28 +3564,34 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     
     const result = await pool.query(queryText, params);
     
-    const shifts = result.rows.map(shift => ({
-      ...shift,
-      revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
-      transaction_count: parseInt(shift.linked_count || 0) + parseInt(shift.unlinked_count || 0),
-      starting_float: parseFloat(shift.starting_float) || 0,
-      variance: parseFloat(shift.variance) || 0,
-      expected_cash: parseFloat(shift.expected_cash) || 0,
-      ending_cash: parseFloat(shift.ending_cash) || 0,
-      total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
-      // ✅ Include inventory data
-      opening_inventory: shift.opening_inventory || {},
-      closing_inventory: shift.closing_inventory || {},
-      // ✅ Calculate usage
-      inventory_usage: shift.opening_inventory && shift.closing_inventory 
-        ? Object.keys(shift.opening_inventory).reduce((acc, key) => {
-            const opening = parseFloat(shift.opening_inventory[key]) || 0;
-            const closing = parseFloat(shift.closing_inventory[key]) || 0;
-            acc[key] = Math.max(0, opening - closing);
-            return acc;
-          }, {})
-        : {}
-    }));
+    const shifts = result.rows.map(shift => {
+      // Get opening inventory (use empty object if null)
+      const openingInventory = shift.opening_inventory || {};
+      const closingInventory = shift.closing_inventory || {};
+      
+      // Calculate inventory usage
+      const inventoryUsage = {};
+      Object.keys(openingInventory).forEach(key => {
+        const opening = parseFloat(openingInventory[key]) || 0;
+        const closing = parseFloat(closingInventory[key]) || 0;
+        inventoryUsage[key] = Math.max(0, opening - closing);
+      });
+      
+      return {
+        ...shift,
+        revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
+        transaction_count: parseInt(shift.linked_count || 0) + parseInt(shift.unlinked_count || 0),
+        starting_float: parseFloat(shift.starting_float) || 0,
+        variance: parseFloat(shift.variance) || 0,
+        expected_cash: parseFloat(shift.expected_cash) || 0,
+        ending_cash: parseFloat(shift.ending_cash) || 0,
+        total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
+        opening_inventory: openingInventory,
+        closing_inventory: closingInventory,
+        inventory_usage: inventoryUsage,
+        has_inventory_data: Object.keys(openingInventory).length > 0 || Object.keys(closingInventory).length > 0
+      };
+    });
     
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM shifts WHERE stall_id = $1`,
@@ -3694,69 +3700,61 @@ app.get('/api/shifts/:shiftId', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
-    // ✅ Calculate revenue from orders linked to this shift
-    const stats = await pool.query(
+    // Get ALL orders for this stall during the shift period
+    const ordersResult = await pool.query(
       `SELECT 
-         COALESCE(SUM(total_amount), 0) as revenue,
-         COUNT(*) as transaction_count
-       FROM orders 
-       WHERE shift_id = $1 AND status = 'completed'`,
-      [shiftId]
+         o.*,
+         COALESCE(
+           (SELECT json_agg(
+             json_build_object(
+               'item_name', s.item_name,
+               'price', s.price,
+               'created_at', s.created_at
+             )
+           )
+           FROM sales s
+           WHERE s.order_id = o.id),
+           '[]'
+         ) as items
+       FROM orders o
+       WHERE o.stall_id = $1
+       AND o.created_at >= $2
+       AND o.created_at <= COALESCE($3, NOW())
+       AND o.status = 'completed'
+       ORDER BY o.created_at DESC`,
+      [shift.stall_id, shift.opened_at, shift.closed_at || new Date().toISOString()]
     );
     
-    const revenue = parseFloat(stats.rows[0].revenue) || 0;
-    const transactionCount = parseInt(stats.rows[0].transaction_count) || 0;
+    // Calculate revenue and count from these orders
+    let totalRevenue = 0;
+    let totalCount = 0;
     
-    // ✅ Also include unlinked orders in the same time range (for backward compatibility)
-    const unlinkedStats = await pool.query(
-      `SELECT 
-         COALESCE(SUM(total_amount), 0) as revenue,
-         COUNT(*) as transaction_count
-       FROM orders 
-       WHERE stall_id = $1 
-       AND (shift_id IS NULL OR shift_id != $2)
-       AND created_at >= $3
-       AND created_at <= COALESCE($4, NOW())
-       AND status = 'completed'`,
-      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
-    );
+    ordersResult.rows.forEach(order => {
+      totalRevenue += parseFloat(order.total_amount) || 0;
+      totalCount++;
+    });
     
-    const unlinkedRevenue = parseFloat(unlinkedStats.rows[0].revenue) || 0;
-    const unlinkedCount = parseInt(unlinkedStats.rows[0].transaction_count) || 0;
+    // Get opening and closing inventory
+    const openingInventory = shift.opening_inventory || {};
+    const closingInventory = shift.closing_inventory || {};
     
-    // ✅ Combine both
-    const totalRevenue = revenue + unlinkedRevenue;
-    const totalCount = transactionCount + unlinkedCount;
+    // Calculate inventory usage
+    const inventoryUsage = {};
+    Object.keys(openingInventory).forEach(key => {
+      const opening = parseFloat(openingInventory[key]) || 0;
+      const closing = parseFloat(closingInventory[key]) || 0;
+      inventoryUsage[key] = Math.max(0, opening - closing);
+    });
     
-    // ✅ Get transactions (orders) for this shift - COMBINED
-    // Get linked orders
-    const linkedOrders = await pool.query(
-      `SELECT * FROM orders WHERE shift_id = $1 ORDER BY created_at DESC`,
-      [shiftId]
-    );
-    
-    // Get unlinked orders in the same time range
-    const unlinkedOrders = await pool.query(
-      `SELECT * FROM orders 
-       WHERE stall_id = $1 
-       AND (shift_id IS NULL OR shift_id != $2)
-       AND created_at >= $3
-       AND created_at <= COALESCE($4, NOW())
-       AND status = 'completed'
-       ORDER BY created_at DESC`,
-      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
-    );
-    
-    // ✅ Combine both sets of orders
-    const allTransactions = [...linkedOrders.rows, ...unlinkedOrders.rows];
-    // Sort by created_at descending
-    allTransactions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    // ✅ Update shift with combined values
+    // Update shift with combined values
     shift.revenue = totalRevenue;
     shift.transaction_count = totalCount;
-    shift.total_revenue = totalRevenue; // For backward compatibility
-    shift.transactions = allTransactions;
+    shift.total_revenue = totalRevenue;
+    shift.transactions = ordersResult.rows;
+    shift.opening_inventory = openingInventory;
+    shift.closing_inventory = closingInventory;
+    shift.inventory_usage = inventoryUsage;
+    shift.has_inventory_data = Object.keys(openingInventory).length > 0 || Object.keys(closingInventory).length > 0;
     
     res.json(shift);
   } catch (err) {
