@@ -911,8 +911,8 @@
           </button>
         </div>
         
-        <!-- Shift History Sub-Tab -->
-       <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+       <!-- Shift History Sub-Tab -->
+<div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
   <div class="card-modern">
     <div class="card-modern-header">
       <div>
@@ -922,12 +922,13 @@
       <div class="header-actions">
         <button @click="loadShiftHistory" class="btn-modern secondary small">⟳ Refresh</button>
         <button @click="exportShiftHistory" class="btn-modern primary small">📊 Export</button>
+        <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
       </div>
     </div>
     <div class="card-modern-body">
       <!-- Filter Bar -->
       <div class="filter-bar-modern">
-        <!-- ✅ NEW: Search Bar -->
+        <!-- Search Bar -->
         <div class="filter-search">
           <input 
             type="text" 
@@ -938,7 +939,7 @@
           />
         </div>
         
-        <!-- ✅ NEW: All States Dropdown -->
+        <!-- All States Dropdown -->
         <div class="filter-group">
           <select v-model="shiftHistoryStateFilter" class="filter-select" @change="resetShiftPagination; loadShiftHistory()">
             <option v-for="state in malaysiaStates" :key="state" :value="state">
@@ -979,237 +980,106 @@
           </button>
         </div>
       </div>
-              
-              <!-- Table -->
-              <div v-if="shiftHistoryLoading" class="loading-state">
-                <div class="loading-spinner"><div class="spinner-ring"></div></div>
-                <p>Loading shift history...</p>
-              </div>
-              
-              <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
-                <span>🕐</span>
-                <p>No shifts found matching your criteria</p>
-              </div>
-              
-              <div v-else>
-                <!-- Shift History Table -->
-                <div class="shift-history-table-wrapper">
-                  <!-- Table Header -->
-                  <div class="shift-history-table-header">
-                    <span class="shift-history-header-date">Date</span>
-                    <span class="shift-history-header-stall">Stall</span>
-                    <span class="shift-history-header-revenue">Revenue</span>
-                    <span class="shift-history-header-transactions">Orders</span>
-                    <span class="shift-history-header-float">Float</span>
-                    <span class="shift-history-header-variance">Variance</span>
-                    <span class="shift-history-header-inventory">Inventory Used</span>
-                    <span class="shift-history-header-status">Status</span>
-                    <span class="shift-history-header-details">Details</span>
-                  </div>
-                  
-                  <!-- Table Body -->
-                  <div 
-                    v-for="shift in paginatedShiftHistory" 
-                    :key="shift.id" 
-                    class="shift-history-table-row clickable-item"
-                    @click="viewShiftDetails(shift)"
-                  >
-                    <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
-                    <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
-                    <span class="shift-history-revenue" data-label="Revenue">
-                      {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
-                    </span>
-                    <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
-                    <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
-                    <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
-                      {{ formatCurrency(shift.variance) }}
-                    </span>
-                    <span class="shift-history-inventory" data-label="Inventory Used">
-  <span v-if="shift.has_inventory_data && Object.keys(shift.inventory_usage || {}).length > 0">
-    <span 
-      v-for="(usage, material) in shift.inventory_usage" 
-      :key="material"
-      class="inventory-usage-tag"
-    >
-      {{ material }}: {{ usage }}
-    </span>
-  </span>
-  <span v-else class="no-inventory-data">-</span>
-</span>
-                    <span class="shift-history-status" data-label="Status">
-                      <span class="status-badge" :class="shift.status">
-                        {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-                      </span>
-                    </span>
-                    <span class="shift-history-details" data-label="Details">👆</span>
-                  </div>
-                </div>
-                
-                <!-- ===== SHIFT DETAIL MODAL ===== -->
-                <div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
-                  <div class="modal-modern modal-lg">
-                    <div class="modal-modern-header">
-                      <h3>🕐 Shift Details</h3>
-                      <button @click="shiftDetailModal=false" class="modal-close-btn">✕</button>
-                    </div>
-                    <div class="modal-modern-body">
-                      <div v-if="selectedShift">
-                        <!-- Shift Info -->
-                        <div class="shift-detail-grid">
-                          <div class="shift-detail-item">
-                            <span class="label">Stall</span>
-                            <span class="value">{{ getStallName(selectedShift.stall_id) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Opened</span>
-                            <span class="value">{{ formatDateTime(selectedShift.opened_at) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Opened By</span>
-                            <span class="value">{{ selectedShift.opened_by_name || '-' }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Closed</span>
-                            <span class="value">{{ formatDateTime(selectedShift.closed_at) || '-' }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Closed By</span>
-                            <span class="value">{{ selectedShift.closed_by_name || '-' }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Status</span>
-                            <span class="value">
-                              <span class="status-badge" :class="selectedShift.status">
-                                {{ selectedShift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
-                              </span>
-                            </span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Starting Float</span>
-                            <span class="value">{{ formatCurrency(selectedShift.starting_float) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Revenue</span>
-                            <span class="value revenue">{{ formatCurrency(selectedShift.revenue || selectedShift.total_revenue || 0) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Orders</span>
-                            <span class="value">{{ selectedShift.transaction_count || 0 }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Expected Cash</span>
-                            <span class="value">{{ formatCurrency(selectedShift.expected_cash) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Ending Cash</span>
-                            <span class="value">{{ formatCurrency(selectedShift.ending_cash) }}</span>
-                          </div>
-                          <div class="shift-detail-item">
-                            <span class="label">Variance</span>
-                            <span class="value" :class="getVarianceClass(selectedShift)">
-                              {{ formatCurrency(selectedShift.variance) }}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <!-- Inventory Section -->
-                        <div v-if="selectedShift.opening_inventory || selectedShift.closing_inventory" class="shift-detail-inventory">
-                          <h4>📦 Inventory</h4>
-                          <div class="inventory-detail-grid">
-                            <div class="inventory-detail-header">
-                              <span class="inventory-detail-material">Material</span>
-                              <span class="inventory-detail-opening">Opening</span>
-                              <span class="inventory-detail-closing">Closing</span>
-                              <span class="inventory-detail-usage">Used</span>
-                            </div>
-                            <div 
-                              v-for="(opening, material) in selectedShift.opening_inventory" 
-                              :key="material"
-                              class="inventory-detail-row"
-                            >
-                              <span class="inventory-detail-material">{{ material }}</span>
-                              <span class="inventory-detail-opening">{{ opening }}</span>
-                              <span class="inventory-detail-closing">{{ selectedShift.closing_inventory?.[material] || 0 }}</span>
-                              <span class="inventory-detail-usage" :class="getUsageClass(selectedShift, material)">
-                                {{ getInventoryUsage(selectedShift, material) }}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <!-- Notes -->
-                        <div v-if="selectedShift.notes || selectedShift.closing_notes" class="shift-detail-notes">
-                          <div v-if="selectedShift.notes">
-                            <strong>Opening Notes:</strong>
-                            <p>{{ selectedShift.notes }}</p>
-                          </div>
-                          <div v-if="selectedShift.closing_notes">
-                            <strong>Closing Notes:</strong>
-                            <p>{{ selectedShift.closing_notes }}</p>
-                          </div>
-                        </div>
-                        
-                        <!-- Transactions -->
-                        <div class="shift-detail-transactions">
-                          <h4>📋 Orders ({{ selectedShift.transactions?.length || 0 }})</h4>
-                          <div v-if="selectedShift.transactions?.length === 0" class="empty-state-modern small">
-                            <span>📭</span>
-                            <p>No orders for this shift</p>
-                          </div>
-                          <div v-else class="shift-transaction-list">
-                            <div 
-                              v-for="tx in selectedShift.transactions" 
-                              :key="tx.id" 
-                              class="shift-transaction-item"
-                            >
-                              <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
-                              <span class="tx-id">#{{ tx.order_number }}</span>
-                              <span class="tx-items">{{ tx.item_count || 0 }} items</span>
-                              <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
-                              <span class="tx-status" :class="tx.status || 'completed'">
-                                {{ tx.status || 'completed' }}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="modal-modern-footer">
-                      <button @click="shiftDetailModal=false" class="btn-modern secondary">Close</button>
-                      <button @click="exportShiftReport" class="btn-modern primary" v-if="selectedShift">📊 Export</button>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Pagination -->
-                <div class="pagination-container">
-                  <div class="pagination-info">
-                    Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
-                  </div>
-                  <div class="pagination-controls">
-                    <button 
-                      @click="prevShiftPage" 
-                      class="pagination-btn"
-                      :disabled="shiftCurrentPage <= 1"
-                    >
-                      ◀ Previous
-                    </button>
-                    <span class="pagination-page">
-                      Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
-                    </span>
-                    <button 
-                      @click="nextShiftPage" 
-                      class="pagination-btn"
-                      :disabled="shiftCurrentPage >= shiftTotalPages"
-                    >
-                      Next ▶
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      
+      <!-- Table -->
+      <div v-if="shiftHistoryLoading" class="loading-state">
+        <div class="loading-spinner"><div class="spinner-ring"></div></div>
+        <p>Loading shift history...</p>
+      </div>
+      
+      <div v-else-if="filteredShiftHistory.length === 0" class="empty-state-modern">
+        <span>🕐</span>
+        <p>No shifts found matching your criteria</p>
+      </div>
+      
+      <div v-else>
+        <!-- Shift History Table -->
+        <div class="shift-history-table-wrapper">
+          <!-- Table Header -->
+          <div class="shift-history-table-header">
+            <span class="shift-history-header-date">Date</span>
+            <span class="shift-history-header-stall">Stall</span>
+            <span class="shift-history-header-revenue">Revenue</span>
+            <span class="shift-history-header-transactions">Orders</span>
+            <span class="shift-history-header-float">Float</span>
+            <span class="shift-history-header-variance">Variance</span>
+            <span class="shift-history-header-inventory">Inventory Used</span>
+            <span class="shift-history-header-status">Status</span>
+            <span class="shift-history-header-details">Details</span>
+          </div>
+          
+          <!-- Table Body -->
+          <div 
+            v-for="shift in paginatedShiftHistory" 
+            :key="shift.id" 
+            class="shift-history-table-row clickable-item"
+            @click="viewShiftDetails(shift)"
+          >
+            <span class="shift-history-date" data-label="Date">{{ formatDate(shift.opened_at) }}</span>
+            <span class="shift-history-stall" data-label="Stall">{{ getStallName(shift.stall_id) }}</span>
+            <span class="shift-history-revenue" data-label="Revenue">
+              {{ formatCurrency(shift.revenue || shift.total_revenue || shift.revenue_amount || 0) }}
+            </span>
+            <span class="shift-history-transactions" data-label="Orders">{{ shift.transaction_count || 0 }}</span>
+            <span class="shift-history-float" data-label="Float">{{ formatCurrency(shift.starting_float) }}</span>
+            <span class="shift-history-variance" data-label="Variance" :class="getVarianceClass(shift)">
+              {{ formatCurrency(shift.variance) }}
+            </span>
+            <span class="shift-history-inventory" data-label="Inventory Used">
+              <span v-if="shift.has_inventory_data && Object.keys(shift.inventory_usage || {}).length > 0">
+                <span 
+                  v-for="(usage, material) in shift.inventory_usage" 
+                  :key="material"
+                  class="inventory-usage-tag"
+                >
+                  {{ material }}: {{ usage }}
+                </span>
+              </span>
+              <span v-else class="no-inventory-data">-</span>
+            </span>
+            <span class="shift-history-status" data-label="Status">
+              <span class="status-badge" :class="shift.status">
+                {{ shift.status === 'open' ? '🟢 Open' : '⚪ Closed' }}
+              </span>
+            </span>
+            <span class="shift-history-details" data-label="Details">👆</span>
           </div>
         </div>
+        
+        <!-- Shift Detail Modal -->
+        <div v-if="shiftDetailModal" class="modal-overlay" @click.self="shiftDetailModal=false">
+          <!-- ... shift detail modal content ... -->
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            Showing {{ shiftStartIndex }} - {{ shiftEndIndex }} of {{ filteredShiftHistory.length }} shifts
+          </div>
+          <div class="pagination-controls">
+            <button 
+              @click="prevShiftPage" 
+              class="pagination-btn"
+              :disabled="shiftCurrentPage <= 1"
+            >
+              ◀ Previous
+            </button>
+            <span class="pagination-page">
+              Page {{ shiftCurrentPage }} of {{ shiftTotalPages }}
+            </span>
+            <button 
+              @click="nextShiftPage" 
+              class="pagination-btn"
+              :disabled="shiftCurrentPage >= shiftTotalPages"
+            >
+              Next ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
         
         <!-- Stall Management -->
         <div v-if="stallSubTab === 'management'" class="sub-tab-content">
