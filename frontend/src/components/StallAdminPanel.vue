@@ -1821,7 +1821,6 @@
               <div class="header-actions">
                 <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
                 <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
-                <button @click="loadMenuAssignments" class="btn-modern secondary small">⟳ Refresh</button>
               </div>
             </div>
             <div class="card-modern-body">
