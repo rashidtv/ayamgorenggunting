@@ -1,7 +1,7 @@
 <template>
   <div class="sa-dashboard">
     
-    <!-- ===== CONTROLS SECTION (below banner) ===== -->
+    <!-- ===== CONTROLS SECTION ===== -->
     <div class="controls-section">
       <div class="controls-row">
         <!-- Tab Dropdown -->
@@ -63,8 +63,8 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
+        <!-- Action Buttons - ONLY IN DASHBOARD -->
+        <div class="action-buttons" v-if="activeTab === 'dashboard'">
           <button @click="refreshAllData" class="header-action-btn" title="Refresh Data">
             <span class="action-icon">⟳</span>
             <span class="action-label">Refresh</span>
@@ -89,7 +89,7 @@
         
         <!-- Stats Cards -->
         <div class="stats-grid">
-          <!-- My Stalls - Clickable to Stalls Tab -->
+          <!-- Total Stalls -->
           <div class="stat-card glass clickable" style="--stat-color: #2563eb; --stat-color-alpha: rgba(37, 99, 235, 0.15);" @click="switchTab('stalls')">
             <div class="stat-icon">🏪</div>
             <div class="stat-content">
@@ -106,7 +106,7 @@
             <div class="stat-hover">Click to view →</div>
           </div>
           
-          <!-- My Users - Clickable to Users Tab -->
+          <!-- Total Users -->
           <div class="stat-card glass clickable" style="--stat-color: #7c3aed; --stat-color-alpha: rgba(124, 58, 237, 0.15);" @click="switchTab('users')">
             <div class="stat-icon">👥</div>
             <div class="stat-content">
@@ -117,7 +117,7 @@
             <div class="stat-hover">Click to view →</div>
           </div>
           
-          <!-- My Menu - Clickable to Menu Assignment -->
+          <!-- Menu Items -->
           <div class="stat-card glass clickable" style="--stat-color: #f59e0b; --stat-color-alpha: rgba(245, 158, 11, 0.15);" @click="switchTabWithSubTab('menu', 'assignment')">
             <div class="stat-icon">📋</div>
             <div class="stat-content">
@@ -132,7 +132,7 @@
             <div class="stat-hover">Click to manage →</div>
           </div>
           
-          <!-- Low Stock Alert - Clickable to Inventory -->
+          <!-- Low Stock Alert -->
           <div class="stat-card glass clickable highlight" style="--stat-color: #dc2626; --stat-color-alpha: rgba(220, 38, 38, 0.15);" @click="switchTab('inventory')">
             <div class="stat-icon">⚠️</div>
             <div class="stat-content">
@@ -150,7 +150,7 @@
 
         <!-- ===== KPI CARDS WITH SPARKLINE ===== -->
         <div class="kpi-grid">
-          <!-- Revenue KPI Card -->
+          <!-- Revenue KPI -->
           <div class="kpi-card clickable" 
                style="--kpi-color: #F94908; --kpi-color-alpha: rgba(249, 73, 8, 0.08);" 
                @click="switchTab('revenue')">
@@ -181,7 +181,7 @@
             <div class="kpi-hover">Click to view revenue →</div>
           </div>
 
-          <!-- Menu Sold - Clickable to Menu Performance -->
+          <!-- Menu Sold -->
           <div class="kpi-card clickable" style="--kpi-color: #2563eb; --kpi-color-alpha: rgba(37, 99, 235, 0.08);" @click="switchTabWithSubTab('menu', 'performance')">
             <div class="kpi-icon">📈</div>
             <div class="kpi-value">{{ formatNumber(consolidatedSales.totalItems || 0) }}</div>
@@ -234,7 +234,7 @@
             </div>
           </div>
 
-          <!-- Top Stall - Clickable to Stall Performance -->
+          <!-- Top Stall -->
           <div class="kpi-card highlight clickable" style="--kpi-color: #f59e0b; --kpi-color-alpha: rgba(245, 158, 11, 0.08);" @click="switchTabWithSubTab('stalls', 'performance')">
             <div class="kpi-icon">🏆</div>
             <div class="kpi-value kpi-value-topstall">{{ getTopStallName() }}</div>
@@ -267,7 +267,7 @@
           </div>
         </div>
 
-        <!-- Professional Chart with ECharts -->
+        <!-- Professional Chart -->
         <div class="chart-modern" :class="{ 'fullscreen': chartFullscreen }">
           <div class="chart-modern-header">
             <div class="chart-modern-title">
@@ -282,7 +282,6 @@
           </div>
 
           <div class="chart-modern-body">
-            <!-- Stats Row -->
             <div class="chart-modern-stats" v-if="salesTrend.length > 0">
               <div class="chart-modern-stat">
                 <span class="chart-modern-stat-label">Peak</span>
@@ -309,7 +308,6 @@
               </div>
             </div>
 
-            <!-- ECharts Container -->
             <div class="chart-wrapper" ref="chartWrapper">
               <div v-if="salesTrend.length > 0" class="chart-container">
                 <div ref="chartRef" class="echarts-container"></div>
@@ -320,7 +318,6 @@
               </div>
             </div>
 
-            <!-- Navigation -->
             <div v-if="salesTrend.length > chartWindow" class="chart-modern-nav">
               <button @click="navigateChart('prev')" class="chart-modern-nav-btn" :disabled="chartOffset <= 0">←</button>
               <span class="chart-modern-nav-label">
@@ -481,7 +478,6 @@
           </div>
           <div class="card-modern-body">
             
-            <!-- Stats Cards -->
             <div class="inventory-stats-grid">
               <div class="stat-chip">
                 <span class="stat-chip-label">Total Stalls</span>
@@ -501,7 +497,6 @@
               </div>
             </div>
 
-            <!-- Filter Bar -->
             <div class="filter-bar-modern">
               <div class="filter-search">
                 <input 
@@ -540,7 +535,6 @@
               </div>
             </div>
 
-            <!-- Inventory Table -->
             <div v-if="stalls.length === 0" class="empty-state-modern">
               <span>📦</span>
               <p>No stalls found. Contact your administrator.</p>
@@ -607,7 +601,6 @@
                 </div>
               </div>
 
-              <!-- Pagination -->
               <div class="pagination-container">
                 <div class="pagination-info">
                   Showing {{ startIndex }} - {{ endIndex }} of {{ filteredInventoryStalls.length }} stalls
@@ -633,7 +626,6 @@
                 </div>
               </div>
 
-              <!-- Quick Actions -->
               <div class="inventory-quick-actions">
                 <button 
                   @click="openBulkUpdateModal" 
@@ -1000,6 +992,7 @@
             </div>
             <div class="modal-modern-body">
               <div v-if="selectedShift">
+                <!-- Uses global shift-detail-grid from app.vue -->
                 <div class="shift-detail-grid">
                   <div class="shift-detail-item">
                     <span class="label">Stall</span>
@@ -1059,6 +1052,7 @@
                 
                 <div v-if="selectedShift.opening_inventory || selectedShift.closing_inventory" class="shift-detail-inventory">
                   <h4>📦 Inventory</h4>
+                  <!-- Uses global inventory-detail-grid from app.vue -->
                   <div class="inventory-detail-grid">
                     <div class="inventory-detail-header">
                       <span class="inventory-detail-material">Material</span>
@@ -1410,28 +1404,28 @@
                       class="performance-table-row clickable-item"
                       @click="viewStallDetails(stall)"
                     >
-                      <span class="performance-table-rank">
+                      <span class="performance-table-rank" data-label="Rank">
                         <span class="rank-number" :class="getRankClass(index)">
                           {{ index + 1 }}
                         </span>
                       </span>
                       
-                      <span class="performance-table-name">
+                      <span class="performance-table-name" data-label="Stall">
                         <span class="stall-name-text">{{ stall.name }}</span>
                         <span class="stall-name-bar">
                           <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
                         </span>
                       </span>
                       
-                      <span class="performance-table-revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
+                      <span class="performance-table-revenue" data-label="Revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
                       
-                      <span class="performance-table-status">
+                      <span class="performance-table-status" data-label="Status">
                         <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
                           {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
                         </span>
                       </span>
                       
-                      <span class="performance-table-details">👆</span>
+                      <span class="performance-table-details" data-label="Details">👆</span>
                     </div>
                   </div>
                 </div>
@@ -2139,28 +2133,28 @@
                       class="performance-table-row clickable-item"
                       @click="viewMenuItemDetails(item)"
                     >
-                      <span class="performance-table-rank">
+                      <span class="performance-table-rank" data-label="Rank">
                         <span class="rank-number" :class="getRankClass(index)">
                           {{ index + 1 }}
                         </span>
                       </span>
                       
-                      <span class="performance-table-name">
+                      <span class="performance-table-name" data-label="Menu">
                         <span class="menu-name-text">{{ item.name }}</span>
                         <span class="menu-name-bar">
                           <span class="menu-bar-fill" :style="{ width: getPerformancePercentage(item.quantity) + '%' }"></span>
                         </span>
                       </span>
                       
-                      <span class="performance-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                      <span class="performance-table-revenue" data-label="Revenue">{{ formatCurrency(item.revenue || 0) }}</span>
                       
-                      <span class="performance-table-status">
+                      <span class="performance-table-status" data-label="Status">
                         <span :class="['status-indicator', getMenuStatusClass(item.quantity)]">
                           {{ getMenuStatusEmoji(item.quantity) }} {{ getMenuStatus(item.quantity) }}
                         </span>
                       </span>
                       
-                      <span class="performance-table-details">👆</span>
+                      <span class="performance-table-details" data-label="Details">👆</span>
                     </div>
                   </div>
                 </div>
@@ -2317,30 +2311,30 @@
                     class="revenue-table-row clickable-item"
                     @click="viewAllTransactions(item)"
                   >
-                    <span class="revenue-table-rank">
+                    <span class="revenue-table-rank" data-label="Rank">
                       <span class="rank-number" :class="getRankClass(index)">
                         {{ index + 1 }}
                       </span>
                     </span>
                     
-                    <span class="revenue-table-name">
+                    <span class="revenue-table-name" data-label="Stall">
                       <span class="stall-name-text">{{ item.name }}</span>
                       <span class="stall-code-text">{{ item.code }}</span>
                     </span>
                     
-                    <span class="revenue-table-state">
+                    <span class="revenue-table-state" data-label="State">
                       <span class="state-tag">{{ item.state || '-' }}</span>
                     </span>
                     
-                    <span class="revenue-table-revenue">{{ formatCurrency(item.revenue || 0) }}</span>
+                    <span class="revenue-table-revenue" data-label="Revenue">{{ formatCurrency(item.revenue || 0) }}</span>
                     
-                    <span class="revenue-table-status">
+                    <span class="revenue-table-status" data-label="Status">
                       <span :class="['status-indicator', getRevenueStatusClass(item)]">
                         {{ getRevenueStatusEmoji(item) }} {{ getRevenueStatusText(item) }}
                       </span>
                     </span>
                     
-                    <span class="revenue-table-details">
+                    <span class="revenue-table-details" data-label="Details">
                       <button @click.stop="viewAllTransactions(item)" class="btn-view-transactions" title="View Transactions">
                         📋
                       </button>
@@ -2486,27 +2480,27 @@
                     class="revenue-table-row clickable-item"
                     @click="viewTransactionDetails(tx)"
                   >
-                    <span class="revenue-table-rank">
+                    <span class="revenue-table-rank" data-label="Order">
                       <span class="order-id">#{{ tx.order_number || 'N/A' }}</span>
                     </span>
                     
-                    <span class="revenue-table-name">
+                    <span class="revenue-table-name" data-label="Stall">
                       <span class="stall-name-text">{{ tx.stall_name || '-' }}</span>
                     </span>
                     
-                    <span class="revenue-table-revenue">{{ formatCurrency(tx.total_amount || 0) }}</span>
+                    <span class="revenue-table-revenue" data-label="Amount">{{ formatCurrency(tx.total_amount || 0) }}</span>
                     
-                    <span class="revenue-table-status">
+                    <span class="revenue-table-status" data-label="Status">
                       <span :class="['status-indicator', tx.status || 'completed']">
                         {{ getTransactionStatusEmoji(tx.status) }} {{ tx.status || 'Completed' }}
                       </span>
                     </span>
                     
-                    <span class="revenue-table-state">
+                    <span class="revenue-table-state" data-label="Date">
                       <span class="state-tag">{{ formatTableDate(tx.created_at) }}</span>
                     </span>
                     
-                    <span class="revenue-table-details">
+                    <span class="revenue-table-details" data-label="Details">
                       <button @click.stop="viewTransactionDetails(tx)" class="btn-view-transactions" title="View Details">
                         👁️
                       </button>
@@ -7642,8 +7636,6 @@ export default {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  margin-left: auto;
-  flex-shrink: 0;
 }
 
 .header-action-btn {
@@ -9291,7 +9283,7 @@ export default {
   cursor: not-allowed;
 }
 
-.username-text { font-weight: 500; font-size: 0.85rem; }
+.username-text { font-weight: 500; font-size: 0.8rem; }
 
 .role-badge {
   padding: 0.15rem 0.6rem;
@@ -9663,12 +9655,21 @@ export default {
 
 .menu-performance-stats-grid .stat-chip {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   padding: 0.5rem 1rem;
   background: var(--background);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  text-align: center;
+}
+
+.menu-performance-stats-grid .stat-chip .stat-chip-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.15rem;
 }
 
 .menu-performance-stats-grid .stat-chip .stat-chip-value {
@@ -10223,181 +10224,9 @@ export default {
   font-size: 0.7rem;
 }
 
-/* SHIFT DETAIL */
-.shift-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.shift-detail-item {
-  background: var(--background);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  text-align: center;
-}
-
-.shift-detail-item .label {
-  display: block;
-  font-size: 0.55rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 0.1rem;
-}
-
-.shift-detail-item .value {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.shift-detail-item .value.revenue {
-  color: var(--primary);
-}
-
-.shift-detail-item .value.over { color: #10b981; }
-.shift-detail-item .value.short { color: #ef4444; }
-.shift-detail-item .value.balanced { color: #2563eb; }
-
-.shift-detail-inventory {
-  margin-top: 0.5rem;
-}
-
-.shift-detail-inventory h4 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-}
-
-.inventory-detail-grid {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.inventory-detail-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  padding: 0.3rem 0.5rem;
-  background: var(--background);
-  font-weight: 600;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border);
-}
-
-.inventory-detail-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  padding: 0.3rem 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 0.75rem;
-}
-
-.inventory-detail-row:last-child {
-  border-bottom: none;
-}
-
-.inventory-detail-material { font-weight: 500; }
-.inventory-detail-usage.used { color: var(--primary); font-weight: 600; }
-.inventory-detail-usage.zero { color: var(--text-tertiary); }
-
-.shift-detail-notes {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: var(--background);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.shift-detail-notes strong {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.shift-detail-notes p {
-  margin: 0.2rem 0 0 0;
-  font-size: 0.8rem;
-  color: var(--text);
-}
-
-.shift-detail-transactions {
-  margin-top: 0.5rem;
-}
-
-.shift-detail-transactions h4 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-}
-
-.shift-transaction-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.shift-transaction-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--background);
-  font-size: 0.75rem;
-  border: 1px solid var(--border-light);
-}
-
-.shift-transaction-item .tx-time {
-  min-width: 70px;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-}
-
-.shift-transaction-item .tx-id {
-  min-width: 80px;
-  font-weight: 600;
-  font-family: monospace;
-  font-size: 0.7rem;
-}
-
-.shift-transaction-item .tx-items {
-  min-width: 50px;
-  color: var(--text-secondary);
-  text-align: center;
-  font-size: 0.7rem;
-}
-
-.shift-transaction-item .tx-amount {
-  min-width: 60px;
-  text-align: right;
-  font-weight: 600;
-  font-size: 0.75rem;
-}
-
-.shift-transaction-item .tx-status {
-  padding: 0.05rem 0.3rem;
-  border-radius: 8px;
-  font-size: 0.55rem;
-  font-weight: 600;
-}
-
-.shift-transaction-item .tx-status.completed {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.shift-transaction-item .tx-status.pending {
-  background: #fef3c7;
-  color: #d97706;
-}
+/* ============================================ */
+/* SHIFT DETAIL - Uses global styles from app.vue */
+/* ============================================ */
 
 /* ============================================ */
 /* MODALS                                      */
@@ -10855,12 +10684,12 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.35rem 0.8rem;
+  padding: 0.15rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: var(--text-secondary);
   transition: var(--transition);
@@ -11160,14 +10989,13 @@ export default {
     background: var(--surface);
   }
   
-  .performance-table-cell {
+  .performance-table-row > span {
     display: flex;
-    align-items: center;
-    padding: 0.2rem 0;
+    justify-content: space-between;
     width: 100%;
   }
   
-  .performance-table-cell::before {
+  .performance-table-row > span::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.6rem;
@@ -11193,14 +11021,13 @@ export default {
     background: var(--surface);
   }
   
-  .revenue-table-cell {
+  .revenue-table-row > span {
     display: flex;
-    align-items: center;
-    padding: 0.2rem 0;
+    justify-content: space-between;
     width: 100%;
   }
   
-  .revenue-table-cell::before {
+  .revenue-table-row > span::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.6rem;
