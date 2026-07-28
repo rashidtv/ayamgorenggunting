@@ -3494,7 +3494,6 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
 
 
 // GET /api/shifts/history - Get shift history for a stall
-// GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {
   const { stallId, limit = 50, offset = 0, from, to, status } = req.query;
   
@@ -3515,25 +3514,7 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         COALESCE(
           (SELECT COUNT(*) FROM orders WHERE shift_id = s.id AND status = 'completed'),
           0
-        ) as linked_count,
-        COALESCE(
-          (SELECT SUM(total_amount) FROM orders 
-           WHERE stall_id = s.stall_id 
-           AND (shift_id IS NULL OR shift_id != s.id)
-           AND created_at >= s.opened_at 
-           AND created_at <= COALESCE(s.closed_at, NOW())
-           AND status = 'completed'),
-          0
-        ) as unlinked_revenue,
-        COALESCE(
-          (SELECT COUNT(*) FROM orders 
-           WHERE stall_id = s.stall_id 
-           AND (shift_id IS NULL OR shift_id != s.id)
-           AND created_at >= s.opened_at 
-           AND created_at <= COALESCE(s.closed_at, NOW())
-           AND status = 'completed'),
-          0
-        ) as unlinked_count
+        ) as linked_count
       FROM shifts s
       LEFT JOIN users u1 ON s.opened_by = u1.id
       LEFT JOIN users u2 ON s.closed_by = u2.id
@@ -3566,7 +3547,7 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
     const result = await pool.query(queryText, params);
     
     const shifts = result.rows.map(shift => {
-      // Parse inventory data (safe handling)
+      // ✅ Parse inventory data
       let openingInventory = {};
       let closingInventory = {};
       
@@ -3586,7 +3567,7 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         closingInventory = {};
       }
       
-      // Calculate inventory usage
+      // ✅ Calculate inventory usage
       const inventoryUsage = {};
       Object.keys(openingInventory).forEach(key => {
         const opening = parseFloat(openingInventory[key]) || 0;
@@ -3594,24 +3575,15 @@ app.get('/api/shifts/history', authenticateToken, async (req, res) => {
         inventoryUsage[key] = Math.max(0, opening - closing);
       });
       
-      // ✅ Also add inventory usage for items that only exist in closing (shouldn't happen but safe)
-      Object.keys(closingInventory).forEach(key => {
-        if (!inventoryUsage[key]) {
-          const opening = parseFloat(openingInventory[key]) || 0;
-          const closing = parseFloat(closingInventory[key]) || 0;
-          inventoryUsage[key] = Math.max(0, opening - closing);
-        }
-      });
-      
       return {
         ...shift,
-        revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
-        transaction_count: parseInt(shift.linked_count || 0) + parseInt(shift.unlinked_count || 0),
+        revenue: parseFloat(shift.linked_revenue || 0),
+        transaction_count: parseInt(shift.linked_count || 0),
         starting_float: parseFloat(shift.starting_float) || 0,
         variance: parseFloat(shift.variance) || 0,
         expected_cash: parseFloat(shift.expected_cash) || 0,
         ending_cash: parseFloat(shift.ending_cash) || 0,
-        total_revenue: parseFloat(shift.linked_revenue || 0) + parseFloat(shift.unlinked_revenue || 0),
+        total_revenue: parseFloat(shift.linked_revenue || 0),
         opening_inventory: openingInventory,
         closing_inventory: closingInventory,
         inventory_usage: inventoryUsage,

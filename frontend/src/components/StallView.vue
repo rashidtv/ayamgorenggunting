@@ -34,21 +34,21 @@
     <!-- ===== TODAY'S TRANSACTIONS ===== -->
     <div v-if="shift.enabled && shiftStatus" class="today-transactions">
       <div class="today-transactions-header">
-        <h4>📋 Today's Orders ({{ todayTransactions.length }})</h4>
+        <h4>📋 Shift Orders ({{ shiftTransactions.length }})</h4>
         <div class="today-transactions-controls">
-          <button @click="refreshTodayTransactions" class="btn-refresh" title="Refresh">⟳</button>
+          <button @click="refreshShiftTransactions" class="btn-refresh" title="Refresh">⟳</button>
           <button @click="toggleTodayTransactionsExpand" class="btn-expand" :title="showAllTodayTransactions ? 'Collapse' : 'Expand'">
             {{ showAllTodayTransactions ? '▲' : '▼' }}
           </button>
         </div>
       </div>
       <div class="today-transactions-list" :class="{ expanded: showAllTodayTransactions }">
-        <div v-if="todayTransactions.length === 0" class="empty-state">
+        <div v-if="shiftTransactions.length === 0" class="empty-state">
           <span>📭</span>
-          <p>No orders yet today</p>
+          <p>No orders for this shift yet</p>
         </div>
         <div 
-          v-for="tx in paginatedTodayTransactions" 
+          v-for="tx in paginatedShiftTransactions" 
           :key="tx.id" 
           class="today-transaction-item"
           @click="viewTransaction(tx)"
@@ -62,10 +62,10 @@
           </span>
         </div>
         
-        <!-- Pagination for Today's Orders -->
-        <div v-if="todayTransactions.length > todayItemsPerPage && !showAllTodayTransactions" class="pagination-container compact">
+        <!-- Pagination for Shift Orders -->
+        <div v-if="shiftTransactions.length > todayItemsPerPage && !showAllTodayTransactions" class="pagination-container compact">
           <div class="pagination-info">
-            Showing {{ todayStartIndex }} - {{ todayEndIndex }} of {{ todayTransactions.length }}
+            Showing {{ todayStartIndex }} - {{ todayEndIndex }} of {{ shiftTransactions.length }}
           </div>
           <div class="pagination-controls">
             <button 
@@ -88,10 +88,10 @@
           </div>
         </div>
         
-        <div v-if="todayTransactions.length > 10 && !showAllTodayTransactions" class="view-more">
-          <button @click="toggleTodayTransactionsExpand">View All {{ todayTransactions.length }} →</button>
+        <div v-if="shiftTransactions.length > 10 && !showAllTodayTransactions" class="view-more">
+          <button @click="toggleTodayTransactionsExpand">View All {{ shiftTransactions.length }} →</button>
         </div>
-        <div v-if="showAllTodayTransactions && todayTransactions.length > 10" class="view-more">
+        <div v-if="showAllTodayTransactions && shiftTransactions.length > 10" class="view-more">
           <button @click="toggleTodayTransactionsExpand">Show Less ↑</button>
         </div>
       </div>
@@ -572,9 +572,9 @@
           
           <div v-if="shift.endingCash > 0" class="shift-variance" :class="getVarianceClass()">
             <strong>Variance:</strong> 
-            {{ formatCurrency(shift.endingCash - (shiftStartingFloat + shiftRevenue)) }}
-            <span v-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) > 0">(Over)</span>
-            <span v-else-if="shift.endingCash - (shiftStartingFloat + shiftRevenue) < 0">(Short)</span>
+            {{ formatCurrency(shift.endingCash - (shiftStartingFloat + shiftRevenueOnly)) }}
+            <span v-if="shift.endingCash - (shiftStartingFloat + shiftRevenueOnly) > 0">(Over)</span>
+            <span v-else-if="shift.endingCash - (shiftStartingFloat + shiftRevenueOnly) < 0">(Short)</span>
             <span v-else>(Balanced ✅)</span>
           </div>
           
@@ -659,12 +659,29 @@ export default {
   },
   computed: {
 
-      shiftOrdersCount() {
+    shiftTransactions() {
+    if (!this.shift || !this.shift.enabled) return [];
+    return this.shift.shiftTransactions || [];
+  },
+
+    paginatedShiftTransactions() {
+    if (this.showAllTodayTransactions) {
+      return this.shiftTransactions;
+    }
+    const start = (this.todayPage - 1) * this.todayItemsPerPage;
+    const end = start + this.todayItemsPerPage;
+    return this.shiftTransactions.slice(start, end);
+  },
+
+    shiftTotalPages() {
+    return Math.ceil(this.shiftTransactions.length / this.todayItemsPerPage) || 1;
+  },
+
+  shiftOrdersCount() {
     if (!this.shift || !this.shift.enabled) return 0;
     return this.shift.shiftTransactions?.length || 0;
   },
   
-  // ✅ NEW: Shift-specific revenue
   shiftRevenueOnly() {
     if (!this.shift || !this.shift.enabled) return 0;
     return this.shift.revenue || 0;
@@ -778,7 +795,7 @@ export default {
   },
   methods: {
 
-    async loadShiftTransactions() {
+ async loadShiftTransactions() {
   if (!this.shift || !this.shift.enabled || !this.shift.status || !this.shift.currentShiftId) return;
   
   try {
@@ -789,13 +806,24 @@ export default {
     );
     
     this.shift.shiftTransactions = res.data.transactions || [];
-    // ✅ Update shift revenue from the shift-specific data
     this.shift.revenue = parseFloat(res.data.revenue) || 0;
+    
+    // ✅ Also store the opening inventory from the shift data
+    if (res.data.opening_inventory) {
+      this.shift.openingInventory = res.data.opening_inventory;
+      // ✅ CRITICAL: Update inventoryCounts with the opening inventory
+      // This ensures the close modal shows the correct opening values
+      this.shift.inventoryCounts = { ...res.data.opening_inventory };
+    }
     
   } catch (err) {
     console.warn('Failed to load shift transactions:', err);
     this.shift.shiftTransactions = [];
   }
+},
+
+refreshShiftTransactions() {
+  this.loadShiftTransactions();
 },
 
     getShiftVarianceClass() {
@@ -823,13 +851,12 @@ async loadCurrentShift() {
     
     if (res.data) {
       this.shift.currentShift = res.data;
-      this.shift.currentShiftId = res.data.id;  // ✅ Store shift ID
+      this.shift.currentShiftId = res.data.id;
       this.shift.status = true;
       this.shift.startTime = res.data.opened_at;
       this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
-      this.shift.revenue = parseFloat(res.data.revenue) || 0;
       
-      // Store opening inventory from the shift
+      // ✅ CRITICAL: Store opening inventory from the shift
       if (res.data.opening_inventory) {
         this.shift.openingInventory = res.data.opening_inventory;
         this.shift.inventoryCounts = { ...res.data.opening_inventory };
@@ -841,8 +868,11 @@ async loadCurrentShift() {
         });
       }
       
+      // Load shift-specific transactions
+      await this.loadShiftTransactions();
+      
+      // Load today's transactions for the daily summary
       await this.loadTodayTransactions();
-      await this.loadShiftTransactions();  // ✅ NEW: Load shift-specific transactions
     } else {
       this.shift.currentShift = null;
       this.shift.currentShiftId = null;
@@ -1015,12 +1045,15 @@ closeShiftModal() {
   this.shift.endingCash = 0;
   this.shift.closeNotes = '';
   
-  // Use opening inventory from the shift
+  // ✅ CRITICAL: Use the saved opening inventory from when shift started
+  // NOT the current stock!
   const hasOpeningInventory = this.shift.openingInventory && Object.keys(this.shift.openingInventory).length > 0;
   
   if (hasOpeningInventory) {
+    // Use the saved opening inventory
     this.shift.inventoryCounts = { ...this.shift.openingInventory };
   } else {
+    // Fallback: use current stock (only if opening inventory not available)
     this.shift.inventoryCounts = {};
     this.processedInventory.forEach(item => {
       this.shift.inventoryCounts[item.material_name] = item.current_level || 0;
@@ -1396,23 +1429,22 @@ closeShiftModal() {
       }
     },
 
-    getStockPercentage(item) {
-  // ✅ Calculate percentage based on alert level (0% at alert level, 100% at 2x alert level)
+getStockPercentage(item) {
   const alertLevel = item.alert_level || 10;
   const currentLevel = item.current_level || 0;
   
-  // If stock is at or below alert level, show 0% (critical)
+  // If stock is at or below alert level, show 0-50%
   if (currentLevel <= alertLevel) {
-    // Show percentage of how close to zero: 0% at alert, approaches 0 as stock decreases
+    // 0% at 0 stock, 50% at alert level
     return Math.max(0, (currentLevel / alertLevel) * 50);
   }
   
-  // If stock is above alert level, show up to 100% at 2x alert level
-  const maxLevel = alertLevel * 2;
-  const percentage = Math.min(100, ((currentLevel - alertLevel) / (maxLevel - alertLevel)) * 100 + 50);
+  // If stock is above alert level, show 50-100%
+  // 50% at alert level, 100% at 3x alert level
+  const maxLevel = alertLevel * 3;
+  const percentage = Math.min(100, 50 + ((currentLevel - alertLevel) / (maxLevel - alertLevel)) * 50);
   
-  // Floor at 5% for minimum visibility
-  return Math.max(5, Math.min(100, percentage));
+  return Math.min(100, Math.max(5, percentage));
 },
 
     // =============================================
