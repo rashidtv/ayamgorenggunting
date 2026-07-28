@@ -3332,6 +3332,7 @@ app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
 // ============================================
 
 // GET /api/shifts/current - Get current open shift
+// GET /api/shifts/current - Get current open shift
 app.get('/api/shifts/current', authenticateToken, async (req, res) => {
   const { stallId } = req.query;
   
@@ -3357,17 +3358,21 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
     
     const shift = result.rows[0];
     
+    // ✅ Calculate revenue from orders linked to this shift
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
          COUNT(*) as transaction_count
        FROM orders 
-       WHERE shift_id = $1`,
+       WHERE shift_id = $1 AND status = 'completed'`,
       [shift.id]
     );
     
     shift.revenue = parseFloat(stats.rows[0].revenue) || 0;
     shift.transaction_count = parseInt(stats.rows[0].transaction_count) || 0;
+    
+    // ✅ Ensure opening_inventory is returned
+    shift.opening_inventory = shift.opening_inventory || {};
     
     res.json(shift);
   } catch (err) {

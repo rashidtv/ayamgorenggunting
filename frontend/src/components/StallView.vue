@@ -31,36 +31,35 @@
       </div>
     </div>
 
-    <!-- ===== TODAY'S TRANSACTIONS ===== -->
-    <div v-if="shift.enabled && shiftStatus" class="today-transactions">
-      <div class="today-transactions-header">
-        <h4>📋 Shift Orders ({{ shiftTransactions.length }})</h4>
-        <div class="today-transactions-controls">
-          <button @click="refreshShiftTransactions" class="btn-refresh" title="Refresh">⟳</button>
-          <button @click="toggleTodayTransactionsExpand" class="btn-expand" :title="showAllTodayTransactions ? 'Collapse' : 'Expand'">
-            {{ showAllTodayTransactions ? '▲' : '▼' }}
-          </button>
-        </div>
-      </div>
-      <div class="today-transactions-list" :class="{ expanded: showAllTodayTransactions }">
-        <div v-if="shiftTransactions.length === 0" class="empty-state">
-          <span>📭</span>
-          <p>No orders for this shift yet</p>
-        </div>
-        <div 
-          v-for="tx in paginatedShiftTransactions" 
-          :key="tx.id" 
-          class="today-transaction-item"
-          @click="viewTransaction(tx)"
-        >
-          <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
-          <span class="tx-id">#{{ tx.order_number }}</span>
-          <span class="tx-items">{{ tx.item_count || 0 }} items</span>
-          <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
-          <span class="tx-status" :class="tx.status || 'completed'">
-            {{ tx.status || 'completed' }}
-          </span>
-        </div>
+   <div v-if="shift.enabled && shiftStatus" class="today-transactions">
+  <div class="today-transactions-header">
+    <h4>📋 Shift Orders ({{ shiftTransactions.length }})</h4>
+    <div class="today-transactions-controls">
+      <button @click="refreshShiftTransactions" class="btn-refresh" title="Refresh">⟳</button>
+      <button @click="toggleTodayTransactionsExpand" class="btn-expand" :title="showAllTodayTransactions ? 'Collapse' : 'Expand'">
+        {{ showAllTodayTransactions ? '▲' : '▼' }}
+      </button>
+    </div>
+  </div>
+  <div class="today-transactions-list" :class="{ expanded: showAllTodayTransactions }">
+    <div v-if="shiftTransactions.length === 0" class="empty-state">
+      <span>📭</span>
+      <p>No orders for this shift yet</p>
+    </div>
+    <div 
+      v-for="tx in paginatedShiftTransactions" 
+      :key="tx.id" 
+      class="today-transaction-item"
+      @click="viewTransaction(tx)"
+    >
+      <span class="tx-time">{{ formatTime(tx.created_at) }}</span>
+      <span class="tx-id">#{{ tx.order_number }}</span>
+      <span class="tx-items">{{ tx.item_count || 0 }} items</span>
+      <span class="tx-amount">{{ formatCurrency(tx.total_amount) }}</span>
+      <span class="tx-status" :class="tx.status || 'completed'">
+        {{ tx.status || 'completed' }}
+      </span>
+    </div>
         
         <!-- Pagination for Shift Orders -->
         <div v-if="shiftTransactions.length > todayItemsPerPage && !showAllTodayTransactions" class="pagination-container compact">
@@ -795,7 +794,7 @@ export default {
   },
   methods: {
 
- async loadShiftTransactions() {
+async loadShiftTransactions() {
   if (!this.shift || !this.shift.enabled || !this.shift.status || !this.shift.currentShiftId) return;
   
   try {
@@ -805,16 +804,18 @@ export default {
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
     
+    // ✅ Store shift-specific transactions
     this.shift.shiftTransactions = res.data.transactions || [];
     this.shift.revenue = parseFloat(res.data.revenue) || 0;
     
-    // ✅ Also store the opening inventory from the shift data
+    // ✅ Also update opening inventory from the shift details (if available)
     if (res.data.opening_inventory) {
       this.shift.openingInventory = res.data.opening_inventory;
-      // ✅ CRITICAL: Update inventoryCounts with the opening inventory
-      // This ensures the close modal shows the correct opening values
       this.shift.inventoryCounts = { ...res.data.opening_inventory };
     }
+    
+    console.log(`📊 Loaded ${this.shift.shiftTransactions.length} shift-specific transactions`);
+    console.log('📦 Opening inventory from shift details:', this.shift.inventoryCounts);
     
   } catch (err) {
     console.warn('Failed to load shift transactions:', err);
@@ -856,11 +857,15 @@ async loadCurrentShift() {
       this.shift.startTime = res.data.opened_at;
       this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
       
-      // ✅ CRITICAL: Store opening inventory from the shift
+      // ✅ CRITICAL FIX: Store opening inventory from the shift
+      // The shift data should have opening_inventory from when it was opened
       if (res.data.opening_inventory) {
         this.shift.openingInventory = res.data.opening_inventory;
+        // ✅ This is what the close modal uses
         this.shift.inventoryCounts = { ...res.data.opening_inventory };
+        console.log('📦 Opening inventory loaded:', this.shift.inventoryCounts);
       } else {
+        // Fallback: use current stock
         this.shift.openingInventory = {};
         this.processedInventory.forEach(item => {
           this.shift.openingInventory[item.material_name] = item.current_level || 0;
@@ -868,10 +873,10 @@ async loadCurrentShift() {
         });
       }
       
-      // Load shift-specific transactions
+      // ✅ Load shift-specific transactions
       await this.loadShiftTransactions();
       
-      // Load today's transactions for the daily summary
+      // ✅ Load today's transactions for the daily summary (not for close modal)
       await this.loadTodayTransactions();
     } else {
       this.shift.currentShift = null;
@@ -1086,7 +1091,7 @@ closeShiftModal() {
       }
     },
 
-    async confirmCloseShift() {
+async confirmCloseShift() {
   if (!this.shift || !this.shift.enabled || !this.shift.status) {
     this.$emit('show-notification', 'No active shift to close', 'warning');
     return;
