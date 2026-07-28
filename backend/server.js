@@ -3332,7 +3332,6 @@ app.delete('/api/register/cleanup', authenticateToken, async (req, res) => {
 // ============================================
 
 // GET /api/shifts/current - Get current open shift
-// GET /api/shifts/current - Get current open shift
 app.get('/api/shifts/current', authenticateToken, async (req, res) => {
   const { stallId } = req.query;
   
@@ -3358,7 +3357,7 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
     
     const shift = result.rows[0];
     
-    // ✅ Calculate revenue from orders linked to this shift
+    // Calculate revenue from orders linked to this shift
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
@@ -3383,7 +3382,7 @@ app.get('/api/shifts/current', authenticateToken, async (req, res) => {
 
 // POST /api/shifts/open - Open a new shift
 app.post('/api/shifts/open', authenticateToken, async (req, res) => {
-  const { stallId, startingFloat, notes } = req.body;
+  const { stallId, startingFloat, notes, openingInventory } = req.body;
   const userId = req.user.id;
   
   if (!stallId) {
@@ -3400,11 +3399,14 @@ app.post('/api/shifts/open', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'A shift is already open for this stall' });
     }
     
+    // ✅ Convert openingInventory to JSONB
+    const openingInventoryJson = openingInventory || {};
+    
     const result = await pool.query(
-      `INSERT INTO shifts (stall_id, opened_by, starting_float, notes, status)
-       VALUES ($1, $2, $3, $4, 'open')
+      `INSERT INTO shifts (stall_id, opened_by, starting_float, notes, status, opening_inventory)
+       VALUES ($1, $2, $3, $4, 'open', $5)
        RETURNING *`,
-      [stallId, userId, startingFloat || 0, notes || '']
+      [stallId, userId, startingFloat || 0, notes || '', openingInventoryJson]
     );
     
     res.json(result.rows[0]);
@@ -3414,8 +3416,9 @@ app.post('/api/shifts/open', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/shifts/close - Close a shift
 app.post('/api/shifts/close', authenticateToken, async (req, res) => {
-  const { shiftId, endingCash, notes } = req.body;
+  const { shiftId, endingCash, notes, endingInventory } = req.body;
   const userId = req.user.id;
   
   if (!shiftId) {
@@ -3434,7 +3437,7 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
     
     const shift = shiftResult.rows[0];
     
-    // ✅ Calculate revenue from orders linked to this shift
+    // Calculate revenue from orders linked to this shift
     const stats = await pool.query(
       `SELECT 
          COALESCE(SUM(total_amount), 0) as revenue,
@@ -3447,32 +3450,13 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
     const revenue = parseFloat(stats.rows[0].revenue) || 0;
     const transactionCount = parseInt(stats.rows[0].transaction_count) || 0;
     
-    // ✅ OPTIONAL: Also include orders in the same time range that might not be linked
-    // This helps with existing orders that were created before shift_id was added
-    const unlinkedStats = await pool.query(
-      `SELECT 
-         COALESCE(SUM(total_amount), 0) as revenue,
-         COUNT(*) as transaction_count
-       FROM orders 
-       WHERE stall_id = $1 
-       AND (shift_id IS NULL OR shift_id != $2)
-       AND created_at >= $3
-       AND created_at <= COALESCE($4, NOW())
-       AND status = 'completed'`,
-      [shift.stall_id, shiftId, shift.opened_at, shift.closed_at || new Date().toISOString()]
-    );
-    
-    const unlinkedRevenue = parseFloat(unlinkedStats.rows[0].revenue) || 0;
-    const unlinkedCount = parseInt(unlinkedStats.rows[0].transaction_count) || 0;
-    
-    // ✅ Combine both (for backward compatibility with existing orders)
-    const totalRevenue = revenue + unlinkedRevenue;
-    const totalCount = transactionCount + unlinkedCount;
-    
     const startingFloat = parseFloat(shift.starting_float) || 0;
-    const expectedCash = startingFloat + totalRevenue;
+    const expectedCash = startingFloat + revenue;
     const actualEndingCash = endingCash || 0;
     const variance = actualEndingCash - expectedCash;
+    
+    // ✅ Convert endingInventory to JSONB
+    const endingInventoryJson = endingInventory || {};
     
     const result = await pool.query(
       `UPDATE shifts 
@@ -3484,10 +3468,11 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
            revenue = $5,
            transaction_count = $6,
            closing_notes = $7,
+           closing_inventory = $8,
            status = 'closed'
-       WHERE id = $8
+       WHERE id = $9
        RETURNING *`,
-      [userId, actualEndingCash, expectedCash, variance, totalRevenue, totalCount, notes || '', shiftId]
+      [userId, actualEndingCash, expectedCash, variance, revenue, transactionCount, notes || '', endingInventoryJson, shiftId]
     );
     
     res.json(result.rows[0]);
@@ -3496,7 +3481,6 @@ app.post('/api/shifts/close', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to close shift' });
   }
 });
-
 
 // GET /api/shifts/history - Get shift history for a stall
 app.get('/api/shifts/history', authenticateToken, async (req, res) => {

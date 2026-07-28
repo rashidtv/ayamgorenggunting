@@ -18,22 +18,22 @@
         </span>
       </div>
       <div class="shift-status-right">
-        <span class="shift-stats" v-if="shiftStatus">
-          Revenue: {{ formatCurrency(shiftRevenue) }} | 
-          Orders: {{ todayTransactions.length }}
-        </span>
-        <button @click="openShiftModal" v-if="!shiftStatus" class="btn-shift open">
-          🟢 Open Shift
-        </button>
-        <button @click="closeShiftModal" v-else class="btn-shift close">
-          🔴 Close Shift
-        </button>
-      </div>
+  <span class="shift-stats" v-if="shiftStatus">
+    Revenue: {{ formatCurrency(shiftRevenueOnly) }} | 
+    Orders: {{ shiftOrdersCount }}
+  </span>
+  <button @click="openShiftModal" v-if="!shiftStatus" class="btn-shift open">
+    🟢 Open Shift
+  </button>
+  <button @click="closeShiftModal" v-else class="btn-shift close">
+    🔴 Close Shift
+  </button>
+</div>
     </div>
 
    <div v-if="shift.enabled && shiftStatus" class="today-transactions">
   <div class="today-transactions-header">
-    <h4>📋 Shift Orders ({{ shiftTransactions.length }})</h4>
+    <h4>📋 Shift Orders ({{ shiftOrdersCount }})</h4>
     <div class="today-transactions-controls">
       <button @click="refreshShiftTransactions" class="btn-refresh" title="Refresh">⟳</button>
       <button @click="toggleTodayTransactionsExpand" class="btn-expand" :title="showAllTodayTransactions ? 'Collapse' : 'Expand'">
@@ -611,27 +611,27 @@ export default {
     return {
       // ===== Shift data =====
       shift: {
-        enabled: true,
-        currentShift: null,
-        status: false,
-        startTime: null,
-        startingFloat: 0,
-        revenue: 0,
-        dailyRevenue: 0, 
-        todayTransactions: [],
-        showOpenModal: false,
-        showCloseModal: false,
-        floatInput: 0,
-        endingCash: 0,
-        notes: '',
-        closeNotes: '',
-        loading: false,
-        openingInventory: {},
-        inventoryCounts: {},
-        endingInventory: {},
-        shiftTransactions: [],
-        currentShiftId: null
-      },
+      enabled: true,
+      currentShift: null,
+      currentShiftId: null,
+      status: false,
+      startTime: null,
+      startingFloat: 0,
+      revenue: 0,
+      dailyRevenue: 0,
+      todayTransactions: [],
+      shiftTransactions: [],
+      showOpenModal: false,
+      showCloseModal: false,
+      floatInput: 0,
+      endingCash: 0,
+      notes: '',
+      closeNotes: '',
+      loading: false,
+      openingInventory: {},
+      inventoryCounts: {},
+      endingInventory: {},
+    },
       inventory: [],
       processedInventory: [],
       todaySales: { items_sold: 0, total_revenue: 0 },
@@ -804,18 +804,10 @@ async loadShiftTransactions() {
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
     
-    // ✅ Store shift-specific transactions
     this.shift.shiftTransactions = res.data.transactions || [];
     this.shift.revenue = parseFloat(res.data.revenue) || 0;
     
-    // ✅ Also update opening inventory from the shift details (if available)
-    if (res.data.opening_inventory) {
-      this.shift.openingInventory = res.data.opening_inventory;
-      this.shift.inventoryCounts = { ...res.data.opening_inventory };
-    }
-    
     console.log(`📊 Loaded ${this.shift.shiftTransactions.length} shift-specific transactions`);
-    console.log('📦 Opening inventory from shift details:', this.shift.inventoryCounts);
     
   } catch (err) {
     console.warn('Failed to load shift transactions:', err);
@@ -857,13 +849,11 @@ async loadCurrentShift() {
       this.shift.startTime = res.data.opened_at;
       this.shift.startingFloat = parseFloat(res.data.starting_float) || 0;
       
-      // ✅ CRITICAL FIX: Store opening inventory from the shift
-      // The shift data should have opening_inventory from when it was opened
+      // ✅ Load opening inventory from the shift
       if (res.data.opening_inventory) {
         this.shift.openingInventory = res.data.opening_inventory;
-        // ✅ This is what the close modal uses
         this.shift.inventoryCounts = { ...res.data.opening_inventory };
-        console.log('📦 Opening inventory loaded:', this.shift.inventoryCounts);
+        console.log('📦 Opening inventory loaded from shift:', this.shift.inventoryCounts);
       } else {
         // Fallback: use current stock
         this.shift.openingInventory = {};
@@ -876,7 +866,7 @@ async loadCurrentShift() {
       // ✅ Load shift-specific transactions
       await this.loadShiftTransactions();
       
-      // ✅ Load today's transactions for the daily summary (not for close modal)
+      // ✅ Load today's transactions for the daily summary
       await this.loadTodayTransactions();
     } else {
       this.shift.currentShift = null;
