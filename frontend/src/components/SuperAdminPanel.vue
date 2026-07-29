@@ -1238,27 +1238,33 @@
                       class="performance-table-row clickable-item"
                       @click="viewStallDetails(stall)"
                     >
+                      <!-- Rank -->
                       <span class="performance-table-rank" data-label="Rank">
                         <span class="rank-number" :class="getRankClass(index)">
                           {{ index + 1 }}
                         </span>
                       </span>
                       
+                      <!-- Stall Name + Code -->
                       <span class="performance-table-name" data-label="Stall">
                         <span class="stall-name-text">{{ stall.name }}</span>
+                        <span class="stall-name-code">{{ stall.code }}</span>
                         <span class="stall-name-bar">
                           <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
                         </span>
                       </span>
                       
+                      <!-- Revenue -->
                       <span class="performance-table-revenue" data-label="Revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
                       
+                      <!-- Status -->
                       <span class="performance-table-status" data-label="Status">
                         <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
                           {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
                         </span>
                       </span>
                       
+                      <!-- Details -->
                       <span class="performance-table-details" data-label="Details">👆</span>
                     </div>
                   </div>
@@ -1509,6 +1515,13 @@
         <div class="sub-tabs">
           <button 
             class="sub-tab" 
+            :class="{ active: menuSubTab === 'management' }"
+            @click="menuSubTab = 'management'"
+          >
+            📋 Menu Management
+          </button>
+          <button 
+            class="sub-tab" 
             :class="{ active: menuSubTab === 'assignment' }"
             @click="menuSubTab = 'assignment'"
           >
@@ -1521,6 +1534,218 @@
           >
             📊 Menu Performance
           </button>
+        </div>
+        
+        <!-- ===== MENU MANAGEMENT SUB-TAB ===== -->
+        <div v-if="menuSubTab === 'management'" class="sub-tab-content">
+          <div class="card-modern">
+            <div class="card-modern-header">
+              <div>
+                <h3>📋 Menu Management</h3>
+                <span class="card-subtitle">{{ filteredMenuItemsForManagement.length }} menu items</span>
+              </div>
+              <div class="header-actions">
+                <button @click="refreshAllData" class="btn-modern secondary small">⟳ Refresh</button>
+                <button @click="switchTab('dashboard')" class="btn-back">← Back to Dashboard</button>
+                <button @click="openMenuModal()" class="btn-modern primary">+ New Item</button>
+              </div>
+            </div>
+            <div class="card-modern-body">
+              <div class="inventory-stats-grid">
+                <div class="stat-chip">
+                  <span class="stat-chip-label">Total Items</span>
+                  <span class="stat-chip-value">{{ menuStats.total }}</span>
+                </div>
+                <div class="stat-chip active">
+                  <span class="stat-chip-label">Active</span>
+                  <span class="stat-chip-value">{{ menuStats.active }}</span>
+                </div>
+                <div class="stat-chip inactive">
+                  <span class="stat-chip-label">Inactive</span>
+                  <span class="stat-chip-value">{{ menuStats.inactive }}</span>
+                </div>
+              </div>
+
+              <div class="filter-bar-modern">
+                <div class="filter-search">
+                  <input 
+                    type="text" 
+                    v-model="menuSearch" 
+                    placeholder="Search menu items..." 
+                    class="filter-input"
+                    @input="resetMenuPagination"
+                  />
+                </div>
+                
+                <div class="filter-group">
+                  <select v-model="menuCategoryFilter" class="filter-select" @change="resetMenuPagination">
+                    <option v-for="cat in menuCategories" :key="cat" :value="cat">
+                      {{ cat === 'all' ? 'All Categories' : cat }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="filter-actions">
+                  <button @click="clearMenuFilters" class="btn-modern secondary small">
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="filteredMenuItemsForManagement.length === 0" class="empty-state-modern">
+                <span>📋</span>
+                <p>No menu items found. Create your first menu item!</p>
+              </div>
+
+              <div v-else>
+                <div class="inventory-table-wrapper">
+                  <div class="inventory-table-header">
+                    <div class="inventory-table-cell name">Item Name</div>
+                    <div class="inventory-table-cell price">Price</div>
+                    <div class="inventory-table-cell category">Category</div>
+                    <div class="inventory-table-cell recipe">Recipe</div>
+                    <div class="inventory-table-cell actions">Actions</div>
+                  </div>
+
+                  <div 
+                    v-for="(item, index) in paginatedMenuItemsForManagement" 
+                    :key="item.item_name" 
+                    class="inventory-table-row"
+                  >
+                    <div class="inventory-table-cell name">
+                      <span class="stall-name">{{ item.item_name }}</span>
+                    </div>
+                    <div class="inventory-table-cell price">
+                      {{ formatCurrency(item.price) }}
+                    </div>
+                    <div class="inventory-table-cell category">
+                      {{ item.category || 'Main' }}
+                    </div>
+                    <div class="inventory-table-cell recipe">
+                      <span v-if="item.recipe && item.recipe.length > 0" class="recipe-tags">
+                        <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
+                          {{ r.material_name }}: {{ r.quantity_used }}
+                        </span>
+                      </span>
+                      <span v-else class="text-muted">No recipe</span>
+                    </div>
+                    <div class="inventory-table-cell actions">
+                      <button @click="openEditMenuModal(item)" class="btn-action" title="Edit">✏️</button>
+                      <button @click="deleteMenuItem(item.item_name)" class="btn-action danger" title="Delete">🗑️</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pagination-container">
+                  <div class="pagination-info">
+                    Showing {{ menuStartIndex }} - {{ menuEndIndex }} of {{ filteredMenuItemsForManagement.length }} items
+                  </div>
+                  <div class="pagination-controls">
+                    <button 
+                      @click="prevMenuPage" 
+                      class="pagination-btn"
+                      :disabled="menuCurrentPage <= 1"
+                    >
+                      ◀ Previous
+                    </button>
+                    <span class="pagination-page">
+                      Page {{ menuCurrentPage }} of {{ menuTotalPages }}
+                    </span>
+                    <button 
+                      @click="nextMenuPage" 
+                      class="pagination-btn"
+                      :disabled="menuCurrentPage >= menuTotalPages"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== MENU MODAL ===== -->
+        <div v-if="menuModal" class="modal-overlay" @click.self="closeMenuModal">
+          <div class="modal-modern modal-lg">
+            <div class="modal-modern-header">
+              <h3>{{ editingMenu ? 'Edit Menu Item' : 'New Menu Item' }}</h3>
+              <button @click="closeMenuModal" class="modal-close-btn">✕</button>
+            </div>
+            <div class="modal-modern-body" style="background: #ffffff;">
+              <div class="modal-form-row">
+                <div class="modal-form-group">
+                  <label>Item Name</label>
+                  <input v-model="menuForm.item_name" placeholder="e.g., Nasi Ayam" :disabled="editingMenu" />
+                </div>
+                <div class="modal-form-group">
+                  <label>Price (RM)</label>
+                  <input type="number" v-model="menuForm.price" placeholder="0.00" step="0.5" />
+                </div>
+              </div>
+              <div class="modal-form-row">
+                <div class="modal-form-group">
+                  <label>Category</label>
+                  <input v-model="menuForm.category" placeholder="e.g., Main, Side, Drink" />
+                </div>
+                <div class="modal-form-group">
+                  <label>Description</label>
+                  <input v-model="menuForm.description" placeholder="Brief description" />
+                </div>
+              </div>
+              <div class="modal-form-group">
+                <label>Item Image</label>
+                <div class="image-upload-area" @dragover.prevent @drop.prevent="handleMenuImageDrop">
+                  <input type="file" ref="menuImageInput" accept="image/*" @change="handleMenuImageUpload" style="display:none" />
+                  <div v-if="menuForm.imagePreview" class="image-preview">
+                    <img :src="menuForm.imagePreview" alt="Menu item" />
+                    <button @click="removeMenuImage" class="remove-image">✕</button>
+                  </div>
+                  <div v-else class="image-placeholder" @click="$refs.menuImageInput.click()">
+                    <span>📷</span>
+                    <p>Click to upload image (max 2MB)</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="modal-form-group recipe-section">
+                <label>Recipe (Ingredients)</label>
+                <p class="recipe-hint">Add chicken pieces needed for this menu item. Leave empty if no chicken needed.</p>
+                
+                <div v-for="(ingredient, index) in menuForm.recipe" :key="index" class="recipe-row">
+                  <div class="recipe-field">
+                    <label class="recipe-label">Ingredient</label>
+                    <input 
+                      v-model="ingredient.material_name" 
+                      placeholder="Chicken" 
+                      class="recipe-input" 
+                      value="Chicken"
+                    />
+                  </div>
+                  <div class="recipe-field">
+                    <label class="recipe-label">Pieces Needed</label>
+                    <input 
+                      type="number" 
+                      v-model="ingredient.quantity_used" 
+                      placeholder="e.g., 2" 
+                      class="recipe-input-small" 
+                      step="1" 
+                      min="1"
+                    />
+                  </div>
+                  <button @click="removeRecipeIngredient(index)" class="btn-icon-sm danger" title="Remove ingredient">✕</button>
+                </div>
+                
+                <button @click="addRecipeIngredient" class="btn-modern secondary small add-recipe-btn">
+                  + Add Chicken to Recipe
+                </button>
+              </div>
+            </div>
+            <div class="modal-modern-footer">
+              <button @click="closeMenuModal" class="btn-modern secondary">Cancel</button>
+              <button @click="saveMenuItem" class="btn-modern primary">{{ editingMenu ? 'Update' : 'Create' }}</button>
+            </div>
+          </div>
         </div>
         
         <!-- ===== MENU ASSIGNMENT SUB-TAB ===== -->
@@ -3021,7 +3246,7 @@ export default {
       
       // ===== SUB-TABS =====
       stallSubTab: 'management',
-      menuSubTab: 'assignment',
+      menuSubTab: 'management',
       
       // ===== DROPDOWNS =====
       dropdownOpen: false,
@@ -3103,6 +3328,20 @@ export default {
       currentUserId: null,
 
       // ===== MENU =====
+      // Menu Management
+      menuModal: false,
+      editingMenu: false,
+      menuForm: {
+        item_name: '',
+        price: 0,
+        description: '',
+        category: '',
+        recipe: [],
+        imagePreview: null,
+        imageFile: null
+      },
+      
+      // Menu Assignment
       menuSearch: '',
       menuCategoryFilter: 'all',
       menuCurrentPage: 1,
@@ -3480,6 +3719,26 @@ export default {
     },
 
     // ===== MENU =====
+    filteredMenuItemsForManagement() {
+      let items = this.menuItems
+      if (this.menuSearch) {
+        const search = this.menuSearch.toLowerCase()
+        items = items.filter(item => 
+          item.item_name.toLowerCase().includes(search)
+        )
+      }
+      if (this.menuCategoryFilter !== 'all') {
+        items = items.filter(item => 
+          (item.category || 'Main') === this.menuCategoryFilter
+        )
+      }
+      return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
+    },
+    paginatedMenuItemsForManagement() {
+      const start = (this.menuCurrentPage - 1) * this.menuItemsPerPage
+      const end = start + this.menuItemsPerPage
+      return this.filteredMenuItemsForManagement.slice(start, end)
+    },
     filteredMenuItemsForAssignment() {
       let items = this.menuItems
       if (this.menuSearch) {
@@ -3501,15 +3760,15 @@ export default {
       return this.filteredMenuItemsForAssignment.slice(start, end)
     },
     menuTotalPages() {
-      return Math.ceil(this.filteredMenuItemsForAssignment.length / this.menuItemsPerPage) || 1
+      return Math.ceil(this.filteredMenuItemsForManagement.length / this.menuItemsPerPage) || 1
     },
     menuStartIndex() {
-      if (this.filteredMenuItemsForAssignment.length === 0) return 0
+      if (this.filteredMenuItemsForManagement.length === 0) return 0
       return (this.menuCurrentPage - 1) * this.menuItemsPerPage + 1
     },
     menuEndIndex() {
-      if (this.filteredMenuItemsForAssignment.length === 0) return 0
-      return Math.min(this.menuCurrentPage * this.menuItemsPerPage, this.filteredMenuItemsForAssignment.length)
+      if (this.filteredMenuItemsForManagement.length === 0) return 0
+      return Math.min(this.menuCurrentPage * this.menuItemsPerPage, this.filteredMenuItemsForManagement.length)
     },
     selectedMenuItemsCount() {
       return this.selectedMenuItems.length
@@ -4194,7 +4453,7 @@ export default {
       if (tabId === 'stalls') {
         this.stallSubTab = subTabId || 'management'
       } else if (tabId === 'menu') {
-        this.menuSubTab = subTabId || 'assignment'
+        this.menuSubTab = subTabId || 'management'
       }
       this.dropdownOpen = false
     },
@@ -4503,7 +4762,7 @@ export default {
     },
 
     // =============================================
-    // SALES ANALYTICS
+    // SALES ANALYTICS - FIXED (Copied from Stall Admin)
     // =============================================
     async loadSalesAnalytics() {
       try {
@@ -4522,8 +4781,10 @@ export default {
           revenue: parseFloat(day.revenue) || 0
         }))
         
+        // ===== FIXED: Group by period exactly like Stall Admin =====
         if (this.selectedPeriod === 'today') {
           // Keep as-is for today
+          dailySales = this.splitTodayIntoHours(dailySales)
         } else if (this.selectedPeriod === 'week') {
           const now = this.getTodayInMalaysia()
           const dayOfWeek = now.getDay()
@@ -4544,7 +4805,9 @@ export default {
           })
         } else if (this.selectedPeriod === 'month') {
           dailySales = this.groupSalesByWeek(dailySales)
-        } else if (['quarter', 'halfyear', 'year'].includes(this.selectedPeriod)) {
+        } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
+          dailySales = this.groupSalesByMonth(dailySales)
+        } else if (this.selectedPeriod === 'year') {
           dailySales = this.groupSalesByMonth(dailySales)
         } else if (this.selectedPeriod === 'custom') {
           dailySales = this.groupSalesCustom(dailySales)
@@ -4586,16 +4849,44 @@ export default {
       }
     },
 
+    // ===== FIXED: Group functions copied from Stall Admin =====
+    splitTodayIntoHours(dailySales) {
+      if (!dailySales || dailySales.length === 0) return []
+      if (dailySales.length > 1) return dailySales
+      const dayData = dailySales[0]
+      if (!dayData) return []
+      const totalRevenue = dayData.revenue || 0
+      const totalItems = dayData.items || 0
+      if (totalRevenue > 0 || totalItems > 0) {
+        return dailySales
+      }
+      return []
+    },
+
     groupSalesByWeek(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
       const grouped = {}
       dailySales.forEach(day => {
         const date = new Date(day.date)
         const weekStart = this.getWeekStart(date)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekEnd.getDate() + 6)
         const key = weekStart.toISOString().split('T')[0]
         if (!grouped[key]) {
+          const startDay = weekStart.getUTCDate()
+          const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          const endDay = weekEnd.getUTCDate()
+          const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          let label
+          if (startMonth === endMonth) {
+            label = `${startDay}-${endDay} ${startMonth}`
+          } else {
+            label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+          }
           grouped[key] = {
             date: weekStart.toISOString(),
+            label: label,
+            displayLabel: label,
             revenue: 0,
             items: 0
           }
@@ -4611,12 +4902,22 @@ export default {
       const grouped = {}
       dailySales.forEach(day => {
         const date = new Date(day.date)
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        const month = date.getMonth()
+        const year = date.getFullYear()
+        const key = `${year}-${month}`
         if (!grouped[key]) {
+          const label = date.toLocaleDateString('en-MY', { 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
           grouped[key] = {
-            date: `${key}-01`,
+            date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+            label: label,
             revenue: 0,
-            items: 0
+            items: 0,
+            month: month,
+            year: year
           }
         }
         grouped[key].revenue += day.revenue || 0
@@ -4629,7 +4930,14 @@ export default {
       if (!dailySales || dailySales.length === 0) return []
       const days = dailySales.length
       if (days <= 14) {
-        return dailySales
+        return dailySales.map(day => ({
+          ...day,
+          label: new Date(day.date).toLocaleDateString('en-MY', { 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: 'UTC'
+          })
+        }))
       }
       if (days <= 60) {
         return this.groupSalesByWeek(dailySales)
@@ -4765,516 +5073,212 @@ export default {
     },
 
     // =============================================
-    // LOW STOCK
+    // MENU MANAGEMENT - CRUD (Restored from Original Super Admin)
     // =============================================
-    async loadLowStock() {
-      try {
-        const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
-          headers: { Authorization: `Bearer ${this.token}` } 
-        })
-        this.lowStock = res.data
-      } catch (err) {
-        console.error('Failed to load low stock:', err)
-        this.lowStock = []
+    openMenuModal() {
+      this.editingMenu = false
+      this.menuForm = {
+        item_name: '',
+        price: 0,
+        description: '',
+        category: '',
+        recipe: [],
+        imagePreview: null,
+        imageFile: null
       }
+      this.menuModal = true
     },
 
-    // =============================================
-    // INVENTORY
-    // =============================================
-    async loadAllStallsInventory() {
-      this.inventory = []
-      for (const stall of this.stalls) {
+    openEditMenuModal(item) {
+      this.editingMenu = true
+      this.menuForm = {
+        item_name: item.item_name,
+        price: item.price,
+        description: item.description || '',
+        category: item.category || '',
+        recipe: (item.recipe || []).map(r => ({ ...r })),
+        imagePreview: item.image || null,
+        imageFile: null
+      }
+      this.menuModal = true
+    },
+
+    closeMenuModal() {
+      this.menuModal = false
+      this.editingMenu = false
+    },
+
+    addRecipeIngredient() {
+      this.menuForm.recipe.push({ 
+        material_name: 'Chicken', 
+        quantity_used: 1 
+      })
+    },
+
+    removeRecipeIngredient(index) {
+      this.menuForm.recipe.splice(index, 1)
+    },
+
+    compressImage(base64Data, maxWidth = 200, maxHeight = 200, quality = 0.6) {
+      return new Promise((resolve) => {
         try {
-          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          if (res.data && res.data.length > 0) {
-            const items = res.data.map(item => ({
-              ...item,
-              stall_id: stall.id,
-              current_level: Math.round(Number(item.current_level) || 0),
-              alert_level: Math.round(Number(item.alert_level) || 0)
-            }))
-            this.inventory = [...this.inventory, ...items]
+          const img = new Image()
+          img.onload = () => {
+            let width = img.width
+            let height = img.height
+            
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width
+              width = maxWidth
+            }
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height
+              height = maxHeight
+            }
+            
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(width)
+            canvas.height = Math.round(height)
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+            
+            const compressed = canvas.toDataURL('image/jpeg', quality)
+            resolve(compressed)
           }
-          this.stallInventory[stall.id] = res.data.map(item => ({
-            ...item,
-            newLevel: Math.round(Number(item.current_level) || 0)
-          }))
+          img.onerror = () => {
+            resolve(null)
+          }
+          img.src = base64Data
         } catch (err) {
-          console.error(`Load inventory for stall ${stall.id} error:`, err)
-          this.stallInventory[stall.id] = []
+          console.error('Compression error:', err)
+          resolve(null)
         }
-      }
-      console.log('✅ Inventory loaded:', this.inventory.length, 'items')
-    },
-
-    getStallInventory(stallId) {
-      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
-        const items = this.inventory.filter(item => item.stall_id === stallId)
-        if (items.length > 0) {
-          return items.map(item => ({
-            ...item,
-            current_level: Math.round(Number(item.current_level) || 0),
-            alert_level: Math.round(Number(item.alert_level) || 0)
-          }))
-        }
-      }
-      if (this.stallInventory && this.stallInventory[stallId]) {
-        return this.stallInventory[stallId].map(item => ({
-          ...item,
-          current_level: Math.round(Number(item.current_level) || 0),
-          alert_level: Math.round(Number(item.alert_level) || 0)
-        }))
-      }
-      return []
-    },
-
-    getStallInventorySummary(stallId) {
-      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
-        const items = this.inventory.filter(item => item.stall_id === stallId)
-        if (items.length > 0) {
-          const grouped = {}
-          items.forEach(item => {
-            if (!grouped[item.material_name]) {
-              grouped[item.material_name] = {
-                material_name: item.material_name,
-                current_level: 0,
-                alert_level: item.alert_level || 5,
-                stall_id: stallId
-              }
-            }
-            grouped[item.material_name].current_level += Number(item.current_level) || 0
-          })
-          return Object.values(grouped).map(item => ({
-            ...item,
-            current_level: Math.round(Number(item.current_level) || 0),
-            alert_level: Math.round(Number(item.alert_level) || 0)
-          }))
-        }
-      }
-      if (this.stallInventory && this.stallInventory[stallId]) {
-        const items = this.stallInventory[stallId]
-        const grouped = {}
-        items.forEach(item => {
-          if (!grouped[item.material_name]) {
-            grouped[item.material_name] = {
-              material_name: item.material_name,
-              current_level: 0,
-              alert_level: item.alert_level || 5,
-              stall_id: stallId
-            }
-          }
-          grouped[item.material_name].current_level += Number(item.current_level) || 0
-        })
-        return Object.values(grouped).map(item => ({
-          ...item,
-          current_level: Math.round(Number(item.current_level) || 0),
-          alert_level: Math.round(Number(item.alert_level) || 0)
-        }))
-      }
-      return []
-    },
-
-    hasLowStock(stallId) {
-      return this.getStallInventory(stallId).some(item => item.current_level <= item.alert_level)
-    },
-
-    async updateInventoryStock(stallId, materialName, newLevel) {
-      if (newLevel === undefined || newLevel === null || newLevel === '') {
-        this.$emit('show-notification', 'Please enter a valid value', 'error')
-        return
-      }
-      const roundedLevel = Math.round(Number(newLevel) || 0)
-      try {
-        await axios.post(`${API_BASE}/inventory/update`, {
-          stallId, 
-          materialName, 
-          newLevel: roundedLevel
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        await this.loadAllStallsInventory()
-        await this.loadLowStock()
-        this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
-      } catch (err) {
-        console.error('Update inventory error:', err)
-        this.$emit('show-notification', 'Failed to update stock', 'error')
-      }
-    },
-
-    openStallInventoryModal(stallId) {
-      const stall = this.stalls.find(s => s.id === stallId)
-      if (!stall) return
-      this.quickUpdateStallId = stallId
-      this.quickUpdateStallName = stall.name
-      this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
-        ...item,
-        newLevel: item.current_level
-      }))
-      this.quickUpdateModal = true
-    },
-
-    async quickUpdateItemSave(stallId, materialName, newLevel) {
-      if (newLevel === undefined || newLevel === null || newLevel === '') {
-        this.$emit('show-notification', 'Please enter a valid value', 'error')
-        return
-      }
-      await this.updateInventoryStock(stallId, materialName, newLevel)
-      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-      if (item) {
-        item.current_level = newLevel
-        item.newLevel = newLevel
-      }
-      this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
-    },
-
-    async quickUpdateItemAdd(stallId, materialName, amount) {
-      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-      if (item) {
-        const newLevel = item.current_level + amount
-        await this.quickUpdateItemSave(stallId, materialName, newLevel)
-      }
-    },
-
-    async quickUpdateSaveAll() {
-      for (const item of this.quickUpdateItems) {
-        if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
-          await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
-        }
-      }
-      this.$emit('show-notification', 'All items updated successfully!', 'success')
-      this.quickUpdateModal = false
-      await this.loadAllStallsInventory()
-    },
-
-    // =============================================
-    // INVENTORY - BULK UPDATE
-    // =============================================
-    openBulkUpdateModal() {
-      const materialSet = new Set()
-      const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-      stalls.forEach(stall => {
-        const inventory = this.getStallInventory(stall.id)
-        inventory.forEach(item => {
-          materialSet.add(item.material_name)
-        })
-      })
-      this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
-        name: name,
-        selected: true,
-        operation: 'set',
-        value: 10
-      }))
-      this.bulkUpdateModal = true
-    },
-
-    applyQuickAction(action) {
-      this.bulkUpdateMaterials.forEach(material => {
-        let value = 0
-        switch (action.value) {
-          case 'alert':
-            const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
-            if (firstStall) {
-              const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
-              value = item ? item.alert_level : 10
-            }
-            break
-          case '100': value = 100; break
-          case '50': value = 50; break
-          case 'add10': material.operation = 'add'; value = 10; break
-          case 'add20': material.operation = 'add'; value = 20; break
-          case '0': value = 0; break
-          default: value = parseInt(action.value) || 10
-        }
-        material.value = value
-        material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
       })
     },
 
-    async executeBulkUpdate() {
-      this.bulkUpdating = true
-      const stalls = this.bulkUpdateMode === 'all' 
-        ? this.filteredInventoryStalls 
-        : this.bulkUpdateMode === 'low-stock'
-          ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
-          : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-      const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
+    handleMenuImageUpload(event) {
+      const file = event.target.files[0]
+      if (!file) return
       
+      if (file.size > 2 * 1024 * 1024) {
+        this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+        event.target.value = ''
+        return
+      }
+      
+      this.menuForm.imageFile = file
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        try {
+          const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+          this.menuForm.imagePreview = compressed || e.target.result
+        } catch (err) {
+          console.warn('Compression failed, using original:', err)
+          this.menuForm.imagePreview = e.target.result
+        }
+      }
+      reader.readAsDataURL(file)
+    },
+
+    handleMenuImageDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file && file.type.startsWith('image/')) {
+        if (file.size > 2 * 1024 * 1024) {
+          this.$emit('show-notification', 'Image is too large. Maximum size is 2MB.', 'error')
+          return
+        }
+        
+        this.menuForm.imageFile = file
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+          try {
+            const compressed = await this.compressImage(e.target.result, 300, 300, 0.7)
+            this.menuForm.imagePreview = compressed || e.target.result
+          } catch (err) {
+            this.menuForm.imagePreview = e.target.result
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+
+    removeMenuImage() {
+      this.menuForm.imagePreview = null
+      this.menuForm.imageFile = null
+      if (this.$refs.menuImageInput) {
+        this.$refs.menuImageInput.value = ''
+      }
+    },
+
+    async saveMenuItem() {
       try {
-        for (const stall of stalls) {
-          for (const material of selectedMaterials) {
-            let newLevel = material.value
-            const inventory = this.getStallInventory(stall.id)
-            const item = inventory.find(i => i.material_name === material.name)
-            if (item) {
-              if (material.operation === 'add') {
-                newLevel = item.current_level + material.value
-              } else if (material.operation === 'subtract') {
-                newLevel = Math.max(0, item.current_level - material.value)
+        if (!this.menuForm.item_name || !this.menuForm.price) {
+          this.$emit('show-notification', 'Item name and price are required', 'error')
+          return
+        }
+        
+        const payload = {
+          item_name: this.menuForm.item_name,
+          price: parseFloat(this.menuForm.price),
+          description: this.menuForm.description || '',
+          category: this.menuForm.category || 'Main',
+          recipe: this.menuForm.recipe
+            .filter(r => r.material_name && r.quantity_used > 0)
+            .map(r => ({
+              material_name: r.material_name || 'Chicken',
+              quantity_used: parseInt(r.quantity_used) || 1
+            }))
+        }
+        
+        if (this.menuForm.imagePreview) {
+          let imageData = this.menuForm.imagePreview
+          if (imageData && imageData.length > 500000) {
+            try {
+              const compressed = await this.compressImage(imageData, 200, 200, 0.6)
+              if (compressed && compressed.length < imageData.length) {
+                imageData = compressed
               }
-            }
-            await this.updateInventoryStock(stall.id, material.name, newLevel)
-          }
-        }
-        this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
-        this.bulkUpdateModal = false
-      } catch (err) {
-        this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
-      } finally {
-        this.bulkUpdating = false
-        await this.loadAllStallsInventory()
-      }
-    },
-
-    async resetAllLowStock() {
-      if (this.inventoryStats.lowStock === 0) {
-        this.$emit('show-notification', 'No low stock items to reset', 'info')
-        return
-      }
-      if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
-      this.loading = true
-      let updated = 0
-      try {
-        for (const stall of this.stalls) {
-          const inventory = this.getStallInventorySummary(stall.id)
-          for (const item of inventory) {
-            if (item.current_level <= item.alert_level) {
-              const newLevel = item.alert_level + 20
-              await this.updateInventoryStock(stall.id, item.material_name, newLevel)
-              updated++
+            } catch (e) {
+              console.warn('Image compression failed, using original', e)
             }
           }
-        }
-        this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
-        await this.loadAllStallsInventory()
-      } catch (error) {
-        console.error('Error resetting low stock:', error)
-        this.$emit('show-notification', 'Error resetting low stock items', 'error')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    toggleSelectAll() {
-      this.selectAll = !this.selectAll
-      if (this.selectAll) {
-        this.selectedStalls = this.filteredInventoryStalls.map(s => s.id)
-      } else {
-        this.selectedStalls = []
-      }
-    },
-
-    clearFilters() {
-      this.inventorySearch = ''
-      this.stateFilter = 'All States'
-      this.inventoryFilter = 'all'
-    },
-
-    resetPagination() {
-      this.currentPage = 1
-    },
-
-    prevPage() {
-      if (this.currentPage > 1) this.currentPage--
-    },
-
-    nextPage() {
-      if (this.currentPage < this.totalPages) this.currentPage++
-    },
-
-    // =============================================
-    // STALL MANAGEMENT - PAGINATION
-    // =============================================
-    stallCurrentPage: {
-      get() { return this._stallCurrentPage || 1 },
-      set(val) { this._stallCurrentPage = val }
-    },
-
-    resetStallPagination() {
-      this.stallCurrentPage = 1
-    },
-
-    prevStallPage() {
-      if (this.stallCurrentPage > 1) this.stallCurrentPage--
-    },
-
-    nextStallPage() {
-      if (this.stallCurrentPage < this.stallTotalPages) this.stallCurrentPage++
-    },
-
-    toggleSelectAllStalls() {
-      this.selectAllStalls = !this.selectAllStalls
-      if (this.selectAllStalls) {
-        this.selectedStalls = this.paginatedStallsList.map(s => s.id)
-      } else {
-        this.selectedStalls = []
-      }
-    },
-
-    clearStallFilters() {
-      this.stallSearch = ''
-      this.stateFilter = 'All States'
-      this.stallStatusFilter = 'all'
-      this.selectedStalls = []
-      this.selectAllStalls = false
-      this.stallCurrentPage = 1
-    },
-
-    async bulkActivateStalls() {
-      if (this.selectedStalls.length === 0) {
-        this.$emit('show-notification', 'No stalls selected', 'warning')
-        return
-      }
-      if (!confirm(`Activate ${this.selectedStalls.length} selected stall(s)?`)) return
-      this.loading = true
-      let activated = 0
-      try {
-        for (const stallId of this.selectedStalls) {
-          const stall = this.stalls.find(s => s.id === stallId)
-          if (stall && !stall.is_active) {
-            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            })
-            activated++
+          if (imageData && imageData.length < 1 * 1024 * 1024) {
+            payload.image = imageData
           }
         }
-        this.$emit('show-notification', `✅ Activated ${activated} stall(s)`, 'success')
-        this.selectedStalls = []
-        this.selectAllStalls = false
-        await this.loadStalls()
-        await this.loadAllStallsInventory()
-      } catch (error) {
-        console.error('Bulk activate error:', error)
-        this.$emit('show-notification', 'Error activating stalls', 'error')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async bulkDeactivateStalls() {
-      if (this.selectedStalls.length === 0) {
-        this.$emit('show-notification', 'No stalls selected', 'warning')
-        return
-      }
-      if (!confirm(`Deactivate ${this.selectedStalls.length} selected stall(s)?`)) return
-      this.loading = true
-      let deactivated = 0
-      try {
-        for (const stallId of this.selectedStalls) {
-          const stall = this.stalls.find(s => s.id === stallId)
-          if (stall && stall.is_active) {
-            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            })
-            deactivated++
-          }
-        }
-        this.$emit('show-notification', `✅ Deactivated ${deactivated} stall(s)`, 'success')
-        this.selectedStalls = []
-        this.selectAllStalls = false
-        await this.loadStalls()
-        await this.loadAllStallsInventory()
-      } catch (error) {
-        console.error('Bulk deactivate error:', error)
-        this.$emit('show-notification', 'Error deactivating stalls', 'error')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    // =============================================
-    // USER MANAGEMENT - PAGINATION & BULK
-    // =============================================
-    resetUserPagination() {
-      this.userCurrentPage = 1
-    },
-
-    prevUserPage() {
-      if (this.userCurrentPage > 1) this.userCurrentPage--
-    },
-
-    nextUserPage() {
-      if (this.userCurrentPage < this.userTotalPages) this.userCurrentPage++
-    },
-
-    toggleSelectAllUsers() {
-      this.selectAllUsers = !this.selectAllUsers
-      if (this.selectAllUsers) {
-        this.selectedUsers = this.paginatedUsersList.map(u => u.id)
-      } else {
-        this.selectedUsers = []
-      }
-    },
-
-    clearUserFilters() {
-      this.userSearch = ''
-      this.userStateFilter = 'All States'
-      this.userRoleFilter = 'all'
-      this.selectedUsers = []
-      this.selectAllUsers = false
-      this.userCurrentPage = 1    },
-
-    async bulkRoleChange(role) {
-      if (this.selectedUsers.length === 0) {
-        this.$emit('show-notification', 'No users selected', 'warning')
-        return
-      }
-      const roleLabel = role === 'stall_admin' ? 'Admin' : 'Cashier'
-      if (!confirm(`Change ${this.selectedUsers.length} user(s) role to ${roleLabel}?`)) return
-      this.loading = true
-      let updated = 0
-      try {
-        for (const userId of this.selectedUsers) {
-          const user = this.users.find(u => u.id === userId)
-          if (user && user.role !== role) {
-            await axios.put(`${API_BASE}/users/${userId}`, {
-              ...user,
-              role: role
-            }, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            })
-            updated++
-          }
-        }
-        this.$emit('show-notification', `✅ Updated ${updated} user(s) to ${roleLabel}`, 'success')
-        this.selectedUsers = []
-        this.selectAllUsers = false
-        await this.loadUsers()
-      } catch (error) {
-        console.error('Bulk role change error:', error)
-        this.$emit('show-notification', 'Error updating user roles', 'error')
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async bulkDeleteUsers() {
-      if (this.selectedUsers.length === 0) {
-        this.$emit('show-notification', 'No users selected', 'warning')
-        return
-      }
-      if (!confirm(`Delete ${this.selectedUsers.length} selected user(s)? This action cannot be undone.`)) return
-      this.loading = true
-      let deleted = 0
-      try {
-        for (const userId of this.selectedUsers) {
-          if (userId === this.currentUserId) continue
-          await axios.delete(`${API_BASE}/users/${userId}`, {
+        
+        if (this.editingMenu) {
+          await axios.put(`${API_BASE}/menu/${encodeURIComponent(this.menuForm.item_name)}`, payload, {
             headers: { Authorization: `Bearer ${this.token}` }
           })
-          deleted++
+          this.$emit('show-notification', 'Menu item updated successfully!', 'success')
+        } else {
+          await axios.post(`${API_BASE}/menu`, payload, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item created successfully!', 'success')
         }
-        this.$emit('show-notification', `✅ Deleted ${deleted} user(s)`, 'success')
-        this.selectedUsers = []
-        this.selectAllUsers = false
-        await this.loadUsers()
-      } catch (error) {
-        console.error('Bulk delete error:', error)
-        this.$emit('show-notification', 'Error deleting users', 'error')
-      } finally {
-        this.loading = false
+        
+        this.closeMenuModal()
+        await this.loadMenuItems()
+      } catch (err) {
+        console.error('Save menu error:', err)
+        const errorMsg = err.response?.data?.error || err.message || 'Operation failed'
+        this.$emit('show-notification', `Failed to save: ${errorMsg}`, 'error')
+      }
+    },
+
+    async deleteMenuItem(itemName) {
+      if (confirm(`Delete menu item "${itemName}"?`)) {
+        try {
+          await axios.delete(`${API_BASE}/menu/${encodeURIComponent(itemName)}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          this.$emit('show-notification', 'Menu item deleted', 'success')
+          await this.loadMenuItems()
+        } catch (err) {
+          this.$emit('show-notification', 'Failed to delete menu item', 'error')
+        }
       }
     },
 
@@ -5550,6 +5554,522 @@ export default {
         this.$emit('show-notification', 'Failed to complete bulk assignment', 'error')
       } finally {
         this.bulkAssignToStallsLoading = false
+      }
+    },
+
+    // =============================================
+    // LOW STOCK
+    // =============================================
+    async loadLowStock() {
+      try {
+        const res = await axios.get(`${API_BASE}/companies/1/low-stock`, { 
+          headers: { Authorization: `Bearer ${this.token}` } 
+        })
+        this.lowStock = res.data
+      } catch (err) {
+        console.error('Failed to load low stock:', err)
+        this.lowStock = []
+      }
+    },
+
+    // =============================================
+    // INVENTORY
+    // =============================================
+    async loadAllStallsInventory() {
+      this.inventory = []
+      for (const stall of this.stalls) {
+        try {
+          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          if (res.data && res.data.length > 0) {
+            const items = res.data.map(item => ({
+              ...item,
+              stall_id: stall.id,
+              current_level: Math.round(Number(item.current_level) || 0),
+              alert_level: Math.round(Number(item.alert_level) || 0)
+            }))
+            this.inventory = [...this.inventory, ...items]
+          }
+          this.stallInventory[stall.id] = res.data.map(item => ({
+            ...item,
+            newLevel: Math.round(Number(item.current_level) || 0)
+          }))
+        } catch (err) {
+          console.error(`Load inventory for stall ${stall.id} error:`, err)
+          this.stallInventory[stall.id] = []
+        }
+      }
+      console.log('✅ Inventory loaded:', this.inventory.length, 'items')
+    },
+
+    getStallInventory(stallId) {
+      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+        const items = this.inventory.filter(item => item.stall_id === stallId)
+        if (items.length > 0) {
+          return items.map(item => ({
+            ...item,
+            current_level: Math.round(Number(item.current_level) || 0),
+            alert_level: Math.round(Number(item.alert_level) || 0)
+          }))
+        }
+      }
+      if (this.stallInventory && this.stallInventory[stallId]) {
+        return this.stallInventory[stallId].map(item => ({
+          ...item,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+      }
+      return []
+    },
+
+    getStallInventorySummary(stallId) {
+      if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
+        const items = this.inventory.filter(item => item.stall_id === stallId)
+        if (items.length > 0) {
+          const grouped = {}
+          items.forEach(item => {
+            if (!grouped[item.material_name]) {
+              grouped[item.material_name] = {
+                material_name: item.material_name,
+                current_level: 0,
+                alert_level: item.alert_level || 5,
+                stall_id: stallId
+              }
+            }
+            grouped[item.material_name].current_level += Number(item.current_level) || 0
+          })
+          return Object.values(grouped).map(item => ({
+            ...item,
+            current_level: Math.round(Number(item.current_level) || 0),
+            alert_level: Math.round(Number(item.alert_level) || 0)
+          }))
+        }
+      }
+      if (this.stallInventory && this.stallInventory[stallId]) {
+        const items = this.stallInventory[stallId]
+        const grouped = {}
+        items.forEach(item => {
+          if (!grouped[item.material_name]) {
+            grouped[item.material_name] = {
+              material_name: item.material_name,
+              current_level: 0,
+              alert_level: item.alert_level || 5,
+              stall_id: stallId
+            }
+          }
+          grouped[item.material_name].current_level += Number(item.current_level) || 0
+        })
+        return Object.values(grouped).map(item => ({
+          ...item,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+      }
+      return []
+    },
+
+    hasLowStock(stallId) {
+      return this.getStallInventory(stallId).some(item => item.current_level <= item.alert_level)
+    },
+
+    async updateInventoryStock(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      const roundedLevel = Math.round(Number(newLevel) || 0)
+      try {
+        await axios.post(`${API_BASE}/inventory/update`, {
+          stallId, 
+          materialName, 
+          newLevel: roundedLevel
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        await this.loadAllStallsInventory()
+        await this.loadLowStock()
+        this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
+      } catch (err) {
+        console.error('Update inventory error:', err)
+        this.$emit('show-notification', 'Failed to update stock', 'error')
+      }
+    },
+
+    // =============================================
+    // INVENTORY - BULK UPDATE (FIXED)
+    // =============================================
+    openStallInventoryModal(stallId) {
+      const stall = this.stalls.find(s => s.id === stallId)
+      if (!stall) return
+      this.quickUpdateStallId = stallId
+      this.quickUpdateStallName = stall.name
+      this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
+        ...item,
+        newLevel: item.current_level
+      }))
+      this.quickUpdateModal = true
+    },
+
+    async quickUpdateItemSave(stallId, materialName, newLevel) {
+      if (newLevel === undefined || newLevel === null || newLevel === '') {
+        this.$emit('show-notification', 'Please enter a valid value', 'error')
+        return
+      }
+      await this.updateInventoryStock(stallId, materialName, newLevel)
+      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+      if (item) {
+        item.current_level = newLevel
+        item.newLevel = newLevel
+      }
+      this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
+    },
+
+    async quickUpdateItemAdd(stallId, materialName, amount) {
+      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+      if (item) {
+        const newLevel = item.current_level + amount
+        await this.quickUpdateItemSave(stallId, materialName, newLevel)
+      }
+    },
+
+    async quickUpdateSaveAll() {
+      for (const item of this.quickUpdateItems) {
+        if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+          await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
+        }
+      }
+      this.$emit('show-notification', 'All items updated successfully!', 'success')
+      this.quickUpdateModal = false
+      await this.loadAllStallsInventory()
+    },
+
+    openBulkUpdateModal() {
+      const materialSet = new Set()
+      const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+      stalls.forEach(stall => {
+        const inventory = this.getStallInventory(stall.id)
+        inventory.forEach(item => {
+          materialSet.add(item.material_name)
+        })
+      })
+      this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
+        name: name,
+        selected: true,
+        operation: 'set',
+        value: 10
+      }))
+      this.bulkUpdateModal = true
+    },
+
+    applyQuickAction(action) {
+      this.bulkUpdateMaterials.forEach(material => {
+        let value = 0
+        switch (action.value) {
+          case 'alert':
+            const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
+            if (firstStall) {
+              const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
+              value = item ? item.alert_level : 10
+            }
+            break
+          case '100': value = 100; break
+          case '50': value = 50; break
+          case 'add10': material.operation = 'add'; value = 10; break
+          case 'add20': material.operation = 'add'; value = 20; break
+          case '0': value = 0; break
+          default: value = parseInt(action.value) || 10
+        }
+        material.value = value
+        material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
+      })
+    },
+
+    async executeBulkUpdate() {
+      this.bulkUpdating = true
+      const stalls = this.bulkUpdateMode === 'all' 
+        ? this.filteredInventoryStalls 
+        : this.bulkUpdateMode === 'low-stock'
+          ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
+          : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+      const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
+      
+      try {
+        for (const stall of stalls) {
+          for (const material of selectedMaterials) {
+            let newLevel = material.value
+            const inventory = this.getStallInventory(stall.id)
+            const item = inventory.find(i => i.material_name === material.name)
+            if (item) {
+              if (material.operation === 'add') {
+                newLevel = item.current_level + material.value
+              } else if (material.operation === 'subtract') {
+                newLevel = Math.max(0, item.current_level - material.value)
+              }
+            }
+            await this.updateInventoryStock(stall.id, material.name, newLevel)
+          }
+        }
+        this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
+        this.bulkUpdateModal = false
+      } catch (err) {
+        console.error('Bulk update error:', err)
+        this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
+      } finally {
+        this.bulkUpdating = false
+        await this.loadAllStallsInventory()
+      }
+    },
+
+    async resetAllLowStock() {
+      if (this.inventoryStats.lowStock === 0) {
+        this.$emit('show-notification', 'No low stock items to reset', 'info')
+        return
+      }
+      if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
+      this.loading = true
+      let updated = 0
+      try {
+        for (const stall of this.stalls) {
+          const inventory = this.getStallInventorySummary(stall.id)
+          for (const item of inventory) {
+            if (item.current_level <= item.alert_level) {
+              const newLevel = item.alert_level + 20
+              await this.updateInventoryStock(stall.id, item.material_name, newLevel)
+              updated++
+            }
+          }
+        }
+        this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
+        await this.loadAllStallsInventory()
+      } catch (error) {
+        console.error('Error resetting low stock:', error)
+        this.$emit('show-notification', 'Error resetting low stock items', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    toggleSelectAll() {
+      this.selectAll = !this.selectAll
+      if (this.selectAll) {
+        this.selectedStalls = this.filteredInventoryStalls.map(s => s.id)
+      } else {
+        this.selectedStalls = []
+      }
+    },
+
+    clearFilters() {
+      this.inventorySearch = ''
+      this.stateFilter = 'All States'
+      this.inventoryFilter = 'all'
+    },
+
+    resetPagination() {
+      this.currentPage = 1
+    },
+
+    prevPage() {
+      if (this.currentPage > 1) this.currentPage--
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) this.currentPage++
+    },
+
+    // =============================================
+    // STALL MANAGEMENT - PAGINATION
+    // =============================================
+    stallCurrentPage: {
+      get() { return this._stallCurrentPage || 1 },
+      set(val) { this._stallCurrentPage = val }
+    },
+
+    resetStallPagination() {
+      this.stallCurrentPage = 1
+    },
+
+    prevStallPage() {
+      if (this.stallCurrentPage > 1) this.stallCurrentPage--
+    },
+
+    nextStallPage() {
+      if (this.stallCurrentPage < this.stallTotalPages) this.stallCurrentPage++
+    },
+
+    toggleSelectAllStalls() {
+      this.selectAllStalls = !this.selectAllStalls
+      if (this.selectAllStalls) {
+        this.selectedStalls = this.paginatedStallsList.map(s => s.id)
+      } else {
+        this.selectedStalls = []
+      }
+    },
+
+    clearStallFilters() {
+      this.stallSearch = ''
+      this.stateFilter = 'All States'
+      this.stallStatusFilter = 'all'
+      this.selectedStalls = []
+      this.selectAllStalls = false
+      this.stallCurrentPage = 1
+    },
+
+    async bulkActivateStalls() {
+      if (this.selectedStalls.length === 0) {
+        this.$emit('show-notification', 'No stalls selected', 'warning')
+        return
+      }
+      if (!confirm(`Activate ${this.selectedStalls.length} selected stall(s)?`)) return
+      this.loading = true
+      let activated = 0
+      try {
+        for (const stallId of this.selectedStalls) {
+          const stall = this.stalls.find(s => s.id === stallId)
+          if (stall && !stall.is_active) {
+            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            activated++
+          }
+        }
+        this.$emit('show-notification', `✅ Activated ${activated} stall(s)`, 'success')
+        this.selectedStalls = []
+        this.selectAllStalls = false
+        await this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (error) {
+        console.error('Bulk activate error:', error)
+        this.$emit('show-notification', 'Error activating stalls', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkDeactivateStalls() {
+      if (this.selectedStalls.length === 0) {
+        this.$emit('show-notification', 'No stalls selected', 'warning')
+        return
+      }
+      if (!confirm(`Deactivate ${this.selectedStalls.length} selected stall(s)?`)) return
+      this.loading = true
+      let deactivated = 0
+      try {
+        for (const stallId of this.selectedStalls) {
+          const stall = this.stalls.find(s => s.id === stallId)
+          if (stall && stall.is_active) {
+            await axios.put(`${API_BASE}/stalls/${stall.id}/toggle`, {}, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            deactivated++
+          }
+        }
+        this.$emit('show-notification', `✅ Deactivated ${deactivated} stall(s)`, 'success')
+        this.selectedStalls = []
+        this.selectAllStalls = false
+        await this.loadStalls()
+        await this.loadAllStallsInventory()
+      } catch (error) {
+        console.error('Bulk deactivate error:', error)
+        this.$emit('show-notification', 'Error deactivating stalls', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // =============================================
+    // USER MANAGEMENT - PAGINATION & BULK
+    // =============================================
+    resetUserPagination() {
+      this.userCurrentPage = 1
+    },
+
+    prevUserPage() {
+      if (this.userCurrentPage > 1) this.userCurrentPage--
+    },
+
+    nextUserPage() {
+      if (this.userCurrentPage < this.userTotalPages) this.userCurrentPage++
+    },
+
+    toggleSelectAllUsers() {
+      this.selectAllUsers = !this.selectAllUsers
+      if (this.selectAllUsers) {
+        this.selectedUsers = this.paginatedUsersList.map(u => u.id)
+      } else {
+        this.selectedUsers = []
+      }
+    },
+
+    clearUserFilters() {
+      this.userSearch = ''
+      this.userStateFilter = 'All States'
+      this.userRoleFilter = 'all'
+      this.selectedUsers = []
+      this.selectAllUsers = false
+      this.userCurrentPage = 1
+    },
+
+    async bulkRoleChange(role) {
+      if (this.selectedUsers.length === 0) {
+        this.$emit('show-notification', 'No users selected', 'warning')
+        return
+      }
+      const roleLabel = role === 'stall_admin' ? 'Admin' : 'Cashier'
+      if (!confirm(`Change ${this.selectedUsers.length} user(s) role to ${roleLabel}?`)) return
+      this.loading = true
+      let updated = 0
+      try {
+        for (const userId of this.selectedUsers) {
+          const user = this.users.find(u => u.id === userId)
+          if (user && user.role !== role) {
+            await axios.put(`${API_BASE}/users/${userId}`, {
+              ...user,
+              role: role
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            updated++
+          }
+        }
+        this.$emit('show-notification', `✅ Updated ${updated} user(s) to ${roleLabel}`, 'success')
+        this.selectedUsers = []
+        this.selectAllUsers = false
+        await this.loadUsers()
+      } catch (error) {
+        console.error('Bulk role change error:', error)
+        this.$emit('show-notification', 'Error updating user roles', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkDeleteUsers() {
+      if (this.selectedUsers.length === 0) {
+        this.$emit('show-notification', 'No users selected', 'warning')
+        return
+      }
+      if (!confirm(`Delete ${this.selectedUsers.length} selected user(s)? This action cannot be undone.`)) return
+      this.loading = true
+      let deleted = 0
+      try {
+        for (const userId of this.selectedUsers) {
+          if (userId === this.currentUserId) continue
+          await axios.delete(`${API_BASE}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          })
+          deleted++
+        }
+        this.$emit('show-notification', `✅ Deleted ${deleted} user(s)`, 'success')
+        this.selectedUsers = []
+        this.selectAllUsers = false
+        await this.loadUsers()
+      } catch (error) {
+        console.error('Bulk delete error:', error)
+        this.$emit('show-notification', 'Error deleting users', 'error')
+      } finally {
+        this.loading = false
       }
     },
 
@@ -6332,7 +6852,7 @@ export default {
     },
 
     // =============================================
-    // SHIFT HISTORY
+    // SHIFT HISTORY (FIXED - Improved error handling)
     // =============================================
     async loadShiftHistory() {
       this.shiftHistoryLoading = true
@@ -6383,22 +6903,28 @@ export default {
               allShifts = [...allShifts, ...shifts]
               totalCount += res.data.total || 0
             } catch (err) {
-              console.warn(`Failed to load shifts for stall ${stall.id}:`, err)
+              console.warn(`Failed to load shifts for stall ${stall.id}:`, err.message)
             }
           }
           allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at))
           this.shiftHistory = allShifts
           this.shiftHistoryTotal = totalCount
-        } else if (this.shiftHistoryStallFilter) {
-          let url = `${apiBase}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`
-          if (startDate && endDate) {
-            url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`
+        } else {
+          try {
+            let url = `${apiBase}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`
+            if (startDate && endDate) {
+              url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`
+            }
+            const res = await axios.get(url, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            })
+            this.shiftHistory = res.data.shifts || []
+            this.shiftHistoryTotal = res.data.total || 0
+          } catch (err) {
+            console.warn(`Failed to load shifts for specific stall:`, err.message)
+            this.shiftHistory = []
+            this.shiftHistoryTotal = 0
           }
-          const res = await axios.get(url, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          this.shiftHistory = res.data.shifts || []
-          this.shiftHistoryTotal = res.data.total || 0
         }
         // Process inventory data
         this.shiftHistory = this.shiftHistory.map(shift => {
@@ -6622,6 +7148,7 @@ export default {
       }
     },
 
+    // ===== FIXED: Stall Detail Chart - Shows "No Data" when empty =====
     initStallDetailChart(stallId, period = 'week') {
       if (!this.$refs.stallDetailChartRef) return
       if (this.stallDetailChartInstance) {
@@ -6641,9 +7168,18 @@ export default {
         const data = response.data || {}
         let salesData = data.dailySales || []
         if (!salesData || salesData.length === 0) {
+          // ===== FIXED: Show "No data" message instead of empty chart =====
           const option = {
-            title: { text: `No sales data for ${this.getPeriodLabel()}`, left: 'center', top: 'center',
-              textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 } }
+            title: {
+              text: '📊 No sales data available',
+              left: 'center',
+              top: 'center',
+              textStyle: { 
+                color: '#94a3b8', 
+                fontSize: 14, 
+                fontWeight: 400 
+              }
+            }
           }
           this.stallDetailChartInstance.setOption(option)
           this.stallDetailChartInstance.resize()
@@ -6691,6 +7227,21 @@ export default {
       })
       .catch(err => {
         console.error('Failed to load stall detail chart data:', err)
+        // ===== FIXED: Show error message =====
+        const option = {
+          title: {
+            text: '⚠️ Could not load sales data',
+            left: 'center',
+            top: 'center',
+            textStyle: { 
+              color: '#94a3b8', 
+              fontSize: 14, 
+              fontWeight: 400 
+            }
+          }
+        }
+        this.stallDetailChartInstance.setOption(option)
+        this.stallDetailChartInstance.resize()
       })
     },
 
@@ -7210,9 +7761,10 @@ export default {
         } else if (this.activeTab === 'menu') {
           sheet = workbook.addWorksheet('Menu')
           sheet.addRow(['📋 Menu Management', ''])
-          sheet.addRow(['Item Name', 'Price', 'Category'])
-          for (const item of this.filteredMenuItemsForAssignment) {
-            sheet.addRow([item.item_name, item.price, item.category || 'Main'])
+          sheet.addRow(['Item Name', 'Price', 'Category', 'Recipe'])
+          for (const item of this.filteredMenuItemsForManagement) {
+            const recipe = (item.recipe || []).map(r => `${r.material_name}: ${r.quantity_used}`).join(', ')
+            sheet.addRow([item.item_name, item.price, item.category || 'Main', recipe || 'No recipe'])
           }
           fileName = `Chickory_Menu_${new Date().toISOString().split('T')[0]}.xlsx`
         } else if (this.activeTab === 'registrations') {
@@ -7509,6 +8061,211 @@ export default {
 }
 
 /* ============================================ */
+/* MENU MANAGEMENT - Recipe Tags                */
+/* ============================================ */
+.recipe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.recipe-tag {
+  display: inline-block;
+  background: var(--background);
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.6rem;
+  border: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+/* ============================================ */
+/* IMAGE UPLOAD                                */
+/* ============================================ */
+.image-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.image-upload-area:hover {
+  border-color: var(--primary);
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-tertiary);
+}
+
+.image-placeholder span {
+  font-size: 2rem;
+}
+
+.image-placeholder p {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.image-preview {
+  position: relative;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.remove-image {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================ */
+/* RECIPE SECTION                              */
+/* ============================================ */
+.recipe-section {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.recipe-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.recipe-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.recipe-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.recipe-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.recipe-input {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.recipe-input-small {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 80px;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.recipe-input-small:focus {
+  outline: none;
+  border-color: #F94908;
+  box-shadow: 0 0 0 3px rgba(249, 73, 8, 0.08);
+}
+
+.add-recipe-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-icon-sm:hover { background: var(--background); }
+.btn-icon-sm.danger { color: #ef4444; }
+.btn-icon-sm.danger:hover { background: #fee2e2; }
+
+/* ============================================ */
+/* STALL PERFORMANCE - Name + Code              */
+/* ============================================ */
+.stall-name-code {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.stall-name-text {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.stall-name-code .stall-code {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+/* ============================================ */
 /* RESPONSIVE - Super Admin Specific           */
 /* ============================================ */
 
@@ -7563,6 +8320,60 @@ export default {
     border-top: 1px solid var(--border-light);
     margin-top: 0.3rem;
   }
+  
+  /* Stall Performance - Mobile alignment */
+  .performance-table-row > span {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .performance-table-row > span::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    min-width: 60px;
+    flex-shrink: 0;
+    text-align: left;
+  }
+  
+  .performance-table-row > span {
+    text-align: right;
+  }
+  
+  /* Revenue Table - Mobile alignment */
+  .revenue-table-row > span {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .revenue-table-row > span::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    min-width: 60px;
+    flex-shrink: 0;
+    text-align: left;
+  }
+  
+  .revenue-table-row > span {
+    text-align: right;
+  }
+  
+  /* Recipe section mobile */
+  .recipe-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .recipe-input-small {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -7574,6 +8385,15 @@ export default {
   .header-action-btn {
     flex: 1;
     justify-content: center;
+  }
+  
+  .recipe-section {
+    padding: 0.75rem;
+  }
+  
+  .image-upload-area {
+    min-height: 80px;
+    padding: 0.75rem;
   }
 }
 </style>
