@@ -5962,210 +5962,240 @@ async loadStallPerformance() {
     // INVENTORY - BULK UPDATE (FIXED)
     // =============================================
     openStallInventoryModal(stallId) {
-      const stall = this.stalls.find(s => s.id === stallId)
-      if (!stall) return
-      this.quickUpdateStallId = stallId
-      this.quickUpdateStallName = stall.name
-      this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
-        ...item,
-        newLevel: item.current_level
-      }))
-      this.quickUpdateModal = true
-    },
+  const stall = this.stalls.find(s => s.id === stallId)
+  if (!stall) return
+  
+  this.quickUpdateStallId = stallId
+  this.quickUpdateStallName = stall.name
+  this.quickUpdateItems = this.getStallInventory(stallId).map(item => ({
+    ...item,
+    newLevel: item.current_level
+  }))
+  this.quickUpdateModal = true
+},
 
     async quickUpdateItemSave(stallId, materialName, newLevel) {
-      if (newLevel === undefined || newLevel === null || newLevel === '') {
-        this.$emit('show-notification', 'Please enter a valid value', 'error')
-        return
-      }
-      await this.updateInventoryStock(stallId, materialName, newLevel)
-      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-      if (item) {
-        item.current_level = newLevel
-        item.newLevel = newLevel
-      }
-      this.$emit('show-notification', `${materialName} updated to ${newLevel}`, 'success')
-    },
+  if (newLevel === undefined || newLevel === null || newLevel === '') {
+    this.$emit('show-notification', 'Please enter a valid value', 'error')
+    return
+  }
+  
+  const roundedLevel = Math.round(Number(newLevel) || 0)
+  await this.updateInventoryStock(stallId, materialName, roundedLevel)
+  
+  const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+  if (item) {
+    item.current_level = roundedLevel
+    item.newLevel = roundedLevel
+  }
+  
+  this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
+},
 
     async quickUpdateItemAdd(stallId, materialName, amount) {
-      const item = this.quickUpdateItems.find(i => i.material_name === materialName)
-      if (item) {
-        const newLevel = item.current_level + amount
-        await this.quickUpdateItemSave(stallId, materialName, newLevel)
-      }
-    },
+  const item = this.quickUpdateItems.find(i => i.material_name === materialName)
+  if (item) {
+    const newLevel = item.current_level + amount
+    await this.quickUpdateItemSave(stallId, materialName, newLevel)
+  }
+},
 
     async quickUpdateSaveAll() {
-      for (const item of this.quickUpdateItems) {
-        if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
-          await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
-        }
-      }
-      this.$emit('show-notification', 'All items updated successfully!', 'success')
-      this.quickUpdateModal = false
-      await this.loadAllStallsInventory()
-    },
+  for (const item of this.quickUpdateItems) {
+    if (item.newLevel !== undefined && item.newLevel !== item.current_level) {
+      await this.updateInventoryStock(this.quickUpdateStallId, item.material_name, item.newLevel)
+    }
+  }
+  this.$emit('show-notification', 'All items updated successfully!', 'success')
+  this.quickUpdateModal = false
+  await this.loadAllStallsInventory()
+},
 
-    openBulkUpdateModal() {
-      const materialSet = new Set()
-      const stalls = this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-      stalls.forEach(stall => {
-        const inventory = this.getStallInventory(stall.id)
-        inventory.forEach(item => {
-          materialSet.add(item.material_name)
-        })
-      })
-      this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
-        name: name,
-        selected: true,
-        operation: 'set',
-        value: 10
-      }))
-      this.bulkUpdateModal = true
-    },
+   openBulkUpdateModal() {
+  const materialSet = new Set()
+  const stalls = this.bulkUpdateMode === 'all' 
+    ? this.filteredInventoryStalls 
+    : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+  
+  stalls.forEach(stall => {
+    const inventory = this.getStallInventory(stall.id)
+    inventory.forEach(item => {
+      materialSet.add(item.material_name)
+    })
+  })
+
+  // If no materials found, add default
+  if (materialSet.size === 0) {
+    materialSet.add('Chicken')
+  }
+
+  this.bulkUpdateMaterials = Array.from(materialSet).map(name => ({
+    name: name,
+    selected: true,
+    operation: 'set',
+    value: 10
+  }))
+
+  this.bulkUpdateModal = true
+},
 
     applyQuickAction(action) {
-      this.bulkUpdateMaterials.forEach(material => {
-        let value = 0
-        switch (action.value) {
-          case 'alert':
-            const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
-            if (firstStall) {
-              const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
-              value = item ? item.alert_level : 10
-            }
-            break
-          case '100': value = 100; break
-          case '50': value = 50; break
-          case 'add10': material.operation = 'add'; value = 10; break
-          case 'add20': material.operation = 'add'; value = 20; break
-          case '0': value = 0; break
-          default: value = parseInt(action.value) || 10
+  this.bulkUpdateMaterials.forEach(material => {
+    let value = 0
+    switch (action.value) {
+      case 'alert':
+        const firstStall = this.filteredInventoryStalls.find(s => this.selectedStalls.includes(s.id))
+        if (firstStall) {
+          const item = this.getStallInventory(firstStall.id).find(i => i.material_name === material.name)
+          value = item ? item.alert_level : 10
         }
-        material.value = value
-        material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
-      })
-    },
+        break
+      case '100':
+        value = 100
+        break
+      case '50':
+        value = 50
+        break
+      case 'add10':
+        material.operation = 'add'
+        value = 10
+        break
+      case 'add20':
+        material.operation = 'add'
+        value = 20
+        break
+      case '0':
+        value = 0
+        break
+      default:
+        value = parseInt(action.value) || 10
+    }
+    material.value = value
+    material.operation = action.value === 'add10' || action.value === 'add20' ? 'add' : 'set'
+  })
+},
 
     // ===== FIXED: Bulk Update with proper error handling =====
     async executeBulkUpdate() {
-      this.bulkUpdating = true
-      const stalls = this.bulkUpdateMode === 'all' 
-        ? this.filteredInventoryStalls 
-        : this.bulkUpdateMode === 'low-stock'
-          ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
-          : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
-      
-      const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
-      
-      if (stalls.length === 0) {
-        this.$emit('show-notification', 'No stalls selected for update', 'warning')
-        this.bulkUpdating = false
-        return
-      }
-      
-      if (selectedMaterials.length === 0) {
-        this.$emit('show-notification', 'No materials selected for update', 'warning')
-        this.bulkUpdating = false
-        return
-      }
-      
-      try {
-        let totalUpdated = 0
-        let totalErrors = 0
+  this.bulkUpdating = true
+  
+  const stalls = this.bulkUpdateMode === 'all' 
+    ? this.filteredInventoryStalls 
+    : this.bulkUpdateMode === 'low-stock'
+      ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
+      : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+
+  const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
+  
+  if (stalls.length === 0) {
+    this.$emit('show-notification', 'No stalls selected for update', 'warning')
+    this.bulkUpdating = false
+    return
+  }
+  
+  if (selectedMaterials.length === 0) {
+    this.$emit('show-notification', 'No materials selected for update', 'warning')
+    this.bulkUpdating = false
+    return
+  }
+  
+  try {
+    let totalUpdated = 0
+    let totalErrors = 0
+    
+    for (const stall of stalls) {
+      for (const material of selectedMaterials) {
+        let newLevel = material.value
+        const inventory = this.getStallInventory(stall.id)
+        const item = inventory.find(i => i.material_name === material.name)
         
-        for (const stall of stalls) {
-          for (const material of selectedMaterials) {
-            let newLevel = material.value
-            const inventory = this.getStallInventory(stall.id)
-            const item = inventory.find(i => i.material_name === material.name)
-            
-            if (item) {
-              if (material.operation === 'add') {
-                newLevel = item.current_level + material.value
-              } else if (material.operation === 'subtract') {
-                newLevel = Math.max(0, item.current_level - material.value)
-              }
-            }
-            
-            try {
-              await this.updateInventoryStock(stall.id, material.name, newLevel)
-              totalUpdated++
-            } catch (err) {
-              console.error(`Failed to update ${material.name} for stall ${stall.name}:`, err)
-              totalErrors++
-            }
+        if (item) {
+          if (material.operation === 'add') {
+            newLevel = item.current_level + material.value
+          } else if (material.operation === 'subtract') {
+            newLevel = Math.max(0, item.current_level - material.value)
           }
         }
         
-        if (totalErrors === 0) {
-          this.$emit('show-notification', `✅ Successfully updated ${totalUpdated} inventory items across ${stalls.length} stalls`, 'success')
-        } else {
-          this.$emit('show-notification', `⚠️ ${totalUpdated} updated, ${totalErrors} failed`, 'warning')
+        try {
+          await this.updateInventoryStock(stall.id, material.name, newLevel)
+          totalUpdated++
+        } catch (err) {
+          console.error(`Failed to update ${material.name} for stall ${stall.name}:`, err)
+          totalErrors++
         }
-        
-        this.bulkUpdateModal = false
-        await this.loadAllStallsInventory()
-      } catch (err) {
-        console.error('Bulk update error:', err)
-        this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
-      } finally {
-        this.bulkUpdating = false
       }
-    },
+    }
+    
+    if (totalErrors === 0) {
+      this.$emit('show-notification', `✅ Successfully updated ${totalUpdated} inventory items across ${stalls.length} stalls`, 'success')
+    } else {
+      this.$emit('show-notification', `⚠️ ${totalUpdated} updated, ${totalErrors} failed`, 'warning')
+    }
+    
+    this.bulkUpdateModal = false
+    await this.loadAllStallsInventory()
+  } catch (err) {
+    console.error('Bulk update error:', err)
+    this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
+  } finally {
+    this.bulkUpdating = false
+  }
+},
 
     // ===== FIXED: Reset Low Stock with proper handling =====
     async resetAllLowStock() {
-      let lowStockItems = []
-      for (const stall of this.stalls) {
-        const inventory = this.getStallInventorySummary(stall.id)
-        for (const item of inventory) {
-          if (item.current_level <= item.alert_level) {
-            lowStockItems.push({ stall, item })
-          }
-        }
+  // Find all low stock items
+  let lowStockItems = []
+  for (const stall of this.stalls) {
+    const inventory = this.getStallInventorySummary(stall.id)
+    for (const item of inventory) {
+      if (item.current_level <= item.alert_level) {
+        lowStockItems.push({ stall, item })
       }
-      
-      if (lowStockItems.length === 0) {
-        this.$emit('show-notification', 'No low stock items to reset', 'info')
-        return
-      }
-      
-      const alertLevel = lowStockItems[0]?.item.alert_level || 10
-      if (!confirm(`Reset ${lowStockItems.length} low stock items to ${alertLevel + 20} pieces each?`)) {
-        return
-      }
-      
-      this.loading = true
-      let updated = 0
-      let errors = 0
-      
+    }
+  }
+  
+  if (lowStockItems.length === 0) {
+    this.$emit('show-notification', 'No low stock items to reset', 'info')
+    return
+  }
+  
+  const alertLevel = lowStockItems[0]?.item.alert_level || 10
+  if (!confirm(`Reset ${lowStockItems.length} low stock items to ${alertLevel + 20} pieces each?`)) {
+    return
+  }
+  
+  this.loading = true
+  let updated = 0
+  let errors = 0
+  
+  try {
+    for (const { stall, item } of lowStockItems) {
       try {
-        for (const { stall, item } of lowStockItems) {
-          try {
-            const newLevel = (item.alert_level || 10) + 20
-            await this.updateInventoryStock(stall.id, item.material_name, newLevel)
-            updated++
-          } catch (err) {
-            console.error(`Failed to reset ${item.material_name} for stall ${stall.name}:`, err)
-            errors++
-          }
-        }
-        
-        if (errors === 0) {
-          this.$emit('show-notification', `✅ Reset ${updated} low stock items successfully`, 'success')
-        } else {
-          this.$emit('show-notification', `⚠️ ${updated} reset, ${errors} failed`, 'warning')
-        }
-        
-        await this.loadAllStallsInventory()
-      } catch (error) {
-        console.error('Error resetting low stock:', error)
-        this.$emit('show-notification', 'Error resetting low stock items', 'error')
-      } finally {
-        this.loading = false
+        const newLevel = (item.alert_level || 10) + 20
+        await this.updateInventoryStock(stall.id, item.material_name, newLevel)
+        updated++
+      } catch (err) {
+        console.error(`Failed to reset ${item.material_name} for stall ${stall.name}:`, err)
+        errors++
       }
-    },
+    }
+    
+    if (errors === 0) {
+      this.$emit('show-notification', `✅ Reset ${updated} low stock items successfully`, 'success')
+    } else {
+      this.$emit('show-notification', `⚠️ ${updated} reset, ${errors} failed`, 'warning')
+    }
+    
+    await this.loadAllStallsInventory()
+  } catch (error) {
+    console.error('Error resetting low stock:', error)
+    this.$emit('show-notification', 'Error resetting low stock items', 'error')
+  } finally {
+    this.loading = false
+  }
+},
 
     toggleSelectAll() {
       this.selectAll = !this.selectAll
