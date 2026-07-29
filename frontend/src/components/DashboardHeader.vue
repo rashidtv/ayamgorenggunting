@@ -3,13 +3,6 @@
     <!-- ===== TOP ROW: User Controls (only when logged in) ===== -->
     <div v-if="!isPublic" class="top-controls-row">
       <div class="user-controls">
-        <button 
-          @click="toggleNotifications" 
-          class="control-btn" 
-          :title="notificationsEnabled ? 'Disable alerts' : 'Enable alerts'"
-        >
-          <span class="control-icon">{{ notificationsEnabled ? '🔔' : '🔕' }}</span>
-        </button>
         <button @click="toggleDarkMode" class="control-btn" :title="darkMode ? 'Light mode' : 'Dark mode'">
           <span class="control-icon">{{ darkMode ? '☀️' : '🌙' }}</span>
         </button>
