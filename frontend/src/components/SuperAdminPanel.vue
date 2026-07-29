@@ -7355,96 +7355,127 @@ groupByMonth(salesData) {
    // ===== FIXED: Stall Detail Chart - Uses same grouping as dashboard =====
 initStallDetailChart(stallId, period = 'week') {
   if (!this.$refs.stallDetailChartRef) return
+
   if (this.stallDetailChartInstance) {
     this.stallDetailChartInstance.dispose()
     this.stallDetailChartInstance = null
   }
+
   this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+
   if (!stallId) {
     console.warn('No stall ID found for detail chart')
     return
   }
-  
-  const days = this.getPeriodDays()
+
+  // ===== DETERMINE DAYS AND GROUPING =====
+  const days = period === 'today' ? 1 :
+               period === 'week' ? 7 :
+               period === 'month' ? 30 :
+               period === 'quarter' ? 90 :
+               period === 'halfyear' ? 180 :
+               period === 'year' ? 365 :
+               period === 'custom' ? this.customDays || 30 :
+               30
+
+  let grouping
+
+  if (period === 'today') {
+    grouping = 'hour'
+  } else if (period === 'week') {
+    grouping = 'day'
+  } else if (period === 'month') {
+    grouping = 'week'
+  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+    grouping = 'month'
+  } else if (period === 'custom') {
+    const customDays = this.customDays || 30
+    if (customDays <= 14) {
+      grouping = 'day'
+    } else if (customDays <= 60) {
+      grouping = 'week'
+    } else {
+      grouping = 'month'
+    }
+  } else {
+    grouping = 'day'
+  }
+
+  // ===== FETCH DATA =====
   axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
     const data = response.data || {}
     let salesData = data.dailySales || []
-    
-    // ===== FIXED: Apply same grouping as dashboard =====
-    if (this.selectedPeriod === 'today') {
-      salesData = this.splitTodayIntoHours(salesData)
-    } else if (this.selectedPeriod === 'week') {
-      const now = this.getTodayInMalaysia()
-      const dayOfWeek = now.getDay()
-      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
-      const monday = new Date(now)
-      monday.setDate(now.getDate() - daysToMonday)
-      monday.setHours(0, 0, 0, 0)
-      const sunday = new Date(monday)
-      sunday.setDate(monday.getDate() + 6)
-      sunday.setHours(23, 59, 59, 999)
-      
-      salesData = salesData.filter(day => {
-        const date = new Date(day.date)
-        const timestamp = date.getTime()
-        return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
-      })
-    } else if (this.selectedPeriod === 'month') {
-      salesData = this.groupSalesByWeek(salesData)
-    } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
-      salesData = this.groupSalesByMonth(salesData)
-    } else if (this.selectedPeriod === 'year') {
-      salesData = this.groupSalesByMonth(salesData)
-    } else if (this.selectedPeriod === 'custom') {
-      salesData = this.groupSalesCustom(salesData)
-    }
-    
-    // ===== FIXED: Check if there's actual data =====
-    const hasRevenue = salesData.some(d => (d.revenue || 0) > 0)
-    
-    if (!salesData || salesData.length === 0 || !hasRevenue) {
+
+    console.log('📊 Stall detail raw data:', salesData.length, 'records')
+    console.log('📊 Period:', period, 'Grouping:', grouping)
+
+    if (!salesData || salesData.length === 0) {
       const option = {
         title: {
-          text: '📊 No sales data available',
+          text: `No sales data for ${this.getPeriodLabel()}`,
           left: 'center',
           top: 'center',
-          textStyle: { 
-            color: '#94a3b8', 
-            fontSize: 14, 
-            fontWeight: 400 
-          }
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
         }
       }
       this.stallDetailChartInstance.setOption(option)
       this.stallDetailChartInstance.resize()
       return
     }
+
+    // ===== GROUP THE DATA =====
+    let groupedData = this.groupSalesData(salesData, grouping, period)
     
-    // ===== FIXED: Generate labels based on period =====
-    const chartLabels = salesData.map(item => {
-      if (item.label) return item.label
-      if (this.selectedPeriod === 'today') {
-        return this.formatHourLabel(item.date)
-      } else if (this.selectedPeriod === 'week') {
-        return this.formatDayLabel(item.date)
-      } else if (this.selectedPeriod === 'month') {
-        return this.formatWeekRangeLabel(item.date)
-      } else if (['quarter', 'halfyear', 'year'].includes(this.selectedPeriod)) {
-        return this.formatMonthLabel(item.date)
-      } else if (this.selectedPeriod === 'custom') {
-        const customDays = this.customDays || 30
-        if (customDays <= 14) return this.formatDayLabel(item.date)
-        else if (customDays <= 60) return this.formatWeekRangeLabel(item.date)
-        else return this.formatMonthLabel(item.date)
+    // ===== CHECK IF THERE'S ACTUAL REVENUE =====
+    const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
+    
+    if (!hasRevenue) {
+      const option = {
+        title: {
+          text: '📊 No sales revenue for this period',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+        }
       }
-      return this.formatShortDate(item.date)
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+      return
+    }
+
+    // ===== GENERATE LABELS BASED ON PERIOD =====
+    const chartLabels = groupedData.map(item => {
+      if (period === 'today') {
+        return this.formatHourLabel(item.date)
+      } else if (period === 'week') {
+        return this.formatDayLabel(item.date)
+      } else if (period === 'month') {
+        return this.formatWeekRangeLabel(item.date)
+      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+        return this.formatMonthLabel(item.date)
+      } else if (period === 'custom') {
+        const customDays = this.customDays || 30
+        if (customDays <= 14) {
+          return this.formatDayLabel(item.date)
+        } else if (customDays <= 60) {
+          return this.formatWeekRangeLabel(item.date)
+        } else {
+          return this.formatMonthLabel(item.date)
+        }
+      }
+      return item.label || item.date
     })
     
-    const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-    
+    const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
+    const items = groupedData.map(d => parseInt(d.items) || 0)
+
+    console.log('📊 Chart labels:', chartLabels)
+    console.log('📊 Revenues:', revenues)
+
+    // ===== CREATE CHART OPTION =====
     const option = {
       tooltip: {
         trigger: 'axis',
@@ -7456,39 +7487,85 @@ initStallDetailChart(stallId, period = 'week') {
         formatter: function(params) {
           const index = params[0]?.dataIndex || 0
           const revenue = parseFloat(revenues[index]) || 0
-          const itemsCount = parseInt(salesData[index]?.items) || 0
+          const itemsCount = parseInt(items[index]) || 0
+          const dateLabel = chartLabels[index] || ''
+          
+          let tooltipLabel = dateLabel
+          
+          // For week periods, show full date
+          if (period === 'week' && groupedData[index]) {
+            const fullDate = new Date(groupedData[index].date)
+            tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short', 
+              year: 'numeric',
+              timeZone: 'UTC'
+            })
+          }
+          
           return `
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
-            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">RM ${revenue.toFixed(2)}</div>
-            <div style="font-size:11px;color:#64748b;">${itemsCount} items sold</div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${tooltipLabel}</div>
+            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+              RM ${revenue.toFixed(2)}
+            </div>
+            <div style="font-size:11px;color:#64748b;">
+              ${itemsCount} items sold
+            </div>
           `
         }
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', top: '8%', containLabel: true },
-      xAxis: { 
-        type: 'category', 
-        data: chartLabels, 
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '8%',
+        containLabel: true
       },
-      yAxis: { 
-        type: 'value', 
+      xAxis: {
+        type: 'category',
+        data: chartLabels,
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500,
+          rotate: (period === 'today' || period === 'month' || period === 'custom') && chartLabels.length > 7 ? 30 : 0
+        }
+      },
+      yAxis: {
+        type: 'value',
         splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11, formatter: (value) => 'RM' + value }
+        axisLabel: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          formatter: (value) => 'RM' + value
+        },
+        name: 'Revenue (RM)',
+        nameTextStyle: { 
+          color: '#94a3b8', 
+          fontSize: 11,
+          fontWeight: 500
+        }
       },
       series: [{
         type: 'bar',
         data: revenues,
         barWidth: '40%',
-        itemStyle: { 
+        itemStyle: {
           borderRadius: [4, 4, 0, 0],
-          color: { 
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [{ offset: 0, color: '#F94908' }, { offset: 1, color: '#fa6a2e' }]
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: '#F94908' },
+              { offset: 1, color: '#fa6a2e' }
+            ]
           }
         }
       }]
     }
+
     this.stallDetailChartInstance.setOption(option)
     this.stallDetailChartInstance.resize()
   })
