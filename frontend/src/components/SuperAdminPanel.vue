@@ -3210,6 +3210,34 @@ export default {
   // ===== METHODS =====
   methods: {
 
+    async loadData() {
+  try {
+    console.log('🔄 Loading Super Admin data...')
+    await this.loadCompanies()
+    await this.loadStalls()
+    this._stallCurrentPage = 1
+    
+    await Promise.all([
+      this.loadUsers(),
+      this.loadLowStock(),
+      this.loadMenuItems(),
+      this.loadRegistrations()  // ← Now this method exists
+    ])
+    
+    await this.loadSalesAnalytics()
+    await this.loadStallPerformance()
+    await this.loadMenuPerformance()
+    await this.loadAllStallsInventory()
+    await this.loadShiftHistory()
+    
+    this.resetChartNavigation()
+    this.$emit('show-notification', 'Data refreshed', 'success')
+  } catch (err) {
+    console.error('Load data error:', err)
+    this.$emit('show-notification', err.message, 'error')
+  }
+},
+
     // =============================================
     // TIME ZONE HELPERS (Malaysia Time)
     // =============================================
