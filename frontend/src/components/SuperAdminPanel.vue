@@ -4359,6 +4359,93 @@ export default {
       return weekStart
     },
 
+    // =============================================
+// GROUPING HELPERS - ADD THESE IF MISSING
+// =============================================
+
+groupSalesData(salesData, grouping, period) {
+  if (!salesData || salesData.length === 0) return []
+  
+  if (grouping === 'hour') {
+    return this.groupByHour(salesData)
+  } else if (grouping === 'day') {
+    return this.groupByDay(salesData)
+  } else if (grouping === 'week') {
+    return this.groupByWeek(salesData)
+  } else if (grouping === 'month') {
+    return this.groupByMonth(salesData)
+  }
+  return salesData
+},
+
+groupByHour(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const hour = date.getUTCHours()
+    const key = date.toISOString().split('T')[0] + 'T' + String(hour).padStart(2, '0') + ':00:00.000Z'
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByDay(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const key = date.toISOString().split('T')[0] + 'T00:00:00.000Z'
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByWeek(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const weekStart = this.getWeekStart(date)
+    const key = weekStart.toISOString()
+    if (!grouped[key]) {
+      grouped[key] = { date: key, revenue: 0, items: 0 }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
+groupByMonth(salesData) {
+  const grouped = {}
+  salesData.forEach(item => {
+    const date = new Date(item.date)
+    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
+    if (!grouped[key]) {
+      const label = date.toLocaleDateString('en-MY', { 
+        month: 'short', 
+        year: 'numeric',
+        timeZone: 'UTC'
+      })
+      grouped[key] = { 
+        date: key, 
+        label: label,
+        revenue: 0, 
+        items: 0 
+      }
+    }
+    grouped[key].revenue += parseFloat(item.revenue) || 0
+    grouped[key].items += parseInt(item.items) || 0
+  })
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
+},
+
     // ===== Label helpers for charts =====
     formatHourLabel(dateStr) {
       const date = new Date(dateStr)
