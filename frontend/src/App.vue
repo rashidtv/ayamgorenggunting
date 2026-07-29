@@ -148,7 +148,7 @@
         </div>
       </main>
 
-      <!-- Notifications -->
+      <!-- Notifications Container - FIXED POSITION -->
       <div class="notifications-container">
         <transition-group name="notification-slide">
           <div v-for="(notification, index) in notifications" :key="notification.id"
@@ -169,7 +169,7 @@
             <div class="notification-progress" :style="{ width: notification.progress + '%' }"></div>
           </div>
         </transition-group>
-      </div> <!-- ← This was missing! -->
+      </div>
 
       <!-- Global Footer -->
       <GlobalFooter />
@@ -274,49 +274,45 @@ export default {
   },
   
   mounted() {
-  this.initializeApp();
-  this.initializePWA();
-  this.checkNetworkStatus();
+    this.initializeApp();
+    this.initializePWA();
+    this.checkNetworkStatus();
 
-  // ✅ Check for first-login-reset
-  if (window.location.hash === '#/first-login-reset' || window.location.hash.startsWith('#/first-login-reset')) {
+    if (window.location.hash === '#/first-login-reset' || window.location.hash.startsWith('#/first-login-reset')) {
+      if (sessionStorage.getItem('needsPasswordReset')) {
+        this.showFirstLoginReset = true;
+        this.showLogin = false;
+      } else {
+        window.location.hash = '#/login';
+      }
+    }
+
+    if (window.location.hash.startsWith('#/reset-password')) {
+      const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+      const token = params.get('token');
+      if (token) {
+        this.resetToken = token;
+        this.showResetPassword = true;
+        this.showLogin = true;
+        this.showFirstLoginReset = false;
+        console.log('✅ Reset token found on mount, showing login with overlay');
+      }
+    }
+
     if (sessionStorage.getItem('needsPasswordReset')) {
       this.showFirstLoginReset = true;
       this.showLogin = false;
-    } else {
-      window.location.hash = '#/login';
     }
-  }
-
-  // ✅ FIX: Check for reset-password
-  if (window.location.hash.startsWith('#/reset-password')) {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
-    const token = params.get('token');
-    if (token) {
-      this.resetToken = token;
-      this.showResetPassword = true;
-      this.showLogin = true;  // ✅ CRITICAL: Show login page
-      this.showFirstLoginReset = false;
-      console.log('✅ Reset token found on mount, showing login with overlay');
-    }
-  }
-
-  // ✅ Check session for reset
-  if (sessionStorage.getItem('needsPasswordReset')) {
-    this.showFirstLoginReset = true;
-    this.showLogin = false;
-  }
-  
-  this.handleUrlRouting();
-  
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-    this.showNotification('Something went wrong. Please try again.', 'error');
-  });
-  
-  // ✅ Listen for hash changes
-  window.addEventListener('hashchange', this.handleUrlRouting);
-},
+    
+    this.handleUrlRouting();
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      this.showNotification('Something went wrong. Please try again.', 'error');
+    });
+    
+    window.addEventListener('hashchange', this.handleUrlRouting);
+  },
   
   methods: {
     // =============================================
@@ -330,44 +326,41 @@ export default {
     // =============================================
     // ROUTING HANDLING
     // =============================================
- handleUrlRouting() {
-  const path = window.location.pathname;
-  const hash = window.location.hash;
-  
-  console.log('📍 Path:', path);
-  console.log('📍 Hash:', hash);
-  
-  // ✅ Handle first-login-reset
-  if (hash === '#/first-login-reset' || hash.startsWith('#/first-login-reset')) {
-    console.log('🔄 First login reset page detected');
-    if (sessionStorage.getItem('needsPasswordReset')) {
-      this.showFirstLoginReset = true;
-      this.showLogin = false;
-      return;
-    } else {
-      window.location.hash = '#/login';
-      return;
-    }
-  }
-  
-  // ✅ FIX: Handle reset-password - MUST show login page
-  if (hash.startsWith('#/reset-password')) {
-    console.log('🔑 Reset password page detected');
-    const params = new URLSearchParams(hash.split('?')[1] || '');
-    const token = params.get('token');
-    if (token) {
-      this.resetToken = token;
-      this.showResetPassword = true;
-      this.showLogin = true;  // ✅ CRITICAL: Show login page
-      this.showFirstLoginReset = false;
-      console.log('✅ Reset token found, showing login with overlay');
-      return;
-    } else {
-      console.log('❌ No token found in reset link');
-    }
-  }
-  
- // ✅ Handle resubmit-registration
+    handleUrlRouting() {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      
+      console.log('📍 Path:', path);
+      console.log('📍 Hash:', hash);
+      
+      if (hash === '#/first-login-reset' || hash.startsWith('#/first-login-reset')) {
+        console.log('🔄 First login reset page detected');
+        if (sessionStorage.getItem('needsPasswordReset')) {
+          this.showFirstLoginReset = true;
+          this.showLogin = false;
+          return;
+        } else {
+          window.location.hash = '#/login';
+          return;
+        }
+      }
+      
+      if (hash.startsWith('#/reset-password')) {
+        console.log('🔑 Reset password page detected');
+        const params = new URLSearchParams(hash.split('?')[1] || '');
+        const token = params.get('token');
+        if (token) {
+          this.resetToken = token;
+          this.showResetPassword = true;
+          this.showLogin = true;
+          this.showFirstLoginReset = false;
+          console.log('✅ Reset token found, showing login with overlay');
+          return;
+        } else {
+          console.log('❌ No token found in reset link');
+        }
+      }
+
       if (hash.startsWith('#/resubmit-registration')) {
         console.log('📝 Resubmit registration page detected');
         this.showResubmitRegistration = true;
@@ -375,26 +368,24 @@ export default {
         return;
       }
 
-  // Handle /login from path OR hash
-  if (path === '/login' || hash === '#/login') {
-    this.showLogin = true;
-    this.showFirstLoginReset = false;
-    console.log('🔐 Login page detected, showing login');
-    return;
-  }
-  
-  const storedUser = localStorage.getItem('user');
-  const storedToken = localStorage.getItem('token');
-  if (storedUser && storedToken) {
-    this.showLogin = false;
-    return;
-  }
-  
-  // Default: show landing page
-  this.showLogin = false;
-  this.showFirstLoginReset = false;
-  this.showResetPassword = false;
-},
+      if (path === '/login' || hash === '#/login') {
+        this.showLogin = true;
+        this.showFirstLoginReset = false;
+        console.log('🔐 Login page detected, showing login');
+        return;
+      }
+      
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('token');
+      if (storedUser && storedToken) {
+        this.showLogin = false;
+        return;
+      }
+      
+      this.showLogin = false;
+      this.showFirstLoginReset = false;
+      this.showResetPassword = false;
+    },
 
     // =============================================
     // LOGO MANAGEMENT
@@ -514,22 +505,21 @@ export default {
     },
 
     // =============================================
-    // NOTIFICATIONS
+    // NOTIFICATIONS - FIXED
     // =============================================
     showNotification(message, type = 'info') {
-      if (!this.notificationsEnabled) {
-        console.log(`[🔕 Notification disabled] ${type}: ${message}`);
-        return;
-      }
-      
+      // Always show notifications regardless of settings
       const notification = {
         message,
         type,
         id: Date.now() + Math.random(),
         progress: 100,
       };
+      
+      // Add to array - the template will render it
       this.notifications.push(notification);
 
+      // Auto dismiss after 5 seconds
       const progressInterval = setInterval(() => {
         const noteIndex = this.notifications.findIndex((n) => n.id === notification.id);
         if (noteIndex !== -1) {
@@ -553,23 +543,10 @@ export default {
       if (this.notificationsEnabled) {
         this.showNotification('🔔 Notifications enabled', 'success');
       } else {
+        // Show a one-time notification that they're disabled
         const tempEnabled = this.notificationsEnabled;
         this.notificationsEnabled = true;
-        const notification = {
-          message: '🔕 Notifications disabled',
-          type: 'info',
-          id: Date.now() + Math.random(),
-          progress: 100,
-        };
-        this.notifications.push(notification);
-        
-        setTimeout(() => {
-          const index = this.notifications.findIndex((n) => n.id === notification.id);
-          if (index !== -1) {
-            this.notifications.splice(index, 1);
-          }
-        }, 3000);
-        
+        this.showNotification('🔕 Notifications disabled', 'info');
         this.notificationsEnabled = tempEnabled;
       }
     },
@@ -589,14 +566,14 @@ export default {
     },
 
     // =============================================
-    // THEME
+    // THEME - FIXED
     // =============================================
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
       localStorage.setItem('darkMode', this.darkMode);
       this.applyTheme();
       this.showNotification(
-        this.darkMode ? 'Dark mode enabled' : 'Light mode enabled',
+        this.darkMode ? '🌙 Dark mode enabled' : '☀️ Light mode enabled',
         'info'
       );
     },
@@ -763,6 +740,27 @@ export default {
   --radius: 12px;
   --radius-sm: 8px;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --notification-bg: #ffffff;
+  --notification-text: #1e293b;
+  --notification-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ============================================ */
+/* DARK THEME - FIXED                           */
+/* ============================================ */
+.dark-theme {
+  --surface: #1e293b;
+  --surface-elevated: #2d3748;
+  --background: #0f172a;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --border: #334155;
+  --border-light: #1e293b;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --notification-bg: #1e293b;
+  --notification-text: #f1f5f9;
+  --notification-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 * {
@@ -776,6 +774,146 @@ body {
   background: var(--background);
   color: var(--text);
   line-height: 1.6;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================ */
+/* NOTIFICATIONS CONTAINER - FIXED              */
+/* ============================================ */
+.notifications-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.notifications-container .notification {
+  pointer-events: auto;
+  background: var(--notification-bg);
+  color: var(--notification-text);
+  border-radius: var(--radius);
+  box-shadow: var(--notification-shadow);
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-left: 4px solid var(--primary);
+  animation: notificationSlideIn 0.4s ease forwards;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.notifications-container .notification.notification-success {
+  border-left-color: #10b981;
+}
+
+.notifications-container .notification.notification-error {
+  border-left-color: #ef4444;
+}
+
+.notifications-container .notification.notification-warning {
+  border-left-color: #f59e0b;
+}
+
+.notifications-container .notification.notification-info {
+  border-left-color: #3b82f6;
+}
+
+.notification-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+.notification-message {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  word-wrap: break-word;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0 4px;
+  flex-shrink: 0;
+  margin-top: -2px;
+  transition: color 0.2s ease;
+}
+
+.notification-close:hover {
+  color: var(--text);
+}
+
+.notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--primary);
+  transition: width 0.1s linear;
+}
+
+.notification.notification-success .notification-progress {
+  background: #10b981;
+}
+
+.notification.notification-error .notification-progress {
+  background: #ef4444;
+}
+
+.notification.notification-warning .notification-progress {
+  background: #f59e0b;
+}
+
+.notification.notification-info .notification-progress {
+  background: #3b82f6;
+}
+
+@keyframes notificationSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-slide-enter-active,
+.notification-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.notification-slide-enter-from {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.notification-slide-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
 }
 
 /* ============================================ */
@@ -966,6 +1104,12 @@ body {
   position: relative;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark theme override for glass cards */
+.dark-theme .stat-card.glass {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .stat-card.glass::before {
@@ -1175,6 +1319,11 @@ body {
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dark-theme .kpi-card {
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 .kpi-card:hover {
@@ -1409,6 +1558,11 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.dark-theme .chart-modern {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
 .chart-modern.fullscreen {
   position: fixed;
   top: 0;
@@ -1481,6 +1635,10 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.dark-theme .chart-modern-stats {
+  background: var(--surface-elevated);
+}
+
 .chart-modern-stat {
   text-align: center;
   padding: 0.25rem;
@@ -1521,6 +1679,10 @@ body {
   padding: 0.35rem;
   background: var(--background);
   border-radius: var(--radius-sm);
+}
+
+.dark-theme .chart-modern-nav {
+  background: var(--surface-elevated);
 }
 
 .chart-modern-nav-btn {
@@ -1615,6 +1777,11 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.dark-theme .card-modern {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
 .card-modern-header {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -1660,6 +1827,11 @@ body {
   background: var(--background);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+}
+
+.dark-theme .stat-chip {
+  background: var(--surface-elevated);
+  border-color: var(--border);
 }
 
 .stat-chip .stat-chip-label {
@@ -1718,6 +1890,11 @@ body {
   border: 1px solid var(--border);
 }
 
+.dark-theme .filter-bar-modern {
+  background: var(--surface-elevated);
+  border-color: var(--border);
+}
+
 .filter-bar-modern .filter-search {
   flex: 1;
   min-width: 150px;
@@ -1750,6 +1927,12 @@ body {
   transition: var(--transition);
 }
 
+.dark-theme .filter-input {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
 .filter-input:focus {
   outline: none;
   border-color: var(--primary);
@@ -1765,6 +1948,12 @@ body {
   color: var(--text);
   cursor: pointer;
   min-width: 110px;
+}
+
+.dark-theme .filter-select {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .filter-select:focus {
@@ -1812,6 +2001,12 @@ body {
   background: var(--background);
   color: var(--text-secondary);
   border: 1px solid var(--border);
+}
+
+.dark-theme .btn-modern.secondary {
+  background: var(--surface-elevated);
+  border-color: var(--border);
+  color: var(--text-secondary);
 }
 
 .btn-modern.secondary:hover {
@@ -2105,6 +2300,11 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.dark-theme .modal-modern {
+  background: #1e293b !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
 .modal-lg {
   max-width: 600px;
 }
@@ -2125,6 +2325,7 @@ body {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  color: var(--text);
 }
 
 .modal-close-btn {
@@ -2145,6 +2346,11 @@ body {
   padding: 1.25rem;
   overflow-y: auto;
   max-height: 60vh;
+}
+
+.dark-theme .modal-modern-body {
+  background: #1e293b !important;
+  color: var(--text);
 }
 
 .modal-form-row {
@@ -2176,6 +2382,13 @@ body {
   width: 100%;
 }
 
+.dark-theme .modal-form-group input,
+.dark-theme .modal-form-group select {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
 .modal-form-group input:focus,
 .modal-form-group select:focus {
   outline: none;
@@ -2195,6 +2408,11 @@ body {
   justify-content: flex-end;
   gap: 0.5rem;
   background: #f8fafc;
+}
+
+.dark-theme .modal-modern-footer {
+  background: #0f172a;
+  border-top-color: var(--border);
 }
 
 .stall-select-multiple {
@@ -2219,6 +2437,11 @@ body {
   border: 1px solid var(--border);
 }
 
+.dark-theme .sub-tabs {
+  background: var(--surface-elevated);
+  border-color: var(--border);
+}
+
 .sub-tab {
   padding: 0.5rem 1.25rem;
   border: none;
@@ -2240,6 +2463,12 @@ body {
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dark-theme .sub-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sub-tab-content {
@@ -2266,6 +2495,10 @@ body {
   padding: 0.75rem;
   border-radius: var(--radius-sm);
   text-align: center;
+}
+
+.dark-theme .detail-item {
+  background: var(--surface-elevated);
 }
 
 .detail-label {
@@ -2313,6 +2546,11 @@ body {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   text-align: center;
+}
+
+.dark-theme .transaction-detail-card {
+  background: var(--surface-elevated);
+  border-color: var(--border);
 }
 
 .transaction-detail-card .detail-label {
@@ -4218,10 +4456,8 @@ body {
 }
 
 /* ============================================ */
-/* MISSING STYLES - ADD THESE                   */
+/* STALL PERFORMANCE CONTAINER                 */
 /* ============================================ */
-
-/* Scrollable containers */
 .stall-performance-table-container {
   padding: 0.5rem;
   max-height: 380px;
@@ -4247,6 +4483,9 @@ body {
   border-radius: 3px;
 }
 
+/* ============================================ */
+/* MENU PERFORMANCE CONTAINER                  */
+/* ============================================ */
 .menu-performance-table-container {
   padding: 0.5rem;
   max-height: 380px;
@@ -4272,6 +4511,9 @@ body {
   border-radius: 3px;
 }
 
+/* ============================================ */
+/* HEADER ACTIONS                              */
+/* ============================================ */
 .header-actions {
   display: flex;
   align-items: center;
@@ -4279,14 +4521,9 @@ body {
   flex-wrap: wrap;
 }
 
-.period-tag {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  background: var(--background);
-  padding: 0.15rem 0.5rem;
-  border-radius: 12px;
-}
-
+/* ============================================ */
+/* SELECTED COUNT LABEL                        */
+/* ============================================ */
 .selected-count-label {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -4573,6 +4810,7 @@ body {
     text-transform: uppercase;
     min-width: 60px;
     flex-shrink: 0;
+    text-align: left;
   }
   
   .revenue-table-header {
@@ -4605,6 +4843,7 @@ body {
     text-transform: uppercase;
     min-width: 60px;
     flex-shrink: 0;
+    text-align: left;
   }
   
   .shift-history-table-header {
