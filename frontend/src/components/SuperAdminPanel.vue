@@ -7495,23 +7495,23 @@ initStallDetailChart(stallId, period = 'week') {
     })
 },
 
-// ===== NEW METHOD: Fetch from sales table =====
+// ===== FIXED: Pass period parameter to backend =====
 async fetchStallSalesTrend(stallId, days, period, grouping) {
   try {
-    // Try the new API endpoint first
+    // Try the new API endpoint first with period parameter
     const response = await axios.get(
-      `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}`,
+      `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}&period=${period}`,
       { headers: { Authorization: `Bearer ${this.token}` } }
     )
     
     if (response.data && response.data.success) {
-      console.log(`📊 Fetched ${response.data.data.length} days from sales table`)
+      console.log(`📊 Fetched ${response.data.data.length} days from sales table for period: ${period}`)
       return response.data.data
     }
     return null
   } catch (err) {
     // If endpoint doesn't exist, fall back to using sales table directly
-    console.warn('New API endpoint not available, using direct query...')
+    console.warn('New API endpoint not available, using fallback...')
     return null
   }
 },
