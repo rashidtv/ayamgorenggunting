@@ -4384,8 +4384,17 @@ export default {
 // GROUPING HELPERS - ADD THESE IF MISSING
 // =============================================
 
+// ===== REPLACE THE groupSalesData METHOD =====
 groupSalesData(salesData, grouping, period) {
   if (!salesData || salesData.length === 0) return []
+  
+  // ===== IF MONTH PERIOD AND LESS THAN 7 DAYS, SHOW INDIVIDUAL DAYS =====
+  if (period === 'month' && salesData.length <= 7) {
+    return salesData.map(item => ({
+      ...item,
+      label: this.formatDayLabel(item.date)
+    }))
+  }
   
   if (grouping === 'hour') {
     return this.groupByHour(salesData)
@@ -4398,6 +4407,8 @@ groupSalesData(salesData, grouping, period) {
   }
   return salesData
 },
+
+
 
 groupByHour(salesData) {
   const grouped = {}
@@ -4429,17 +4440,51 @@ groupByDay(salesData) {
 },
 
 groupByWeek(salesData) {
+  if (!salesData || salesData.length === 0) return []
+  
+  // ===== IF LESS THAN 7 DAYS, SHOW INDIVIDUAL DAYS =====
+  if (salesData.length <= 7) {
+    return salesData.map(item => ({
+      ...item,
+      label: this.formatDayLabel(item.date)
+    }))
+  }
+  
   const grouped = {}
   salesData.forEach(item => {
     const date = new Date(item.date)
     const weekStart = this.getWeekStart(date)
-    const key = weekStart.toISOString()
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    
+    const key = weekStart.toISOString().split('T')[0]
+    
     if (!grouped[key]) {
-      grouped[key] = { date: key, revenue: 0, items: 0 }
+      const startDay = weekStart.getUTCDate()
+      const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      const endDay = weekEnd.getUTCDate()
+      const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      
+      let label
+      if (startMonth === endMonth) {
+        label = `${startDay}-${endDay} ${startMonth}`
+      } else {
+        label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+      }
+      
+      grouped[key] = {
+        date: weekStart.toISOString(),
+        label: label,
+        displayLabel: label,
+        revenue: 0,
+        items: 0
+      }
     }
+    
     grouped[key].revenue += parseFloat(item.revenue) || 0
     grouped[key].items += parseInt(item.items) || 0
   })
+  
   return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
 },
 
