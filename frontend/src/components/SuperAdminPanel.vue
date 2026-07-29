@@ -7408,50 +7408,18 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'custom' ? this.customDays || 30 :
                30
 
-  let grouping
-  if (period === 'today') grouping = 'hour'
-  else if (period === 'week') grouping = 'day'
-  else if (period === 'month') grouping = 'week'
-  else if (period === 'quarter' || period === 'halfyear' || period === 'year') grouping = 'month'
-  else if (period === 'custom') {
-    const customDays = this.customDays || 30
-    if (customDays <= 14) grouping = 'day'
-    else if (customDays <= 60) grouping = 'week'
-    else grouping = 'month'
-  } else grouping = 'day'
-
-  // ===== FETCH DATA - NOTE: Remove stallId from URL if API doesn't support it =====
-  // Try with stallId first, if it doesn't work, we'll filter client-side
-  axios.get(`${API_BASE}/sales-analytics?days=${days}`, {
+  // ===== USE STALL-PERFORMANCE API INSTEAD =====
+  // This API returns data per stall with revenue and items
+  axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
-    const data = response.data || {}
-    let allSalesData = data.dailySales || []
+    const stallData = response.data || []
+    
+    console.log(`📊 Stall ${stallId} performance data:`, stallData)
 
-    console.log(`📊 Total sales records:`, allSalesData.length)
-
-    // ===== FILTER DATA FOR THIS SPECIFIC STALL =====
-    // The API might return data with stall_id or it might be nested
-    let salesData = allSalesData.filter(item => {
-      // Check if the item has a stall_id field that matches
-      if (item.stall_id !== undefined) {
-        return item.stall_id === stallId
-      }
-      // Check if stallId is nested in a stall object
-      if (item.stall && item.stall.id !== undefined) {
-        return item.stall.id === stallId
-      }
-      // If the data doesn't have stall info, we can't filter properly
-      // This means the API doesn't return stall-specific data
-      console.warn('⚠️ Sales data does not have stall_id:', Object.keys(item))
-      return false
-    })
-
-    console.log(`📊 Filtered for stall ${stallId}:`, salesData.length, 'records')
-
-    // ===== If NO data for this stall, show "No sales" message =====
-    if (!salesData || salesData.length === 0) {
+    // ===== Check if this stall has data =====
+    if (!stallData || stallData.length === 0) {
       const option = {
         title: {
           text: '📊 No sales data for this stall',
@@ -7465,16 +7433,94 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
-    // ===== GROUP THE DATA =====
+    // Get the specific stall's data
+    const stallInfo = stallData[0]
+    const revenue = parseFloat(stallInfo.revenue) || 0
+    const items = parseInt(stallInfo.items_sold) || 0
+
+    if (revenue === 0) {
+      const option = {
+        title: {
+          text: '📊 No sales revenue for this stall',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+        }
+      }
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+      return
+    }
+
+    // ===== Now fetch the daily sales trend for this specific stall =====
+    // Since the main API doesn't support stall filtering, we need to get 
+    // the stall's transactions and aggregate them by day
+    return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    })
+  })
+  .then(transactionsResponse => {
+    if (!transactionsResponse) return
+    
+    const transactions = transactionsResponse.data || []
+    console.log(`📊 Transactions for stall:`, transactions.length)
+
+    // ===== Group transactions by date =====
+    const dailyData = {}
+    transactions.forEach(tx => {
+      const date = new Date(tx.created_at)
+      const dateKey = date.toISOString().split('T')[0]
+      
+      if (!dailyData[dateKey]) {
+        dailyData[dateKey] = {
+          date: dateKey,
+          revenue: 0,
+          items: 0
+        }
+      }
+      dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
+      dailyData[dateKey].items += parseInt(tx.item_count) || 0
+    })
+
+    let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
+    
+    console.log(`📊 Daily sales for stall ${stallId}:`, salesData)
+
+    if (!salesData || salesData.length === 0) {
+      const option = {
+        title: {
+          text: '📊 No daily sales data for this stall',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+        }
+      }
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+      return
+    }
+
+    // ===== GROUP DATA BY PERIOD =====
+    let grouping
+    if (period === 'today') grouping = 'hour'
+    else if (period === 'week') grouping = 'day'
+    else if (period === 'month') grouping = 'week'
+    else if (period === 'quarter' || period === 'halfyear' || period === 'year') grouping = 'month'
+    else if (period === 'custom') {
+      const customDays = this.customDays || 30
+      if (customDays <= 14) grouping = 'day'
+      else if (customDays <= 60) grouping = 'week'
+      else grouping = 'month'
+    } else grouping = 'day'
+
     let groupedData = this.groupSalesData(salesData, grouping, period)
     
-    // ===== Check if this specific stall has revenue =====
     const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
     
     if (!hasRevenue) {
       const option = {
         title: {
-          text: '📊 No sales revenue for this stall',
+          text: '📊 No sales revenue for this period',
           left: 'center',
           top: 'center',
           textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
