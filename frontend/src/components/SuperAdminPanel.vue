@@ -4384,7 +4384,6 @@ export default {
 // GROUPING HELPERS - ADD THESE IF MISSING
 // =============================================
 
-// ===== REPLACE THE groupSalesData METHOD =====
 groupSalesData(salesData, grouping, period) {
   if (!salesData || salesData.length === 0) return []
   
@@ -4407,7 +4406,6 @@ groupSalesData(salesData, grouping, period) {
   }
   return salesData
 },
-
 
 
 groupByHour(salesData) {
@@ -7444,6 +7442,7 @@ initStallDetailChart(stallId, period = 'week') {
     return
   }
 
+  // ===== DETERMINE DAYS BASED ON PERIOD =====
   const days = period === 'today' ? 1 :
                period === 'week' ? 7 :
                period === 'month' ? 30 :
@@ -7453,6 +7452,7 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'custom' ? this.customDays || 30 :
                30
 
+  // ===== DETERMINE GROUPING =====
   let grouping
   if (period === 'today') grouping = 'hour'
   else if (period === 'week') grouping = 'day'
@@ -7465,138 +7465,126 @@ initStallDetailChart(stallId, period = 'week') {
     else grouping = 'month'
   } else grouping = 'day'
 
-  // ===== USE THE SAME API AS DASHBOARD =====
-  axios.get(`${API_BASE}/sales-analytics?days=${days}`, {
+  // ===== USE THE NEW API ENDPOINT (PREFERRED) =====
+  this.fetchStallSalesTrend(stallId, days, period, grouping)
+    .then(salesData => {
+      if (!salesData || salesData.length === 0) {
+        this.showNoDataMessage('📊 No sales data for this stall')
+        return
+      }
+      
+      // ===== GROUP DATA BY PERIOD =====
+      let groupedData = this.groupSalesData(salesData, grouping, period)
+      
+      const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
+      
+      if (!hasRevenue) {
+        this.showNoDataMessage('📊 No sales revenue for this period')
+        return
+      }
+      
+      // ===== GENERATE CHART =====
+      this.renderStallChart(groupedData, period)
+    })
+    .catch(err => {
+      console.error('Failed to load stall sales trend:', err)
+      
+      // ===== FALLBACK: Use transactions API (backward compatibility) =====
+      console.log('🔄 Falling back to transactions API...')
+      this.fetchTransactionsFallback(stallId, days, period, grouping)
+    })
+},
+
+// ===== NEW METHOD: Fetch from sales table =====
+async fetchStallSalesTrend(stallId, days, period, grouping) {
+  try {
+    // Try the new API endpoint first
+    const response = await axios.get(
+      `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    if (response.data && response.data.success) {
+      console.log(`📊 Fetched ${response.data.data.length} days from sales table`)
+      return response.data.data
+    }
+    return null
+  } catch (err) {
+    // If endpoint doesn't exist, fall back to using sales table directly
+    console.warn('New API endpoint not available, using direct query...')
+    return null
+  }
+},
+
+// ===== FALLBACK METHOD: Use transactions (backward compatible) =====
+fetchTransactionsFallback(stallId, days, period, grouping) {
+  // ===== FETCH WITH HIGH LIMIT TO GET ALL DATA =====
+  axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10000`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
-    const data = response.data || {}
-    let allSalesData = data.dailySales || []
-
-    console.log(`📊 Total sales records:`, allSalesData.length)
-
-    // ===== FILTER BY STALL ID =====
-    // The sales-analytics API might not have stall_id
-    // If not, we need to get stall-specific data from the performance table
-    let salesData = allSalesData.filter(item => {
-      // If the data has stall_id, filter by it
-      if (item.stall_id !== undefined) {
-        return item.stall_id === stallId
-      }
-      // If not, we need to use a different approach
-      return false
-    })
-
-    // ===== IF FILTERING DIDN'T WORK, USE STALL PERFORMANCE DATA =====
-    if (salesData.length === 0) {
-      console.log('📊 No stall_id in sales data, using stall performance data')
+    const transactions = response.data || []
+    console.log(`📊 Fallback: ${transactions.length} transactions found`)
+    
+    if (transactions.length === 0) {
+      this.showNoDataMessage('📊 No transactions for this period')
+      return
+    }
+    
+    // ===== GROUP TRANSACTIONS BY DATE =====
+    const dailyData = {}
+    transactions.forEach(tx => {
+      const date = new Date(tx.created_at)
+      const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+      const dateKey = malaysiaDate.toISOString().split('T')[0]
       
-      // Get the stall's performance data
-      return axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      })
-      .then(perfResponse => {
-        const perfData = perfResponse.data || []
-        console.log(`📊 Stall performance data:`, perfData)
-        
-        if (!perfData || perfData.length === 0 || parseFloat(perfData[0]?.revenue || 0) === 0) {
-          const option = {
-            title: {
-              text: '📊 No sales data for this stall',
-              left: 'center',
-              top: 'center',
-              textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-            }
-          }
-          this.stallDetailChartInstance.setOption(option)
-          this.stallDetailChartInstance.resize()
-          return
+      if (!dailyData[dateKey]) {
+        dailyData[dateKey] = {
+          date: dateKey,
+          revenue: 0,
+          items: 0
         }
-
-        // ===== GET TRANSACTIONS FOR DAILY BREAKDOWN =====
-        // ===== GET TRANSACTIONS FOR DAILY BREAKDOWN =====
-return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
-  headers: { Authorization: `Bearer ${this.token}` }
-})
-.then(txResponse => {
-  const transactions = txResponse.data || []
-  console.log(`📊 Transactions for stall ${stallId}:`, transactions.length)
-
-  if (transactions.length === 0) {
-    const option = {
-      title: {
-        text: '📊 No transactions for this period',
-        left: 'center',
-        top: 'center',
-        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
       }
-    }
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-    return
-  }
-
-  // ===== GROUP TRANSACTIONS BY DATE =====
-  const dailyData = {}
-  transactions.forEach(tx => {
-    const date = new Date(tx.created_at)
-    // Use Malaysia time
-    const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-    const dateKey = malaysiaDate.toISOString().split('T')[0]
+      dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
+      dailyData[dateKey].items += parseInt(tx.item_count) || 0
+    })
     
-    if (!dailyData[dateKey]) {
-      dailyData[dateKey] = {
-        date: dateKey,
-        revenue: 0,
-        items: 0
-      }
+    let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
+    
+    // ===== GROUP DATA =====
+    let groupedData = this.groupSalesData(salesData, grouping, period)
+    
+    const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
+    
+    if (!hasRevenue) {
+      this.showNoDataMessage('📊 No sales revenue from transactions')
+      return
     }
-    dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
-    dailyData[dateKey].items += parseInt(tx.item_count) || 0
+    
+    this.renderStallChart(groupedData, period)
   })
+  .catch(err => {
+    console.error('Failed to load transactions fallback:', err)
+    this.showNoDataMessage('⚠️ Could not load sales data')
+  })
+},
 
-  let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
-  
-  const transactionTotal = salesData.reduce((sum, d) => sum + d.revenue, 0)
-  const performanceTotal = parseFloat(perfData[0]?.revenue || 0)
-  
-  console.log(`📊 Daily sales for stall ${stallId}:`, salesData)
-  console.log(`📊 Total revenue from transactions:`, transactionTotal)
-  console.log(`📊 Performance revenue:`, performanceTotal)
-
-  // ===== IF MISMATCH, SCALE THE DAILY DATA =====
-  if (Math.abs(transactionTotal - performanceTotal) > 1 && transactionTotal > 0) {
-    const scaleFactor = performanceTotal / transactionTotal
-    console.log(`📊 Scaling transactions by factor:`, scaleFactor)
-    
-    salesData = salesData.map(day => ({
-      ...day,
-      revenue: day.revenue * scaleFactor
-    }))
-    
-    console.log(`📊 Scaled daily sales:`, salesData)
-    console.log(`📊 New total:`, salesData.reduce((sum, d) => sum + d.revenue, 0))
-  }
-
-  // ===== GROUP DATA BY PERIOD =====
-  let groupedData = this.groupSalesData(salesData, grouping, period)
-  
-  const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
-  
-  if (!hasRevenue) {
-    const option = {
-      title: {
-        text: '📊 No sales revenue for this period',
-        left: 'center',
-        top: 'center',
-        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-      }
+// ===== NEW METHOD: Show "No Data" message =====
+showNoDataMessage(message) {
+  const option = {
+    title: {
+      text: message,
+      left: 'center',
+      top: 'center',
+      textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
     }
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-    return
   }
+  this.stallDetailChartInstance.setOption(option)
+  this.stallDetailChartInstance.resize()
+},
 
+// ===== NEW METHOD: Render the chart =====
+renderStallChart(groupedData, period) {
   // ===== GENERATE LABELS =====
   const chartLabels = groupedData.map(item => {
     if (period === 'today') return this.formatHourLabel(item.date)
@@ -7615,14 +7603,12 @@ return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
   
   const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
   const items = groupedData.map(d => parseInt(d.items) || 0)
-
-  console.log(`📊 Chart for stall ${stallId}:`, { 
-    labels: chartLabels, 
-    revenues: revenues,
-    total: revenues.reduce((a, b) => a + b, 0)
-  })
-
-  // ===== CREATE CHART =====
+  
+  const totalRevenue = revenues.reduce((a, b) => a + b, 0)
+  
+  console.log(`📊 Chart: ${revenues.length} bars, Total: RM ${totalRevenue}`)
+  
+  // ===== CREATE CHART OPTION =====
   const option = {
     tooltip: {
       trigger: 'axis',
@@ -7631,7 +7617,7 @@ return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
       borderWidth: 1,
       padding: [8, 12],
       textStyle: { color: '#1e293b', fontSize: 12 },
-      formatter: function(params) {
+      formatter: (params) => {
         const index = params[0]?.dataIndex || 0
         const revenue = parseFloat(revenues[index]) || 0
         const itemsCount = parseInt(items[index]) || 0
@@ -7688,26 +7674,9 @@ return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
       }
     }]
   }
-
+  
   this.stallDetailChartInstance.setOption(option)
   this.stallDetailChartInstance.resize()
-})
-      })
-    }
-  })
-  .catch(err => {
-    console.error('Failed to load stall detail chart data:', err)
-    const option = {
-      title: {
-        text: '⚠️ Could not load sales data',
-        left: 'center',
-        top: 'center',
-        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-      }
-    }
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-  })
 },
 
     // =============================================

@@ -1565,6 +1565,65 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================
+// STALL SALES TREND ROUTE (NEW - Single Source of Truth)
+// ============================================
+
+app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
+  try {
+    const { stallId, days = 30 } = req.query;
+    
+    if (!stallId) {
+      return res.status(400).json({ error: 'stallId is required' });
+    }
+    
+    const targetStallId = parseInt(stallId);
+    if (isNaN(targetStallId)) {
+      return res.status(400).json({ error: 'Invalid stall ID' });
+    }
+    
+    // Check access
+    const allowed = await userCanAccessStall(req.user.id, targetStallId);
+    if (!allowed && req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+      return res.status(403).json({ error: 'Access denied to this stall' });
+    }
+    
+    const daysNum = parseInt(days) || 30;
+    
+    // Query sales table directly - this is the SINGLE SOURCE OF TRUTH
+    const query = `
+      SELECT 
+        DATE(created_at) as date,
+        COALESCE(SUM(price), 0) as revenue,
+        COUNT(*) as items
+      FROM sales
+      WHERE stall_id = $1
+        AND created_at >= NOW() - INTERVAL '${daysNum} days'
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
+    
+    const result = await pool.query(query, [targetStallId]);
+    
+    console.log(`📊 Stall ${targetStallId} sales trend: ${result.rows.length} days, ${daysNum} days range`);
+    
+    res.json({
+      success: true,
+      data: result.rows,
+      stallId: targetStallId,
+      days: daysNum,
+      totalRevenue: result.rows.reduce((sum, row) => sum + parseFloat(row.revenue || 0), 0)
+    });
+    
+  } catch (err) {
+    console.error('Error fetching stall sales trend:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch stall sales trend',
+      details: err.message 
+    });
+  }
+});
+
+// ============================================
 // MENU ROUTES
 // ============================================
 
