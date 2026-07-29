@@ -3186,6 +3186,163 @@
       </div>
     </div>
 
+    <!-- TOP UP MODAL -->
+<div v-if="quickUpdateModal" class="modal-overlay" @click.self="quickUpdateModal=false">
+  <div class="modal-modern modal-sm">
+    <div class="modal-modern-header">
+      <h3>📦 Top Up: {{ quickUpdateStallName }}</h3>
+      <button @click="quickUpdateModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <div class="quick-update-grid">
+        <div 
+          v-for="item in quickUpdateItems" 
+          :key="item.material_name" 
+          class="quick-update-item"
+        >
+          <div class="quick-update-info">
+            <span class="quick-update-name">{{ item.material_name }}</span>
+            <span class="quick-update-current">
+              Current: {{ item.current_level }}{{ getUnit(item.material_name) }}
+            </span>
+            <span 
+              class="quick-update-status"
+              :class="item.current_level <= item.alert_level ? 'low' : 'ok'"
+            >
+              {{ item.current_level <= item.alert_level ? '⚠️ LOW' : '✅ OK' }}
+            </span>
+          </div>
+          <div class="quick-update-actions">
+            <input 
+              type="number" 
+              v-model.number="item.newLevel" 
+              :placeholder="item.current_level"
+              class="filter-input small"
+              step="1"
+              min="0"
+            />
+            <button 
+              @click="quickUpdateItemSave(quickUpdateStallId, item.material_name, item.newLevel)" 
+              class="btn-modern primary small"
+            >
+              Save
+            </button>
+            <button 
+              @click="quickUpdateItemAdd(quickUpdateStallId, item.material_name, 5)" 
+              class="btn-modern secondary small"
+            >
+              +5
+            </button>
+            <button 
+              @click="quickUpdateItemAdd(quickUpdateStallId, item.material_name, 1)" 
+              class="btn-modern secondary small"
+            >
+              +1
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="quickUpdateModal=false" class="btn-modern secondary">Close</button>
+      <button @click="quickUpdateSaveAll" class="btn-modern primary">Save All</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK UPDATE MODAL -->
+<div v-if="bulkUpdateModal" class="modal-overlay" @click.self="bulkUpdateModal=false">
+  <div class="modal-modern modal-lg">
+    <div class="modal-modern-header">
+      <h3>📦 Bulk Update Inventory</h3>
+      <button @click="bulkUpdateModal=false" class="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-modern-body">
+      <!-- Mode Selection -->
+      <div class="bulk-mode-selector">
+        <button 
+          class="mode-btn" 
+          :class="{ active: bulkUpdateMode === 'selected' }"
+          @click="bulkUpdateMode = 'selected'"
+        >
+          Selected ({{ selectedCount }})
+        </button>
+        <button 
+          class="mode-btn" 
+          :class="{ active: bulkUpdateMode === 'all' }"
+          @click="bulkUpdateMode = 'all'"
+        >
+          All Filtered ({{ filteredInventoryStalls.length }})
+        </button>
+        <button 
+          class="mode-btn" 
+          :class="{ active: bulkUpdateMode === 'low-stock' }"
+          @click="bulkUpdateMode = 'low-stock'"
+        >
+          Low Stock Only ({{ inventoryStats.lowStock }})
+        </button>
+      </div>
+
+      <div class="bulk-preview">
+        <p><strong>Updating:</strong> {{ bulkUpdatePreview.length }} stalls</p>
+        <div class="bulk-stall-tags">
+          <span v-for="stall in bulkUpdatePreview.slice(0, 5)" :key="stall.id" class="stall-tag">
+            {{ stall.name }}
+          </span>
+          <span v-if="bulkUpdatePreview.length > 5" class="stall-tag more">
+            +{{ bulkUpdatePreview.length - 5 }} more
+          </span>
+        </div>
+      </div>
+
+      <div class="bulk-materials">
+        <h4>Update Materials</h4>
+        
+        <div class="quick-actions">
+          <span class="quick-label">Quick:</span>
+          <button 
+            v-for="action in quickActions" 
+            :key="action.label"
+            class="btn-modern secondary small"
+            @click="applyQuickAction(action)"
+          >
+            {{ action.label }}
+          </button>
+        </div>
+
+        <div class="bulk-material-grid">
+          <div v-for="material in bulkUpdateMaterials" :key="material.name" class="bulk-material-item">
+            <label class="bulk-material-label">
+              <input type="checkbox" v-model="material.selected" />
+              <span class="bulk-material-name">{{ material.name }}</span>
+            </label>
+            <div class="bulk-material-inputs">
+              <select v-model="material.operation" class="filter-select small">
+                <option value="set">Set to</option>
+                <option value="add">Add</option>
+                <option value="subtract">Subtract</option>
+              </select>
+              <input 
+                type="number" 
+                v-model.number="material.value" 
+                class="filter-input small"
+                placeholder="Value"
+              />
+            </div>
+            <span class="bulk-material-unit">{{ getUnit(material.name) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-modern-footer">
+      <button @click="bulkUpdateModal=false" class="btn-modern secondary">Cancel</button>
+      <button @click="executeBulkUpdate" class="btn-modern primary" :disabled="bulkUpdating">
+        {{ bulkUpdating ? 'Updating...' : 'Apply to All' }}
+      </button>
+    </div>
+  </div>
+</div>
+
   </div> <!-- closes sa-dashboard -->
 </template>
 
