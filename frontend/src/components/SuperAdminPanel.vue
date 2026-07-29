@@ -1238,33 +1238,28 @@
                       class="performance-table-row clickable-item"
                       @click="viewStallDetails(stall)"
                     >
-                      <!-- Rank -->
                       <span class="performance-table-rank" data-label="Rank">
                         <span class="rank-number" :class="getRankClass(index)">
                           {{ index + 1 }}
                         </span>
                       </span>
                       
-                      <!-- Stall Name + Code -->
                       <span class="performance-table-name" data-label="Stall">
                         <span class="stall-name-text">{{ stall.name }}</span>
-                        <span class="stall-name-code">{{ stall.code }}</span>
+                        <span class="stall-code-text">{{ stall.code }}</span>
                         <span class="stall-name-bar">
                           <span class="stall-bar-fill" :style="{ width: getStallBarWidth(stall.revenue) + '%' }"></span>
                         </span>
                       </span>
                       
-                      <!-- Revenue -->
                       <span class="performance-table-revenue" data-label="Revenue">{{ formatCurrency(stall.revenue || 0) }}</span>
                       
-                      <!-- Status -->
                       <span class="performance-table-status" data-label="Status">
                         <span :class="['status-indicator', getPerformanceStatusClass(stall)]">
                           {{ getPerformanceStatusEmoji(stall) }} {{ getPerformanceStatusText(stall) }}
                         </span>
                       </span>
                       
-                      <!-- Details -->
                       <span class="performance-table-details" data-label="Details">👆</span>
                     </div>
                   </div>
@@ -1599,6 +1594,7 @@
 
               <div v-else>
                 <div class="inventory-table-wrapper">
+                  <!-- ===== FIXED: 5 Separate Headers ===== -->
                   <div class="inventory-table-header">
                     <div class="inventory-table-cell name">Item Name</div>
                     <div class="inventory-table-cell price">Price</div>
@@ -1612,16 +1608,17 @@
                     :key="item.item_name" 
                     class="inventory-table-row"
                   >
-                    <div class="inventory-table-cell name">
+                    <!-- ===== FIXED: Added data-label attributes ===== -->
+                    <div class="inventory-table-cell name" data-label="Item Name">
                       <span class="stall-name">{{ item.item_name }}</span>
                     </div>
-                    <div class="inventory-table-cell price">
+                    <div class="inventory-table-cell price" data-label="Price">
                       {{ formatCurrency(item.price) }}
                     </div>
-                    <div class="inventory-table-cell category">
+                    <div class="inventory-table-cell category" data-label="Category">
                       {{ item.category || 'Main' }}
                     </div>
-                    <div class="inventory-table-cell recipe">
+                    <div class="inventory-table-cell recipe" data-label="Recipe">
                       <span v-if="item.recipe && item.recipe.length > 0" class="recipe-tags">
                         <span v-for="(r, idx) in item.recipe" :key="idx" class="recipe-tag">
                           {{ r.material_name }}: {{ r.quantity_used }}
@@ -1629,7 +1626,7 @@
                       </span>
                       <span v-else class="text-muted">No recipe</span>
                     </div>
-                    <div class="inventory-table-cell actions">
+                    <div class="inventory-table-cell actions" data-label="Actions">
                       <button @click="openEditMenuModal(item)" class="btn-action" title="Edit">✏️</button>
                       <button @click="deleteMenuItem(item.item_name)" class="btn-action danger" title="Delete">🗑️</button>
                     </div>
@@ -3524,9 +3521,16 @@ export default {
       return Math.ceil(this.filteredInventoryStalls.length / this.itemsPerPage) || 1
     },
     startIndex() {
-      return (this.currentPage - 1) * this.itemsPerPage + 1
+      if (!this.filteredInventoryStalls || this.filteredInventoryStalls.length === 0) {
+        return 0
+      }
+      const start = (this.currentPage - 1) * this.itemsPerPage + 1
+      return Math.min(start, this.filteredInventoryStalls.length)
     },
     endIndex() {
+      if (!this.filteredInventoryStalls || this.filteredInventoryStalls.length === 0) {
+        return 0
+      }
       return Math.min(this.currentPage * this.itemsPerPage, this.filteredInventoryStalls.length)
     },
     selectedCount() {
@@ -3570,6 +3574,9 @@ export default {
       })
     },
     stallTotalPages() {
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 1
+      }
       return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
     },
     paginatedStallsList() {
@@ -3578,11 +3585,16 @@ export default {
       return this.filteredStallsList.slice(start, end)
     },
     stallStartIndex() {
-      if (this.filteredStallsList.length === 0) return 0
-      return (this.stallCurrentPage - 1) * this.itemsPerPage + 1
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 0
+      }
+      const start = (this.stallCurrentPage - 1) * this.itemsPerPage + 1
+      return Math.min(start, this.filteredStallsList.length)
     },
     stallEndIndex() {
-      if (this.filteredStallsList.length === 0) return 0
+      if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+        return 0
+      }
       return Math.min(this.stallCurrentPage * this.itemsPerPage, this.filteredStallsList.length)
     },
     selectedStallsCount() {
@@ -3760,14 +3772,22 @@ export default {
       return this.filteredMenuItemsForAssignment.slice(start, end)
     },
     menuTotalPages() {
+      if (!this.filteredMenuItemsForManagement || this.filteredMenuItemsForManagement.length === 0) {
+        return 1
+      }
       return Math.ceil(this.filteredMenuItemsForManagement.length / this.menuItemsPerPage) || 1
     },
     menuStartIndex() {
-      if (this.filteredMenuItemsForManagement.length === 0) return 0
-      return (this.menuCurrentPage - 1) * this.menuItemsPerPage + 1
+      if (!this.filteredMenuItemsForManagement || this.filteredMenuItemsForManagement.length === 0) {
+        return 0
+      }
+      const start = (this.menuCurrentPage - 1) * this.menuItemsPerPage + 1
+      return Math.min(start, this.filteredMenuItemsForManagement.length)
     },
     menuEndIndex() {
-      if (this.filteredMenuItemsForManagement.length === 0) return 0
+      if (!this.filteredMenuItemsForManagement || this.filteredMenuItemsForManagement.length === 0) {
+        return 0
+      }
       return Math.min(this.menuCurrentPage * this.menuItemsPerPage, this.filteredMenuItemsForManagement.length)
     },
     selectedMenuItemsCount() {
@@ -4339,6 +4359,52 @@ export default {
       return weekStart
     },
 
+    // ===== Label helpers for charts =====
+    formatHourLabel(dateStr) {
+      const date = new Date(dateStr)
+      const hour = date.getUTCHours()
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hours12 = hour % 12 || 12
+      return `${hours12}:00 ${ampm}`
+    },
+
+    formatDayLabel(dateStr) {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('en-MY', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short',
+        timeZone: 'UTC'
+      })
+    },
+
+    formatWeekRangeLabel(dateStr) {
+      const date = new Date(dateStr)
+      const weekStart = this.getWeekStart(date)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      
+      const startDay = weekStart.getUTCDate()
+      const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      const endDay = weekEnd.getUTCDate()
+      const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+      
+      if (startMonth === endMonth) {
+        return `${startDay}-${endDay} ${startMonth}`
+      } else {
+        return `${startDay} ${startMonth}-${endDay} ${endMonth}`
+      }
+    },
+
+    formatMonthLabel(dateStr) {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('en-MY', { 
+        month: 'short', 
+        year: 'numeric',
+        timeZone: 'UTC'
+      })
+    },
+
     // =============================================
     // PERIOD & RANGE HELPERS
     // =============================================
@@ -4781,9 +4847,8 @@ export default {
           revenue: parseFloat(day.revenue) || 0
         }))
         
-        // ===== FIXED: Group by period exactly like Stall Admin =====
+        // Group by period exactly like Stall Admin
         if (this.selectedPeriod === 'today') {
-          // Keep as-is for today
           dailySales = this.splitTodayIntoHours(dailySales)
         } else if (this.selectedPeriod === 'week') {
           const now = this.getTodayInMalaysia()
@@ -4799,9 +4864,7 @@ export default {
           dailySales = dailySales.filter(day => {
             const date = new Date(day.date)
             const timestamp = date.getTime()
-            const mondayTimestamp = monday.getTime()
-            const sundayTimestamp = sunday.getTime()
-            return timestamp >= mondayTimestamp && timestamp <= sundayTimestamp
+            return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
           })
         } else if (this.selectedPeriod === 'month') {
           dailySales = this.groupSalesByWeek(dailySales)
@@ -4849,7 +4912,6 @@ export default {
       }
     },
 
-    // ===== FIXED: Group functions copied from Stall Admin =====
     splitTodayIntoHours(dailySales) {
       if (!dailySales || dailySales.length === 0) return []
       if (dailySales.length > 1) return dailySales
@@ -5573,7 +5635,7 @@ export default {
     },
 
     // =============================================
-    // INVENTORY
+    // INVENTORY - FIXED
     // =============================================
     async loadAllStallsInventory() {
       this.inventory = []
@@ -5786,6 +5848,7 @@ export default {
       })
     },
 
+    // ===== FIXED: Bulk Update with proper error handling =====
     async executeBulkUpdate() {
       this.bulkUpdating = true
       const stalls = this.bulkUpdateMode === 'all' 
@@ -5793,14 +5856,31 @@ export default {
         : this.bulkUpdateMode === 'low-stock'
           ? this.filteredInventoryStalls.filter(s => this.hasLowStock(s.id))
           : this.filteredInventoryStalls.filter(s => this.selectedStalls.includes(s.id))
+      
       const selectedMaterials = this.bulkUpdateMaterials.filter(m => m.selected)
       
+      if (stalls.length === 0) {
+        this.$emit('show-notification', 'No stalls selected for update', 'warning')
+        this.bulkUpdating = false
+        return
+      }
+      
+      if (selectedMaterials.length === 0) {
+        this.$emit('show-notification', 'No materials selected for update', 'warning')
+        this.bulkUpdating = false
+        return
+      }
+      
       try {
+        let totalUpdated = 0
+        let totalErrors = 0
+        
         for (const stall of stalls) {
           for (const material of selectedMaterials) {
             let newLevel = material.value
             const inventory = this.getStallInventory(stall.id)
             const item = inventory.find(i => i.material_name === material.name)
+            
             if (item) {
               if (material.operation === 'add') {
                 newLevel = item.current_level + material.value
@@ -5808,40 +5888,77 @@ export default {
                 newLevel = Math.max(0, item.current_level - material.value)
               }
             }
-            await this.updateInventoryStock(stall.id, material.name, newLevel)
+            
+            try {
+              await this.updateInventoryStock(stall.id, material.name, newLevel)
+              totalUpdated++
+            } catch (err) {
+              console.error(`Failed to update ${material.name} for stall ${stall.name}:`, err)
+              totalErrors++
+            }
           }
         }
-        this.$emit('show-notification', 'Bulk update completed successfully!', 'success')
+        
+        if (totalErrors === 0) {
+          this.$emit('show-notification', `✅ Successfully updated ${totalUpdated} inventory items across ${stalls.length} stalls`, 'success')
+        } else {
+          this.$emit('show-notification', `⚠️ ${totalUpdated} updated, ${totalErrors} failed`, 'warning')
+        }
+        
         this.bulkUpdateModal = false
+        await this.loadAllStallsInventory()
       } catch (err) {
         console.error('Bulk update error:', err)
         this.$emit('show-notification', 'Bulk update failed: ' + err.message, 'error')
       } finally {
         this.bulkUpdating = false
-        await this.loadAllStallsInventory()
       }
     },
 
+    // ===== FIXED: Reset Low Stock with proper handling =====
     async resetAllLowStock() {
-      if (this.inventoryStats.lowStock === 0) {
+      let lowStockItems = []
+      for (const stall of this.stalls) {
+        const inventory = this.getStallInventorySummary(stall.id)
+        for (const item of inventory) {
+          if (item.current_level <= item.alert_level) {
+            lowStockItems.push({ stall, item })
+          }
+        }
+      }
+      
+      if (lowStockItems.length === 0) {
         this.$emit('show-notification', 'No low stock items to reset', 'info')
         return
       }
-      if (!confirm(`Reset ${this.inventoryStats.lowStock} low stock items to alert levels?`)) return
+      
+      const alertLevel = lowStockItems[0]?.item.alert_level || 10
+      if (!confirm(`Reset ${lowStockItems.length} low stock items to ${alertLevel + 20} pieces each?`)) {
+        return
+      }
+      
       this.loading = true
       let updated = 0
+      let errors = 0
+      
       try {
-        for (const stall of this.stalls) {
-          const inventory = this.getStallInventorySummary(stall.id)
-          for (const item of inventory) {
-            if (item.current_level <= item.alert_level) {
-              const newLevel = item.alert_level + 20
-              await this.updateInventoryStock(stall.id, item.material_name, newLevel)
-              updated++
-            }
+        for (const { stall, item } of lowStockItems) {
+          try {
+            const newLevel = (item.alert_level || 10) + 20
+            await this.updateInventoryStock(stall.id, item.material_name, newLevel)
+            updated++
+          } catch (err) {
+            console.error(`Failed to reset ${item.material_name} for stall ${stall.name}:`, err)
+            errors++
           }
         }
-        this.$emit('show-notification', `✅ Reset ${updated} low stock items`, 'success')
+        
+        if (errors === 0) {
+          this.$emit('show-notification', `✅ Reset ${updated} low stock items successfully`, 'success')
+        } else {
+          this.$emit('show-notification', `⚠️ ${updated} reset, ${errors} failed`, 'warning')
+        }
+        
         await this.loadAllStallsInventory()
       } catch (error) {
         console.error('Error resetting low stock:', error)
@@ -6852,7 +6969,7 @@ export default {
     },
 
     // =============================================
-    // SHIFT HISTORY (FIXED - Improved error handling)
+    // SHIFT HISTORY (FIXED)
     // =============================================
     async loadShiftHistory() {
       this.shiftHistoryLoading = true
@@ -7109,7 +7226,7 @@ export default {
     },
 
     // =============================================
-    // STALL DETAILS
+    // STALL DETAILS - FIXED
     // =============================================
     viewStallDetails(stall) {
       this.selectedStall = stall
@@ -7148,7 +7265,7 @@ export default {
       }
     },
 
-    // ===== FIXED: Stall Detail Chart - Shows "No Data" when empty =====
+    // ===== FIXED: Stall Detail Chart - Uses same grouping as dashboard =====
     initStallDetailChart(stallId, period = 'week') {
       if (!this.$refs.stallDetailChartRef) return
       if (this.stallDetailChartInstance) {
@@ -7160,6 +7277,7 @@ export default {
         console.warn('No stall ID found for detail chart')
         return
       }
+      
       const days = this.getPeriodDays()
       axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
         headers: { Authorization: `Bearer ${this.token}` }
@@ -7167,8 +7285,40 @@ export default {
       .then(response => {
         const data = response.data || {}
         let salesData = data.dailySales || []
-        if (!salesData || salesData.length === 0) {
-          // ===== FIXED: Show "No data" message instead of empty chart =====
+        
+        // ===== FIXED: Apply same grouping as dashboard =====
+        if (this.selectedPeriod === 'today') {
+          salesData = this.splitTodayIntoHours(salesData)
+        } else if (this.selectedPeriod === 'week') {
+          const now = this.getTodayInMalaysia()
+          const dayOfWeek = now.getDay()
+          const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
+          const monday = new Date(now)
+          monday.setDate(now.getDate() - daysToMonday)
+          monday.setHours(0, 0, 0, 0)
+          const sunday = new Date(monday)
+          sunday.setDate(monday.getDate() + 6)
+          sunday.setHours(23, 59, 59, 999)
+          
+          salesData = salesData.filter(day => {
+            const date = new Date(day.date)
+            const timestamp = date.getTime()
+            return timestamp >= monday.getTime() && timestamp <= sunday.getTime()
+          })
+        } else if (this.selectedPeriod === 'month') {
+          salesData = this.groupSalesByWeek(salesData)
+        } else if (this.selectedPeriod === 'quarter' || this.selectedPeriod === 'halfyear') {
+          salesData = this.groupSalesByMonth(salesData)
+        } else if (this.selectedPeriod === 'year') {
+          salesData = this.groupSalesByMonth(salesData)
+        } else if (this.selectedPeriod === 'custom') {
+          salesData = this.groupSalesCustom(salesData)
+        }
+        
+        // ===== FIXED: Check if there's actual data =====
+        const hasRevenue = salesData.some(d => (d.revenue || 0) > 0)
+        
+        if (!salesData || salesData.length === 0 || !hasRevenue) {
           const option = {
             title: {
               text: '📊 No sales data available',
@@ -7185,8 +7335,28 @@ export default {
           this.stallDetailChartInstance.resize()
           return
         }
-        const chartLabels = salesData.map(item => this.formatShortDate(item.date))
+        
+        const chartLabels = salesData.map(item => {
+          if (item.label) return item.label
+          if (this.selectedPeriod === 'today') {
+            return this.formatHourLabel(item.date)
+          } else if (this.selectedPeriod === 'week') {
+            return this.formatDayLabel(item.date)
+          } else if (this.selectedPeriod === 'month') {
+            return this.formatWeekRangeLabel(item.date)
+          } else if (['quarter', 'halfyear', 'year'].includes(this.selectedPeriod)) {
+            return this.formatMonthLabel(item.date)
+          } else if (this.selectedPeriod === 'custom') {
+            const customDays = this.customDays || 30
+            if (customDays <= 14) return this.formatDayLabel(item.date)
+            else if (customDays <= 60) return this.formatWeekRangeLabel(item.date)
+            else return this.formatMonthLabel(item.date)
+          }
+          return this.formatShortDate(item.date)
+        })
+        
         const revenues = salesData.map(d => parseFloat(d.revenue) || 0)
+        
         const option = {
           tooltip: {
             trigger: 'axis',
@@ -7207,16 +7377,25 @@ export default {
             }
           },
           grid: { left: '3%', right: '4%', bottom: '3%', top: '8%', containLabel: true },
-          xAxis: { type: 'category', data: chartLabels, axisLine: { lineStyle: { color: '#e2e8f0' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 500 } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, formatter: (value) => 'RM' + value } },
+          xAxis: { 
+            type: 'category', 
+            data: chartLabels, 
+            axisLine: { lineStyle: { color: '#e2e8f0' } },
+            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 500 }
+          },
+          yAxis: { 
+            type: 'value', 
+            splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+            axisLabel: { color: '#94a3b8', fontSize: 11, formatter: (value) => 'RM' + value }
+          },
           series: [{
             type: 'bar',
             data: revenues,
             barWidth: '40%',
-            itemStyle: { borderRadius: [4, 4, 0, 0],
-              color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            itemStyle: { 
+              borderRadius: [4, 4, 0, 0],
+              color: { 
+                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [{ offset: 0, color: '#F94908' }, { offset: 1, color: '#fa6a2e' }]
               }
             }
@@ -7227,17 +7406,12 @@ export default {
       })
       .catch(err => {
         console.error('Failed to load stall detail chart data:', err)
-        // ===== FIXED: Show error message =====
         const option = {
           title: {
             text: '⚠️ Could not load sales data',
             left: 'center',
             top: 'center',
-            textStyle: { 
-              color: '#94a3b8', 
-              fontSize: 14, 
-              fontWeight: 400 
-            }
+            textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
           }
         }
         this.stallDetailChartInstance.setOption(option)
@@ -8247,40 +8421,184 @@ export default {
 /* ============================================ */
 /* STALL PERFORMANCE - Name + Code              */
 /* ============================================ */
-.stall-name-code {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
 .stall-name-text {
   font-weight: 500;
   font-size: 0.85rem;
   color: var(--text);
 }
 
-.stall-name-code .stall-code {
+.stall-code-text {
   font-size: 0.6rem;
   color: var(--text-tertiary);
   font-family: monospace;
+  display: block;
 }
 
 /* ============================================ */
-/* RESPONSIVE - Super Admin Specific           */
+/* PERFORMANCE TABLE - FIX OVERFLOW            */
 /* ============================================ */
+.performance-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
 
+.performance-table-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  min-width: 480px;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.performance-table-header-rank { 
+  min-width: 45px; 
+  text-align: center; 
+  cursor: pointer; 
+  flex-shrink: 0;
+}
+.performance-table-header-name { 
+  flex: 1.5; 
+  text-align: left; 
+  cursor: pointer; 
+  min-width: 80px;
+}
+.performance-table-header-revenue { 
+  min-width: 80px; 
+  text-align: right; 
+  cursor: pointer; 
+  flex-shrink: 0;
+}
+.performance-table-header-status { 
+  min-width: 90px; 
+  text-align: center; 
+  cursor: pointer; 
+  flex-shrink: 0;
+}
+.performance-table-header-details { 
+  min-width: 40px; 
+  text-align: center; 
+  flex-shrink: 0;
+}
+
+/* ===== FIXED: Menu Management Mobile ===== */
 @media (max-width: 768px) {
-  .controls-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
+  /* Menu management - show labels on mobile */
+  .inventory-table-row .inventory-table-cell.name::before {
+    content: "Item Name: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
   }
   
-  .action-buttons {
-    margin-left: 0;
-    justify-content: center;
+  .inventory-table-row .inventory-table-cell.price::before {
+    content: "Price: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
   }
   
+  .inventory-table-row .inventory-table-cell.category::before {
+    content: "Category: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-row .inventory-table-cell.recipe::before {
+    content: "Recipe: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  .inventory-table-row .inventory-table-cell.actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* Performance table mobile */
+  .performance-table-header {
+    display: none;
+  }
+  
+  .performance-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    min-width: unset !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 0.5rem !important;
+    background: var(--surface) !important;
+  }
+  
+  .performance-table-row > span {
+    display: flex !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+  
+  .performance-table-row > span::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    min-width: 60px;
+    flex-shrink: 0;
+    text-align: left;
+  }
+  
+  .performance-table-row > span {
+    text-align: right;
+  }
+  
+  /* Revenue Table - Mobile alignment */
+  .revenue-table-row > span {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .revenue-table-row > span::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    min-width: 60px;
+    flex-shrink: 0;
+    text-align: left;
+  }
+  
+  .revenue-table-row > span {
+    text-align: right;
+  }
+  
+  /* Registrations mobile */
   .registrations-table-header {
     display: none;
   }
@@ -8321,48 +8639,16 @@ export default {
     margin-top: 0.3rem;
   }
   
-  /* Stall Performance - Mobile alignment */
-  .performance-table-row > span {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
+  /* Controls row mobile */
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
   }
   
-  .performance-table-row > span::before {
-    content: attr(data-label);
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    min-width: 60px;
-    flex-shrink: 0;
-    text-align: left;
-  }
-  
-  .performance-table-row > span {
-    text-align: right;
-  }
-  
-  /* Revenue Table - Mobile alignment */
-  .revenue-table-row > span {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-  }
-  
-  .revenue-table-row > span::before {
-    content: attr(data-label);
-    font-weight: 600;
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    min-width: 60px;
-    flex-shrink: 0;
-    text-align: left;
-  }
-  
-  .revenue-table-row > span {
-    text-align: right;
+  .action-buttons {
+    margin-left: 0;
+    justify-content: center;
   }
   
   /* Recipe section mobile */
