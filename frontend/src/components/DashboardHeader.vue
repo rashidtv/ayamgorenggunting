@@ -108,17 +108,38 @@ export default {
   border-color: var(--primary);
 }
 
+/* ============================================ */
+/* USER BADGE - FIXED VISIBILITY                */
+/* ============================================ */
 .user-badge {
-  background: var(--primary-gradient);
-  color: white;
+  /* ✅ Corporate color - always visible */
+  background: #F94908 !important;
+  color: #ffffff !important;
   padding: 0.2rem 0.7rem;
   border-radius: var(--radius-xl);
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1px solid #F94908;
 }
 
+/* ✅ Dark mode - keep same corporate color */
+.dark-mode .user-badge {
+  background: #F94908 !important;
+  color: #ffffff !important;
+  border-color: #F94908;
+}
+
+/* ✅ Hover effect */
+.user-badge:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* ============================================ */
+/* LOGOUT BUTTON                                */
+/* ============================================ */
 .logout-btn {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -136,9 +157,9 @@ export default {
 }
 
 .logout-btn:hover {
-  background: var(--error);
+  background: #ef4444;
   color: white;
-  border-color: var(--error);
+  border-color: #ef4444;
 }
 
 /* ============================================ */
