@@ -1565,12 +1565,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================
-// STALL SALES TREND ROUTE (NEW - Single Source of Truth)
+// STALL SALES TREND ROUTE (FIXED - Week Filtering)
 // ============================================
 
 app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
   try {
-    const { stallId, days = 30 } = req.query;
+    const { stallId, days = 30, period } = req.query;
     
     if (!stallId) {
       return res.status(400).json({ error: 'stallId is required' });
@@ -1589,7 +1589,91 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
     
     const daysNum = parseInt(days) || 30;
     
-    // Query sales table directly - this is the SINGLE SOURCE OF TRUTH
+    // ===== BUILD THE DATE FILTER =====
+    let dateFilter = '';
+    const params = [targetStallId];
+    let paramIndex = 2;
+    
+    if (period === 'week') {
+      // Current week: Monday to Sunday
+      const now = new Date();
+      const currentDay = now.getUTCDay();
+      const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
+      const monday = new Date(now);
+      monday.setUTCDate(now.getUTCDate() - daysToMonday);
+      monday.setUTCHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
+      sunday.setUTCHours(23, 59, 59, 999);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(monday.toISOString(), sunday.toISOString());
+      paramIndex += 2;
+      
+      console.log(`📊 Week filter: ${monday.toISOString().split('T')[0]} to ${sunday.toISOString().split('T')[0]}`);
+    } else if (period === 'today') {
+      // Today
+      const now = new Date();
+      const today = new Date(now);
+      today.setUTCHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at < $${paramIndex + 1}`;
+      params.push(today.toISOString(), tomorrow.toISOString());
+      paramIndex += 2;
+    } else if (period === 'month') {
+      // Current month
+      const now = new Date();
+      const startOfMonth = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
+      const endOfMonth = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0);
+      endOfMonth.setUTCHours(23, 59, 59, 999);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(startOfMonth.toISOString(), endOfMonth.toISOString());
+      paramIndex += 2;
+    } else if (period === 'quarter') {
+      // Current quarter
+      const now = new Date();
+      const quarter = Math.floor(now.getUTCMonth() / 3);
+      const startOfQuarter = new Date(now.getUTCFullYear(), quarter * 3, 1);
+      const endOfQuarter = new Date(now.getUTCFullYear(), quarter * 3 + 3, 0);
+      endOfQuarter.setUTCHours(23, 59, 59, 999);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(startOfQuarter.toISOString(), endOfQuarter.toISOString());
+      paramIndex += 2;
+    } else if (period === 'year') {
+      // Current year
+      const now = new Date();
+      const startOfYear = new Date(now.getUTCFullYear(), 0, 1);
+      const endOfYear = new Date(now.getUTCFullYear() + 1, 0, 0);
+      endOfYear.setUTCHours(23, 59, 59, 999);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(startOfYear.toISOString(), endOfYear.toISOString());
+      paramIndex += 2;
+    } else if (period === 'custom') {
+      // Custom range - use days parameter
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setUTCDate(now.getUTCDate() - daysNum);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(startDate.toISOString(), now.toISOString());
+      paramIndex += 2;
+    } else {
+      // Default: last N days
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setUTCDate(now.getUTCDate() - daysNum);
+      
+      dateFilter = `AND created_at >= $${paramIndex} AND created_at <= $${paramIndex + 1}`;
+      params.push(startDate.toISOString(), now.toISOString());
+      paramIndex += 2;
+    }
+    
+    // Query sales table with proper date filtering
     const query = `
       SELECT 
         DATE(created_at) as date,
@@ -1597,20 +1681,21 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
         COUNT(*) as items
       FROM sales
       WHERE stall_id = $1
-        AND created_at >= NOW() - INTERVAL '${daysNum} days'
+        ${dateFilter}
       GROUP BY DATE(created_at)
       ORDER BY date ASC
     `;
     
-    const result = await pool.query(query, [targetStallId]);
+    const result = await pool.query(query, params);
     
-    console.log(`📊 Stall ${targetStallId} sales trend: ${result.rows.length} days, ${daysNum} days range`);
+    console.log(`📊 Stall ${targetStallId} sales trend: ${result.rows.length} days, period: ${period || 'default'}`);
     
     res.json({
       success: true,
       data: result.rows,
       stallId: targetStallId,
       days: daysNum,
+      period: period || 'default',
       totalRevenue: result.rows.reduce((sum, row) => sum + parseFloat(row.revenue || 0), 0)
     });
     
