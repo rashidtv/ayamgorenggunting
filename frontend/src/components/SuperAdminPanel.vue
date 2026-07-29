@@ -5097,26 +5097,32 @@ groupByMonth(salesData) {
     // =============================================
     // STALL PERFORMANCE
     // =============================================
-    async loadStallPerformance() {
-      const stallIds = this.stalls.map(s => s.id)
-      if (!stallIds || stallIds.length === 0) {
-        this.stallPerformance = []
-        return
-      }
-      
-      try {
-        const days = this.getPeriodDays()
-        const res = await axios.get(
-          `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${this.token}` } }
-        )
-        this.stallPerformance = this.mergeStallData(res.data || [])
-        console.log('✅ Stall performance loaded:', this.stallPerformance.length)
-      } catch (err) {
-        console.error('Failed to load stall performance:', err)
-        this.stallPerformance = []
-      }
-    },
+  // In your loadStallPerformance method, ensure proper sorting
+async loadStallPerformance() {
+  const stallIds = this.stalls.map(s => s.id)
+  if (!stallIds || stallIds.length === 0) {
+    this.stallPerformance = []
+    return
+  }
+  
+  try {
+    const days = this.getPeriodDays()
+    const res = await axios.get(
+      `${API_BASE}/stall-performance?days=${days}&stallIds=${stallIds.join(',')}`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    )
+    
+    // Merge and sort by revenue (highest first)
+    this.stallPerformance = this.mergeStallData(res.data || [])
+      .sort((a, b) => b.revenue - a.revenue) // ← CRITICAL: Sort by revenue
+    
+    console.log('✅ Stall performance loaded:', this.stallPerformance.length)
+    console.log('✅ Top stall:', this.stallPerformance[0]?.name, 'Revenue:', this.stallPerformance[0]?.revenue)
+  } catch (err) {
+    console.error('Failed to load stall performance:', err)
+    this.stallPerformance = []
+  }
+},
 
     mergeStallData(performanceData) {
       return this.stalls.map(stall => {
@@ -7352,7 +7358,6 @@ groupByMonth(salesData) {
       }
     },
 
-   // ===== FIXED: Stall Detail Chart - Uses same grouping as dashboard =====
 initStallDetailChart(stallId, period = 'week') {
   if (!this.$refs.stallDetailChartRef) return
 
@@ -7409,13 +7414,14 @@ initStallDetailChart(stallId, period = 'week') {
     const data = response.data || {}
     let salesData = data.dailySales || []
 
-    console.log('📊 Stall detail raw data:', salesData.length, 'records')
+    console.log(`📊 Stall ${stallId} detail raw data:`, salesData.length, 'records')
     console.log('📊 Period:', period, 'Grouping:', grouping)
 
+    // ===== CRITICAL: If NO data at all, show "No sales" message =====
     if (!salesData || salesData.length === 0) {
       const option = {
         title: {
-          text: `No sales data for ${this.getPeriodLabel()}`,
+          text: '📊 No sales data for this stall',
           left: 'center',
           top: 'center',
           textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
@@ -7429,13 +7435,14 @@ initStallDetailChart(stallId, period = 'week') {
     // ===== GROUP THE DATA =====
     let groupedData = this.groupSalesData(salesData, grouping, period)
     
-    // ===== CHECK IF THERE'S ACTUAL REVENUE =====
+    // ===== CRITICAL: Check if this SPECIFIC stall has revenue =====
     const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
     
+    // ===== If NO revenue for this stall, show "No sales" message =====
     if (!hasRevenue) {
       const option = {
         title: {
-          text: '📊 No sales revenue for this period',
+          text: '📊 No sales revenue for this stall',
           left: 'center',
           top: 'center',
           textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
@@ -7492,7 +7499,6 @@ initStallDetailChart(stallId, period = 'week') {
           
           let tooltipLabel = dateLabel
           
-          // For week periods, show full date
           if (period === 'week' && groupedData[index]) {
             const fullDate = new Date(groupedData[index].date)
             tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
