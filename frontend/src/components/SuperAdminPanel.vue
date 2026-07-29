@@ -7453,219 +7453,236 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'custom' ? this.customDays || 30 :
                30
 
-  // ===== USE STALL-PERFORMANCE API INSTEAD =====
-  // This API returns data per stall with revenue and items
-  axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
+  let grouping
+  if (period === 'today') grouping = 'hour'
+  else if (period === 'week') grouping = 'day'
+  else if (period === 'month') grouping = 'week'
+  else if (period === 'quarter' || period === 'halfyear' || period === 'year') grouping = 'month'
+  else if (period === 'custom') {
+    const customDays = this.customDays || 30
+    if (customDays <= 14) grouping = 'day'
+    else if (customDays <= 60) grouping = 'week'
+    else grouping = 'month'
+  } else grouping = 'day'
+
+  // ===== USE THE SAME API AS DASHBOARD =====
+  axios.get(`${API_BASE}/sales-analytics?days=${days}`, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
-    const stallData = response.data || []
-    
-    console.log(`📊 Stall ${stallId} performance data:`, stallData)
+    const data = response.data || {}
+    let allSalesData = data.dailySales || []
 
-    // ===== Check if this stall has data =====
-    if (!stallData || stallData.length === 0) {
-      const option = {
-        title: {
-          text: '📊 No sales data for this stall',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-        }
+    console.log(`📊 Total sales records:`, allSalesData.length)
+
+    // ===== FILTER BY STALL ID =====
+    // The sales-analytics API might not have stall_id
+    // If not, we need to get stall-specific data from the performance table
+    let salesData = allSalesData.filter(item => {
+      // If the data has stall_id, filter by it
+      if (item.stall_id !== undefined) {
+        return item.stall_id === stallId
       }
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-      return
-    }
-
-    // Get the specific stall's data
-    const stallInfo = stallData[0]
-    const revenue = parseFloat(stallInfo.revenue) || 0
-    const items = parseInt(stallInfo.items_sold) || 0
-
-    if (revenue === 0) {
-      const option = {
-        title: {
-          text: '📊 No sales revenue for this stall',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-        }
-      }
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-      return
-    }
-
-    // ===== Now fetch the daily sales trend for this specific stall =====
-    // Since the main API doesn't support stall filtering, we need to get 
-    // the stall's transactions and aggregate them by day
-    return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
-      headers: { Authorization: `Bearer ${this.token}` }
+      // If not, we need to use a different approach
+      return false
     })
-  })
-  .then(transactionsResponse => {
-    if (!transactionsResponse) return
-    
-    const transactions = transactionsResponse.data || []
-    console.log(`📊 Transactions for stall:`, transactions.length)
 
-    // ===== Group transactions by date =====
-    const dailyData = {}
-    transactions.forEach(tx => {
-      const date = new Date(tx.created_at)
-      const dateKey = date.toISOString().split('T')[0]
+    // ===== IF FILTERING DIDN'T WORK, USE STALL PERFORMANCE DATA =====
+    if (salesData.length === 0) {
+      console.log('📊 No stall_id in sales data, using stall performance data')
       
-      if (!dailyData[dateKey]) {
-        dailyData[dateKey] = {
-          date: dateKey,
-          revenue: 0,
-          items: 0
-        }
-      }
-      dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
-      dailyData[dateKey].items += parseInt(tx.item_count) || 0
-    })
-
-    let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
-    
-    console.log(`📊 Daily sales for stall ${stallId}:`, salesData)
-
-    if (!salesData || salesData.length === 0) {
-      const option = {
-        title: {
-          text: '📊 No daily sales data for this stall',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-        }
-      }
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-      return
-    }
-
-    // ===== GROUP DATA BY PERIOD =====
-    let grouping
-    if (period === 'today') grouping = 'hour'
-    else if (period === 'week') grouping = 'day'
-    else if (period === 'month') grouping = 'week'
-    else if (period === 'quarter' || period === 'halfyear' || period === 'year') grouping = 'month'
-    else if (period === 'custom') {
-      const customDays = this.customDays || 30
-      if (customDays <= 14) grouping = 'day'
-      else if (customDays <= 60) grouping = 'week'
-      else grouping = 'month'
-    } else grouping = 'day'
-
-    let groupedData = this.groupSalesData(salesData, grouping, period)
-    
-    const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
-    
-    if (!hasRevenue) {
-      const option = {
-        title: {
-          text: '📊 No sales revenue for this period',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-        }
-      }
-      this.stallDetailChartInstance.setOption(option)
-      this.stallDetailChartInstance.resize()
-      return
-    }
-
-    // ===== GENERATE LABELS =====
-    const chartLabels = groupedData.map(item => {
-      if (period === 'today') return this.formatHourLabel(item.date)
-      else if (period === 'week') return this.formatDayLabel(item.date)
-      else if (period === 'month') return this.formatWeekRangeLabel(item.date)
-      else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-        return this.formatMonthLabel(item.date)
-      } else if (period === 'custom') {
-        const customDays = this.customDays || 30
-        if (customDays <= 14) return this.formatDayLabel(item.date)
-        else if (customDays <= 60) return this.formatWeekRangeLabel(item.date)
-        else return this.formatMonthLabel(item.date)
-      }
-      return item.label || item.date
-    })
-    
-    const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
-    const items = groupedData.map(d => parseInt(d.items) || 0)
-
-    console.log(`📊 Chart for stall ${stallId}:`, { labels: chartLabels, revenues })
-
-    // ===== CREATE CHART =====
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        padding: [8, 12],
-        textStyle: { color: '#1e293b', fontSize: 12 },
-        formatter: function(params) {
-          const index = params[0]?.dataIndex || 0
-          const revenue = parseFloat(revenues[index]) || 0
-          const itemsCount = parseInt(items[index]) || 0
-          return `
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
-            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-              RM ${revenue.toFixed(2)}
-            </div>
-            <div style="font-size:11px;color:#64748b;">${itemsCount} items sold</div>
-          `
-        }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '8%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: chartLabels,
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          fontWeight: 500,
-          rotate: chartLabels.length > 7 ? 30 : 0
-        }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          formatter: (value) => 'RM' + value
-        }
-      },
-      series: [{
-        type: 'bar',
-        data: revenues,
-        barWidth: '40%',
-        itemStyle: {
-          borderRadius: [4, 4, 0, 0],
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#F94908' },
-              { offset: 1, color: '#fa6a2e' }
-            ]
+      // Get the stall's performance data
+      return axios.get(`${API_BASE}/stall-performance?days=${days}&stallId=${stallId}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      .then(perfResponse => {
+        const perfData = perfResponse.data || []
+        console.log(`📊 Stall performance data:`, perfData)
+        
+        if (!perfData || perfData.length === 0 || parseFloat(perfData[0]?.revenue || 0) === 0) {
+          const option = {
+            title: {
+              text: '📊 No sales data for this stall',
+              left: 'center',
+              top: 'center',
+              textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+            }
           }
+          this.stallDetailChartInstance.setOption(option)
+          this.stallDetailChartInstance.resize()
+          return
         }
-      }]
-    }
 
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
+        // ===== GET TRANSACTIONS FOR DAILY BREAKDOWN =====
+        return axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}`, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        })
+        .then(txResponse => {
+          const transactions = txResponse.data || []
+          console.log(`📊 Transactions for stall ${stallId}:`, transactions.length)
+
+          if (transactions.length === 0) {
+            const option = {
+              title: {
+                text: '📊 No transactions for this period',
+                left: 'center',
+                top: 'center',
+                textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+              }
+            }
+            this.stallDetailChartInstance.setOption(option)
+            this.stallDetailChartInstance.resize()
+            return
+          }
+
+          // ===== GROUP TRANSACTIONS BY DATE =====
+          const dailyData = {}
+          transactions.forEach(tx => {
+            const date = new Date(tx.created_at)
+            // Use Malaysia time
+            const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+            const dateKey = malaysiaDate.toISOString().split('T')[0]
+            
+            if (!dailyData[dateKey]) {
+              dailyData[dateKey] = {
+                date: dateKey,
+                revenue: 0,
+                items: 0
+              }
+            }
+            dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
+            dailyData[dateKey].items += parseInt(tx.item_count) || 0
+          })
+
+          let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
+          
+          console.log(`📊 Daily sales for stall ${stallId}:`, salesData)
+          console.log(`📊 Total revenue from transactions:`, salesData.reduce((sum, d) => sum + d.revenue, 0))
+
+          // ===== CHECK IF REVENUE MATCHES =====
+          const totalRevenue = salesData.reduce((sum, d) => sum + d.revenue, 0)
+          const perfRevenue = parseFloat(perfData[0]?.revenue || 0)
+          
+          if (Math.abs(totalRevenue - perfRevenue) > 1) {
+            console.warn(`⚠️ Revenue mismatch: Transactions=${totalRevenue}, Performance=${perfRevenue}`)
+          }
+
+          // ===== GROUP DATA BY PERIOD =====
+          let groupedData = this.groupSalesData(salesData, grouping, period)
+          
+          const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
+          
+          if (!hasRevenue) {
+            const option = {
+              title: {
+                text: '📊 No sales revenue for this period',
+                left: 'center',
+                top: 'center',
+                textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+              }
+            }
+            this.stallDetailChartInstance.setOption(option)
+            this.stallDetailChartInstance.resize()
+            return
+          }
+
+          // ===== GENERATE LABELS =====
+          const chartLabels = groupedData.map(item => {
+            if (period === 'today') return this.formatHourLabel(item.date)
+            else if (period === 'week') return this.formatDayLabel(item.date)
+            else if (period === 'month') return this.formatWeekRangeLabel(item.date)
+            else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+              return this.formatMonthLabel(item.date)
+            } else if (period === 'custom') {
+              const customDays = this.customDays || 30
+              if (customDays <= 14) return this.formatDayLabel(item.date)
+              else if (customDays <= 60) return this.formatWeekRangeLabel(item.date)
+              else return this.formatMonthLabel(item.date)
+            }
+            return item.label || item.date
+          })
+          
+          const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
+          const items = groupedData.map(d => parseInt(d.items) || 0)
+
+          console.log(`📊 Chart for stall ${stallId}:`, { 
+            labels: chartLabels, 
+            revenues: revenues,
+            total: revenues.reduce((a, b) => a + b, 0)
+          })
+
+          // ===== CREATE CHART =====
+          const option = {
+            tooltip: {
+              trigger: 'axis',
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderColor: '#e2e8f0',
+              borderWidth: 1,
+              padding: [8, 12],
+              textStyle: { color: '#1e293b', fontSize: 12 },
+              formatter: function(params) {
+                const index = params[0]?.dataIndex || 0
+                const revenue = parseFloat(revenues[index]) || 0
+                const itemsCount = parseInt(items[index]) || 0
+                return `
+                  <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
+                  <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+                    RM ${revenue.toFixed(2)}
+                  </div>
+                  <div style="font-size:11px;color:#64748b;">${itemsCount} items sold</div>
+                `
+              }
+            },
+            grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              top: '8%',
+              containLabel: true
+            },
+            xAxis: {
+              type: 'category',
+              data: chartLabels,
+              axisLine: { lineStyle: { color: '#e2e8f0' } },
+              axisLabel: { 
+                color: '#94a3b8', 
+                fontSize: 11,
+                fontWeight: 500,
+                rotate: chartLabels.length > 7 ? 30 : 0
+              }
+            },
+            yAxis: {
+              type: 'value',
+              splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+              axisLabel: { 
+                color: '#94a3b8', 
+                fontSize: 11,
+                formatter: (value) => 'RM' + value
+              }
+            },
+            series: [{
+              type: 'bar',
+              data: revenues,
+              barWidth: '40%',
+              itemStyle: {
+                borderRadius: [4, 4, 0, 0],
+                color: {
+                  type: 'linear',
+                  x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [
+                    { offset: 0, color: '#F94908' },
+                    { offset: 1, color: '#fa6a2e' }
+                  ]
+                }
+              }
+            }]
+          }
+
+          this.stallDetailChartInstance.setOption(option)
+          this.stallDetailChartInstance.resize()
+        })
+      })
+    }
   })
   .catch(err => {
     console.error('Failed to load stall detail chart data:', err)
