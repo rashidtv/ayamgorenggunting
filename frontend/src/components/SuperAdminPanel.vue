@@ -5837,32 +5837,37 @@ async loadStallPerformance() {
     // INVENTORY - FIXED
     // =============================================
     async loadAllStallsInventory() {
-      this.inventory = []
-      for (const stall of this.stalls) {
-        try {
-          const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          })
-          if (res.data && res.data.length > 0) {
-            const items = res.data.map(item => ({
-              ...item,
-              stall_id: stall.id,
-              current_level: Math.round(Number(item.current_level) || 0),
-              alert_level: Math.round(Number(item.alert_level) || 0)
-            }))
-            this.inventory = [...this.inventory, ...items]
-          }
-          this.stallInventory[stall.id] = res.data.map(item => ({
-            ...item,
-            newLevel: Math.round(Number(item.current_level) || 0)
-          }))
-        } catch (err) {
-          console.error(`Load inventory for stall ${stall.id} error:`, err)
-          this.stallInventory[stall.id] = []
-        }
+  this.inventory = []
+  
+  for (const stall of this.stalls) {
+    try {
+      const res = await axios.get(`${API_BASE}/inventory?stallId=${stall.id}`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      })
+      
+      if (res.data && res.data.length > 0) {
+        const items = res.data.map(item => ({
+          ...item,
+          stall_id: stall.id,
+          current_level: Math.round(Number(item.current_level) || 0),
+          alert_level: Math.round(Number(item.alert_level) || 0)
+        }))
+        this.inventory = [...this.inventory, ...items]
       }
-      console.log('✅ Inventory loaded:', this.inventory.length, 'items')
-    },
+      
+      this.stallInventory[stall.id] = res.data.map(item => ({
+        ...item,
+        newLevel: Math.round(Number(item.current_level) || 0)
+      }))
+      
+    } catch (err) {
+      console.error(`Load inventory for stall ${stall.id} error:`, err)
+      this.stallInventory[stall.id] = []
+    }
+  }
+  
+  console.log('✅ Inventory loaded:', this.inventory.length, 'items')
+},
 
     getStallInventory(stallId) {
       if (this.inventory && Array.isArray(this.inventory) && this.inventory.length > 0) {
@@ -5936,32 +5941,36 @@ async loadStallPerformance() {
     },
 
     async updateInventoryStock(stallId, materialName, newLevel) {
-      if (newLevel === undefined || newLevel === null || newLevel === '') {
-        this.$emit('show-notification', 'Please enter a valid value', 'error')
-        return
-      }
-      const roundedLevel = Math.round(Number(newLevel) || 0)
-      try {
-        await axios.post(`${API_BASE}/inventory/update`, {
-          stallId, 
-          materialName, 
-          newLevel: roundedLevel
-        }, {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
-        await this.loadAllStallsInventory()
-        await this.loadLowStock()
-        this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
-      } catch (err) {
-        console.error('Update inventory error:', err)
-        this.$emit('show-notification', 'Failed to update stock', 'error')
-      }
-    },
+  if (newLevel === undefined || newLevel === null || newLevel === '') {
+    this.$emit('show-notification', 'Please enter a valid value', 'error')
+    return
+  }
+  
+  const roundedLevel = Math.round(Number(newLevel) || 0)
+  
+  try {
+    await axios.post(`${API_BASE}/inventory/update`, {
+      stallId, 
+      materialName, 
+      newLevel: roundedLevel
+    }, {
+      headers: { Authorization: `Bearer ${this.token}` }  // ← Use this.token, not authStore
+    })
+    
+    await this.loadAllStallsInventory()
+    await this.loadLowStock()
+    
+    this.$emit('show-notification', `${materialName} updated to ${roundedLevel} pieces`, 'success')
+  } catch (err) {
+    console.error('Update inventory error:', err)
+    this.$emit('show-notification', 'Failed to update stock: ' + (err.response?.data?.error || err.message), 'error')
+  }
+},
 
     // =============================================
     // INVENTORY - BULK UPDATE (FIXED)
     // =============================================
-    openStallInventoryModal(stallId) {
+openStallInventoryModal(stallId) {
   const stall = this.stalls.find(s => s.id === stallId)
   if (!stall) return
   
@@ -6011,7 +6020,7 @@ async loadStallPerformance() {
   await this.loadAllStallsInventory()
 },
 
-   openBulkUpdateModal() {
+openBulkUpdateModal() {
   const materialSet = new Set()
   const stalls = this.bulkUpdateMode === 'all' 
     ? this.filteredInventoryStalls 
@@ -6024,7 +6033,7 @@ async loadStallPerformance() {
     })
   })
 
-  // If no materials found, add default
+  // If no materials found, add default Chicken
   if (materialSet.size === 0) {
     materialSet.add('Chicken')
   }
@@ -6076,7 +6085,7 @@ async loadStallPerformance() {
 },
 
     // ===== FIXED: Bulk Update with proper error handling =====
-    async executeBulkUpdate() {
+async executeBulkUpdate() {
   this.bulkUpdating = true
   
   const stalls = this.bulkUpdateMode === 'all' 
@@ -6144,7 +6153,7 @@ async loadStallPerformance() {
 },
 
     // ===== FIXED: Reset Low Stock with proper handling =====
-    async resetAllLowStock() {
+async resetAllLowStock() {
   // Find all low stock items
   let lowStockItems = []
   for (const stall of this.stalls) {
