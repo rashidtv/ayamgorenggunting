@@ -4387,14 +4387,39 @@ export default {
 groupSalesData(salesData, grouping, period) {
   if (!salesData || salesData.length === 0) return []
   
-  // ===== IF MONTH PERIOD AND LESS THAN 7 DAYS, SHOW INDIVIDUAL DAYS =====
-  if (period === 'month' && salesData.length <= 7) {
-    return salesData.map(item => ({
-      ...item,
-      label: this.formatDayLabel(item.date)
-    }))
+  // Month - Group by Week
+  if (period === 'month') {
+    return this.groupByWeek(salesData)
   }
   
+  // Quarter, Half Year, Year - Group by Month
+  if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+    return this.groupByMonth(salesData)
+  }
+  
+  // Today - Group by Hour
+  if (period === 'today') {
+    return this.groupByHour(salesData)
+  }
+  
+  // Week - Group by Day
+  if (period === 'week') {
+    return this.groupByDay(salesData)
+  }
+  
+  // Custom - Adaptive
+  if (period === 'custom') {
+    const customDays = this.customDays || 30
+    if (customDays <= 14) {
+      return this.groupByDay(salesData)
+    } else if (customDays <= 60) {
+      return this.groupByWeek(salesData)
+    } else {
+      return this.groupByMonth(salesData)
+    }
+  }
+  
+  // Fallback
   if (grouping === 'hour') {
     return this.groupByHour(salesData)
   } else if (grouping === 'day') {
@@ -4404,6 +4429,7 @@ groupSalesData(salesData, grouping, period) {
   } else if (grouping === 'month') {
     return this.groupByMonth(salesData)
   }
+  
   return salesData
 },
 
@@ -4440,36 +4466,38 @@ groupByDay(salesData) {
 groupByWeek(salesData) {
   if (!salesData || salesData.length === 0) return []
   
-  // ===== IF LESS THAN 7 DAYS, SHOW INDIVIDUAL DAYS =====
-  if (salesData.length <= 7) {
-    return salesData.map(item => ({
-      ...item,
-      label: this.formatDayLabel(item.date)
-    }))
-  }
-  
   const grouped = {}
+  
   salesData.forEach(item => {
     const date = new Date(item.date)
-    const weekStart = this.getWeekStart(date)
+    
+    // Get week start (Monday)
+    const day = date.getUTCDay()
+    const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1)
+    const weekStart = new Date(date)
+    weekStart.setUTCDate(diff)
+    weekStart.setUTCHours(0, 0, 0, 0)
+    
     const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 6)
+    weekEnd.setUTCHours(23, 59, 59, 999)
     
     const key = weekStart.toISOString().split('T')[0]
     
+    // Format label
+    const startDay = weekStart.getUTCDate()
+    const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+    const endDay = weekEnd.getUTCDate()
+    const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+    
+    let label
+    if (startMonth === endMonth) {
+      label = `${startDay}-${endDay} ${startMonth}`
+    } else {
+      label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+    }
+    
     if (!grouped[key]) {
-      const startDay = weekStart.getUTCDate()
-      const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-      const endDay = weekEnd.getUTCDate()
-      const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
-      
-      let label
-      if (startMonth === endMonth) {
-        label = `${startDay}-${endDay} ${startMonth}`
-      } else {
-        label = `${startDay} ${startMonth}-${endDay} ${endMonth}`
-      }
-      
       grouped[key] = {
         date: weekStart.toISOString(),
         label: label,
@@ -4487,26 +4515,35 @@ groupByWeek(salesData) {
 },
 
 groupByMonth(salesData) {
+  if (!salesData || salesData.length === 0) return []
+  
   const grouped = {}
+  
   salesData.forEach(item => {
     const date = new Date(item.date)
-    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01T00:00:00.000Z'
+    const month = date.getUTCMonth()
+    const year = date.getUTCFullYear()
+    const key = `${year}-${month}`
+    
     if (!grouped[key]) {
       const label = date.toLocaleDateString('en-MY', { 
         month: 'short', 
         year: 'numeric',
         timeZone: 'UTC'
       })
-      grouped[key] = { 
-        date: key, 
+      grouped[key] = {
+        date: `${year}-${String(month + 1).padStart(2, '0')}-01`,
         label: label,
-        revenue: 0, 
-        items: 0 
+        displayLabel: label,
+        revenue: 0,
+        items: 0
       }
     }
+    
     grouped[key].revenue += parseFloat(item.revenue) || 0
     grouped[key].items += parseInt(item.items) || 0
   })
+  
   return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date))
 },
 
