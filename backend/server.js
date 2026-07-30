@@ -1587,43 +1587,48 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied to this stall' });
     }
     
-    // ===== REUSE getDateRange() for consistent timezone handling =====
+    // ===== USE getDateRange() for consistent timezone =====
     const dateRange = getDateRange(days, period);
     console.log(`📊 Stall trend: ${dateRange.label} (${dateRange.type}) for stall ${targetStallId}`);
     
-    // ===== BUILD QUERY USING dateRange =====
-    const params = [targetStallId];
-    let paramIndex = 2;
+    // ===== Get start and end dates =====
+    const start = dateRange.startDate ? dateRange.startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const end = dateRange.endDate ? dateRange.endDate.toISOString() : new Date().toISOString();
     
-    // Use the same date condition builder as sales-analytics
-    const { condition, params: dateParams } = buildDateCondition(dateRange, paramIndex, 'sales');
+    // ===== QUERY WITH PROPER STALL FILTER =====
+    let query, params;
     
-    // Add date filter
-    params.push(...dateParams);
-    paramIndex += 2;
-    
-    // ===== FIX: Use DATE_TRUNC for today to get hourly data =====
-    let dateColumn;
-    if (dateRange.type === 'today') {
-      // For today, use hour-level grouping
-      dateColumn = `DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours')`;
+    if (period === 'today') {
+      // Hourly data for today (fixes the 12 AM issue)
+      query = `
+        SELECT 
+          DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') as date,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(*) as items
+        FROM sales
+        WHERE sales.stall_id = $1
+          AND sales.created_at >= $2
+          AND sales.created_at <= $3
+        GROUP BY DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours')
+        ORDER BY date ASC
+      `;
+      params = [targetStallId, start, end];
     } else {
-      // For other periods, use day-level grouping
-      dateColumn = `DATE(sales.created_at + INTERVAL '8 hours')`;
+      // Daily data for week, month, quarter, year
+      query = `
+        SELECT 
+          DATE(sales.created_at + INTERVAL '8 hours') as date,
+          COALESCE(SUM(sales.price), 0) as revenue,
+          COUNT(*) as items
+        FROM sales
+        WHERE sales.stall_id = $1
+          AND sales.created_at >= $2
+          AND sales.created_at <= $3
+        GROUP BY DATE(sales.created_at + INTERVAL '8 hours')
+        ORDER BY date ASC
+      `;
+      params = [targetStallId, start, end];
     }
-    
-    // Query sales table with proper date filtering
-    const query = `
-      SELECT 
-        ${dateColumn} as date,
-        COALESCE(SUM(sales.price), 0) as revenue,
-        COUNT(*) as items
-      FROM sales
-      WHERE sales.stall_id = $1
-        AND ${condition}
-      GROUP BY ${dateColumn}
-      ORDER BY date ASC
-    `;
     
     const result = await pool.query(query, params);
     
