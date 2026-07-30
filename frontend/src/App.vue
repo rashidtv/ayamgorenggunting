@@ -5260,7 +5260,7 @@ body {
     text-align: left !important;
   }
   
-  /* ===== LABELS LEFT, VALUES RIGHT (like Shift History) ===== */
+  /* ===== ALL CELLS: Label left, Value right ===== */
   .inventory-table-cell {
     display: flex !important;
     justify-content: space-between !important;
@@ -5270,6 +5270,7 @@ body {
     flex-shrink: 1 !important;
   }
   
+  /* ===== CHECKBOX: Keep left ===== */
   .inventory-table-cell.checkbox {
     justify-content: flex-start !important;
     padding-bottom: 0.3rem !important;
@@ -5287,18 +5288,25 @@ body {
     text-align: left !important;
   }
   
+  /* ===== STALL NAME: Label left, Value right with compact spacing ===== */
   .inventory-table-cell.name {
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
   }
   
-  .inventory-table-cell.name .stall-name,
-  .inventory-table-cell.name .stall-code {
+  .inventory-table-cell.name .stall-name {
     text-align: right !important;
-    flex: 1 !important;
+    margin-right: 4px !important;
   }
   
+  .inventory-table-cell.name .stall-code {
+    text-align: right !important;
+    margin-left: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* ===== STATE: Label left, Value right ===== */
   .inventory-table-cell.state::before {
     content: "State: " !important;
     font-weight: 600 !important;
@@ -5310,9 +5318,11 @@ body {
   }
   
   .inventory-table-cell.state {
+    justify-content: space-between !important;
     text-align: right !important;
   }
   
+  /* ===== ITEMS: Label LEFT, Values RIGHT ===== */
   .inventory-table-cell.items::before {
     content: "Items: " !important;
     font-weight: 600 !important;
@@ -5324,11 +5334,16 @@ body {
   }
   
   .inventory-table-cell.items {
-    justify-content: flex-end !important;
+    justify-content: space-between !important;
     flex-wrap: wrap !important;
     gap: 0.25rem !important;
   }
   
+  .inventory-table-cell.items .inventory-item-inline {
+    text-align: right !important;
+  }
+  
+  /* ===== STATUS: Label LEFT, Badge RIGHT ===== */
   .inventory-table-cell.status::before {
     content: "Status: " !important;
     font-weight: 600 !important;
@@ -5340,11 +5355,16 @@ body {
   }
   
   .inventory-table-cell.status {
-    justify-content: flex-end !important;
+    justify-content: space-between !important;
     flex-wrap: wrap !important;
     gap: 0.25rem !important;
   }
   
+  .inventory-table-cell.status .status-badge {
+    text-align: right !important;
+  }
+  
+  /* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
   .inventory-table-cell.actions::before {
     content: "Actions: " !important;
     font-weight: 600 !important;
@@ -5356,12 +5376,16 @@ body {
   }
   
   .inventory-table-cell.actions {
-    justify-content: flex-end !important;
+    justify-content: space-between !important;
     padding-top: 0.3rem !important;
     border-top: 1px solid var(--border-light) !important;
     margin-top: 0.3rem !important;
     flex-wrap: wrap !important;
     gap: 0.25rem !important;
+  }
+  
+  .inventory-table-cell.actions .btn-action {
+    text-align: right !important;
   }
 }
 
