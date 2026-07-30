@@ -5290,20 +5290,26 @@ body {
   
   /* ===== STALL NAME: Label left, Value right with compact spacing ===== */
   .inventory-table-cell.name {
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
   }
   
   .inventory-table-cell.name .stall-name {
-    text-align: right !important;
-    margin-right: 4px !important;
+    text-align: left !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
   }
   
   .inventory-table-cell.name .stall-code {
-    text-align: right !important;
-    margin-left: 0 !important;
-    flex-shrink: 0 !important;
+    text-align: left !important;
+    font-size: 0.55rem !important;
+    color: var(--text-tertiary) !important;
+    font-family: monospace !important;
+    padding-left: 60px !important;
+    display: block !important;
+    width: 100% !important;
+    margin-top: 0.1rem !important;
   }
   
   /* ===== STATE: Label left, Value right ===== */
