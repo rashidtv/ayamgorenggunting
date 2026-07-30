@@ -4705,15 +4705,23 @@
   },
 
       // ===== Label helpers for charts =====
-      formatHourLabel(dateStr) {
+formatHourLabel(dateStr) {
   if (!dateStr) return ''
+  
   try {
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return ''
+    // Parse the date string directly (same as sales overview chart)
+    const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+    if (!dateParts) {
+      // Fallback: try creating a date object
+      const date = new Date(dateStr)
+      if (isNaN(date.getTime())) return ''
+      const hour = date.getHours()
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hours12 = hour % 12 || 12
+      return `${hours12}:00 ${ampm}`
+    }
     
-    // Add 8 hours for Malaysia time (UTC+8)
-    const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-    const hour = malaysiaDate.getUTCHours()
+    const hour = parseInt(dateParts[4])
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const hours12 = hour % 12 || 12
     
