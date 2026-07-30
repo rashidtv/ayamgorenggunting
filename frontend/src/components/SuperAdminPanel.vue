@@ -8194,32 +8194,156 @@ initStallDetailChart(stallId, period = 'week') {
             padding: [6, 10],
             textStyle: { color: '#1e293b', fontSize: 11 },
             formatter: function(params) {
-              const index = params[0]?.dataIndex || 0
-              const revenue = data[index]?.revenue || 0
-              const itemsCount = data[index]?.items || 0
-              const dateStr = data[index]?.date || data[index]?.label || ''
-              let formattedDate = dateStr
-              if (dateStr && !dateStr.includes('W')) {
-                const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
-                if (dateParts) {
-                  const date = new Date(Date.UTC(
-                    parseInt(dateParts[1]),
-                    parseInt(dateParts[2]) - 1,
-                    parseInt(dateParts[3])
-                  ))
-                  formattedDate = date.toLocaleDateString('en-MY', { 
-                    timeZone: 'Asia/Kuala_Lumpur',
-                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-                  })
-                }
-              }
-              return `
-                <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;">${formattedDate}</div>
-                <div style="color:#F94908;font-size:14px;font-weight:700;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
-                <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
-              `
-            }
-          },
+  const index = params[0]?.dataIndex || 0
+  const revenue = data[index]?.revenue || 0
+  const itemsCount = data[index]?.items || 0
+  const dateStr = data[index]?.date || data[index]?.label || ''
+  let formattedDate = dateStr
+  
+  // ✅ Use displayLabel if available (from grouped data)
+  if (data[index]?.displayLabel) {
+    formattedDate = data[index].displayLabel
+  } else if (dateStr && !dateStr.includes('W')) {
+    const isMonthView = this.selectedPeriod === 'month';
+    const isQuarterView = this.selectedPeriod === 'quarter';
+    const isHalfYearView = this.selectedPeriod === 'halfyear';
+    const isYearView = this.selectedPeriod === 'year';
+    const isCustomView = this.selectedPeriod === 'custom';
+    
+    // ===== QUARTER, HALF YEAR, YEAR: Show "Jul 2026" =====
+    if (isQuarterView || isHalfYearView || isYearView) {
+      const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
+      if (dateParts) {
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          1
+        ))
+        formattedDate = date.toLocaleDateString('en-MY', { 
+          month: 'short', 
+          year: 'numeric',
+          timeZone: 'UTC'
+        })
+      }
+    } 
+    // ===== MONTH: Show "Jul 1-7" (week range) =====
+    else if (isMonthView) {
+      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+      if (dateParts) {
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          parseInt(dateParts[3])
+        ))
+        const weekStart = this.getWeekStart(date)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekEnd.getDate() + 6)
+        const startDay = weekStart.getUTCDate()
+        const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+        const endDay = weekEnd.getUTCDate()
+        const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+        if (startMonth === endMonth) {
+          formattedDate = `${startDay}-${endDay} ${startMonth}`
+        } else {
+          formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+        }
+      }
+    } 
+    // ===== CUSTOM: Auto-detect based on days =====
+    else if (isCustomView) {
+      const customDays = this.customDays || 30
+      if (customDays > 60) {
+        // Custom >60 days: show "Jul 2026"
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})/)
+        if (dateParts) {
+          const date = new Date(Date.UTC(
+            parseInt(dateParts[1]),
+            parseInt(dateParts[2]) - 1,
+            1
+          ))
+          formattedDate = date.toLocaleDateString('en-MY', { 
+            month: 'short', 
+            year: 'numeric',
+            timeZone: 'UTC'
+          })
+        }
+      } else if (customDays <= 14) {
+        // Custom <=14 days: show "Mon 15 Jul"
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+        if (dateParts) {
+          const date = new Date(Date.UTC(
+            parseInt(dateParts[1]),
+            parseInt(dateParts[2]) - 1,
+            parseInt(dateParts[3])
+          ))
+          formattedDate = date.toLocaleDateString('en-MY', { 
+            weekday: 'short',
+            day: 'numeric', 
+            month: 'short',
+            timeZone: 'UTC'
+          })
+        }
+      } else {
+        // Custom 15-60 days: show "Jul 1-7"
+        const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+        if (dateParts) {
+          const date = new Date(Date.UTC(
+            parseInt(dateParts[1]),
+            parseInt(dateParts[2]) - 1,
+            parseInt(dateParts[3])
+          ))
+          const weekStart = this.getWeekStart(date)
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekEnd.getDate() + 6)
+          const startDay = weekStart.getUTCDate()
+          const startMonth = weekStart.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          const endDay = weekEnd.getUTCDate()
+          const endMonth = weekEnd.toLocaleDateString('en-MY', { month: 'short', timeZone: 'UTC' })
+          if (startMonth === endMonth) {
+            formattedDate = `${startDay}-${endDay} ${startMonth}`
+          } else {
+            formattedDate = `${startDay} ${startMonth}-${endDay} ${endMonth}`
+          }
+        }
+      }
+    } 
+    // ===== TODAY: Show "4:00 PM" =====
+    else if (this.selectedPeriod === 'today') {
+      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+      if (dateParts) {
+        const hour = parseInt(dateParts[4])
+        const minute = parseInt(dateParts[5])
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const hours12 = hour % 12 || 12
+        const minutes = String(minute).padStart(2, '0')
+        formattedDate = `${hours12}:${minutes} ${ampm}`
+      }
+    } 
+    // ===== WEEK: Show "Mon 15 Jul" =====
+    else if (this.selectedPeriod === 'week') {
+      const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+      if (dateParts) {
+        const date = new Date(Date.UTC(
+          parseInt(dateParts[1]),
+          parseInt(dateParts[2]) - 1,
+          parseInt(dateParts[3])
+        ))
+        formattedDate = date.toLocaleDateString('en-MY', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short',
+          timeZone: 'UTC'
+        })
+      }
+    }
+  }
+  
+  return `
+    <div style="font-weight:500;margin-bottom:2px;font-size:10px;color:#94a3b8;letter-spacing:0.2px;">${formattedDate}</div>
+    <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
+    <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
+  `
+}.bind(this),
           grid: { left: chartWidth < 400 ? '5%' : '3%', right: chartWidth < 400 ? '5%' : '4%',
             bottom: '12%', top: '8%', containLabel: true },
           xAxis: {
