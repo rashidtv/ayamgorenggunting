@@ -8343,7 +8343,7 @@ initStallDetailChart(stallId, period = 'week') {
     <div style="color:#F94908;font-size:14px;font-weight:700;line-height:1.3;">${new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(revenue)}</div>
     <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${itemsCount} items sold</div>
   `
-}.bind(this),
+}.bind(this),},
           grid: { left: chartWidth < 400 ? '5%' : '3%', right: chartWidth < 400 ? '5%' : '4%',
             bottom: '12%', top: '8%', containLabel: true },
           xAxis: {
