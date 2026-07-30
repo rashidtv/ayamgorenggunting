@@ -7623,13 +7623,7 @@
       // =============================================
       // STALL DETAILS - FIXED
       // =============================================
-      viewStallDetails(stall) {
-  // ✅ Only show modal if there's sales data
-  if (!stall.revenue || stall.revenue === 0) {
-    this.$emit('show-notification', `📊 No sales data for ${stall.name} in ${this.getPeriodLabel()}`, 'info')
-    return
-  }
-  
+viewStallDetails(stall) {
   this.selectedStall = stall
   this.stallDetailModal = true
   this.selectedStallId = stall.id
@@ -7637,6 +7631,7 @@
   this.fetchStallDetails(stall.id, this.selectedPeriod)
   
   this.$nextTick(() => {
+    // ✅ Always initialize chart - it will show "No sales data" if empty
     this.initStallDetailChart(stall.id, this.selectedPeriod)
   })
 },
