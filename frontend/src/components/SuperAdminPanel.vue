@@ -4706,12 +4706,22 @@
 
       // ===== Label helpers for charts =====
       formatHourLabel(dateStr) {
-        const date = new Date(dateStr)
-        const hour = date.getUTCHours()
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const hours12 = hour % 12 || 12
-        return `${hours12}:00 ${ampm}`
-      },
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return ''
+    
+    // Add 8 hours for Malaysia time (UTC+8)
+    const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
+    const hour = malaysiaDate.getUTCHours()
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const hours12 = hour % 12 || 12
+    
+    return `${hours12}:00 ${ampm}`
+  } catch {
+    return ''
+  }
+},
 
       formatDayLabel(dateStr) {
         const date = new Date(dateStr)
@@ -7631,7 +7641,7 @@ viewStallDetails(stall) {
   this.fetchStallDetails(stall.id, this.selectedPeriod)
   
   this.$nextTick(() => {
-    // ✅ Only initialize chart if stall has sales in current period
+    // ✅ Only initialize chart if stall has sales
     if (stall.revenue && stall.revenue > 0) {
       this.initStallDetailChart(stall.id, this.selectedPeriod)
     } else {
@@ -7641,11 +7651,10 @@ viewStallDetails(stall) {
           this.stallDetailChartInstance.dispose()
           this.stallDetailChartInstance = null
         }
-        // Create a new instance with "No data" message
         this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
         this.stallDetailChartInstance.setOption({
           title: {
-            text: `📊 No sales for ${this.selectedPeriodLabel}`,
+            text: `📊 No sales for ${this.getPeriodLabel()}`,
             left: 'center',
             top: 'center',
             textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
@@ -7684,7 +7693,7 @@ viewStallDetails(stall) {
         }
       },
 
- initStallDetailChart(stallId, period = 'week') {
+initStallDetailChart(stallId, period = 'week') {
   if (!this.$refs.stallDetailChartRef) return
 
   if (this.stallDetailChartInstance) {
