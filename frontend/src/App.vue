@@ -5243,11 +5243,6 @@ body {
   }
 }
 
-/* ============================================ */
-/* INVENTORY TAB - MOBILE RESPONSIVE FIX        */
-/* Applies to both SuperAdmin & StallAdmin      */
-/* ============================================ */
-
 @media (max-width: 768px) {
   /* ===== FIX: Change "Item Name" to "Stall Name" ===== */
   .inventory-table-cell.name::before {
@@ -5288,10 +5283,10 @@ body {
     text-align: left !important;
   }
   
-  /* ===== STALL NAME: Label left, Value right with compact spacing ===== */
+  /* ===== STALL NAME: Keep column layout like desktop ===== */
   .inventory-table-cell.name {
     flex-direction: column !important;
-    align-items: stretch !important;
+    align-items: flex-start !important;
     justify-content: flex-start !important;
   }
   
