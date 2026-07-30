@@ -7433,27 +7433,28 @@ formatHourLabel(dateStr) {
       console.log(`📅 Today (Malaysia): ${malaysiaToday.toISOString().split('T')[0]}`);
       console.log(`📅 Today (UTC range): ${startDate.toISOString()} to ${endDate.toISOString()}`);
       
-    } else if (this.selectedPeriod === 'week') {
-      // ✅ Week: Monday to Sunday (Malaysia time)
-      const dayOfWeek = malaysiaNow.getDay();
-      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
-      
-      const monday = new Date(malaysiaNow);
-      monday.setDate(malaysiaNow.getDate() - daysToMonday);
-      monday.setHours(0, 0, 0, 0);
-      
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-      
-      // Convert to UTC
-      startDate = new Date(monday.getTime() - (8 * 60 * 60 * 1000));
-      endDate = new Date(sunday.getTime() - (8 * 60 * 60 * 1000));
-      
-      console.log(`📅 Week (Malaysia): ${monday.toISOString().split('T')[0]} to ${sunday.toISOString().split('T')[0]}`);
-      console.log(`📅 Week (UTC range): ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      
-    } else if (this.selectedPeriod === 'month') {
+    }  else if (this.selectedPeriod === 'week') {
+  // ✅ Week: Monday to Sunday (Malaysia time)
+  // Force the date to be interpreted in Malaysia timezone
+  const malaysiaNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+  const dayOfWeek = malaysiaNow.getDay();
+  const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+  
+  const monday = new Date(malaysiaNow);
+  monday.setDate(malaysiaNow.getDate() - daysToMonday);
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  // Convert to UTC for database query
+  startDate = new Date(monday.getTime() - (8 * 60 * 60 * 1000));
+  endDate = new Date(sunday.getTime() - (8 * 60 * 60 * 1000));
+  
+  console.log(`📅 Week (Malaysia): ${monday.toISOString().split('T')[0]} to ${sunday.toISOString().split('T')[0]}`);
+  console.log(`📅 Week (UTC range): ${startDate.toISOString()} to ${endDate.toISOString()}`);
+} else if (this.selectedPeriod === 'month') {
       // ✅ Month: 1st to last day (Malaysia time)
       const startOfMonth = new Date(malaysiaNow.getFullYear(), malaysiaNow.getMonth(), 1);
       const endOfMonth = new Date(malaysiaNow.getFullYear(), malaysiaNow.getMonth() + 1, 0);
