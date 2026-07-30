@@ -7385,121 +7385,221 @@ formatHourLabel(dateStr) {
       // SHIFT HISTORY (FIXED)
       // =============================================
       async loadShiftHistory() {
-        this.shiftHistoryLoading = true
+  this.shiftHistoryLoading = true;
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api';
+    
+    const userData = this.effectiveUser;
+    const assignedStalls = userData?.assigned_stalls || [];
+    
+    console.log('📊 loadShiftHistory - effectiveUser:', userData);
+    console.log('📊 loadShiftHistory - assignedStalls:', assignedStalls);
+    
+    // If no stalls assigned, try using all stalls
+    let stallsToFetch = assignedStalls.length > 0 ? assignedStalls : this.stalls;
+    
+    console.log('📊 stallsToFetch:', stallsToFetch);
+    
+    if (stallsToFetch.length === 0) {
+      this.shiftHistory = [];
+      this.shiftHistoryTotal = 0;
+      this.shiftHistoryLoading = false;
+      return;
+    }
+    
+    let allShifts = [];
+    let totalCount = 0;
+    
+    // =============================================
+    // ✅ FIX: Use Malaysia timezone (UTC+8)
+    // =============================================
+    const now = new Date();
+    const malaysiaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+    
+    let startDate = null;
+    let endDate = null;
+    
+    if (this.selectedPeriod === 'today') {
+      // ✅ Today: Malaysia time 00:00 to 23:59
+      const malaysiaToday = new Date(malaysiaNow);
+      malaysiaToday.setHours(0, 0, 0, 0);
+      
+      // Convert to UTC for database query
+      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(startDate);
+      endDate.setUTCDate(startDate.getUTCDate() + 1);
+      endDate.setUTCMilliseconds(-1);
+      
+      console.log(`📅 Today (Malaysia): ${malaysiaToday.toISOString().split('T')[0]}`);
+      console.log(`📅 Today (UTC range): ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      
+    } else if (this.selectedPeriod === 'week') {
+      // ✅ Week: Monday to Sunday (Malaysia time)
+      const dayOfWeek = malaysiaNow.getDay();
+      const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+      
+      const monday = new Date(malaysiaNow);
+      monday.setDate(malaysiaNow.getDate() - daysToMonday);
+      monday.setHours(0, 0, 0, 0);
+      
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      
+      // Convert to UTC
+      startDate = new Date(monday.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(sunday.getTime() - (8 * 60 * 60 * 1000));
+      
+      console.log(`📅 Week (Malaysia): ${monday.toISOString().split('T')[0]} to ${sunday.toISOString().split('T')[0]}`);
+      console.log(`📅 Week (UTC range): ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      
+    } else if (this.selectedPeriod === 'month') {
+      // ✅ Month: 1st to last day (Malaysia time)
+      const startOfMonth = new Date(malaysiaNow.getFullYear(), malaysiaNow.getMonth(), 1);
+      const endOfMonth = new Date(malaysiaNow.getFullYear(), malaysiaNow.getMonth() + 1, 0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      // Convert to UTC
+      startDate = new Date(startOfMonth.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(endOfMonth.getTime() - (8 * 60 * 60 * 1000));
+      
+      console.log(`📅 Month (Malaysia): ${startOfMonth.toISOString().split('T')[0]} to ${endOfMonth.toISOString().split('T')[0]}`);
+      
+    } else if (this.selectedPeriod === 'quarter') {
+      // ✅ Quarter: 1st day of quarter to last day (Malaysia time)
+      const quarter = Math.floor(malaysiaNow.getMonth() / 3);
+      const startOfQuarter = new Date(malaysiaNow.getFullYear(), quarter * 3, 1);
+      const endOfQuarter = new Date(malaysiaNow.getFullYear(), quarter * 3 + 3, 0);
+      endOfQuarter.setHours(23, 59, 59, 999);
+      
+      startDate = new Date(startOfQuarter.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(endOfQuarter.getTime() - (8 * 60 * 60 * 1000));
+      
+    } else if (this.selectedPeriod === 'halfyear') {
+      // ✅ Half Year: 1st day of half year to last day (Malaysia time)
+      const half = Math.floor(malaysiaNow.getMonth() / 6);
+      const startOfHalf = new Date(malaysiaNow.getFullYear(), half * 6, 1);
+      const endOfHalf = new Date(malaysiaNow.getFullYear(), half * 6 + 6, 0);
+      endOfHalf.setHours(23, 59, 59, 999);
+      
+      startDate = new Date(startOfHalf.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(endOfHalf.getTime() - (8 * 60 * 60 * 1000));
+      
+    } else if (this.selectedPeriod === 'year') {
+      // ✅ Year: 1st Jan to 31st Dec (Malaysia time)
+      const startOfYear = new Date(malaysiaNow.getFullYear(), 0, 1);
+      const endOfYear = new Date(malaysiaNow.getFullYear() + 1, 0, 0);
+      endOfYear.setHours(23, 59, 59, 999);
+      
+      startDate = new Date(startOfYear.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(endOfYear.getTime() - (8 * 60 * 60 * 1000));
+      
+    } else if (this.selectedPeriod === 'custom') {
+      // ✅ Custom: based on customDays
+      const days = this.customDays || 30;
+      const startOfCustom = new Date(malaysiaNow);
+      startOfCustom.setDate(malaysiaNow.getDate() - days + 1);
+      startOfCustom.setHours(0, 0, 0, 0);
+      
+      startDate = new Date(startOfCustom.getTime() - (8 * 60 * 60 * 1000));
+      endDate = new Date(malaysiaNow.getTime() - (8 * 60 * 60 * 1000));
+    }
+    
+    // =============================================
+    // Fetch shifts
+    // =============================================
+    
+    if (this.shiftHistoryStallFilter === 'all') {
+      for (const stall of stallsToFetch) {
         try {
-          const apiBase = import.meta.env.VITE_API_URL || 'https://agg-backend.onrender.com/api'
-          const stallIds = this.stalls.map(s => s.id)
-          if (stallIds.length === 0) {
-            this.shiftHistory = []
-            this.shiftHistoryTotal = 0
-            this.shiftHistoryLoading = false
-            return
+          let url = `${API_BASE_URL}/shifts/history?stallId=${stall.id}&limit=1000`;
+          
+          if (startDate && endDate) {
+            url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`;
           }
-          let allShifts = []
-          let totalCount = 0
-          const now = this.getTodayInMalaysia()
-          let startDate = null
-          let endDate = null
-          if (this.selectedPeriod === 'today') {
-            startDate = new Date(now)
-            startDate.setHours(0, 0, 0, 0)
-            endDate = new Date(now)
-            endDate.setHours(23, 59, 59, 999)
-          } else if (this.selectedPeriod === 'week') {
-            const dayOfWeek = now.getDay()
-            const daysToMonday = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1)
-            startDate = new Date(now)
-            startDate.setDate(now.getDate() - daysToMonday)
-            startDate.setHours(0, 0, 0, 0)
-            endDate = new Date(startDate)
-            endDate.setDate(startDate.getDate() + 6)
-            endDate.setHours(23, 59, 59, 999)
-          } else if (this.selectedPeriod === 'month') {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-            endDate.setHours(23, 59, 59, 999)
-          }
-          if (this.shiftHistoryStallFilter === 'all') {
-            for (const stall of this.stalls) {
-              try {
-                let url = `${apiBase}/shifts/history?stallId=${stall.id}&limit=1000`
-                if (startDate && endDate) {
-                  url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`
-                }
-                const res = await axios.get(url, {
-                  headers: { Authorization: `Bearer ${this.token}` }
-                })
-                const shifts = res.data.shifts || []
-                allShifts = [...allShifts, ...shifts]
-                totalCount += res.data.total || 0
-              } catch (err) {
-                console.warn(`Failed to load shifts for stall ${stall.id}:`, err.message)
-              }
-            }
-            allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at))
-            this.shiftHistory = allShifts
-            this.shiftHistoryTotal = totalCount
-          } else {
-            try {
-              let url = `${apiBase}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`
-              if (startDate && endDate) {
-                url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`
-              }
-              const res = await axios.get(url, {
-                headers: { Authorization: `Bearer ${this.token}` }
-              })
-              this.shiftHistory = res.data.shifts || []
-              this.shiftHistoryTotal = res.data.total || 0
-            } catch (err) {
-              console.warn(`Failed to load shifts for specific stall:`, err.message)
-              this.shiftHistory = []
-              this.shiftHistoryTotal = 0
-            }
-          }
-          // Process inventory data
-          this.shiftHistory = this.shiftHistory.map(shift => {
-            let openingInventory = {}
-            let closingInventory = {}
-            try {
-              openingInventory = typeof shift.opening_inventory === 'string' 
-                ? JSON.parse(shift.opening_inventory) 
-                : (shift.opening_inventory || {})
-            } catch { openingInventory = {} }
-            try {
-              closingInventory = typeof shift.closing_inventory === 'string' 
-                ? JSON.parse(shift.closing_inventory) 
-                : (shift.closing_inventory || {})
-            } catch { closingInventory = {} }
-            const inventoryUsage = {}
-            Object.keys(openingInventory).forEach(key => {
-              const opening = parseFloat(openingInventory[key]) || 0
-              const closing = parseFloat(closingInventory[key]) || 0
-              inventoryUsage[key] = Math.max(0, opening - closing)
-            })
-            return {
-              ...shift,
-              revenue: parseFloat(shift.revenue || shift.total_revenue || 0),
-              transaction_count: parseInt(shift.transaction_count || 0),
-              starting_float: parseFloat(shift.starting_float) || 0,
-              variance: parseFloat(shift.variance) || 0,
-              expected_cash: parseFloat(shift.expected_cash) || 0,
-              ending_cash: parseFloat(shift.ending_cash) || 0,
-              total_revenue: parseFloat(shift.revenue || 0),
-              opening_inventory: openingInventory,
-              closing_inventory: closingInventory,
-              inventory_usage: inventoryUsage,
-              has_inventory_data: Object.keys(openingInventory).length > 0 || Object.keys(closingInventory).length > 0
-            }
-          })
-          console.log('📊 Shift history loaded:', this.shiftHistory.length)
+          
+          const res = await axios.get(url, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          const shifts = res.data.shifts || [];
+          console.log(`📊 Found ${shifts.length} shifts for stall ${stall.name} (ID: ${stall.id})`);
+          allShifts = [...allShifts, ...shifts];
+          totalCount += res.data.total || 0;
         } catch (err) {
-          console.error('Failed to load shift history:', err)
-          this.shiftHistory = []
-          this.shiftHistoryTotal = 0
-        } finally {
-          this.shiftHistoryLoading = false
+          console.warn(`Failed to load shifts for stall ${stall.id}:`, err);
         }
-      },
+      }
+      
+      allShifts.sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+      this.shiftHistory = allShifts;
+      this.shiftHistoryTotal = totalCount;
+    } else {
+      try {
+        let url = `${API_BASE_URL}/shifts/history?stallId=${this.shiftHistoryStallFilter}&limit=1000`;
+        
+        if (startDate && endDate) {
+          url += `&from=${startDate.toISOString()}&to=${endDate.toISOString()}`;
+        }
+        
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+        this.shiftHistory = res.data.shifts || [];
+        this.shiftHistoryTotal = res.data.total || 0;
+      } catch (err) {
+        console.warn(`Failed to load shifts for specific stall:`, err);
+        this.shiftHistory = [];
+        this.shiftHistoryTotal = 0;
+      }
+    }
+    
+    // Process inventory data
+    this.shiftHistory = this.shiftHistory.map(shift => {
+      let openingInventory = {};
+      let closingInventory = {};
+      try {
+        openingInventory = typeof shift.opening_inventory === 'string' 
+          ? JSON.parse(shift.opening_inventory) 
+          : (shift.opening_inventory || {});
+      } catch { openingInventory = {}; }
+      try {
+        closingInventory = typeof shift.closing_inventory === 'string' 
+          ? JSON.parse(shift.closing_inventory) 
+          : (shift.closing_inventory || {});
+      } catch { closingInventory = {}; }
+      const inventoryUsage = {};
+      Object.keys(openingInventory).forEach(key => {
+        const opening = parseFloat(openingInventory[key]) || 0;
+        const closing = parseFloat(closingInventory[key]) || 0;
+        inventoryUsage[key] = Math.max(0, opening - closing);
+      });
+      return {
+        ...shift,
+        revenue: parseFloat(shift.revenue || shift.total_revenue || 0),
+        transaction_count: parseInt(shift.transaction_count || 0),
+        starting_float: parseFloat(shift.starting_float) || 0,
+        variance: parseFloat(shift.variance) || 0,
+        expected_cash: parseFloat(shift.expected_cash) || 0,
+        ending_cash: parseFloat(shift.ending_cash) || 0,
+        total_revenue: parseFloat(shift.revenue || 0),
+        opening_inventory: openingInventory,
+        closing_inventory: closingInventory,
+        inventory_usage: inventoryUsage,
+        has_inventory_data: Object.keys(openingInventory).length > 0 || Object.keys(closingInventory).length > 0
+      };
+    });
+    
+    console.log(`📊 Shift history loaded: ${this.shiftHistory.length}`);
+    console.log(`📊 Total shifts: ${this.shiftHistoryTotal}`);
+    
+  } catch (err) {
+    console.error('Failed to load shift history:', err);
+    this.shiftHistory = [];
+    this.shiftHistoryTotal = 0;
+  } finally {
+    this.shiftHistoryLoading = false;
+  }
+},
 
       getStallName(stallId) {
         const stall = this.stalls.find(s => s.id === stallId)
