@@ -1583,62 +1583,23 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
     
     // Check access
     const allowed = await userCanAccessStall(req.user.id, targetStallId);
-    if (!allowed && req.user.role !== 'super_admin' && req.user.role !== 'super_super_admin') {
+    if (!allowed) {
       return res.status(403).json({ error: 'Access denied to this stall' });
     }
     
-    // ===== SIMPLE DATE RANGE =====
-    let startDate, endDate;
-    const now = new Date();
+    // ===== REUSE getDateRange() for consistent timezone =====
+    const dateRange = getDateRange(days, period);
+    console.log(`📊 Stall trend: ${dateRange.label} (${dateRange.type}) for stall ${targetStallId}`);
     
-    if (period === 'today') {
-      const malaysiaToday = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
-      malaysiaToday.setHours(0, 0, 0, 0);
-      startDate = new Date(malaysiaToday.getTime() - (8 * 60 * 60 * 1000));
-      endDate = new Date(startDate);
-      endDate.setUTCDate(endDate.getUTCDate() + 1);
-      endDate.setUTCMilliseconds(-1);
-    } else if (period === 'week') {
-      const currentDay = now.getUTCDay();
-      const daysToMonday = (currentDay === 0) ? 6 : (currentDay - 1);
-      const monday = new Date(now);
-      monday.setUTCDate(now.getUTCDate() - daysToMonday);
-      monday.setUTCHours(0, 0, 0, 0);
-      startDate = monday;
-      endDate = new Date(monday);
-      endDate.setUTCDate(monday.getUTCDate() + 6);
-      endDate.setUTCHours(23, 59, 59, 999);
-    } else if (period === 'month') {
-      startDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
-      endDate = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0);
-      endDate.setUTCHours(23, 59, 59, 999);
-    } else if (period === 'quarter') {
-      const quarter = Math.floor(now.getUTCMonth() / 3);
-      startDate = new Date(now.getUTCFullYear(), quarter * 3, 1);
-      endDate = new Date(now.getUTCFullYear(), quarter * 3 + 3, 0);
-      endDate.setUTCHours(23, 59, 59, 999);
-    } else if (period === 'year') {
-      startDate = new Date(now.getUTCFullYear(), 0, 1);
-      endDate = new Date(now.getUTCFullYear() + 1, 0, 0);
-      endDate.setUTCHours(23, 59, 59, 999);
-    } else {
-      // Custom or default - last N days
-      const daysNum = parseInt(days) || 30;
-      startDate = new Date(now);
-      startDate.setUTCDate(now.getUTCDate() - daysNum);
-      endDate = new Date(now);
-    }
+    // ===== Get start and end dates =====
+    const start = dateRange.startDate ? dateRange.startDate.toISOString() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const end = dateRange.endDate ? dateRange.endDate.toISOString() : new Date().toISOString();
     
-    const start = startDate.toISOString();
-    const end = endDate.toISOString();
-    
-    console.log(`📊 Stall ${targetStallId}, period: ${period}, from ${start} to ${end}`);
-    
-    // ===== SIMPLE QUERY - NO buildDateCondition() =====
+    // ===== QUERY WITH PROPER STALL FILTER =====
     let query, params;
     
     if (period === 'today') {
-      // Hourly data for today
+      // Hourly data for today (fixes the 12 AM issue)
       query = `
         SELECT 
           DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours') as date,
@@ -1653,7 +1614,7 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
       `;
       params = [targetStallId, start, end];
     } else {
-      // Daily data for other periods
+      // Daily data for week, month, quarter, year
       query = `
         SELECT 
           DATE(sales.created_at + INTERVAL '8 hours') as date,
