@@ -1602,22 +1602,32 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
     params.push(...dateParams);
     paramIndex += 2;
     
+    // ===== FIX: Use DATE_TRUNC for today to get hourly data =====
+    let dateColumn;
+    if (dateRange.type === 'today') {
+      // For today, use hour-level grouping
+      dateColumn = `DATE_TRUNC('hour', sales.created_at + INTERVAL '8 hours')`;
+    } else {
+      // For other periods, use day-level grouping
+      dateColumn = `DATE(sales.created_at + INTERVAL '8 hours')`;
+    }
+    
     // Query sales table with proper date filtering
     const query = `
       SELECT 
-        DATE(sales.created_at + INTERVAL '8 hours') as date,
+        ${dateColumn} as date,
         COALESCE(SUM(sales.price), 0) as revenue,
         COUNT(*) as items
       FROM sales
       WHERE sales.stall_id = $1
         AND ${condition}
-      GROUP BY DATE(sales.created_at + INTERVAL '8 hours')
+      GROUP BY ${dateColumn}
       ORDER BY date ASC
     `;
     
     const result = await pool.query(query, params);
     
-    console.log(`📊 Stall ${targetStallId} sales trend: ${result.rows.length} days`);
+    console.log(`📊 Stall ${targetStallId} sales trend: ${result.rows.length} records`);
     
     res.json({
       success: true,
