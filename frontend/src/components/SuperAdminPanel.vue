@@ -7631,8 +7631,29 @@ viewStallDetails(stall) {
   this.fetchStallDetails(stall.id, this.selectedPeriod)
   
   this.$nextTick(() => {
-    // ✅ Always initialize chart - it will show "No sales data" if empty
-    this.initStallDetailChart(stall.id, this.selectedPeriod)
+    // ✅ Only initialize chart if stall has sales in current period
+    if (stall.revenue && stall.revenue > 0) {
+      this.initStallDetailChart(stall.id, this.selectedPeriod)
+    } else {
+      // Show empty state in chart container
+      if (this.$refs.stallDetailChartRef) {
+        if (this.stallDetailChartInstance) {
+          this.stallDetailChartInstance.dispose()
+          this.stallDetailChartInstance = null
+        }
+        // Create a new instance with "No data" message
+        this.stallDetailChartInstance = echarts.init(this.$refs.stallDetailChartRef)
+        this.stallDetailChartInstance.setOption({
+          title: {
+            text: `📊 No sales for ${this.selectedPeriodLabel}`,
+            left: 'center',
+            top: 'center',
+            textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+          }
+        })
+        this.stallDetailChartInstance.resize()
+      }
+    }
   })
 },
 
