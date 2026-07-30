@@ -7716,6 +7716,7 @@ initStallDetailChart(stallId, period = 'week') {
     return
   }
 
+  // ===== DETERMINE DAYS BASED ON PERIOD =====
   const days = period === 'today' ? 1 :
                period === 'week' ? 7 :
                period === 'month' ? 30 :
@@ -7725,10 +7726,33 @@ initStallDetailChart(stallId, period = 'week') {
                period === 'custom' ? this.customDays || 30 :
                30
 
-  // ✅ FORCE refresh with the correct stallId
+  // ===== DETERMINE GROUPING BASED ON PERIOD =====
+  let grouping
+  if (period === 'today') {
+    grouping = 'hour'
+  } else if (period === 'week') {
+    grouping = 'day'
+  } else if (period === 'month') {
+    grouping = 'week'  // ← Group by week (Mon-Sun)
+  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+    grouping = 'month'  // ← Group by month
+  } else if (period === 'custom') {
+    const customDays = this.customDays || 30
+    if (customDays <= 14) {
+      grouping = 'day'
+    } else if (customDays <= 60) {
+      grouping = 'week'
+    } else {
+      grouping = 'month'
+    }
+  } else {
+    grouping = 'day'
+  }
+
+  // ===== FETCH DATA USING stall-sales-trend =====
   const url = `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}&period=${period}`;
   
-  console.log(`📊 Fetching stall sales trend for stall ${stallId}, period: ${period}`);
+  console.log(`📊 Fetching stall sales trend for stall ${stallId}, period: ${period}, grouping: ${grouping}`);
   
   axios.get(url, {
     headers: { Authorization: `Bearer ${this.token}` }
@@ -7737,9 +7761,8 @@ initStallDetailChart(stallId, period = 'week') {
     const data = response.data || {};
     let salesData = data.data || [];
     
-    console.log(`📊 Fetched ${salesData.length} days from sales table for period: ${period}`);
+    console.log(`📊 Fetched ${salesData.length} records from sales table for period: ${period}`);
     
-    // ✅ If no data, show empty message
     if (!salesData || salesData.length === 0) {
       const option = {
         title: {
@@ -7754,8 +7777,37 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
-    // ✅ Check if there's any revenue for THIS stall
-    const hasRevenue = salesData.some(d => (d.revenue || 0) > 0)
+    // ===== GROUP THE DATA CORRECTLY =====
+    let groupedData = this.groupSalesData(salesData, grouping, period)
+    
+    // ===== GENERATE LABELS =====
+    const chartLabels = groupedData.map(item => {
+      if (period === 'today') {
+        return this.formatHourLabel(item.date)
+      } else if (period === 'week') {
+        return this.formatDayLabel(item.date)
+      } else if (period === 'month') {
+        return this.formatWeekRangeLabel(item.date)  // ← Shows "Jul 1-7", "Jul 8-14", etc.
+      } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+        return this.formatMonthLabel(item.date)  // ← Shows "Jul", "Aug", "Sep", etc.
+      } else if (period === 'custom') {
+        const customDays = this.customDays || 30
+        if (customDays <= 14) {
+          return this.formatDayLabel(item.date)
+        } else if (customDays <= 60) {
+          return this.formatWeekRangeLabel(item.date)
+        } else {
+          return this.formatMonthLabel(item.date)
+        }
+      }
+      return item.label || item.date
+    })
+    
+    const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
+    const items = groupedData.map(d => parseInt(d.items) || 0)
+    
+    // ===== CHECK IF THERE'S ANY REVENUE =====
+    const hasRevenue = revenues.some(r => r > 0)
     if (!hasRevenue) {
       const option = {
         title: {
@@ -7770,47 +7822,7 @@ initStallDetailChart(stallId, period = 'week') {
       return
     }
 
-    // ✅ Format the data for display
-    let chartLabels, revenues, items;
-    
-    if (period === 'today') {
-      // Hourly data
-      chartLabels = salesData.map(item => {
-        const date = new Date(item.date)
-        const hour = date.getUTCHours()
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const hours12 = hour % 12 || 12
-        return `${hours12}:00 ${ampm}`
-      })
-      revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-      items = salesData.map(d => parseInt(d.items) || 0)
-    } else if (period === 'week') {
-      // Daily data
-      chartLabels = salesData.map(item => {
-        const date = new Date(item.date)
-        return date.toLocaleDateString('en-MY', { 
-          weekday: 'short', 
-          day: 'numeric', 
-          month: 'short',
-          timeZone: 'UTC'
-        })
-      })
-      revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-      items = salesData.map(d => parseInt(d.items) || 0)
-    } else {
-      // Monthly/Quarterly/Yearly data
-      chartLabels = salesData.map(item => {
-        const date = new Date(item.date)
-        return date.toLocaleDateString('en-MY', { 
-          month: 'short', 
-          year: 'numeric',
-          timeZone: 'UTC'
-        })
-      })
-      revenues = salesData.map(d => parseFloat(d.revenue) || 0)
-      items = salesData.map(d => parseInt(d.items) || 0)
-    }
-
+    // ===== CREATE CHART =====
     const option = {
       tooltip: {
         trigger: 'axis',
@@ -7823,8 +7835,19 @@ initStallDetailChart(stallId, period = 'week') {
           const index = params[0]?.dataIndex || 0
           const revenue = parseFloat(revenues[index]) || 0
           const itemsCount = parseInt(items[index]) || 0
+          let label = chartLabels[index] || ''
+          
+          // Show full date in tooltip for week ranges
+          if (period === 'month' && groupedData[index]) {
+            const date = new Date(groupedData[index].date)
+            const weekStart = this.getWeekStart(date)
+            const weekEnd = new Date(weekStart)
+            weekEnd.setDate(weekEnd.getDate() + 6)
+            label = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+          }
+          
           return `
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${label}</div>
             <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
               RM ${revenue.toFixed(2)}
             </div>
@@ -7894,190 +7917,6 @@ initStallDetailChart(stallId, period = 'week') {
     this.stallDetailChartInstance.resize()
   })
 },
-
-  // ===== FIXED: Pass period parameter to backend =====
-  async fetchStallSalesTrend(stallId, days, period, grouping) {
-    try {
-      // Try the new API endpoint first with period parameter
-      const response = await axios.get(
-        `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}&period=${period}`,
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      )
-      
-      if (response.data && response.data.success) {
-        console.log(`📊 Fetched ${response.data.data.length} days from sales table for period: ${period}`)
-        return response.data.data
-      }
-      return null
-    } catch (err) {
-      // If endpoint doesn't exist, fall back to using sales table directly
-      console.warn('New API endpoint not available, using fallback...')
-      return null
-    }
-  },
-
-  // ===== FALLBACK METHOD: Use transactions (backward compatible) =====
-  fetchTransactionsFallback(stallId, days, period, grouping) {
-    // ===== FETCH WITH HIGH LIMIT TO GET ALL DATA =====
-    axios.get(`${API_BASE}/transactions?stallId=${stallId}&days=${days}&limit=10000`, {
-      headers: { Authorization: `Bearer ${this.token}` }
-    })
-    .then(response => {
-      const transactions = response.data || []
-      console.log(`📊 Fallback: ${transactions.length} transactions found`)
-      
-      if (transactions.length === 0) {
-        this.showNoDataMessage('📊 No transactions for this period')
-        return
-      }
-      
-      // ===== GROUP TRANSACTIONS BY DATE =====
-      const dailyData = {}
-      transactions.forEach(tx => {
-        const date = new Date(tx.created_at)
-        const malaysiaDate = new Date(date.getTime() + (8 * 60 * 60 * 1000))
-        const dateKey = malaysiaDate.toISOString().split('T')[0]
-        
-        if (!dailyData[dateKey]) {
-          dailyData[dateKey] = {
-            date: dateKey,
-            revenue: 0,
-            items: 0
-          }
-        }
-        dailyData[dateKey].revenue += parseFloat(tx.total_amount) || 0
-        dailyData[dateKey].items += parseInt(tx.item_count) || 0
-      })
-      
-      let salesData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date))
-      
-      // ===== GROUP DATA =====
-      let groupedData = this.groupSalesData(salesData, grouping, period)
-      
-      const hasRevenue = groupedData.some(d => (d.revenue || 0) > 0)
-      
-      if (!hasRevenue) {
-        this.showNoDataMessage('📊 No sales revenue from transactions')
-        return
-      }
-      
-      this.renderStallChart(groupedData, period)
-    })
-    .catch(err => {
-      console.error('Failed to load transactions fallback:', err)
-      this.showNoDataMessage('⚠️ Could not load sales data')
-    })
-  },
-
-  // ===== NEW METHOD: Show "No Data" message =====
-  showNoDataMessage(message) {
-    const option = {
-      title: {
-        text: message,
-        left: 'center',
-        top: 'center',
-        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
-      }
-    }
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-  },
-
-  // ===== NEW METHOD: Render the chart =====
-  renderStallChart(groupedData, period) {
-    // ===== GENERATE LABELS =====
-    const chartLabels = groupedData.map(item => {
-      if (period === 'today') return this.formatHourLabel(item.date)
-      else if (period === 'week') return this.formatDayLabel(item.date)
-      else if (period === 'month') return this.formatWeekRangeLabel(item.date)
-      else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-        return this.formatMonthLabel(item.date)
-      } else if (period === 'custom') {
-        const customDays = this.customDays || 30
-        if (customDays <= 14) return this.formatDayLabel(item.date)
-        else if (customDays <= 60) return this.formatWeekRangeLabel(item.date)
-        else return this.formatMonthLabel(item.date)
-      }
-      return item.label || item.date
-    })
-    
-    const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
-    const items = groupedData.map(d => parseInt(d.items) || 0)
-    
-    const totalRevenue = revenues.reduce((a, b) => a + b, 0)
-    
-    console.log(`📊 Chart: ${revenues.length} bars, Total: RM ${totalRevenue}`)
-    
-    // ===== CREATE CHART OPTION =====
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        padding: [8, 12],
-        textStyle: { color: '#1e293b', fontSize: 12 },
-        formatter: (params) => {
-          const index = params[0]?.dataIndex || 0
-          const revenue = parseFloat(revenues[index]) || 0
-          const itemsCount = parseInt(items[index]) || 0
-          return `
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
-            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-              RM ${revenue.toFixed(2)}
-            </div>
-            <div style="font-size:11px;color:#64748b;">${itemsCount} items sold</div>
-          `
-        }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '8%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: chartLabels,
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          fontWeight: 500,
-          rotate: chartLabels.length > 7 ? 30 : 0
-        }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
-        axisLabel: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          formatter: (value) => 'RM' + value
-        }
-      },
-      series: [{
-        type: 'bar',
-        data: revenues,
-        barWidth: '40%',
-        itemStyle: {
-          borderRadius: [4, 4, 0, 0],
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#F94908' },
-              { offset: 1, color: '#fa6a2e' }
-            ]
-          }
-        }
-      }]
-    }
-    
-    this.stallDetailChartInstance.setOption(option)
-    this.stallDetailChartInstance.resize()
-  },
 
       // =============================================
       // MENU ITEM DETAILS
