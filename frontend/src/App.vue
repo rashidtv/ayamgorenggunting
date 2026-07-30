@@ -5286,22 +5286,24 @@ body {
   /* ===== STALL NAME: Keep column layout like desktop ===== */
   .inventory-table-cell.name {
     flex-direction: column !important;
-    align-items: flex-start !important;
+    align-items: flex-end !important;    /* ← RIGHT align everything */
     justify-content: flex-start !important;
+    width: 100% !important;
   }
   
   .inventory-table-cell.name .stall-name {
-    text-align: left !important;
+    text-align: right !important;         /* ← RIGHT aligned */
     font-size: 0.85rem !important;
     font-weight: 500 !important;
+    color: var(--text) !important;
+    width: 100% !important;
   }
   
   .inventory-table-cell.name .stall-code {
-    text-align: left !important;
-    font-size: 0.55rem !important;
+    text-align: right !important;         /* ← RIGHT aligned */
+    font-size: 0.6rem !important;
     color: var(--text-tertiary) !important;
     font-family: monospace !important;
-    padding-left: 60px !important;
     display: block !important;
     width: 100% !important;
     margin-top: 0.1rem !important;
