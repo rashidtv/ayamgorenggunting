@@ -5252,7 +5252,8 @@ body {
     color: var(--text-secondary) !important;
     min-width: 60px !important;
     flex-shrink: 0 !important;
-    text-align: left !important;
+    text-align: left !important;      /* ← FORCE LEFT ALIGN */
+    align-self: flex-start !important; /* ← Keep label at top */
   }
   
   /* ===== ALL CELLS: Label left, Value right ===== */
@@ -5286,13 +5287,13 @@ body {
   /* ===== STALL NAME: Keep column layout like desktop ===== */
   .inventory-table-cell.name {
     flex-direction: column !important;
-    align-items: flex-end !important;    /* ← RIGHT align everything */
+    align-items: flex-end !important;    /* ← Values RIGHT */
     justify-content: flex-start !important;
     width: 100% !important;
   }
   
   .inventory-table-cell.name .stall-name {
-    text-align: right !important;         /* ← RIGHT aligned */
+    text-align: right !important;
     font-size: 0.85rem !important;
     font-weight: 500 !important;
     color: var(--text) !important;
@@ -5300,7 +5301,7 @@ body {
   }
   
   .inventory-table-cell.name .stall-code {
-    text-align: right !important;         /* ← RIGHT aligned */
+    text-align: right !important;
     font-size: 0.6rem !important;
     color: var(--text-tertiary) !important;
     font-family: monospace !important;
