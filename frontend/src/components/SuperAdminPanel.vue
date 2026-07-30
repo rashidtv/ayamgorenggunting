@@ -7624,14 +7624,22 @@
       // STALL DETAILS - FIXED
       // =============================================
       viewStallDetails(stall) {
-        this.selectedStall = stall
-        this.stallDetailModal = true
-        this.selectedStallId = stall.id
-        this.fetchStallDetails(stall.id, this.selectedPeriod)
-        this.$nextTick(() => {
-          this.initStallDetailChart(stall.id, this.selectedPeriod)
-        })
-      },
+  // ✅ Only show modal if there's sales data
+  if (!stall.revenue || stall.revenue === 0) {
+    this.$emit('show-notification', `📊 No sales data for ${stall.name} in ${this.getPeriodLabel()}`, 'info')
+    return
+  }
+  
+  this.selectedStall = stall
+  this.stallDetailModal = true
+  this.selectedStallId = stall.id
+  
+  this.fetchStallDetails(stall.id, this.selectedPeriod)
+  
+  this.$nextTick(() => {
+    this.initStallDetailChart(stall.id, this.selectedPeriod)
+  })
+},
 
       async fetchStallDetails(stallId, period = 'week') {
         try {
