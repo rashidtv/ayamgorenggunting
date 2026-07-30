@@ -5242,4 +5242,158 @@ body {
     padding: 0.3rem !important;
   }
 }
+
+/* ============================================ */
+/* INVENTORY TAB - MOBILE RESPONSIVE FIX        */
+/* Applies to both SuperAdmin & StallAdmin      */
+/* ============================================ */
+
+@media (max-width: 768px) {
+  /* ===== FIX: Change "Item Name" to "Stall Name" ===== */
+  .inventory-table-cell.name::before {
+    content: "Stall Name: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  /* ===== LABELS LEFT, VALUES RIGHT (like Shift History) ===== */
+  .inventory-table-cell {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    flex-shrink: 1 !important;
+  }
+  
+  .inventory-table-cell.checkbox {
+    justify-content: flex-start !important;
+    padding-bottom: 0.3rem !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    margin-bottom: 0.3rem !important;
+  }
+  
+  .inventory-table-cell.checkbox::before {
+    content: "Select: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .inventory-table-cell.name {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
+  .inventory-table-cell.name .stall-name,
+  .inventory-table-cell.name .stall-code {
+    text-align: right !important;
+    flex: 1 !important;
+  }
+  
+  .inventory-table-cell.state::before {
+    content: "State: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .inventory-table-cell.state {
+    text-align: right !important;
+  }
+  
+  .inventory-table-cell.items::before {
+    content: "Items: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .inventory-table-cell.items {
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+  }
+  
+  .inventory-table-cell.status::before {
+    content: "Status: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .inventory-table-cell.status {
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+  }
+  
+  .inventory-table-cell.actions::before {
+    content: "Actions: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .inventory-table-cell.actions {
+    justify-content: flex-end !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin-top: 0.3rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+  }
+}
+
+/* ===== EVEN SMALLER SCREENS ===== */
+@media (max-width: 480px) {
+  .inventory-table-cell::before {
+    font-size: 0.6rem !important;
+    min-width: 50px !important;
+  }
+  
+  .inventory-table-cell .stall-name {
+    font-size: 0.75rem !important;
+  }
+  
+  .inventory-table-cell .stall-code {
+    font-size: 0.55rem !important;
+  }
+  
+  .inventory-item-inline {
+    font-size: 0.55rem !important;
+    padding: 0.05rem 0.25rem !important;
+  }
+  
+  .inventory-table-cell.actions .btn-action {
+    font-size: 0.55rem !important;
+    padding: 0.1rem 0.3rem !important;
+  }
+  
+  .inventory-table-cell.status .status-badge {
+    font-size: 0.5rem !important;
+    padding: 0.05rem 0.3rem !important;
+  }
+}
+
 </style>
