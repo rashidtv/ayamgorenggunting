@@ -7684,7 +7684,7 @@ viewStallDetails(stall) {
         }
       },
 
-  initStallDetailChart(stallId, period = 'week') {
+ initStallDetailChart(stallId, period = 'week') {
   if (!this.$refs.stallDetailChartRef) return
 
   if (this.stallDetailChartInstance) {
@@ -7708,37 +7708,20 @@ viewStallDetails(stall) {
                period === 'custom' ? this.customDays || 30 :
                30
 
-  let grouping
-
-  if (period === 'today') {
-    grouping = 'hour'
-  } else if (period === 'week') {
-    grouping = 'day'
-  } else if (period === 'month') {
-    grouping = 'week'
-  } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
-    grouping = 'month'
-  } else if (period === 'custom') {
-    const customDays = this.customDays || 30
-    if (customDays <= 14) {
-      grouping = 'day'
-    } else if (customDays <= 60) {
-      grouping = 'week'
-    } else {
-      grouping = 'month'
-    }
-  } else {
-    grouping = 'day'
-  }
-
-  // ✅ USE sales-analytics (same as StallAdminPanel - already has Malaysia time)
-  axios.get(`${API_BASE}/sales-analytics?days=${days}&stallId=${stallId}`, {
+  // ✅ Use stall-sales-trend endpoint (designed for per-stall data)
+  const url = `${API_BASE}/stall-sales-trend?stallId=${stallId}&days=${days}&period=${period}`;
+  
+  console.log(`📊 Fetching stall sales trend for stall ${stallId}, period: ${period}`);
+  
+  axios.get(url, {
     headers: { Authorization: `Bearer ${this.token}` }
   })
   .then(response => {
-    const data = response.data || {}
-    let salesData = data.dailySales || []
-
+    const data = response.data || {};
+    let salesData = data.data || [];
+    
+    console.log(`📊 Fetched ${salesData.length} days from sales table for period: ${period}`);
+    
     if (!salesData || salesData.length === 0) {
       const option = {
         title: {
@@ -7751,6 +7734,45 @@ viewStallDetails(stall) {
       this.stallDetailChartInstance.setOption(option)
       this.stallDetailChartInstance.resize()
       return
+    }
+
+    // Check if there's any revenue
+    const hasRevenue = salesData.some(d => (d.revenue || 0) > 0)
+    if (!hasRevenue) {
+      const option = {
+        title: {
+          text: `No sales for ${this.getPeriodLabel()}`,
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+        }
+      }
+      this.stallDetailChartInstance.setOption(option)
+      this.stallDetailChartInstance.resize()
+      return
+    }
+
+    // Determine grouping
+    let grouping
+    if (period === 'today') {
+      grouping = 'hour'
+    } else if (period === 'week') {
+      grouping = 'day'
+    } else if (period === 'month') {
+      grouping = 'week'
+    } else if (period === 'quarter' || period === 'halfyear' || period === 'year') {
+      grouping = 'month'
+    } else if (period === 'custom') {
+      const customDays = this.customDays || 30
+      if (customDays <= 14) {
+        grouping = 'day'
+      } else if (customDays <= 60) {
+        grouping = 'week'
+      } else {
+        grouping = 'month'
+      }
+    } else {
+      grouping = 'day'
     }
 
     let groupedData = this.groupSalesData(salesData, grouping, period)
@@ -7780,61 +7802,6 @@ viewStallDetails(stall) {
     const revenues = groupedData.map(d => parseFloat(d.revenue) || 0)
     const items = groupedData.map(d => parseInt(d.items) || 0)
 
-    const tooltipFormatter = (params) => {
-      const index = params[0]?.dataIndex || 0
-      const revenue = parseFloat(revenues[index]) || 0
-      const itemsCount = parseInt(items[index]) || 0
-      const dateLabel = chartLabels[index] || ''
-      
-      let tooltipLabel = dateLabel
-      
-      if (period === 'week' && groupedData[index]) {
-        const fullDate = new Date(groupedData[index].date)
-        tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-          weekday: 'short', 
-          day: 'numeric', 
-          month: 'short', 
-          year: 'numeric',
-          timeZone: 'UTC'
-        })
-      }
-      
-      if (period === 'custom' && groupedData[index]) {
-        const customDays = this.customDays || 30
-        const fullDate = new Date(groupedData[index].date)
-        if (customDays <= 14) {
-          tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric',
-            timeZone: 'UTC'
-          })
-        } else if (customDays <= 60) {
-          const weekStart = this.getWeekStart(fullDate)
-          const weekEnd = new Date(weekStart)
-          weekEnd.setDate(weekEnd.getDate() + 6)
-          tooltipLabel = `${weekStart.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })} - ${weekEnd.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-        } else {
-          tooltipLabel = fullDate.toLocaleDateString('en-MY', { 
-            month: 'short', 
-            year: 'numeric',
-            timeZone: 'UTC'
-          })
-        }
-      }
-      
-      return `
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${tooltipLabel}</div>
-        <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
-          RM ${revenue.toFixed(2)}
-        </div>
-        <div style="font-size:11px;color:#64748b;">
-          ${itemsCount} items sold
-        </div>
-      `
-    }
-
     const option = {
       tooltip: {
         trigger: 'axis',
@@ -7842,8 +7809,19 @@ viewStallDetails(stall) {
         borderColor: '#e2e8f0',
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: '#1e293b', fontSize: 12, fontWeight: 400 },
-        formatter: tooltipFormatter
+        textStyle: { color: '#1e293b', fontSize: 12 },
+        formatter: (params) => {
+          const index = params[0]?.dataIndex || 0
+          const revenue = parseFloat(revenues[index]) || 0
+          const itemsCount = parseInt(items[index]) || 0
+          return `
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">${chartLabels[index] || ''}</div>
+            <div style="font-size:13px;font-weight:600;color:#F94908;margin-bottom:2px;">
+              RM ${revenue.toFixed(2)}
+            </div>
+            <div style="font-size:11px;color:#64748b;">${itemsCount} items sold</div>
+          `
+        }
       },
       grid: {
         left: '3%',
@@ -7860,7 +7838,7 @@ viewStallDetails(stall) {
           color: '#94a3b8', 
           fontSize: 11,
           fontWeight: 500,
-          rotate: (period === 'today' || period === 'month' || period === 'custom') && chartLabels.length > 7 ? 30 : 0
+          rotate: chartLabels.length > 7 ? 30 : 0
         }
       },
       yAxis: {
@@ -7870,12 +7848,6 @@ viewStallDetails(stall) {
           color: '#94a3b8', 
           fontSize: 11,
           formatter: (value) => 'RM' + value
-        },
-        name: 'Revenue (RM)',
-        nameTextStyle: { 
-          color: '#94a3b8', 
-          fontSize: 11,
-          fontWeight: 500
         }
       },
       series: [{
@@ -7900,7 +7872,17 @@ viewStallDetails(stall) {
     this.stallDetailChartInstance.resize()
   })
   .catch(err => {
-    console.error('Failed to load stall detail chart data:', err)
+    console.error('Failed to load stall sales trend:', err)
+    const option = {
+      title: {
+        text: 'Error loading sales data',
+        left: 'center',
+        top: 'center',
+        textStyle: { color: '#94a3b8', fontSize: 14, fontWeight: 400 }
+      }
+    }
+    this.stallDetailChartInstance.setOption(option)
+    this.stallDetailChartInstance.resize()
   })
 },
 
