@@ -5326,6 +5326,12 @@ body {
     justify-content: space-between !important;
     text-align: right !important;
   }
+
+    /* Fix: Menu item name should show "Item Name" not "Stall Name" */
+  .inventory-table-row .inventory-table-cell.name::before {
+    content: "Item Name: " !important;
+  }
+}
   
   /* ===== ITEMS: Label LEFT, Values RIGHT ===== */
   .inventory-table-cell.items::before {
