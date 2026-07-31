@@ -4671,13 +4671,16 @@ body {
     flex-shrink: 0;
   }
   
-  .inventory-table-cell.actions {
-  justify-content: flex-end !important;  /* ← Right align */
-  padding-top: 0.3rem;
-  border-top: 1px solid var(--border-light);
-  margin-top: 0.3rem;
+ .inventory-table-cell.actions {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-top: 0.3rem !important;
+  border-top: 1px solid var(--border-light) !important;
+  margin-top: 0.3rem !important;
   flex-wrap: wrap !important;
   gap: 0.25rem !important;
+  width: 100% !important;
 }
   .inventory-table-cell.actions::before {
     content: "Actions: ";
@@ -5370,17 +5373,6 @@ body {
   }
   
 /* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
-.inventory-table-cell.actions {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding-top: 0.3rem !important;
-  border-top: 1px solid var(--border-light) !important;
-  margin-top: 0.3rem !important;
-  flex-wrap: wrap !important;
-  gap: 0.25rem !important;
-  width: 100% !important;
-}
 
 .inventory-table-cell.actions::before {
   content: "Actions: " !important;
