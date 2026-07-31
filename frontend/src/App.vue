@@ -4689,12 +4689,13 @@ body {
   }
   
   .users-table-cell {
-    display: flex;
-    align-items: center;
-    padding: 0.2rem 0;
-    width: 100%;
-    flex-shrink: 1;
-  }
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 0.2rem 0 !important;
+  width: 100% !important;
+  flex-shrink: 1 !important;
+}
   
   .users-table-cell.checkbox {
     width: 100%;
