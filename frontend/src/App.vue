@@ -5587,4 +5587,127 @@ body {
   }
 }
 
+/* ============================================ */
+/* FIX: MENU MANAGEMENT DESKTOP TABLE LAYOUT    */
+/* ============================================ */
+
+/* Desktop (≥ 769px) - Show as proper table */
+@media (min-width: 769px) {
+  .menu-management-table .inventory-table-header {
+    display: flex !important;
+    padding: 0.5rem 0.75rem !important;
+    background: var(--background) !important;
+    border-bottom: 2px solid var(--border) !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .menu-management-table .inventory-table-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0.5rem 0.75rem !important;
+    min-width: unset !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+    background: transparent !important;
+  }
+
+  .menu-management-table .inventory-table-row:hover {
+    background: var(--background) !important;
+  }
+
+  .menu-management-table .inventory-table-cell {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.2rem 0.5rem !important;
+    flex-shrink: 0 !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    width: auto !important;
+  }
+
+  /* Hide label pseudo-elements on desktop */
+  .menu-management-table .inventory-table-cell::before {
+    display: none !important;
+  }
+
+  /* Cell widths */
+  .menu-management-table .inventory-table-cell.name {
+    flex: 1 !important;
+    min-width: 120px !important;
+  }
+
+  .menu-management-table .inventory-table-cell.price {
+    width: 80px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .menu-management-table .inventory-table-cell.category {
+    width: 100px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .menu-management-table .inventory-table-cell.recipe {
+    flex: 1.5 !important;
+    min-width: 120px !important;
+  }
+
+  .menu-management-table .inventory-table-cell.status {
+    width: 100px !important;
+    flex-shrink: 0 !important;
+    justify-content: center !important;
+  }
+
+  .menu-management-table .inventory-table-cell.actions {
+    width: 120px !important;
+    flex-shrink: 0 !important;
+    justify-content: flex-end !important;
+    gap: 0.25rem !important;
+  }
+}
+
+/* Mobile (≤ 768px) - Show as cards with labels */
+@media (max-width: 768px) {
+  .menu-management-table .inventory-table-header {
+    display: none !important;
+  }
+
+  .menu-management-table .inventory-table-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem !important;
+    min-width: unset !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 0.5rem !important;
+    background: var(--surface) !important;
+  }
+
+  .menu-management-table .inventory-table-cell {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+    flex-shrink: 1 !important;
+  }
+
+  .menu-management-table .inventory-table-cell::before {
+    content: attr(data-label) !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+}
+
 </style>

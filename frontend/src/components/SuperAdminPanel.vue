@@ -1579,6 +1579,14 @@
                       </option>
                     </select>
                   </div>
+
+                  <div class="filter-group">
+    <select v-model="menuStatusFilter" class="filter-select" @change="resetMenuPagination">
+      <option value="all">All Status</option>
+      <option value="active">🟢 Active</option>
+      <option value="inactive">⚪ Inactive</option>
+    </select>
+  </div>
                   
                   <div class="filter-actions">
                     <button @click="clearMenuFilters" class="btn-modern secondary small">
@@ -1882,11 +1890,7 @@
                           {{ cat === 'all' ? 'All Categories' : cat }}
                         </option>
                         </select>
-                         <select v-model="menuStatusFilter" class="filter-select" @change="resetMenuPagination">
-                         <option value="all">All Status</option>
-                          <option value="active">🟢 Active</option>
-                      <option value="inactive">⚪ Inactive</option>
-                      </select>
+                        
                     </div>
 
                     <div class="filter-actions">
@@ -5883,12 +5887,13 @@ formatHourLabel(dateStr) {
       },
 
       clearMenuFilters() {
-        this.menuSearch = ''
-        this.menuCategoryFilter = 'all'
-        this.menuCurrentPage = 1
-        this.selectedMenuItems = []
-        this.selectAllMenuItems = false
-      },
+  this.menuSearch = ''
+  this.menuCategoryFilter = 'all'
+  this.menuStatusFilter = 'all'  // ← Add this line
+  this.menuCurrentPage = 1
+  this.selectedMenuItems = []
+  this.selectAllMenuItems = false
+},
 
       async bulkAssignMenusToStalls() {
         if (this.selectedMenuItems.length === 0) {
