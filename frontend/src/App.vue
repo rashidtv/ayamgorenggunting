@@ -5369,29 +5369,30 @@ body {
     text-align: right !important;
   }
   
-  /* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
-  .inventory-table-cell.actions::before {
-    content: "Actions: " !important;
-    font-weight: 600 !important;
-    font-size: 0.7rem !important;
-    color: var(--text-secondary) !important;
-    min-width: 60px !important;
-    flex-shrink: 0 !important;
-    text-align: left !important;
-  }
-  
-  .inventory-table-cell.actions {
-    justify-content: space-between !important;
-    padding-top: 0.3rem !important;
-    border-top: 1px solid var(--border-light) !important;
-    margin-top: 0.3rem !important;
-    flex-wrap: wrap !important;
-    gap: 0.25rem !important;
-  }
-  
-  .inventory-table-cell.actions .btn-action {
-    text-align: right !important;
-  }
+ /* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
+.inventory-table-cell.actions::before {
+  content: "Actions: " !important;
+  font-weight: 600 !important;
+  font-size: 0.7rem !important;
+  color: var(--text-secondary) !important;
+  min-width: 60px !important;
+  flex-shrink: 0 !important;
+  text-align: left !important;
+}
+
+.inventory-table-cell.actions {
+  justify-content: space-between !important;
+  padding-top: 0.3rem !important;
+  border-top: 1px solid var(--border-light) !important;
+  margin-top: 0.3rem !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+  width: 100% !important;  /* ← Make sure this is included */
+}
+
+.inventory-table-cell.actions .btn-action {
+  text-align: right !important;
+}
 }
 
 /* ===== EVEN SMALLER SCREENS ===== */
