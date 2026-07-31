@@ -3944,7 +3944,7 @@
       },
 
       // ===== MENU =====
-      filteredMenuItemsForManagement() {
+     filteredMenuItemsForManagement() {
   let items = this.menuItems
   if (this.menuSearch) {
     const search = this.menuSearch.toLowerCase()
@@ -4428,17 +4428,26 @@
       async toggleMenuItemStatus(item) {
   try {
     const newStatus = item.is_active !== false ? false : true;
-    await axios.put(`${API_BASE}/menu/${encodeURIComponent(item.item_name)}`, {
-      ...item,
-      is_active: newStatus
-    }, {
+    
+    // Get current menu item data
+    const payload = {
+      item_name: item.item_name,
+      price: item.price,
+      description: item.description || '',
+      category: item.category || 'Main',
+      recipe: item.recipe || [],
+      is_active: newStatus  // ← Add this field
+    };
+    
+    await axios.put(`${API_BASE}/menu/${encodeURIComponent(item.item_name)}`, payload, {
       headers: { Authorization: `Bearer ${this.token}` }
     });
+    
     this.$emit('show-notification', `${item.item_name} ${newStatus ? 'activated' : 'deactivated'}`, 'success');
     await this.loadMenuItems();
   } catch (err) {
     console.error('Toggle menu status error:', err);
-    this.$emit('show-notification', 'Failed to update menu status', 'error');
+    this.$emit('show-notification', 'Failed to update menu status: ' + (err.response?.data?.error || err.message), 'error');
   }
 },
 

@@ -5551,4 +5551,40 @@ body {
   font-size: 0.85rem !important;
 }
 
+/* ============================================ */
+/* MENU MANAGEMENT - STATUS COLUMN              */
+/* ============================================ */
+
+.menu-management-table .inventory-table-header .inventory-table-cell.status {
+  width: 100px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.menu-management-table .inventory-table-row .inventory-table-cell.status {
+  width: 100px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .menu-management-item .inventory-table-cell.status::before {
+    content: "Status: " !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    color: var(--text-secondary) !important;
+    min-width: 60px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+  
+  .menu-management-item .inventory-table-cell.status {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.2rem 0 !important;
+    width: 100% !important;
+  }
+}
+
 </style>
