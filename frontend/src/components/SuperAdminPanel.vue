@@ -3719,17 +3719,23 @@
 
       // ===== STALLS =====
       filteredStallsList() {
-        return this.stalls.filter(stall => {
-          const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
-                                stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
-          const matchesState = this.stateFilter === 'All States' || 
-                              (stall.state || '') === this.stateFilter
-          const matchesStatus = this.stallStatusFilter === 'all' || 
-                                (this.stallStatusFilter === 'active' && stall.is_active) ||
-                                (this.stallStatusFilter === 'inactive' && !stall.is_active)
-          return matchesSearch && matchesState && matchesStatus
-        })
-      },
+  if (!this.stalls || this.stalls.length === 0) {
+    console.log('📊 filteredStallsList: No stalls available');
+    return []
+  }
+  const filtered = this.stalls.filter(stall => {
+    const matchesSearch = stall.name.toLowerCase().includes(this.stallSearch.toLowerCase()) ||
+                          stall.code.toLowerCase().includes(this.stallSearch.toLowerCase())
+    const matchesState = this.stateFilter === 'All States' || 
+                         (stall.state || '') === this.stateFilter
+    const matchesStatus = this.stallStatusFilter === 'all' || 
+                          (this.stallStatusFilter === 'active' && stall.is_active) ||
+                          (this.stallStatusFilter === 'inactive' && !stall.is_active)
+    return matchesSearch && matchesState && matchesStatus
+  })
+  console.log(`📊 filteredStallsList: ${filtered.length} stalls (total: ${this.stalls.length})`);
+  return filtered
+},
       stallTotalPages() {
         if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
           return 1
