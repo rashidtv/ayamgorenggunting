@@ -1626,10 +1626,18 @@
                         </span>
                         <span v-else class="text-muted">No recipe</span>
                       </div>
-                      <div class="inventory-table-cell actions" data-label="Actions">
-                        <button @click="openEditMenuModal(item)" class="btn-action" title="Edit">✏️</button>
-                        <button @click="deleteMenuItem(item.item_name)" class="btn-action danger" title="Delete">🗑️</button>
-                      </div>
+                      <div class="inventory-table-cell status" data-label="Status">
+  <span :class="['status-badge', item.is_active !== false ? 'active' : 'inactive']">
+    {{ item.is_active !== false ? '🟢 Active' : '⚪ Inactive' }}
+  </span>
+</div>
+<div class="inventory-table-cell actions" data-label="Actions">
+  <button @click="toggleMenuItemStatus(item)" class="btn-action" :title="item.is_active !== false ? 'Deactivate' : 'Activate'">
+    {{ item.is_active !== false ? '⏸️' : '▶️' }}
+  </button>
+  <button @click="openEditMenuModal(item)" class="btn-action" title="Edit">✏️</button>
+  <button @click="deleteMenuItem(item.item_name)" class="btn-action danger" title="Delete">🗑️</button>
+</div>
                     </div>
                   </div>
 
@@ -1873,6 +1881,11 @@
                         <option v-for="cat in menuCategories" :key="cat" :value="cat">
                           {{ cat === 'all' ? 'All Categories' : cat }}
                         </option>
+                        </select>
+                         <select v-model="menuStatusFilter" class="filter-select" @change="resetMenuPagination">
+                         <option value="all">All Status</option>
+                          <option value="active">🟢 Active</option>
+                      <option value="inactive">⚪ Inactive</option>
                       </select>
                     </div>
 
@@ -3384,6 +3397,7 @@
 
     data() {
       return {
+        menuStatusFilter: 'all',
         // ===== TABS =====
         activeTab: 'dashboard',
         tabs: [
@@ -3931,20 +3945,27 @@
 
       // ===== MENU =====
       filteredMenuItemsForManagement() {
-        let items = this.menuItems
-        if (this.menuSearch) {
-          const search = this.menuSearch.toLowerCase()
-          items = items.filter(item => 
-            item.item_name.toLowerCase().includes(search)
-          )
-        }
-        if (this.menuCategoryFilter !== 'all') {
-          items = items.filter(item => 
-            (item.category || 'Main') === this.menuCategoryFilter
-          )
-        }
-        return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
-      },
+  let items = this.menuItems
+  if (this.menuSearch) {
+    const search = this.menuSearch.toLowerCase()
+    items = items.filter(item => 
+      item.item_name.toLowerCase().includes(search)
+    )
+  }
+  if (this.menuCategoryFilter !== 'all') {
+    items = items.filter(item => 
+      (item.category || 'Main') === this.menuCategoryFilter
+    )
+  }
+  // ✅ Add status filter
+  if (this.menuStatusFilter !== 'all') {
+    const isActive = this.menuStatusFilter === 'active'
+    items = items.filter(item => 
+      (item.is_active !== false) === isActive
+    )
+  }
+  return items.sort((a, b) => a.item_name.localeCompare(b.item_name))
+},
       paginatedMenuItemsForManagement() {
         const start = (this.menuCurrentPage - 1) * this.menuItemsPerPage
         const end = start + this.menuItemsPerPage
@@ -4403,6 +4424,23 @@
 
     // ===== METHODS =====
     methods: {
+
+      async toggleMenuItemStatus(item) {
+  try {
+    const newStatus = item.is_active !== false ? false : true;
+    await axios.put(`${API_BASE}/menu/${encodeURIComponent(item.item_name)}`, {
+      ...item,
+      is_active: newStatus
+    }, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    this.$emit('show-notification', `${item.item_name} ${newStatus ? 'activated' : 'deactivated'}`, 'success');
+    await this.loadMenuItems();
+  } catch (err) {
+    console.error('Toggle menu status error:', err);
+    this.$emit('show-notification', 'Failed to update menu status', 'error');
+  }
+},
 
       // =============================================
       // TIME ZONE HELPERS (Malaysia Time)

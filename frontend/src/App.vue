@@ -5522,4 +5522,33 @@ body {
   min-width: 100px !important;
 }
 
+/* ============================================ */
+/* MENU MANAGEMENT - FONT SIZE FIXES            */
+/* ============================================ */
+
+/* Fix Price and Category font sizes on mobile */
+@media (max-width: 768px) {
+  .menu-management-table .inventory-table-row .inventory-table-cell.price {
+    font-size: 0.8rem !important;
+  }
+  
+  .menu-management-table .inventory-table-row .inventory-table-cell.category {
+    font-size: 0.8rem !important;
+  }
+  
+  .menu-management-table .inventory-table-row .inventory-table-cell.recipe .recipe-tag {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Desktop - Consistent font sizes */
+.menu-management-table .inventory-table-row .inventory-table-cell.price {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+}
+
+.menu-management-table .inventory-table-row .inventory-table-cell.category {
+  font-size: 0.85rem !important;
+}
+
 </style>
