@@ -4672,12 +4672,13 @@ body {
   }
   
   .inventory-table-cell.actions {
-    justify-content: flex-start;
-    padding-top: 0.3rem;
-    border-top: 1px solid var(--border-light);
-    margin-top: 0.3rem;
-  }
-  
+  justify-content: flex-end !important;  /* ← Right align */
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--border-light);
+  margin-top: 0.3rem;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+}
   .inventory-table-cell.actions::before {
     content: "Actions: ";
     font-weight: 600;

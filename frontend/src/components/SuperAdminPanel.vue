@@ -1087,14 +1087,14 @@
                           ⚠️ Low Stock
                         </span>
                       </div>
-                      <div class="inventory-table-cell actions">
-                        <button @click="openEditStallModal(stall)" class="btn-action" title="Edit" :disabled="selectedStalls.length > 0">
-                          ✏️ Edit
-                        </button>
-                        <button @click="toggleStallStatus(stall)" class="btn-action" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
-                          {{ stall.is_active ? '⏸️ Deactivate' : '▶️ Activate' }}
-                        </button>
-                      </div>
+                      <div class="inventory-table-cell actions" style="justify-content: flex-end !important;">
+  <button @click="openEditStallModal(stall)" class="btn-action" title="Edit" :disabled="selectedStalls.length > 0">
+    ✏️ Edit
+  </button>
+  <button @click="toggleStallStatus(stall)" class="btn-action" :title="stall.is_active ? 'Deactivate' : 'Activate'" :disabled="selectedStalls.length > 0">
+    {{ stall.is_active ? '⏸️ Deactivate' : '▶️ Activate' }}
+  </button>
+</div>
                     </div>
                   </div>
 
