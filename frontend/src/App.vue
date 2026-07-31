@@ -5331,7 +5331,6 @@ body {
   .inventory-table-row .inventory-table-cell.name::before {
     content: "Item Name: " !important;
   }
-}
   
   /* ===== ITEMS: Label LEFT, Values RIGHT ===== */
   .inventory-table-cell.items::before {
@@ -5408,7 +5407,7 @@ body {
 .inventory-table-cell.actions .btn-action:first-child {
   margin-left: auto !important;
 }
-}
+
 
 /* ===== EVEN SMALLER SCREENS ===== */
 @media (max-width: 480px) {
@@ -5493,6 +5492,7 @@ body {
 .users-table-wrapper .users-table-row .users-table-cell .btn-action {
   font-size: 0.6rem !important;
   padding: 0.1rem 0.3rem;
+}
 }
 
 </style>
