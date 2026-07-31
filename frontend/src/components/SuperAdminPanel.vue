@@ -3944,7 +3944,7 @@
       },
 
       // ===== MENU =====
-     filteredMenuItemsForManagement() {
+filteredMenuItemsForManagement() {
   let items = this.menuItems
   if (this.menuSearch) {
     const search = this.menuSearch.toLowerCase()
@@ -3957,10 +3957,11 @@
       (item.category || 'Main') === this.menuCategoryFilter
     )
   }
-  // ✅ Add status filter
+  // ✅ FIX: Status filter should use is_active field
   if (this.menuStatusFilter !== 'all') {
     const isActive = this.menuStatusFilter === 'active'
     items = items.filter(item => 
+      // Handle both boolean and undefined cases
       (item.is_active !== false) === isActive
     )
   }
@@ -4014,11 +4015,12 @@
         return this.selectedMenuItems.length
       },
       menuStats() {
-        const total = this.menuItems.length
-        const active = this.menuItems.filter(item => item.price > 0).length
-        const inactive = total - active
-        return { total, active, inactive }
-      },
+  const total = this.menuItems.length;
+  // Use is_active field properly (default to true if undefined)
+  const active = this.menuItems.filter(item => item.is_active !== false).length;
+  const inactive = total - active;
+  return { total, active, inactive };
+},
       menuCategories() {
         const categories = new Set()
         this.menuItems.forEach(item => {
@@ -4445,6 +4447,13 @@
     
     this.$emit('show-notification', `${item.item_name} ${newStatus ? 'activated' : 'deactivated'}`, 'success');
     await this.loadMenuItems();
+    
+    // ✅ Update local menuItems state directly
+    const index = this.menuItems.findIndex(m => m.item_name === item.item_name);
+    if (index !== -1) {
+      this.menuItems[index].is_active = newStatus;
+    }
+    
   } catch (err) {
     console.error('Toggle menu status error:', err);
     this.$emit('show-notification', 'Failed to update menu status: ' + (err.response?.data?.error || err.message), 'error');

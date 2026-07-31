@@ -1657,16 +1657,32 @@ app.get('/api/stall-sales-trend', authenticateToken, async (req, res) => {
 
 app.get('/api/menu', authenticateToken, async (req, res) => {
   try {
+    // Check if is_active column exists
     const columnCheck = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
-      WHERE table_name = 'menu_items' AND column_name = 'image'
+      WHERE table_name = 'menu_items' AND column_name = 'is_active'
     `);
     
     let query;
     if (columnCheck.rows.length > 0) {
+      // Include is_active in the query
       query = `
-        SELECT m.item_name, m.price, m.description, m.category, m.image,
+        SELECT m.item_name, m.price, m.description, m.category, m.image, m.is_active,
+          COALESCE(
+            (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
+             FROM recipes r
+             WHERE r.item_name = m.item_name),
+            '[]'
+          ) as recipe
+        FROM menu_items m
+        GROUP BY m.item_name, m.price, m.description, m.category, m.image, m.is_active
+        ORDER BY m.item_name
+      `;
+    } else {
+      // Fallback - is_active column doesn't exist yet
+      query = `
+        SELECT m.item_name, m.price, m.description, m.category, m.image, true as is_active,
           COALESCE(
             (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
              FROM recipes r
@@ -1675,19 +1691,6 @@ app.get('/api/menu', authenticateToken, async (req, res) => {
           ) as recipe
         FROM menu_items m
         GROUP BY m.item_name, m.price, m.description, m.category, m.image
-        ORDER BY m.item_name
-      `;
-    } else {
-      query = `
-        SELECT m.item_name, m.price, m.description, m.category,
-          COALESCE(
-            (SELECT json_agg(json_build_object('material_name', r.material_name, 'quantity_used', r.quantity_used))
-             FROM recipes r
-             WHERE r.item_name = m.item_name),
-            '[]'
-          ) as recipe
-        FROM menu_items m
-        GROUP BY m.item_name, m.price, m.description, m.category
         ORDER BY m.item_name
       `;
     }
@@ -1754,7 +1757,7 @@ app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
   if (!isCompanyAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   
   const { itemName } = req.params;
-  const { price, description, category, recipe, image } = req.body;
+  const { price, description, category, recipe, image, is_active } = req.body;
   
   if (image && image.length > 5 * 1024 * 1024) {
     return res.status(413).json({ error: 'Image too large. Maximum size is 5MB.' });
@@ -1764,21 +1767,55 @@ app.put('/api/menu/:itemName', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
     
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (price !== undefined) {
+      updates.push(`price = $${paramCount++}`);
+      values.push(price);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramCount++}`);
+      values.push(description);
+    }
+    if (category !== undefined) {
+      updates.push(`category = $${paramCount++}`);
+      values.push(category);
+    }
+    if (image !== undefined) {
+      updates.push(`image = $${paramCount++}`);
+      values.push(image || null);
+    }
+    if (is_active !== undefined) {
+      updates.push(`is_active = $${paramCount++}`);
+      values.push(is_active);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    values.push(itemName);
     await client.query(
       `UPDATE menu_items 
-       SET price = $1, description = $2, category = $3, image = COALESCE($4, image)
-       WHERE item_name = $5`,
-      [price, description || '', category || 'Main', image || null, itemName]
+       SET ${updates.join(', ')}
+       WHERE item_name = $${paramCount}`,
+      values
     );
     
-    await client.query('DELETE FROM recipes WHERE item_name = $1', [itemName]);
-    if (recipe && recipe.length > 0) {
-      for (const ingredient of recipe) {
-        if (ingredient.material_name && ingredient.quantity_used) {
-          await client.query(
-            'INSERT INTO recipes (item_name, material_name, quantity_used) VALUES ($1, $2, $3)',
-            [itemName, ingredient.material_name, ingredient.quantity_used]
-          );
+    // Update recipe if provided
+    if (recipe !== undefined) {
+      await client.query('DELETE FROM recipes WHERE item_name = $1', [itemName]);
+      if (recipe && recipe.length > 0) {
+        for (const ingredient of recipe) {
+          if (ingredient.material_name && ingredient.quantity_used) {
+            await client.query(
+              'INSERT INTO recipes (item_name, material_name, quantity_used) VALUES ($1, $2, $3)',
+              [itemName, ingredient.material_name, ingredient.quantity_used]
+            );
+          }
         }
       }
     }
