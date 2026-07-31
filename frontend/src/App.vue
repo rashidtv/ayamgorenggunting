@@ -5435,4 +5435,58 @@ body {
   }
 }
 
+/* ============================================ */
+/* USERS TAB - CONSISTENT FONT SIZES            */
+/* ============================================ */
+
+/* All user table cells - consistent size */
+.users-table-wrapper .users-table-row .users-table-cell {
+  font-size: 0.8rem !important;
+}
+
+/* Username - same size */
+.users-table-wrapper .users-table-row .users-table-cell .username-text {
+  font-size: 0.8rem !important;
+  font-weight: 500;
+}
+
+/* Full name - same size */
+.users-table-wrapper .users-table-row .users-table-cell .fullname {
+  font-size: 0.8rem !important;
+}
+
+/* Company - ensure same size */
+.users-table-wrapper .users-table-row .users-table-cell .company {
+  font-size: 0.8rem !important;
+}
+
+/* Role badges - smaller */
+.users-table-wrapper .users-table-row .users-table-cell .role-badge {
+  font-size: 0.65rem !important;
+  padding: 0.1rem 0.5rem;
+}
+
+/* Stall badges - smallest */
+.users-table-wrapper .users-table-row .users-table-cell .stall-badge {
+  font-size: 0.6rem !important;
+  padding: 0.05rem 0.3rem;
+}
+
+/* Status badges - consistent */
+.users-table-wrapper .users-table-row .users-table-cell .status-badge {
+  font-size: 0.6rem !important;
+  padding: 0.05rem 0.3rem;
+}
+
+/* No stalls text */
+.users-table-wrapper .users-table-row .users-table-cell .no-stalls {
+  font-size: 0.6rem !important;
+}
+
+/* Action buttons - smaller */
+.users-table-wrapper .users-table-row .users-table-cell .btn-action {
+  font-size: 0.6rem !important;
+  padding: 0.1rem 0.3rem;
+}
+
 </style>
