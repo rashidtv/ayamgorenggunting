@@ -3743,10 +3743,25 @@
         return Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
       },
       paginatedStallsList() {
-        const start = (this.stallCurrentPage - 1) * this.itemsPerPage
-        const end = start + this.itemsPerPage
-        return this.filteredStallsList.slice(start, end)
-      },
+  if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
+    console.log('📊 paginatedStallsList: No filtered stalls');
+    return []
+  }
+  
+  // ✅ Ensure stallCurrentPage is valid
+  const totalPages = Math.ceil(this.filteredStallsList.length / this.itemsPerPage) || 1
+  if (this.stallCurrentPage > totalPages) {
+    console.log(`📊 Resetting stallCurrentPage from ${this.stallCurrentPage} to ${totalPages}`);
+    this.stallCurrentPage = totalPages
+  }
+  
+  const start = (this.stallCurrentPage - 1) * this.itemsPerPage
+  const end = Math.min(start + this.itemsPerPage, this.filteredStallsList.length)
+  
+  const paginated = this.filteredStallsList.slice(start, end)
+  console.log(`📊 paginatedStallsList: ${paginated.length} stalls (page ${this.stallCurrentPage} of ${totalPages})`);
+  return paginated
+},
       stallStartIndex() {
         if (!this.filteredStallsList || this.filteredStallsList.length === 0) {
           return 0
@@ -5006,21 +5021,26 @@ formatHourLabel(dateStr) {
       // STALLS
       // =============================================
       async loadStalls() {
-        try {
-          const res = await axios.get(`${API_BASE}/stalls/all`, { 
-            headers: { Authorization: `Bearer ${this.token}` } 
-          })
-          this.stalls = res.data.map(stall => ({
-            ...stall,
-            company_name: stall.company_name || 'N/A',
-            user_count: stall.user_count || 0
-          }))
-          console.log('✅ Stalls loaded:', this.stalls.length)
-        } catch (err) {
-          console.error('Failed to load stalls:', err)
-          this.stalls = []
-        }
-      },
+  try {
+    const res = await axios.get(`${API_BASE}/stalls/all`, { 
+      headers: { Authorization: `Bearer ${this.token}` } 
+    })
+    this.stalls = res.data.map(stall => ({
+      ...stall,
+      company_name: stall.company_name || 'N/A',
+      user_count: stall.user_count || 0
+    }))
+    console.log('✅ Stalls loaded:', this.stalls.length)
+    
+    // ✅ Reset pagination when stalls load
+    this.stallCurrentPage = 1
+    this.currentPage = 1
+    
+  } catch (err) {
+    console.error('Failed to load stalls:', err)
+    this.stalls = []
+  }
+},
 
       async saveStall() {
         try {
