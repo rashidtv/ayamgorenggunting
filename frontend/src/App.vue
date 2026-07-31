@@ -5352,9 +5352,9 @@ body {
   .inventory-table-cell.status .status-badge {
     text-align: right !important;
   }
-  
-/* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
 
+
+/* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
 .inventory-table-cell.actions {
   display: flex !important;
   justify-content: space-between !important;
@@ -5379,6 +5379,11 @@ body {
 
 .inventory-table-cell.actions .btn-action {
   text-align: right !important;
+  flex-shrink: 0 !important;
+}
+
+/* Push the first button (Edit) to the right */
+.inventory-table-cell.actions .btn-action:first-child {
   margin-left: auto !important;
 }
 }
