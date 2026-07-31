@@ -1593,15 +1593,15 @@
                 </div>
 
                 <div v-else>
-                  <div class="inventory-table-wrapper">
-                    <!-- ===== FIXED: 5 Separate Headers ===== -->
-                    <div class="inventory-table-header">
-                      <div class="inventory-table-cell name">Item Name</div>
-                      <div class="inventory-table-cell price">Price</div>
-                      <div class="inventory-table-cell category">Category</div>
-                      <div class="inventory-table-cell recipe">Recipe</div>
-                      <div class="inventory-table-cell actions">Actions</div>
-                    </div>
+                  <div class="inventory-table-wrapper menu-management-table">
+    <!-- ===== FIXED: 5 Separate Headers ===== -->
+    <div class="inventory-table-header">
+      <div class="inventory-table-cell name">Item Name</div>
+      <div class="inventory-table-cell price">Price</div>
+      <div class="inventory-table-cell category">Category</div>
+      <div class="inventory-table-cell recipe">Recipe</div>
+      <div class="inventory-table-cell actions">Actions</div>
+    </div>
 
                     <div 
                       v-for="(item, index) in paginatedMenuItemsForManagement" 

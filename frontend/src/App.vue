@@ -5495,4 +5495,31 @@ body {
 }
 }
 
+/* ============================================ */
+/* MENU MANAGEMENT - OVERRIDE INVENTORY CLASSES */
+/* ============================================ */
+
+/* Mobile - Fix menu item name label */
+@media (max-width: 768px) {
+  .menu-management-table .inventory-table-row .inventory-table-cell.name::before {
+    content: "Item Name: " !important;
+  }
+}
+
+/* Desktop - Fix header column widths */
+.menu-management-table .inventory-table-header .inventory-table-cell.price {
+  width: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+.menu-management-table .inventory-table-header .inventory-table-cell.category {
+  width: 100px !important;
+  flex-shrink: 0 !important;
+}
+
+.menu-management-table .inventory-table-header .inventory-table-cell.recipe {
+  flex: 1.5 !important;
+  min-width: 100px !important;
+}
+
 </style>
