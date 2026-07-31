@@ -5369,7 +5369,19 @@ body {
     text-align: right !important;
   }
   
- /* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
+/* ===== ACTIONS: Label LEFT, Buttons RIGHT ===== */
+.inventory-table-cell.actions {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-top: 0.3rem !important;
+  border-top: 1px solid var(--border-light) !important;
+  margin-top: 0.3rem !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+  width: 100% !important;
+}
+
 .inventory-table-cell.actions::before {
   content: "Actions: " !important;
   font-weight: 600 !important;
@@ -5380,18 +5392,9 @@ body {
   text-align: left !important;
 }
 
-.inventory-table-cell.actions {
-  justify-content: space-between !important;
-  padding-top: 0.3rem !important;
-  border-top: 1px solid var(--border-light) !important;
-  margin-top: 0.3rem !important;
-  flex-wrap: wrap !important;
-  gap: 0.25rem !important;
-  width: 100% !important;  /* ← Make sure this is included */
-}
-
 .inventory-table-cell.actions .btn-action {
   text-align: right !important;
+  margin-left: auto !important;
 }
 }
 
