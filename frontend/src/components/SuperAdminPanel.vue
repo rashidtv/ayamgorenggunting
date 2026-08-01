@@ -1608,6 +1608,7 @@
       <div class="inventory-table-cell price">Price</div>
       <div class="inventory-table-cell category">Category</div>
       <div class="inventory-table-cell recipe">Recipe</div>
+      <div class="inventory-table-cell status">Status</div>  <!-- ← ADD THIS -->
       <div class="inventory-table-cell actions">Actions</div>
     </div>
 
