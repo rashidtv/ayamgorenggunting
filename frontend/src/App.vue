@@ -720,7 +720,6 @@ export default {
 }
 </script>
 
-<style>
 /* ============================================ */
 /* GLOBAL CSS VARIABLES                         */
 /* ============================================ */
@@ -5588,74 +5587,151 @@ body {
 }
 
 /* ============================================ */
-/* FIX: MENU MANAGEMENT DESKTOP TABLE LAYOUT    */
+/* MENU MANAGEMENT TABLE - DESKTOP ALIGNMENT    */
 /* ============================================ */
 
-/* Desktop (≥ 769px) - Show as proper table */
+/* Ensure menu management table uses correct layout */
+.menu-management-table {
+  width: 100%;
+}
+
+/* ===== DESKTOP (≥ 769px) ===== */
 @media (min-width: 769px) {
+  /* ===== OVERRIDE INVENTORY TABLE STYLES FOR MENU MANAGEMENT ===== */
+  .menu-management-table .inventory-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ===== TABLE HEADER - Force display ===== */
   .menu-management-table .inventory-table-header {
     display: flex !important;
-    padding: 0.5rem 0.75rem !important;
+    padding: 0.6rem 0.75rem !important;
     background: var(--background) !important;
     border-bottom: 2px solid var(--border) !important;
     font-weight: 600 !important;
     font-size: 0.7rem !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.3px !important;
+    letter-spacing: 0.5px !important;
     color: var(--text-secondary) !important;
+    min-width: 750px !important;
   }
 
+  .menu-management-table .inventory-table-header .inventory-table-cell {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* ===== HEADER CELL WIDTHS ===== */
+  .menu-management-table .inventory-table-header .inventory-table-cell.name {
+    flex: 1 !important;
+    min-width: 130px !important;
+    text-align: left !important;
+  }
+
+  .menu-management-table .inventory-table-header .inventory-table-cell.price {
+    width: 80px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+
+  .menu-management-table .inventory-table-header .inventory-table-cell.category {
+    width: 100px !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+  }
+
+  .menu-management-table .inventory-table-header .inventory-table-cell.recipe {
+    flex: 1.3 !important;
+    min-width: 130px !important;
+    text-align: left !important;
+  }
+
+  .menu-management-table .inventory-table-header .inventory-table-cell.status {
+    width: 100px !important;
+    flex-shrink: 0 !important;
+    text-align: center !important;
+  }
+
+  .menu-management-table .inventory-table-header .inventory-table-cell.actions {
+    width: 130px !important;
+    flex-shrink: 0 !important;
+    text-align: right !important;
+    justify-content: flex-end !important;
+  }
+
+  /* ===== TABLE ROWS - Override mobile card styles ===== */
   .menu-management-table .inventory-table-row {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     padding: 0.5rem 0.75rem !important;
-    min-width: unset !important;
+    min-width: 750px !important;
     border: none !important;
     border-bottom: 1px solid var(--border-light) !important;
     border-radius: 0 !important;
     margin-bottom: 0 !important;
     background: transparent !important;
+    transition: background 0.2s ease;
   }
 
   .menu-management-table .inventory-table-row:hover {
     background: var(--background) !important;
   }
 
+  .menu-management-table .inventory-table-row:last-child {
+    border-bottom: none !important;
+  }
+
+  /* ===== CELLS - Override mobile styles ===== */
   .menu-management-table .inventory-table-cell {
     display: flex !important;
     align-items: center !important;
-    padding: 0.2rem 0.5rem !important;
+    padding: 0.15rem 0.3rem !important;
     flex-shrink: 0 !important;
     flex-direction: row !important;
     justify-content: flex-start !important;
     width: auto !important;
+    font-size: 0.85rem !important;
+    color: var(--text) !important;
+    line-height: 1.4 !important;
   }
 
-  /* Hide label pseudo-elements on desktop */
+  /* ===== HIDE LABELS ON DESKTOP ===== */
   .menu-management-table .inventory-table-cell::before {
     display: none !important;
   }
 
-  /* Cell widths */
+  /* ===== CELL WIDTHS - Match header ===== */
   .menu-management-table .inventory-table-cell.name {
     flex: 1 !important;
-    min-width: 120px !important;
+    min-width: 130px !important;
   }
 
   .menu-management-table .inventory-table-cell.price {
     width: 80px !important;
     flex-shrink: 0 !important;
+    font-weight: 600 !important;
+    color: var(--primary) !important;
   }
 
   .menu-management-table .inventory-table-cell.category {
     width: 100px !important;
     flex-shrink: 0 !important;
+    color: var(--text-secondary) !important;
   }
 
   .menu-management-table .inventory-table-cell.recipe {
-    flex: 1.5 !important;
-    min-width: 120px !important;
+    flex: 1.3 !important;
+    min-width: 130px !important;
   }
 
   .menu-management-table .inventory-table-cell.status {
@@ -5665,19 +5741,99 @@ body {
   }
 
   .menu-management-table .inventory-table-cell.actions {
-    width: 120px !important;
+    width: 130px !important;
     flex-shrink: 0 !important;
     justify-content: flex-end !important;
     gap: 0.25rem !important;
   }
+
+  /* ===== RECIPE TAGS ===== */
+  .menu-management-table .recipe-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.2rem !important;
+    align-items: center !important;
+  }
+
+  .menu-management-table .recipe-tag {
+    display: inline-block !important;
+    background: var(--background) !important;
+    padding: 0.05rem 0.4rem !important;
+    border-radius: 10px !important;
+    font-size: 0.65rem !important;
+    border: 1px solid var(--border-light) !important;
+    white-space: nowrap !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .menu-management-table .text-muted {
+    color: var(--text-tertiary) !important;
+    font-size: 0.75rem !important;
+    font-style: italic !important;
+  }
+
+  /* ===== STATUS BADGE ===== */
+  .menu-management-table .status-badge {
+    padding: 0.1rem 0.5rem !important;
+    border-radius: 12px !important;
+    font-size: 0.65rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+  }
+
+  .menu-management-table .status-badge.active {
+    background: #d1fae5 !important;
+    color: #059669 !important;
+  }
+
+  .menu-management-table .status-badge.inactive {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+  }
+
+  /* ===== ACTION BUTTONS ===== */
+  .menu-management-table .btn-action {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.15rem 0.4rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.65rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    min-width: 28px !important;
+    height: 28px !important;
+  }
+
+  .menu-management-table .btn-action:hover:not(:disabled) {
+    background: var(--background) !important;
+    border-color: var(--primary) !important;
+    color: var(--text) !important;
+  }
+
+  .menu-management-table .btn-action.danger:hover {
+    background: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+  }
+
+  .menu-management-table .btn-action:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+  }
 }
 
-/* Mobile (≤ 768px) - Show as cards with labels */
+/* ===== MOBILE (≤ 768px) ===== */
 @media (max-width: 768px) {
+  /* ===== HIDE HEADER ON MOBILE ===== */
   .menu-management-table .inventory-table-header {
     display: none !important;
   }
 
+  /* ===== ROWS AS CARDS ===== */
   .menu-management-table .inventory-table-row {
     display: flex !important;
     flex-direction: column !important;
@@ -5690,6 +5846,7 @@ body {
     background: var(--surface) !important;
   }
 
+  /* ===== CELLS WITH LABELS ===== */
   .menu-management-table .inventory-table-cell {
     display: flex !important;
     justify-content: space-between !important;
@@ -5697,6 +5854,7 @@ body {
     padding: 0.2rem 0 !important;
     width: 100% !important;
     flex-shrink: 1 !important;
+    font-size: 0.85rem !important;
   }
 
   .menu-management-table .inventory-table-cell::before {
@@ -5708,6 +5866,115 @@ body {
     flex-shrink: 0 !important;
     text-align: left !important;
   }
+
+  /* ===== ACTIONS ON MOBILE ===== */
+  .menu-management-table .inventory-table-cell.actions {
+    justify-content: flex-start !important;
+    gap: 0.25rem !important;
+    padding-top: 0.3rem !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin-top: 0.3rem !important;
+  }
+
+  .menu-management-table .inventory-table-cell.actions::before {
+    content: "Actions: " !important;
+  }
+
+  .menu-management-table .inventory-table-cell.status {
+    justify-content: space-between !important;
+  }
+
+  /* ===== RECIPE TAGS ON MOBILE ===== */
+  .menu-management-table .recipe-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.2rem !important;
+    justify-content: flex-end !important;
+  }
+
+  .menu-management-table .recipe-tag {
+    font-size: 0.6rem !important;
+    padding: 0.05rem 0.3rem !important;
+  }
+
+  .menu-management-table .text-muted {
+    font-size: 0.7rem !important;
+    color: var(--text-tertiary) !important;
+  }
 }
 
-</style>
+/* ===== EXTRA SMALL (≤ 480px) ===== */
+@media (max-width: 480px) {
+  .menu-management-table .inventory-table-cell {
+    font-size: 0.75rem !important;
+  }
+
+  .menu-management-table .inventory-table-cell::before {
+    font-size: 0.6rem !important;
+    min-width: 50px !important;
+  }
+
+  .menu-management-table .inventory-table-cell .stall-name {
+    font-size: 0.75rem !important;
+  }
+
+  .menu-management-table .inventory-table-cell.price {
+    font-size: 0.75rem !important;
+  }
+
+  .menu-management-table .inventory-table-cell.category {
+    font-size: 0.75rem !important;
+  }
+
+  .menu-management-table .recipe-tag {
+    font-size: 0.55rem !important;
+    padding: 0.05rem 0.25rem !important;
+  }
+
+  .menu-management-table .btn-action {
+    font-size: 0.55rem !important;
+    padding: 0.1rem 0.3rem !important;
+    min-width: 24px !important;
+    height: 24px !important;
+  }
+
+  .menu-management-table .status-badge {
+    font-size: 0.55rem !important;
+    padding: 0.05rem 0.3rem !important;
+  }
+}
+
+/* ============================================ */
+/* MENU MANAGEMENT - STATUS FILTER DROPDOWN    */
+/* ============================================ */
+
+/* Ensure status filter dropdown is visible and properly styled */
+.menu-management-filter .filter-group {
+  min-width: 120px !important;
+}
+
+.menu-management-filter .filter-group select {
+  min-width: 120px !important;
+  padding: 0.4rem 0.75rem !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.85rem !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  cursor: pointer !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+}
+
+/* Mobile fix for filter bar */
+@media (max-width: 768px) {
+  .menu-management-filter .filter-group {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+
+  .menu-management-filter .filter-group select {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+}
