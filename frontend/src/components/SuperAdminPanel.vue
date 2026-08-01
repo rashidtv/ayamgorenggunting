@@ -468,7 +468,6 @@
                 </button>
               </div>
             </div>
-            <div class="card-modern-body">
               <div class="card-modern-body inv-container">
               <div class="inventory-stats-grid">
                 <div class="stat-chip">
