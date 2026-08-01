@@ -469,7 +469,7 @@
               </div>
             </div>
             <div class="card-modern-body">
-              
+              <div class="card-modern-body inv-container">
               <div class="inventory-stats-grid">
                 <div class="stat-chip">
                   <span class="stat-chip-label">Total Stalls</span>
@@ -668,7 +668,7 @@
           </div>
           
           <!-- ===== SHIFT HISTORY SUB-TAB ===== -->
-          <div v-if="stallSubTab === 'shifts'" class="sub-tab-content">
+          <div v-if="stallSubTab === 'shifts'" class="sub-tab-content shift-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -952,7 +952,7 @@
           </div>
           
           <!-- ===== STALL MANAGEMENT SUB-TAB ===== -->
-          <div v-if="stallSubTab === 'management'" class="sub-tab-content">
+            <div v-if="stallSubTab === 'management'" class="sub-tab-content stall-mgmt-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -1131,7 +1131,7 @@
           </div>
           
           <!-- ===== STALL PERFORMANCE SUB-TAB ===== -->
-          <div v-else-if="stallSubTab === 'performance'" class="sub-tab-content">
+          <div v-if="stallSubTab === 'performance'" class="sub-tab-content stall-perf-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -1311,7 +1311,7 @@
                 <button @click="openUserModal()" class="btn-modern primary">+ New User</button>
               </div>
             </div>
-            <div class="card-modern-body">
+            <div class="card-modern-body user-container">
               
               <div class="users-stats-grid">
                 <div class="stat-chip">
@@ -1532,7 +1532,7 @@
           </div>
           
           <!-- ===== MENU MANAGEMENT SUB-TAB ===== -->
-          <div v-if="menuSubTab === 'management'" class="sub-tab-content">
+          <div v-if="menuSubTab === 'management'" class="sub-tab-content menu-mgmt-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -1763,7 +1763,7 @@
           </div>
           
           <!-- ===== MENU ASSIGNMENT SUB-TAB ===== -->
-          <div v-if="menuSubTab === 'assignment'" class="sub-tab-content">
+          <div v-if="menuSubTab === 'assignment'" class="sub-tab-content menu-assign-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -2098,7 +2098,7 @@
           </div>
           
           <!-- ===== MENU PERFORMANCE SUB-TAB ===== -->
-          <div v-else-if="menuSubTab === 'performance'" class="sub-tab-content">
+          <div v-if="menuSubTab === 'performance'" class="sub-tab-content menu-perf-container">
             <div class="card-modern">
               <div class="card-modern-header">
                 <div>
@@ -2279,7 +2279,7 @@
                 <button @click="exportRevenueData" class="btn-modern primary small">📊 Export</button>
               </div>
             </div>
-            <div class="card-modern-body">
+            <div class="card-modern-body rev-container">
               
               <div class="revenue-stats-grid">
                 <div class="stat-chip revenue">
@@ -2462,7 +2462,7 @@
                 <button @click="exportTransactions" class="btn-modern primary small">📊 Export</button>
               </div>
             </div>
-            <div class="card-modern-body">
+            <div class="card-modern-body tx-container">
               
               <div class="transactions-stats-grid">
                 <div class="stat-chip">
@@ -2708,7 +2708,7 @@
                 ⟳ Refresh
               </button>
             </div>
-            <div class="card-modern-body">
+            <div class="card-modern-body comp-container">
               <div class="filter-bar">
                 <div class="filter-search">
                   <input 

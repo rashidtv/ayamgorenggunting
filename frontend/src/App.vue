@@ -5710,4 +5710,250 @@ body {
   }
 }
 
+/* ============================================ */
+/* SCOPED TABLE STYLES FOR ALL TABS & SUB-TABS  */
+/* ============================================ */
+
+/* ============================================ */
+/* 1. INVENTORY TAB - inv-container             */
+/* ============================================ */
+.inv-container .inventory-table-row .inventory-table-cell.name::before {
+  content: "Stall Name: " !important;
+}
+.inv-container .inventory-table-cell.checkbox::before {
+  content: "Select: " !important;
+}
+.inv-container .inventory-table-cell.state::before {
+  content: "State: " !important;
+}
+.inv-container .inventory-table-cell.items::before {
+  content: "Items: " !important;
+}
+.inv-container .inventory-table-cell.status::before {
+  content: "Status: " !important;
+}
+.inv-container .inventory-table-cell.actions::before {
+  content: "Actions: " !important;
+}
+
+/* ============================================ */
+/* 2. STALL MANAGEMENT - stall-mgmt-container   */
+/* ============================================ */
+.stall-mgmt-container .inventory-table-row .inventory-table-cell.name::before {
+  content: "Stall Name: " !important;
+}
+.stall-mgmt-container .inventory-table-cell.checkbox::before {
+  content: "Select: " !important;
+}
+.stall-mgmt-container .inventory-table-cell.state::before {
+  content: "State: " !important;
+}
+.stall-mgmt-container .inventory-table-cell.status::before {
+  content: "Status: " !important;
+}
+.stall-mgmt-container .inventory-table-cell.actions::before {
+  content: "Actions: " !important;
+}
+
+/* ============================================ */
+/* 3. STALL PERFORMANCE - stall-perf-container  */
+/* ============================================ */
+.stall-perf-container .performance-table-row .performance-table-rank::before {
+  content: "Rank: " !important;
+}
+.stall-perf-container .performance-table-row .performance-table-name::before {
+  content: "Stall: " !important;
+}
+.stall-perf-container .performance-table-row .performance-table-revenue::before {
+  content: "Revenue: " !important;
+}
+.stall-perf-container .performance-table-row .performance-table-status::before {
+  content: "Status: " !important;
+}
+.stall-perf-container .performance-table-row .performance-table-details::before {
+  content: "Details: " !important;
+}
+
+/* ============================================ */
+/* 4. SHIFT HISTORY - shift-container           */
+/* ============================================ */
+.shift-container .shift-history-table-row .shift-history-date::before {
+  content: "Date: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-stall::before {
+  content: "Stall: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-revenue::before {
+  content: "Revenue: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-transactions::before {
+  content: "Orders: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-float::before {
+  content: "Float: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-variance::before {
+  content: "Variance: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-inventory::before {
+  content: "Inventory Used: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-status::before {
+  content: "Status: " !important;
+}
+.shift-container .shift-history-table-row .shift-history-details::before {
+  content: "Details: " !important;
+}
+
+/* ============================================ */
+/* 5. USERS - user-container                    */
+/* ============================================ */
+.user-container .users-table-row .users-table-cell.username::before {
+  content: "Username: " !important;
+}
+.user-container .users-table-row .users-table-cell.fullname::before {
+  content: "Full Name: " !important;
+}
+.user-container .users-table-row .users-table-cell.role::before {
+  content: "Role: " !important;
+}
+.user-container .users-table-row .users-table-cell.company::before {
+  content: "Company: " !important;
+}
+.user-container .users-table-row .users-table-cell.stalls::before {
+  content: "Stalls: " !important;
+}
+.user-container .users-table-row .users-table-cell.actions::before {
+  content: "Actions: " !important;
+}
+.user-container .users-table-cell.checkbox::before {
+  content: "Select: " !important;
+}
+
+/* ============================================ */
+/* 6. MENU MANAGEMENT - menu-mgmt-container     */
+/* ============================================ */
+.menu-mgmt-container .inventory-table-row .inventory-table-cell.name::before {
+  content: "Item Name: " !important;
+}
+.menu-mgmt-container .inventory-table-cell.price::before {
+  content: "Price: " !important;
+}
+.menu-mgmt-container .inventory-table-cell.category::before {
+  content: "Category: " !important;
+}
+.menu-mgmt-container .inventory-table-cell.recipe::before {
+  content: "Recipe: " !important;
+}
+.menu-mgmt-container .inventory-table-cell.status::before {
+  content: "Status: " !important;
+}
+.menu-mgmt-container .inventory-table-cell.actions::before {
+  content: "Actions: " !important;
+}
+
+/* ============================================ */
+/* 7. MENU ASSIGNMENT - menu-assign-container   */
+/* ============================================ */
+.menu-assign-container .assignment-item .assignment-item-checkbox::before {
+  content: "Select: " !important;
+}
+.menu-assign-container .assignment-item .assignment-item-name::before {
+  content: "Item: " !important;
+}
+.menu-assign-container .assignment-item .assignment-item-price::before {
+  content: "Price: " !important;
+}
+.menu-assign-container .assignment-item .assignment-item-category::before {
+  content: "Category: " !important;
+}
+
+/* ============================================ */
+/* 8. MENU PERFORMANCE - menu-perf-container    */
+/* ============================================ */
+.menu-perf-container .performance-table-row .performance-table-rank::before {
+  content: "Rank: " !important;
+}
+.menu-perf-container .performance-table-row .performance-table-name::before {
+  content: "Menu: " !important;
+}
+.menu-perf-container .performance-table-row .performance-table-revenue::before {
+  content: "Revenue: " !important;
+}
+.menu-perf-container .performance-table-row .performance-table-status::before {
+  content: "Status: " !important;
+}
+.menu-perf-container .performance-table-row .performance-table-details::before {
+  content: "Details: " !important;
+}
+
+/* ============================================ */
+/* 9. REVENUE - rev-container                   */
+/* ============================================ */
+.rev-container .revenue-table-row .revenue-table-rank::before {
+  content: "Rank: " !important;
+}
+.rev-container .revenue-table-row .revenue-table-name::before {
+  content: "Stall: " !important;
+}
+.rev-container .revenue-table-row .revenue-table-state::before {
+  content: "State: " !important;
+}
+.rev-container .revenue-table-row .revenue-table-revenue::before {
+  content: "Revenue: " !important;
+}
+.rev-container .revenue-table-row .revenue-table-status::before {
+  content: "Status: " !important;
+}
+.rev-container .revenue-table-row .revenue-table-details::before {
+  content: "Details: " !important;
+}
+
+/* ============================================ */
+/* 10. TRANSACTIONS - tx-container              */
+/* ============================================ */
+.tx-container .revenue-table-row .revenue-table-rank::before {
+  content: "Order: " !important;
+}
+.tx-container .revenue-table-row .revenue-table-name::before {
+  content: "Stall: " !important;
+}
+.tx-container .revenue-table-row .revenue-table-revenue::before {
+  content: "Amount: " !important;
+}
+.tx-container .revenue-table-row .revenue-table-status::before {
+  content: "Status: " !important;
+}
+.tx-container .revenue-table-row .revenue-table-state::before {
+  content: "Date: " !important;
+}
+.tx-container .revenue-table-row .revenue-table-details::before {
+  content: "Details: " !important;
+}
+
+/* ============================================ */
+/* 11. REGISTRATIONS - reg-container            */
+/* ============================================ */
+.reg-container .registrations-table-row .registrations-table-cell.company::before {
+  content: "Company: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.contact::before {
+  content: "Contact: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.email::before {
+  content: "Email: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.phone::before {
+  content: "Phone: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.ic::before {
+  content: "IC Number: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.status::before {
+  content: "Status: " !important;
+}
+.reg-container .registrations-table-row .registrations-table-cell.actions::before {
+  content: "Actions: " !important;
+}
+
 </style>
