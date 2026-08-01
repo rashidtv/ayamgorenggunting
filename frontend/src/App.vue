@@ -5253,8 +5253,8 @@ body {
     color: var(--text-secondary) !important;
     min-width: 60px !important;
     flex-shrink: 0 !important;
-    text-align: left !important;      /* ← FORCE LEFT ALIGN */
-    align-self: flex-start !important; /* ← Keep label at top */
+    text-align: left !important;
+    align-self: flex-start !important;
   }
   
   /* ===== ALL CELLS: Label left, Value right ===== */
