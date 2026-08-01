@@ -5710,29 +5710,4 @@ body {
   }
 }
 
-/* Fix vertical alignment for menu management table cells */
-.menu-management-table .inventory-table-row {
-  align-items: center !important;
-}
-
-.menu-management-table .inventory-table-cell {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  min-height: 44px !important;
-}
-
-/* Center Status badge vertically */
-.menu-management-table .inventory-table-cell.status {
-  justify-content: center !important;
-}
-
-/* Keep recipe tags vertically centered */
-.menu-management-table .recipe-tags {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
-  gap: 0.2rem !important;
-}
-
 </style>
